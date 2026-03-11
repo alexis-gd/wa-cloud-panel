@@ -28,6 +28,11 @@
         table { width: 100%; border-collapse: collapse; font-size: .85rem; }
         th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
         th { background: #f8f9fa; font-weight: 600; }
+        .token-input { font-family: monospace; font-size: .78rem; }
+        .text-muted { font-size: .8rem; color: #888; margin-top: 4px; }
+        .alert { padding: 10px 14px; border-radius: 5px; font-size: .85rem; margin-top: 10px; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-error   { background: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
@@ -58,6 +63,35 @@
             @{{ sending ? 'Enviando...' : 'Enviar' }}
         </button>
         <div v-if="sendResult" class="result">@{{ JSON.stringify(sendResult, null, 2) }}</div>
+    </div>
+
+    <!-- Configuración del token -->
+    <div class="card">
+        <h2>🔑 Token de acceso WhatsApp</h2>
+        <div v-if="tokenStatus" style="margin-bottom:12px">
+            <span :class="'badge badge-' + (tokenStatus.token_valid ? 'ok' : 'error')">
+                @{{ tokenStatus.token_valid ? '✓ Token válido — ' + tokenStatus.token_user : '✗ Token inválido' }}
+            </span>
+            <span v-if="!tokenStatus.token_valid" style="margin-left:8px;font-size:.8rem;color:#721c24">
+                @{{ tokenStatus.token_error }}
+            </span>
+        </div>
+        <label>Pegar nuevo token (desde Meta Developers → Configuración de la API)</label>
+        <input
+            v-model="tokenForm.token"
+            class="token-input"
+            type="password"
+            placeholder="EAAUz..."
+            @focus="$event.target.type='text'"
+            @blur="$event.target.type='password'"
+        />
+        <p class="text-muted">El token temporal dura ~24h. Para producción usa un System User Token (no expira).</p>
+        <button @click="updateToken" :disabled="tokenSaving" style="margin-top:8px">
+            @{{ tokenSaving ? 'Guardando...' : 'Guardar token' }}
+        </button>
+        <div v-if="tokenResult" :class="'alert alert-' + (tokenResult.error ? 'error' : 'success')">
+            @{{ tokenResult.error ?? tokenResult.message }}
+        </div>
     </div>
 
     <!-- Logs -->

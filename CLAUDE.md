@@ -2,9 +2,22 @@
 
 ## Qué es esto
 Sistema de envío masivo de WhatsApp para empresa de préstamos (México).
+**Caso de uso: MARKETING/PUBLICIDAD** — promocionar el servicio de préstamos a prospectos (ej: "¿Necesitas dinero? Préstamos rápidos, aplica ahora"). NO es cobranza ni recordatorios de pago (eso sería Stage futuro si aplica).
 Objetivo: 200,000 contactos/mes vía WhatsApp Cloud API oficial de Meta.
 Desarrollado en etapas progresivas con Laravel. Este es el proyecto principal (no el prototipo).
 Prototipo original (solo referencia): C:\xampp5\htdocs\wa-cloud-panel-v1\
+
+## Principio de diseño: Sistema a prueba de errores del cliente
+El cliente usará el sistema sin supervisión técnica. Cada feature debe diseñarse asumiendo que el usuario NO conoce las políticas de Meta. El sistema debe hacer imposible (o muy difícil) cometer errores que causen suspensión.
+
+Reglas concretas para todo desarrollo futuro:
+1. **Validar antes de enviar** — nunca enviar a números inválidos, mal formateados o en lista negra
+2. **Warm-up automático** — el sistema impone los límites diarios, el cliente no puede subirlos manualmente más allá del tier actual
+3. **Horario forzado** — el scheduler solo corre en horario permitido, no hay override manual
+4. **Opt-out inmediato** — si un contacto responde STOP/NO/BAJA, se bloquea automáticamente y nunca más se le envía
+5. **Plantillas solo aprobadas** — el selector de plantillas solo muestra las que tienen status "Approved" en Meta; nunca permitir escribir nombres a mano en producción
+6. **Feedback visible** — el panel siempre muestra el estado del número (calidad, tier actual, límite diario disponible)
+7. **Sin acceso a configuración crítica** — el cliente no ve ni edita tokens, phone IDs, ni configuración de Meta directamente
 
 ## Propuesta técnica completa
 Documento: C:\xampp5\htdocs\wa-cloud-panel-v1\propuesta-whatsapp-sms-masivo.docx
@@ -46,8 +59,8 @@ Puntos clave del documento:
 - [x] `routes/api.php` con todas las rutas Stage 1
 - [x] `resources/views/app.blade.php` (shell Vue)
 - [x] `public/assets/js/app.js` (Vue 3 CDN: health, send-test, logs)
-- [ ] Revisar políticas Meta anti-baneo + duración de token (PRÓXIMA SESIÓN)
-- [ ] Verificación end-to-end completa (primer mensaje real)
+- [x] Revisar políticas Meta anti-baneo + duración de token
+- [x] Verificación end-to-end completa (primer mensaje real enviado 2026-03-11)
 
 ### Stage 2 (futuro): Contactos + Campañas + Queue
 - [ ] Upload Excel (PhpSpreadsheet)

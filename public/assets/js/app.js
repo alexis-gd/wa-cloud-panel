@@ -9,15 +9,21 @@ const headers = {
 Vue.createApp({
     data() {
         return {
-            health:     null,
-            logs:       [],
-            sending:    false,
-            sendResult: null,
+            health:      null,
+            logs:        [],
+            sending:     false,
+            sendResult:  null,
+            tokenStatus: null,
+            tokenSaving: false,
+            tokenResult: null,
             form: {
                 template_name: 'hello_world',
                 language_code: 'en_US',
                 to:            '',
                 body_vars_raw: '',
+            },
+            tokenForm: {
+                token: '',
             },
         };
     },
@@ -25,6 +31,7 @@ Vue.createApp({
     async mounted() {
         await this.checkHealth();
         await this.loadStats();
+        await this.checkTokenStatus();
     },
 
     methods: {
@@ -37,6 +44,27 @@ Vue.createApp({
             const res  = await fetch(`${BASE}/dashboard/stats`, { headers });
             const data = await res.json();
             this.logs  = data.recent_messages ?? [];
+        },
+
+        async checkTokenStatus() {
+            const res = await fetch(`${BASE}/settings/token-status`, { headers });
+            this.tokenStatus = await res.json();
+        },
+
+        async updateToken() {
+            this.tokenSaving = true;
+            this.tokenResult = null;
+
+            const res = await fetch(`${BASE}/settings/token`, {
+                method:  'POST',
+                headers,
+                body: JSON.stringify({ token: this.tokenForm.token }),
+            });
+
+            this.tokenResult = await res.json();
+            this.tokenSaving = false;
+            this.tokenForm.token = '';
+            await this.checkTokenStatus();
         },
 
         async sendTest() {

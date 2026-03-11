@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/xampp5/htdocs/wa-cloud-panel-v1/templates/utility/**)",
+      "Read(//c/xampp5/htdocs/wa-cloud-panel-v1/**)"
+    ]
+  }
+}

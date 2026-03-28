@@ -4,7 +4,7 @@
 |---|---|---|---|
 | Backend | Laravel 10 + PHP 8.1 | Symfony (overkill), CodeIgniter (sin queues), Node (no lo domina dev) | Queue, scheduler, Eloquent `encrypted` cast, middleware, rate limiting built-in |
 | Frontend S1 | Vue 3 CDN | React (build obligatorio), Blade puro (sin reactividad) | Sin npm, 3 tabs no justifican build step |
-| Frontend S2+ | Vue 3 + Vite | — | Componentes `.vue`, hot reload, tree shaking |
+| Frontend S2+ | Vue 3 + Vite + **PrimeVue v4** | Vuetify (Material genérico), Naive UI, shadcn-vue | Componentes ricos (tablas, charts, sidebar), tema Aura moderno no-AdminLTE, ideal para dashboard empresarial |
 | DB | MySQL 8 | PostgreSQL (innecesario), SQLite (no escala) | Dev lo domina, soporte Laravel primera clase, suficiente para 200K contactos |
 | Tests BD | MySQL (`wa_cloud_panel_test`) | SQLite :memory: (diferencias de comportamiento con MySQL en prod) | Mismo motor dev=test=prod, XAMPP ya corre MySQL |
 | Queue S1 | `database` driver | Redis (necesita instalación extra) | Zero setup, suficiente para desarrollo |

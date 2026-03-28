@@ -30,3 +30,5 @@ Ver [docs/arquitectura-referencia.md](docs/arquitectura-referencia.md) para:
 - Rutas API disponibles
 - Decisiones de arquitectura
 - Comandos artisan de referencia
+
+"Lee el CLAUDE.md y los archivos en .claude/rules/ para entender el contexto"

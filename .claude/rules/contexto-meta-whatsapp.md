@@ -1,0 +1,121 @@
+# Contexto Meta / WhatsApp Cloud API — Conocimiento acumulado
+
+Este archivo viaja con el repo. Contiene decisiones, lecciones aprendidas y reglas
+de negocio descubiertas durante el desarrollo. Leerlo antes de tocar cualquier cosa
+relacionada con Meta, envíos o plantillas.
+
+---
+
+## Arquitectura de números — Decisión de diseño
+
+- **Múltiples números = estrategia planeada**, no parche
+- Cada número tiene warm-up controlado por el sistema (no configurable por el cliente)
+- El balanceo entre números es automático según tier y calidad de cada uno
+- El cliente NO elige qué número envía — el sistema decide
+- Nunca usar el número oficial del cliente para campañas — solo para contacto directo
+- Si un número baja de calidad: circuit breaker lo pausa, no se elimina
+
+## Horario de envíos — Fijo e inamovible
+
+- Ventana: **9:00 AM – 10:00 PM `America/Mexico_City` (CST / UTC-6)**
+- Cubre todas las zonas horarias de México de forma segura:
+  - Baja California (PST/UTC-8): recibe entre 7AM–8PM ✅
+  - Sonora/Sinaloa (MST/UTC-7): recibe entre 8AM–9PM ✅
+  - Resto de México (CST/UTC-6): recibe entre 9AM–10PM ✅
+- Sin detección por LADA — ventana única es suficiente
+- Solo L-V (lunes a viernes)
+- Sin override manual por el cliente — el scheduler es forzado por el sistema
+
+## Tiers de Meta y warm-up
+
+| Tier | Límite diario | Cómo subir |
+|---|---|---|
+| 1 (sandbox/inicio) | 250 conversaciones/día | Verificar negocio en Meta |
+| 2 | 1,000 conversaciones/día | Automático al llegar a 1k en Tier 1 con buena calidad |
+| 3 | 10,000 conversaciones/día | Automático al llegar a 10k en Tier 2 |
+| 4 | Ilimitado | Automático |
+
+- **Warm-up gradual es obligatorio** — subir directo a miles de mensajes = ban
+- El sistema impone límites diarios por tier automáticamente, el cliente no los ve ni edita
+
+## Token de acceso — Reglas críticas
+
+- **Token temporal**: dura ~24h, se invalida al cerrar sesión en FB (error 467)
+- **System User Token**: no expira (o expira en 60 días si se configura así) — obligatorio antes de producción
+- Cómo crear: `business.facebook.com` → Configuración del negocio → Usuarios → Usuarios del sistema
+- Permisos necesarios: solo `whatsapp_business_messaging`
+- El token vive en `phone_numbers.token` en BD, cifrado con `cast: 'encrypted'` (AES-256)
+- El `.env WA_TOKEN` NO afecta los envíos — solo es referencia
+- Nunca loguear token completo — máximo últimos 4 caracteres
+- Actualizar token: pantalla Configuración del panel, o `php artisan wa:update-token TOKEN`
+
+## Cuenta del cliente vs cuenta de desarrollo
+
+- **Dev/Staging (hasta Stage 3)**: cuenta Meta del dev con número sandbox `+1 555-146-8965`
+- **Producción (Stage 3)**: cuenta Meta del cliente con número dedicado verificado
+- La cuenta del cliente necesita Business Verification antes de producción (3–10 días hábiles)
+- System User Token del cliente se crea junto con el onboarding de producción
+- Número para campañas: SIM dedicada nueva (Telcel/AT&T), nunca el número oficial del cliente
+
+## Plantillas — Reglas y aprendizajes
+
+- Someter plantillas a revisión **no afecta el score** — solo los rechazos repetidos del mismo contenido
+- Categoría siempre: **Marketing** (no Utility — eso es para transaccionales)
+- Idioma: `es_MX`
+- **CAT promedio informativo es OBLIGATORIO por ley en México (CONDUSEF)** para publicidad financiera
+  - Sin CAT, Meta puede rechazar la plantilla de servicios financieros
+  - Formato: `CAT promedio informativo X% sin IVA`
+- Siempre incluir opt-out — preferiblemente como botón ("No, gracias") no solo texto
+- Solo mostrar plantillas con `status = approved` en el panel — nunca input libre
+- El panel nunca permite escribir nombre de plantilla a mano
+
+## Validación de contactos al importar
+
+- Flujo: formato E.164 → deduplicar en BD → cruzar opt-out → normalizar México (+52) → aceptar/rechazar
+- NO usar API de Meta para pre-validar existencia (costo + riesgo de scraping)
+- Números inexistentes se detectan en envío: `error_code 131026` → marcar inválido, no reintentar
+- Formato México: Meta acepta `529231311146` y normaliza a `5219231311146` (wa_id)
+- Mostrar reporte al importar: aceptados / duplicados / formato inválido
+
+## Códigos de error Meta — Qué hacer
+
+| Código | Significado | Acción |
+|---|---|---|
+| `131026` | Número no existe en WhatsApp | Marcar inválido, no reintentar |
+| `131048` | Spam rate limit | **PARAR envíos mínimo 1 hora** |
+| `368` | Cuenta bloqueada temporalmente | **PARAR TODO, revisar Business Manager** |
+| `467` | Token expirado | Renovar token antes de continuar |
+| `470` | Plantilla no aprobada | Revisar status en Meta |
+
+## Opt-out — Reglas inquebrantables
+
+- Palabras que disparan opt-out automático: STOP, NO, BAJA, CANCELAR, NO GRACIAS
+- Opt-out es inmediato e irreversible por el cliente
+- Contactos con opt-out se marcan en BD, **no se eliminan** (auditoría)
+- Si alguien responde opt-out, nunca más se le envía — el sistema lo bloquea antes del envío
+
+## Causa del baneo anterior (v1) — No repetir
+
+- Usaba `WA_TOKEN` como `hub_verify_token` (misma variable — bug de seguridad)
+- Auto-responder genérico a CUALQUIER mensaje entrante (patrón de spam para Meta)
+- Sin validación `X-Hub-Signature-256` en webhook POST
+- Token hardcodeado en readme.md (exposición pública)
+- Sin rate limiting ni warm-up
+
+## Referencia competencia — DiDi Préstamos
+
+- DiDi quema números por spam masivo sin segmentación → rota 7+ números
+- Nosotros usamos múltiples números como arquitectura planeada (balanceo), no como parche
+- Lo bueno de DiDi: botones opt-out integrados, CAT visible, imágenes de marca, montos concretos
+- Lo malo de DiDi: bases frías sin segmentación, frecuencia excesiva, números quemados
+
+## Alertas Meta a ignorar (no urgentes)
+
+- "API de mensajes de marketing para WhatsApp" — API diferente, más cara, no la usamos
+- "Eventos automáticos" — analytics de Meta, no necesario
+- "Libreta de contactos" — para chat entrante, Stage 3
+
+## Cambios críticos Meta pendientes
+
+- **Usernames como identificadores (deadline junio 2026)**: el campo `wa_id` y upload de contactos
+  debe soportar usernames (`@username`) además de números E.164

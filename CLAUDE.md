@@ -36,6 +36,8 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | Estilo PHP/Vue/JS | [.claude/rules/estilo-codigo.md](.claude/rules/estilo-codigo.md) |
 | Seguridad inquebrantable | [.claude/rules/seguridad.md](.claude/rules/seguridad.md) |
 | Convenciones API REST | [.claude/rules/convenciones-api.md](.claude/rules/convenciones-api.md) |
+| **Protección cuenta Meta (PRIORIDAD MÁXIMA)** | [.claude/rules/proteccion-cuenta-meta.md](.claude/rules/proteccion-cuenta-meta.md) |
+| Contexto Meta/WhatsApp — decisiones y lecciones | [.claude/rules/contexto-meta-whatsapp.md](.claude/rules/contexto-meta-whatsapp.md) |
 
 ## Comandos
 

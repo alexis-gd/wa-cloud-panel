@@ -14,15 +14,17 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - Todo en HTTPS con SSL
 - **Momento wow**: "Ya tengo mi sistema en línea, con mi login, ya subí mis contactos"
 - *Nota interna: el VPS queda montado desde aquí — nos ahorra estrés después*
+- ⚠️ **Los envíos NO van en producción en esta entrega** — solo carga de contactos
 
 ### Entrega 2 — Demo WhatsApp en vivo
 
+- Demo corre en **local** (máquina del dev), no en VPS del cliente
 - Selecciona plantilla aprobada
 - Le pedimos SU número de celular en la demo
 - Le damos "enviar" → le llega el WhatsApp a su celular en ese momento
 - Ve en el panel que se envió y entregó
 - **Momento wow**: "Me llegó al celular, es real, esto funciona"
-- *Nota interna: demo controlada. Business Manager, System User y plantillas aprobadas listas antes*
+- *Nota interna: demo controlada. Usar cuenta Meta del dev hasta Stage 3. Business Manager, System User y plantillas aprobadas listas antes*
 
 ### Entrega 3 — Métricas + inteligencia del sistema
 
@@ -54,7 +56,10 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [ ] Dashboard con conteos básicos
 - [ ] Job `SendWhatsAppMessage` con queue database
 - [ ] CampaignController: crear, listar, ejecutar
-- [ ] Scheduler horario legal L-V 7AM-10PM CST
+- [ ] Scheduler horario legal: **ventana 9AM-10PM America/Mexico_City (CST/UTC-6)**
+  - Garantiza mínimo 7AM para Baja California (PST) y máximo 10PM para Veracruz (CST)
+  - Sin detección por LADA — ventana única cubre todo México de forma segura
+  - Sin override manual por el cliente
 - [ ] Warm-up limits automáticos por tier
 - [ ] Tests Feature: health, templates, webhook, contacts, campaigns
 - [ ] ⚠️ Paralelo: crear/aprobar plantillas Marketing en Meta (1-48 hrs)

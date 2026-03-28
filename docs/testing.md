@@ -46,14 +46,29 @@ Http::fake([
 
 ## Configuración de base de datos para tests
 
-En `phpunit.xml` (ya incluido en Laravel):
+En `phpunit.xml` se usa **MySQL con BD separada** (`wa_cloud_panel_test`):
 
 ```xml
-<env name="DB_CONNECTION" value="sqlite"/>
-<env name="DB_DATABASE" value=":memory:"/>
+<env name="DB_CONNECTION" value="mysql"/>
+<env name="DB_HOST" value="127.0.0.1"/>
+<env name="DB_PORT" value="3306"/>
+<env name="DB_DATABASE" value="wa_cloud_panel_test"/>
+<env name="DB_USERNAME" value="root"/>
+<env name="DB_PASSWORD" value=""/>
 ```
 
-Esto crea una BD en RAM para tests — rápida y aislada, sin tocar MySQL de desarrollo.
+**Por qué MySQL y no SQLite en memoria:**
+- Mismo motor que desarrollo y producción — sin sorpresas de compatibilidad
+- XAMPP ya corre MySQL, no hay costo adicional
+- SQLite tiene diferencias de comportamiento con tipos de columna, JSON y algunas migraciones
+
+**Setup requerido (una sola vez):**
+```sql
+CREATE DATABASE wa_cloud_panel_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+Hacerlo desde phpMyAdmin o la consola de XAMPP.
+
+**`RefreshDatabase`:** Los tests que tocan modelos (TemplateTest, WebhookTest) usan este trait — corre todas las migraciones en `wa_cloud_panel_test` antes de cada test y las deshace al terminar. Los tests que solo verifican conexión (HealthTest) no lo necesitan.
 
 ## Convenciones de nombres
 

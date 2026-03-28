@@ -6,6 +6,7 @@
 | Frontend S1 | Vue 3 CDN | React (build obligatorio), Blade puro (sin reactividad) | Sin npm, 3 tabs no justifican build step |
 | Frontend S2+ | Vue 3 + Vite | — | Componentes `.vue`, hot reload, tree shaking |
 | DB | MySQL 8 | PostgreSQL (innecesario), SQLite (no escala) | Dev lo domina, soporte Laravel primera clase, suficiente para 200K contactos |
+| Tests BD | MySQL (`wa_cloud_panel_test`) | SQLite :memory: (diferencias de comportamiento con MySQL en prod) | Mismo motor dev=test=prod, XAMPP ya corre MySQL |
 | Queue S1 | `database` driver | Redis (necesita instalación extra) | Zero setup, suficiente para desarrollo |
 | Queue S2 | Redis + Horizon | — | RAM-based para 200K/mes, Horizon para monitoreo |
 | Hosting | VPS Ubuntu 22.04 + Nginx | cPanel (no soporta queues, Redis, Supervisor) | Obligatorio para `queue:work` persistente |

@@ -1,17 +1,19 @@
 <?php
 
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\WebhookController;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 // Health check — sin autenticación
 Route::get('/health', function () {
     try {
-        \DB::connection()->getPdo();
+        DB::connection()->getPdo();
         $db = 'ok';
-    } catch (\Exception $e) {
+    } catch (\Exception) {
         $db = 'error';
     }
     return response()->json(['status' => 'ok', 'db' => $db]);
@@ -28,4 +30,10 @@ Route::middleware(['api_key', 'throttle:60,1'])->group(function () {
     Route::get('/dashboard/stats',     [DashboardController::class, 'stats']);
     Route::get('/settings/token-status', [SettingsController::class, 'tokenStatus']);
     Route::post('/settings/token',       [SettingsController::class, 'updateToken']);
+
+    // Contactos — Stage 2
+    Route::get('/contacts',          [ContactController::class, 'index']);
+    Route::get('/contacts/stats',    [ContactController::class, 'stats']);
+    Route::post('/contacts/upload',  [ContactController::class, 'upload']);
+    Route::delete('/contacts/{id}',  [ContactController::class, 'optOut']);
 });

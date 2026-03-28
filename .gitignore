@@ -17,3 +17,5 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+CLAUDE.local.md
+/.claude/settings.local.json

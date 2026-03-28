@@ -12,7 +12,16 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Procesar queue de mensajes WhatsApp — solo L-V, 9AM-10PM hora México (CST/UTC-6)
+        // Cubre todo México: Baja California (PST) recibe desde 7AM, Veracruz (CST) hasta 10PM.
+        // Sin override manual — el scheduler es la única fuente de verdad.
+        $schedule->command('queue:work --stop-when-empty --tries=3')
+            ->everyMinute()
+            ->timezone('America/Mexico_City')
+            ->weekdays()
+            ->between('9:00', '22:00')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

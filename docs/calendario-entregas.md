@@ -54,14 +54,14 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] Upload Excel (PhpSpreadsheet) — parcialmente hecho
 - [x] ContactController: index, stats, upload, optOut
 - [ ] Dashboard con conteos básicos
-- [ ] Job `SendWhatsAppMessage` con queue database
-- [ ] CampaignController: crear, listar, ejecutar
-- [ ] Scheduler horario legal: **ventana 9AM-10PM America/Mexico_City (CST/UTC-6)**
+- [x] Job `SendWhatsAppMessage` con queue database
+- [x] CampaignController: crear, listar, ejecutar
+- [x] Scheduler horario legal: **ventana 9AM-10PM America/Mexico_City (CST/UTC-6)**
   - Garantiza mínimo 7AM para Baja California (PST) y máximo 10PM para Veracruz (CST)
   - Sin detección por LADA — ventana única cubre todo México de forma segura
   - Sin override manual por el cliente
-- [ ] Warm-up limits automáticos por tier
-- [ ] Tests Feature: health, templates, webhook, contacts, campaigns
+- [x] Warm-up limits automáticos por tier (en el Job, daily_limit por número)
+- [x] Tests Feature: health, templates, webhook, contacts, campaigns (20 tests, 41 assertions)
 - [ ] ⚠️ Paralelo: crear/aprobar plantillas Marketing en Meta (1-48 hrs)
 - [ ] ⚠️ Paralelo: configurar Business Manager + System User token permanente
 

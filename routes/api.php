@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SettingsController;
@@ -36,4 +37,10 @@ Route::middleware(['api_key', 'throttle:60,1'])->group(function () {
     Route::get('/contacts/stats',    [ContactController::class, 'stats']);
     Route::post('/contacts/upload',  [ContactController::class, 'upload']);
     Route::delete('/contacts/{id}',  [ContactController::class, 'optOut']);
+
+    // Campañas — Stage 2
+    Route::get('/campaigns',              [CampaignController::class, 'index']);
+    Route::post('/campaigns',             [CampaignController::class, 'store']);
+    Route::get('/campaigns/{id}',         [CampaignController::class, 'show']);
+    Route::post('/campaigns/{id}/execute', [CampaignController::class, 'execute']);
 });

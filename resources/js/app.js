@@ -26,17 +26,51 @@ const WaPreset = definePreset(Aura, {
 });
 
 import AppLayout      from './components/AppLayout.vue';
+import LoginView      from './views/LoginView.vue';
 import DashboardView  from './views/DashboardView.vue';
 import ContactsView   from './views/ContactsView.vue';
+import CampaignsView  from './views/CampaignsView.vue';
+import UsersView      from './views/UsersView.vue';
 import SettingsView   from './views/SettingsView.vue';
+import { initAuth, useAuth } from './auth.js';
 
 const router = createRouter({
     history: createWebHistory(),
     routes: [
-        { path: '/',         component: DashboardView },
-        { path: '/contacts', component: ContactsView  },
-        { path: '/settings', component: SettingsView  },
+        { path: '/login', component: LoginView, meta: { public: true } },
+        { path: '/',          component: DashboardView  },
+        { path: '/contacts',  component: ContactsView   },
+        { path: '/campaigns', component: CampaignsView  },
+        { path: '/users',     component: UsersView,  meta: { role: 'admin' } },
+        { path: '/settings',  component: SettingsView, meta: { role: 'admin' } },
     ],
+});
+
+// Navigation guard — verificar auth antes de cada ruta
+router.beforeEach(async (to) => {
+    const { user: authState } = useAuth();
+
+    // Esperar a que initAuth haya corrido
+    if (!authState.ready) {
+        await initAuth();
+    }
+
+    const loggedIn = !!authState.user;
+
+    if (to.meta.public) {
+        // Si ya está logueado y va al login, redirigir al dashboard
+        if (loggedIn) return '/';
+        return true;
+    }
+
+    if (!loggedIn) return '/login';
+
+    // Verificar rol si la ruta lo requiere
+    if (to.meta.role && authState.user?.role !== to.meta.role) {
+        return '/';
+    }
+
+    return true;
 });
 
 createApp(AppLayout)

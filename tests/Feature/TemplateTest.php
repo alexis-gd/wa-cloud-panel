@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class TemplateTest extends TestCase
 {
@@ -11,19 +11,15 @@ class TemplateTest extends TestCase
 
     public function test_templates_requires_api_key(): void
     {
-        $response = $this->getJson('/api/templates');
-
-        $response->assertStatus(401);
+        $this->getJson('/api/templates')->assertStatus(401);
     }
 
     public function test_templates_returns_array_with_valid_api_key(): void
     {
-        config(['services.whatsapp.api_key' => 'test-api-key']);
+        $this->actingAsOperator();
 
-        $response = $this->withHeader('X-API-Key', 'test-api-key')
-                         ->getJson('/api/templates');
-
-        $response->assertStatus(200)
-                 ->assertJsonIsArray();
+        $this->getJson('/api/templates')
+             ->assertStatus(200)
+             ->assertJsonIsArray();
     }
 }

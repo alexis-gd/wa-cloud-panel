@@ -1,5 +1,8 @@
 <template>
-    <div class="app-wrapper">
+    <!-- Pantalla de login: sin layout, solo RouterView -->
+    <RouterView v-if="route.path === '/login'" />
+
+    <div v-else class="app-wrapper">
         <!-- Overlay mobile -->
         <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false" />
 
@@ -19,13 +22,38 @@
                     <i class="pi pi-users" />
                     <span>Contactos</span>
                 </RouterLink>
-                <RouterLink to="/settings" class="nav-item" :class="{ active: route.path === '/settings' }" @click="sidebarOpen = false">
-                    <i class="pi pi-cog" />
-                    <span>Configuración</span>
+                <RouterLink to="/campaigns" class="nav-item" :class="{ active: route.path === '/campaigns' }" @click="sidebarOpen = false">
+                    <i class="pi pi-send" />
+                    <span>Campañas</span>
                 </RouterLink>
+
+                <!-- Solo admin -->
+                <template v-if="isAdmin()">
+                    <RouterLink to="/users" class="nav-item" :class="{ active: route.path === '/users' }" @click="sidebarOpen = false">
+                        <i class="pi pi-user-edit" />
+                        <span>Usuarios</span>
+                    </RouterLink>
+                    <RouterLink to="/settings" class="nav-item" :class="{ active: route.path === '/settings' }" @click="sidebarOpen = false">
+                        <i class="pi pi-cog" />
+                        <span>Configuración</span>
+                    </RouterLink>
+                </template>
             </nav>
 
             <div class="sidebar-footer">
+                <div class="user-info" v-if="authState.user">
+                    <span class="user-name">{{ authState.user.name }}</span>
+                    <Tag :value="roleLabel" :severity="roleSeverity" class="role-tag" />
+                </div>
+                <Button
+                    label="Cerrar sesión"
+                    icon="pi pi-sign-out"
+                    severity="secondary"
+                    text
+                    size="small"
+                    class="logout-btn"
+                    @click="logout"
+                />
                 <span class="version">v0.2.0 — Stage 2</span>
             </div>
         </aside>
@@ -39,10 +67,6 @@
                     </button>
                     <h1 class="page-title">{{ pageTitle }}</h1>
                 </div>
-                <div class="topbar-right">
-                    <Tag v-if="tokenUser" :value="tokenUser" severity="success" icon="pi pi-check-circle" />
-                    <Tag v-else value="Token inválido" severity="danger" icon="pi pi-times-circle" />
-                </div>
             </header>
 
             <main class="content">
@@ -55,25 +79,48 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
-import { useRoute, RouterLink, RouterView } from 'vue-router';
-import Tag   from 'primevue/tag';
-import Toast from 'primevue/toast';
-import { api } from '../api.js';
+import { computed, ref } from 'vue';
+import { useRoute, useRouter, RouterLink, RouterView } from 'vue-router';
+import Tag    from 'primevue/tag';
+import Toast  from 'primevue/toast';
+import Button from 'primevue/button';
+import { api }     from '../api.js';
+import { useAuth } from '../auth.js';
 
-const route       = useRoute();
-const tokenUser   = ref(null);
+const route  = useRoute();
+const router = useRouter();
+const { user: authState, isAdmin, clearUser } = useAuth();
+
 const sidebarOpen = ref(false);
 
-const pageTitle = computed(() => {
-    const titles = { '/': 'Dashboard', '/contacts': 'Contactos', '/settings': 'Configuración' };
-    return titles[route.path] ?? 'WA Cloud Panel';
-});
+const pageTitles = {
+    '/'          : 'Dashboard',
+    '/contacts'  : 'Contactos',
+    '/campaigns' : 'Campañas',
+    '/users'     : 'Usuarios',
+    '/settings'  : 'Configuración',
+};
 
-onMounted(async () => {
-    const data = await api.tokenStatus();
-    if (data.token_valid) tokenUser.value = data.token_user;
-});
+const pageTitle = computed(() => pageTitles[route.path] ?? 'WA Cloud Panel');
+
+const roleLabel = computed(() => ({
+    admin    : 'Admin',
+    operator : 'Operador',
+    agent    : 'Agente',
+}[authState.user?.role] ?? ''));
+
+const roleSeverity = computed(() => ({
+    admin    : 'danger',
+    operator : 'info',
+    agent    : 'secondary',
+}[authState.user?.role] ?? 'secondary'));
+
+async function logout() {
+    await api.logout();
+    localStorage.removeItem('wa_token');
+    clearUser();
+    router.push('/login');
+}
 </script>
 
 <style scoped>
@@ -139,30 +186,27 @@ onMounted(async () => {
     transition: background .15s, color .15s;
 }
 
-.nav-item:hover {
-    background: rgba(255,255,255,.07);
-    color: #e2e8f0;
-}
-
-.nav-item.active {
-    background: rgba(16,185,129,.15);
-    color: #10b981;
-    font-weight: 600;
-}
-
-.nav-item .pi { font-size: 1rem; width: 18px; }
+.nav-item:hover  { background: rgba(255,255,255,.07); color: #e2e8f0; }
+.nav-item.active { background: rgba(16,185,129,.15); color: #10b981; font-weight: 600; }
+.nav-item .pi    { font-size: 1rem; width: 18px; }
 
 .sidebar-footer {
     padding: 14px 18px;
     border-top: 1px solid rgba(255,255,255,.08);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.version {
-    font-size: .72rem;
-    color: #475569;
-}
+.user-info   { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.user-name   { font-size: .82rem; color: #cbd5e1; font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.role-tag    { font-size: .68rem !important; }
 
-/* ── Main area (light) ─────────────────────────── */
+.logout-btn { width: 100%; justify-content: flex-start; color: #64748b !important; }
+
+.version { font-size: .68rem; color: #334155; }
+
+/* ── Main area ─────────────────────────────────── */
 .main {
     margin-left: 220px;
     flex: 1;
@@ -177,18 +221,13 @@ onMounted(async () => {
     border-bottom: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     padding: 0 16px 0 20px;
     position: sticky;
     top: 0;
     z-index: 50;
 }
 
-.topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
 
 .menu-btn {
     display: none;
@@ -201,39 +240,16 @@ onMounted(async () => {
     line-height: 1;
 }
 
-.page-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #0f172a;
-}
+.page-title { font-size: 1rem; font-weight: 600; color: #0f172a; }
 
-.topbar-right { display: flex; align-items: center; gap: 10px; }
-
-.content {
-    padding: 24px;
-    flex: 1;
-}
+.content { padding: 24px; flex: 1; }
 
 /* ── Responsive ────────────────────────────────── */
 @media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-100%);
-    }
-
-    .sidebar--open {
-        transform: translateX(0);
-    }
-
-    .main {
-        margin-left: 0;
-    }
-
-    .menu-btn {
-        display: block;
-    }
-
-    .content {
-        padding: 16px;
-    }
+    .sidebar       { transform: translateX(-100%); }
+    .sidebar--open { transform: translateX(0); }
+    .main          { margin-left: 0; }
+    .menu-btn      { display: block; }
+    .content       { padding: 16px; }
 }
 </style>

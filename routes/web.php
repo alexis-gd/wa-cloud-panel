@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
+// Catch-all: todas las rutas del frontend las maneja Vue Router
+Route::get('/{any}', function () {
     return view('app');
-});
+})->where('any', '^(?!api|webhook).*$');

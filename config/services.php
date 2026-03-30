@@ -36,6 +36,7 @@ return [
         'app_secret'           => env('WA_APP_SECRET'),
         'webhook_verify_token' => env('WA_WEBHOOK_VERIFY_TOKEN'),
         'api_key'              => env('API_KEY'),
+        'waba_id'              => env('WA_WABA_ID'),
     ],
 
 ];

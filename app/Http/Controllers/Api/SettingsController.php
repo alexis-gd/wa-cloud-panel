@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PhoneNumber;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -61,6 +62,39 @@ class SettingsController extends Controller
         return response()->json([
             'message'    => 'Token actualizado correctamente',
             'token_user' => $check['user'],
+        ]);
+    }
+
+    /**
+     * GET /api/settings/cooldown
+     * Devuelve el valor actual de cooldown_days.
+     */
+    public function getCooldown(): JsonResponse
+    {
+        $days = max(7, (int) Setting::get('cooldown_days', 30));
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => ['cooldown_days' => $days],
+        ]);
+    }
+
+    /**
+     * PUT /api/settings/cooldown
+     * Actualiza cooldown_days. Mínimo forzado: 7.
+     * Body: { "cooldown_days": 15 }
+     */
+    public function updateCooldown(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'cooldown_days' => 'required|integer|min:7|max:365',
+        ]);
+
+        Setting::set('cooldown_days', $data['cooldown_days']);
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => ['cooldown_days' => $data['cooldown_days']],
         ]);
     }
 

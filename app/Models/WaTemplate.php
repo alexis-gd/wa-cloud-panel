@@ -10,15 +10,14 @@ class WaTemplate extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'language_code',
-        'category',
-        'status',
-        'description',
-        'is_active',
+        'name', 'language_code', 'category', 'status', 'description', 'is_active',
+        'header_type', 'header_text', 'header_image_url',
+        'body_text', 'footer_text', 'buttons',
+        'quality_score', 'rejection_reason',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'buttons'   => 'array',
     ];
 }

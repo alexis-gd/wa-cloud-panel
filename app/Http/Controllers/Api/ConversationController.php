@@ -1,0 +1,197 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Contact;
+use App\Models\Conversation;
+use App\Models\PhoneNumber;
+use App\Models\QuickReply;
+use App\Services\WhatsApp\WhatsAppClient;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+class ConversationController extends Controller
+{
+    // GET /api/conversations — lista de contactos con conversaciones abiertas
+    public function index(): JsonResponse
+    {
+        $contacts = Contact::whereHas('conversations')
+            ->with([
+                'conversations' => fn ($q) => $q->latest()->limit(1),
+            ])
+            ->get()
+            ->map(fn (Contact $c) => [
+                'id'             => $c->id,
+                'name'           => $c->name,
+                'phone'          => $c->phone,
+                'status'         => $c->status,
+                'snoozed_until'  => $c->snoozed_until,
+                'last_message'   => $c->conversations->first()?->body,
+                'last_message_at' => $c->conversations->first()?->created_at,
+                'window_open'    => $c->conversations()
+                    ->where('direction', 'inbound')
+                    ->where('created_at', '>=', now()->subHours(24))
+                    ->exists(),
+            ])
+            ->sortByDesc('last_message_at')
+            ->values();
+
+        return response()->json(['status' => 'ok', 'data' => $contacts]);
+    }
+
+    // GET /api/conversations/{contactId} — historial de chat con un contacto
+    public function show(int $contactId): JsonResponse
+    {
+        $contact = Contact::findOrFail($contactId);
+
+        $messages = Conversation::where('contact_id', $contactId)
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn (Conversation $m) => [
+                'id'           => $m->id,
+                'direction'    => $m->direction,
+                'message_type' => $m->message_type,
+                'body'         => $m->body,
+                'status'       => $m->status,
+                'created_at'   => $m->created_at,
+            ]);
+
+        $windowOpen = Conversation::where('contact_id', $contactId)
+            ->where('direction', 'inbound')
+            ->where('created_at', '>=', now()->subHours(24))
+            ->exists();
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => [
+                'contact'     => [
+                    'id'            => $contact->id,
+                    'name'          => $contact->name,
+                    'phone'         => $contact->phone,
+                    'status'        => $contact->status,
+                    'snoozed_until' => $contact->snoozed_until,
+                ],
+                'messages'    => $messages,
+                'window_open' => $windowOpen,
+            ],
+        ]);
+    }
+
+    // POST /api/conversations/{contactId}/messages — enviar mensaje desde el panel
+    public function send(Request $request, int $contactId, WhatsAppClient $client): JsonResponse
+    {
+        $request->validate(['body' => 'required|string|max:1024']);
+
+        $contact = Contact::findOrFail($contactId);
+
+        if ($contact->status === 'opted_out') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'El contacto tiene opt-out activo.',
+                'code'    => 'OPTED_OUT',
+            ], 422);
+        }
+
+        // Verificar ventana de 24h
+        $windowOpen = Conversation::where('contact_id', $contactId)
+            ->where('direction', 'inbound')
+            ->where('created_at', '>=', now()->subHours(24))
+            ->exists();
+
+        if (!$windowOpen) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'La ventana de 24h está cerrada. Usa una plantilla para reabrir la conversación.',
+                'code'    => 'WINDOW_CLOSED',
+            ], 422);
+        }
+
+        // Obtener número de envío activo
+        $phoneNumber = PhoneNumber::where('is_active', true)->first();
+
+        if (!$phoneNumber) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No hay número de WhatsApp activo configurado.',
+                'code'    => 'NO_PHONE_NUMBER',
+            ], 500);
+        }
+
+        $payload = [
+            'messaging_product' => 'whatsapp',
+            'to'                => $contact->phone,
+            'type'              => 'text',
+            'text'              => ['body' => $request->body],
+        ];
+
+        $response = $client->post($phoneNumber->phone_number_id, $phoneNumber->token, $payload);
+
+        if (!$response['ok']) {
+            Log::error('ConversationController: error enviando mensaje', [
+                'contact_id' => $contactId,
+                'response'   => $response['body'],
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Error al enviar el mensaje.',
+                'code'    => 'SEND_FAILED',
+            ], 500);
+        }
+
+        $waMessageId = data_get($response, 'body.messages.0.id');
+
+        $conversation = Conversation::create([
+            'contact_id'    => $contact->id,
+            'direction'     => 'outbound',
+            'message_type'  => 'text',
+            'body'          => $request->body,
+            'wa_message_id' => $waMessageId,
+            'status'        => 'sent',
+            'window_open'   => true,
+        ]);
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => [
+                'id'         => $conversation->id,
+                'body'       => $conversation->body,
+                'direction'  => 'outbound',
+                'status'     => 'sent',
+                'created_at' => $conversation->created_at,
+            ],
+        ], 201);
+    }
+
+    // GET /api/quick-replies — catálogo de respuestas rápidas
+    public function quickReplies(): JsonResponse
+    {
+        $replies = QuickReply::orderBy('sort_order')->get(['id', 'title', 'body']);
+
+        return response()->json(['status' => 'ok', 'data' => $replies]);
+    }
+
+    // POST /api/quick-replies — crear respuesta rápida (solo admin)
+    public function storeQuickReply(Request $request): JsonResponse
+    {
+        $request->validate([
+            'title'      => 'required|string|max:100',
+            'body'       => 'required|string|max:1024',
+            'sort_order' => 'integer|min:0',
+        ]);
+
+        $reply = QuickReply::create($request->only('title', 'body', 'sort_order'));
+
+        return response()->json(['status' => 'ok', 'data' => $reply], 201);
+    }
+
+    // DELETE /api/quick-replies/{id} — eliminar respuesta rápida (solo admin)
+    public function destroyQuickReply(int $id): JsonResponse
+    {
+        QuickReply::findOrFail($id)->delete();
+
+        return response()->json(['status' => 'ok']);
+    }
+}

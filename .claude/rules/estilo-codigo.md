@@ -18,6 +18,31 @@
 - Variables reactivas con `ref()` y `reactive()`, no asignación directa.
 - Llamadas API centralizadas en un objeto `api` o módulo, no `fetch()` suelto en componentes.
 
+## Componentes PrimeVue — convenciones de uso
+
+Mantener consistencia entre todas las vistas. No variar estilos de componentes sin razón explícita.
+
+### Button
+| Uso | Props |
+|---|---|
+| Acción principal de página (crear, guardar) | sin props extra — color primary por defecto |
+| Acción secundaria de página (sincronizar, exportar) | `severity="secondary"` |
+| Cancelar en dialogs | `text` (sin `severity`) |
+| Confirmar en dialogs | sin props extra |
+| Acciones destructivas inline (borrar fila) | `text severity="danger" size="small"` |
+| Acciones de icono sin texto | `icon="pi pi-*" text size="small"` |
+
+- **Nunca usar `outlined`** salvo que el diseño lo requiera explícitamente.
+- **Nunca mezclar** `outlined` y sin-outlined en la misma fila de acciones.
+- Botón "Cancelar" en dialogs: siempre `text`, sin `severity`.
+
+## CSS / Estilos
+
+- **Tailwind NO está instalado** — no usar clases utilitarias de Tailwind (`flex`, `w-72`, `gap-6`, `h-[calc...]`, etc.).
+- Todo el CSS va en `<style scoped>` dentro del `.vue`, con clases semánticas propias (`.contacts`, `.stats-row`, etc.).
+- Variables de diseño: usar las de PrimeVue (`var(--p-primary-500)`, `var(--p-surface-100)`, `var(--p-text-muted-color)`, etc.) — nunca colores hardcodeados.
+- Si el proyecto adopta Tailwind en el futuro, se actualiza esta regla y se instala explícitamente.
+
 ## General
 
 - Commits en español, imperativos: "Agrega job de envío", "Corrige validación de webhook".

@@ -40,25 +40,67 @@
                 </Message>
             </template>
         </Card>
+        <Card style="max-width: 560px; margin-top: 24px">
+            <template #title>Control de envíos</template>
+            <template #content>
+                <div class="form-group">
+                    <label>Días de espera entre mensajes al mismo contacto</label>
+                    <div class="cooldown-row">
+                        <InputNumber
+                            v-model="cooldownDays"
+                            :min="7"
+                            :max="365"
+                            show-buttons
+                            button-layout="horizontal"
+                            :step="1"
+                            suffix=" días"
+                            style="width: 180px"
+                        />
+                        <Button
+                            label="Guardar"
+                            icon="pi pi-save"
+                            :loading="savingCooldown"
+                            :disabled="cooldownDays === null"
+                            @click="saveCooldown"
+                        />
+                    </div>
+                    <small>Mínimo 7 días. Un contacto que ya recibió un mensaje no recibirá otro hasta que pase este período.</small>
+                </div>
+
+                <Message v-if="cooldownResult" :severity="cooldownResult.error ? 'error' : 'success'" class="mt-3">
+                    {{ cooldownResult.error ?? 'Cooldown actualizado a ' + cooldownResult.data?.cooldown_days + ' días.' }}
+                </Message>
+            </template>
+        </Card>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import Card     from 'primevue/card';
-import Button   from 'primevue/button';
-import Password from 'primevue/password';
-import Tag      from 'primevue/tag';
-import Message  from 'primevue/message';
-import { api }  from '../api.js';
+import Card        from 'primevue/card';
+import Button      from 'primevue/button';
+import Password    from 'primevue/password';
+import Tag         from 'primevue/tag';
+import Message     from 'primevue/message';
+import InputNumber from 'primevue/inputnumber';
+import { api }     from '../api.js';
 
 const tokenStatus = ref(null);
 const newToken    = ref('');
 const saving      = ref(false);
 const saveResult  = ref(null);
 
+const cooldownDays   = ref(null);
+const savingCooldown = ref(false);
+const cooldownResult = ref(null);
+
 async function loadStatus() {
     tokenStatus.value = await api.tokenStatus();
+}
+
+async function loadCooldown() {
+    const res = await api.getCooldown();
+    if (res.status === 'ok') cooldownDays.value = res.data.cooldown_days;
 }
 
 async function saveToken() {
@@ -71,7 +113,18 @@ async function saveToken() {
     await loadStatus();
 }
 
-onMounted(loadStatus);
+async function saveCooldown() {
+    savingCooldown.value = true;
+    cooldownResult.value = null;
+
+    cooldownResult.value = await api.updateCooldown(cooldownDays.value);
+    savingCooldown.value = false;
+}
+
+onMounted(() => {
+    loadStatus();
+    loadCooldown();
+});
 </script>
 
 <style scoped>
@@ -80,5 +133,6 @@ onMounted(loadStatus);
 .form-group   { margin-bottom: 16px; }
 .form-group label { display: block; font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 6px; }
 .form-group small { display: block; font-size: .78rem; color: var(--p-text-muted-color); margin-top: 6px; }
-.mt-3 { margin-top: 12px; }
+.mt-3         { margin-top: 12px; }
+.cooldown-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 </style>

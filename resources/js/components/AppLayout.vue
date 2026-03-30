@@ -26,9 +26,17 @@
                     <i class="pi pi-send" />
                     <span>Campañas</span>
                 </RouterLink>
+                <RouterLink to="/conversations" class="nav-item" :class="{ active: route.path === '/conversations' }" @click="sidebarOpen = false">
+                    <i class="pi pi-comments" />
+                    <span>Conversaciones</span>
+                </RouterLink>
 
                 <!-- Solo admin -->
                 <template v-if="isAdmin()">
+                    <RouterLink to="/templates" class="nav-item" :class="{ active: route.path === '/templates' }" @click="sidebarOpen = false">
+                        <i class="pi pi-file-edit" />
+                        <span>Plantillas</span>
+                    </RouterLink>
                     <RouterLink to="/users" class="nav-item" :class="{ active: route.path === '/users' }" @click="sidebarOpen = false">
                         <i class="pi pi-user-edit" />
                         <span>Usuarios</span>
@@ -94,11 +102,13 @@ const { user: authState, isAdmin, clearUser } = useAuth();
 const sidebarOpen = ref(false);
 
 const pageTitles = {
-    '/'          : 'Dashboard',
-    '/contacts'  : 'Contactos',
-    '/campaigns' : 'Campañas',
-    '/users'     : 'Usuarios',
-    '/settings'  : 'Configuración',
+    '/'               : 'Dashboard',
+    '/contacts'       : 'Contactos',
+    '/campaigns'      : 'Campañas',
+    '/conversations'  : 'Conversaciones',
+    '/templates'      : 'Plantillas',
+    '/users'          : 'Usuarios',
+    '/settings'       : 'Configuración',
 };
 
 const pageTitle = computed(() => pageTitles[route.path] ?? 'WA Cloud Panel');

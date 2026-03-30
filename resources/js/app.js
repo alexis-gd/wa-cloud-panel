@@ -25,13 +25,15 @@ const WaPreset = definePreset(Aura, {
     },
 });
 
-import AppLayout      from './components/AppLayout.vue';
-import LoginView      from './views/LoginView.vue';
-import DashboardView  from './views/DashboardView.vue';
-import ContactsView   from './views/ContactsView.vue';
-import CampaignsView  from './views/CampaignsView.vue';
-import UsersView      from './views/UsersView.vue';
-import SettingsView   from './views/SettingsView.vue';
+import AppLayout           from './components/AppLayout.vue';
+import LoginView           from './views/LoginView.vue';
+import DashboardView       from './views/DashboardView.vue';
+import ContactsView        from './views/ContactsView.vue';
+import CampaignsView       from './views/CampaignsView.vue';
+import ConversationsView   from './views/ConversationsView.vue';
+import TemplatesView       from './views/TemplatesView.vue';
+import UsersView           from './views/UsersView.vue';
+import SettingsView        from './views/SettingsView.vue';
 import { initAuth, useAuth } from './auth.js';
 
 const router = createRouter({
@@ -39,8 +41,10 @@ const router = createRouter({
     routes: [
         { path: '/login', component: LoginView, meta: { public: true } },
         { path: '/',          component: DashboardView  },
-        { path: '/contacts',  component: ContactsView   },
-        { path: '/campaigns', component: CampaignsView  },
+        { path: '/contacts',       component: ContactsView      },
+        { path: '/campaigns',      component: CampaignsView     },
+        { path: '/conversations',  component: ConversationsView  },
+        { path: '/templates',     component: TemplatesView, meta: { role: 'admin' } },
         { path: '/users',     component: UsersView,  meta: { role: 'admin' } },
         { path: '/settings',  component: SettingsView, meta: { role: 'admin' } },
     ],

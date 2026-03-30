@@ -6,6 +6,7 @@ use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
+use App\Models\Setting;
 use App\Services\WhatsApp\TemplateBuilder;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Bus\Queueable;
@@ -49,9 +50,52 @@ class SendWhatsAppMessage implements ShouldQueue
         }
 
         // ── Verificar opt-out ANTES de enviar (regla inquebrantable) ──
-        if ($contact->status === 'opted_out') {
+        if ($contact->status === 'opted_out' || $contact->status === 'invalid') {
             Log::info('SendWhatsAppMessage: contacto con opt-out, descartando', [
                 'contact_id' => $this->contactId,
+            ]);
+            $campaign->increment('failed_count');
+            return;
+        }
+
+        // ── Verificar snooze (contacto pidió "No por ahora") ──
+        if ($contact->isSnoozeActive()) {
+            Log::info('SendWhatsAppMessage: contacto en snooze, descartando', [
+                'contact_id'    => $this->contactId,
+                'snoozed_until' => $contact->snoozed_until,
+            ]);
+            $campaign->increment('failed_count');
+            return;
+        }
+
+        // ── Dedup: no enviar más de 1 mensaje/día al mismo contacto ──
+        $alreadySentToday = MessageLog::where('to_number', $contact->phone)
+            ->whereDate('sent_at', today())
+            ->where('status', 'sent')
+            ->exists();
+
+        if ($alreadySentToday) {
+            Log::info('SendWhatsAppMessage: contacto ya recibió mensaje hoy, descartando', [
+                'contact_id' => $this->contactId,
+                'phone'      => substr($contact->phone, -4),
+            ]);
+            $campaign->increment('failed_count');
+            return;
+        }
+
+        // ── Cooldown: no enviar al mismo contacto en N días (mínimo 7, default 30) ──
+        $cooldownDays = max(7, (int) Setting::get('cooldown_days', 30));
+        $lastSent     = MessageLog::where('to_number', $contact->phone)
+            ->where('status', 'sent')
+            ->latest('sent_at')
+            ->value('sent_at');
+
+        if ($lastSent && now()->diffInDays($lastSent) < $cooldownDays) {
+            Log::info('SendWhatsAppMessage: contacto en cooldown, descartando', [
+                'contact_id'    => $this->contactId,
+                'phone'         => substr($contact->phone, -4),
+                'last_sent'     => $lastSent,
+                'cooldown_days' => $cooldownDays,
             ]);
             $campaign->increment('failed_count');
             return;

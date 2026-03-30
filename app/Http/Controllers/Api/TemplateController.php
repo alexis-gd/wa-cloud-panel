@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Console\Commands\SyncWhatsAppTemplates;
 use App\Http\Controllers\Controller;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
@@ -10,6 +11,7 @@ use App\Services\WhatsApp\TemplateBuilder;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 
 class TemplateController extends Controller
 {
@@ -21,7 +23,70 @@ class TemplateController extends Controller
     // GET /api/templates
     public function index(): JsonResponse
     {
-        return response()->json(WaTemplate::where('is_active', true)->get());
+        $templates = WaTemplate::orderBy('created_at', 'desc')->get();
+        return response()->json(['status' => 'ok', 'data' => $templates]);
+    }
+
+    // POST /api/templates
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name'          => 'required|string|max:512|unique:wa_templates,name',
+            'language_code' => 'required|string|max:10',
+            'category'      => 'required|in:MARKETING,UTILITY,AUTHENTICATION',
+            'description'   => 'nullable|string|max:500',
+        ]);
+
+        $template = WaTemplate::create([
+            ...$data,
+            'status'    => 'approved',
+            'is_active' => true,
+        ]);
+
+        return response()->json(['status' => 'ok', 'data' => $template], 201);
+    }
+
+    // PUT /api/templates/{id}
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $template = WaTemplate::findOrFail($id);
+
+        $data = $request->validate([
+            'description' => 'nullable|string|max:500',
+            'is_active'   => 'boolean',
+        ]);
+
+        $template->update($data);
+
+        return response()->json(['status' => 'ok', 'data' => $template->fresh()]);
+    }
+
+    // DELETE /api/templates/{id}
+    public function destroy(int $id): JsonResponse
+    {
+        WaTemplate::findOrFail($id)->delete();
+        return response()->json(['status' => 'ok']);
+    }
+
+    // POST /api/templates/sync — sincroniza desde Meta API
+    public function sync(): JsonResponse
+    {
+        $exitCode = Artisan::call('wa:sync-templates');
+
+        if ($exitCode !== 0) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Error al sincronizar con Meta. Revisa que el token sea válido.',
+            ], 500);
+        }
+
+        $templates = WaTemplate::orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => $templates,
+            'synced' => $templates->count(),
+        ]);
     }
 
     // POST /api/templates/send-test

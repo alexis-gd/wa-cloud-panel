@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\TemplateController;
@@ -40,7 +41,6 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // Dashboard, templates, configuración — admin y operator
     Route::middleware('role:admin,operator')->group(function () {
         Route::get('/templates',             [TemplateController::class, 'index']);
-        Route::post('/templates/send-test',  [TemplateController::class, 'sendTest']);
         Route::get('/dashboard/stats',       [DashboardController::class, 'stats']);
 
         // Contactos
@@ -56,10 +56,35 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::post('/campaigns/{id}/execute', [CampaignController::class, 'execute']);
     });
 
+    // Conversaciones (chat con contactos) — admin, operator y agent
+    Route::middleware('role:admin,operator,agent')->group(function () {
+        Route::get('/conversations',                            [ConversationController::class, 'index']);
+        Route::get('/conversations/{contactId}',               [ConversationController::class, 'show']);
+        Route::post('/conversations/{contactId}/messages',     [ConversationController::class, 'send']);
+        Route::get('/quick-replies',                           [ConversationController::class, 'quickReplies']);
+    });
+
+    // Quick replies — solo admin puede crear/eliminar
+    Route::middleware('role:admin')->group(function () {
+        Route::post('/quick-replies',        [ConversationController::class, 'storeQuickReply']);
+        Route::delete('/quick-replies/{id}', [ConversationController::class, 'destroyQuickReply']);
+    });
+
+    // Plantillas — escritura solo admin
+    Route::middleware('role:admin')->group(function () {
+        Route::post('/templates/send-test',  [TemplateController::class, 'sendTest']);
+        Route::post('/templates',            [TemplateController::class, 'store']);
+        Route::post('/templates/sync',       [TemplateController::class, 'sync']);
+        Route::put('/templates/{id}',        [TemplateController::class, 'update']);
+        Route::delete('/templates/{id}',     [TemplateController::class, 'destroy']);
+    });
+
     // Configuración — solo admin
     Route::middleware('role:admin')->group(function () {
         Route::get('/settings/token-status', [SettingsController::class, 'tokenStatus']);
         Route::post('/settings/token',       [SettingsController::class, 'updateToken']);
+        Route::get('/settings/cooldown',     [SettingsController::class, 'getCooldown']);
+        Route::put('/settings/cooldown',     [SettingsController::class, 'updateCooldown']);
 
         // Gestión de usuarios
         Route::get('/users',        [UserController::class, 'index']);

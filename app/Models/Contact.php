@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Contact extends Model
 {
@@ -16,10 +17,12 @@ class Contact extends Model
         'source',
         'notes',
         'opted_out_at',
+        'snoozed_until',
     ];
 
     protected $casts = [
-        'opted_out_at' => 'datetime',
+        'opted_out_at'  => 'datetime',
+        'snoozed_until' => 'datetime',
     ];
 
     /**
@@ -58,6 +61,27 @@ class Contact extends Model
             'status'       => 'opted_out',
             'opted_out_at' => now(),
         ]);
+    }
+
+    /**
+     * Activa el snooze por N días (usa el cooldown_days de settings).
+     */
+    public function snooze(int $days): void
+    {
+        $this->update(['snoozed_until' => now()->addDays($days)]);
+    }
+
+    /**
+     * True si el contacto tiene snooze activo (no se le debe enviar ahora).
+     */
+    public function isSnoozeActive(): bool
+    {
+        return $this->snoozed_until !== null && $this->snoozed_until->isFuture();
+    }
+
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class);
     }
 
     public function scopeActive($query)

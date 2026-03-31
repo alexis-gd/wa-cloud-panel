@@ -88,11 +88,14 @@
 
                 <template v-if="form.template && varCount > 0">
                     <label class="field-label mt">Variables del mensaje ({{ varCount }} variable{{ varCount > 1 ? 's' : '' }})</label>
-                    <div v-for="(_, i) in form.bodyVars" :key="i" class="var-row">
-                        <span class="var-label">&#123;&#123;{{ i + 1 }}&#125;&#125;</span>
-                        <InputText v-model="form.bodyVars[i]" :placeholder="`Variable ${i + 1}`" fluid />
+                    <div v-for="(varName, i) in templateVarLabels" :key="i" class="var-row">
+                        <span class="var-label">{{ varName }}</span>
+                        <InputText v-model="form.bodyVars[i]" :placeholder="varName" fluid />
                     </div>
                 </template>
+                <div v-else-if="form.template && varCount === 0" class="field-label mt">
+                    <small class="no-templates">Esta plantilla no tiene variables.</small>
+                </div>
 
                 <div v-if="formError" class="form-error">{{ formError }}</div>
             </div>
@@ -137,19 +140,24 @@ const formError        = ref('');
 
 const form = ref({ name: '', template: null, bodyVars: [] });
 
-// Número de variables en la plantilla seleccionada (inferido desde descripción o siempre 0 si no hay info)
-const varCount = computed(() => {
-    // El modelo WaTemplate no expone variables, así que dejamos 0 por defecto.
-    // Si en el futuro se agrega el campo `variables_count` al modelo, usar aquí.
-    return 0;
-});
+function extractVarLabels(bodyText) {
+    if (!bodyText) return [];
+    const matches = [...bodyText.matchAll(/\{\{([^}]+)\}\}/g)];
+    return matches.map(m => {
+        const inner = m[1].trim();
+        return /^\d+$/.test(inner) ? `Variable ${inner}` : inner;
+    });
+}
+
+const templateVarLabels = computed(() => extractVarLabels(form.value.template?.body_text ?? ''));
+const varCount = computed(() => templateVarLabels.value.length);
 
 const canSave = computed(() =>
     form.value.name.trim() !== '' && form.value.template !== null
 );
 
-watch(() => form.value.template, (tpl) => {
-    form.value.bodyVars = Array.from({ length: varCount.value }, () => '');
+watch(() => form.value.template, () => {
+    form.value.bodyVars = Array(varCount.value).fill('');
 });
 
 const statusLabel = (s) => ({
@@ -185,7 +193,7 @@ async function openNewModal() {
         const list = Array.isArray(raw) ? raw : (raw.data ?? []);
         approvedTemplates.value = list
             .filter(t => t.status === 'approved' && t.is_active)
-            .map(t => ({ ...t, display: `${t.name} (${t.language_code})` }));
+            .map(t => ({ ...t, display: `${t.name} (${t.language_code})`, body_text: t.body_text ?? '' }));
         loadingTemplates.value = false;
     }
 }

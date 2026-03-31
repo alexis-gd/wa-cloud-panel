@@ -16,6 +16,25 @@ class WhatsAppClient
     }
 
     /**
+     * GET a cualquier recurso de la Graph API.
+     * Usado para consultar calidad del número, estado de cuenta, etc.
+     */
+    public function get(string $path, string $token, array $query = []): array
+    {
+        $url = "{$this->baseUrl}/{$path}";
+
+        $response = Http::withToken($token)
+            ->timeout(10)
+            ->get($url, $query);
+
+        return [
+            'status' => $response->status(),
+            'body'   => $response->json() ?? [],
+            'ok'     => $response->successful(),
+        ];
+    }
+
+    /**
      * Único punto de salida HTTP hacia la API de Meta.
      * Todos los envíos deben pasar por aquí.
      */

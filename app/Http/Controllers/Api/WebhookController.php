@@ -78,8 +78,12 @@ class WebhookController extends Controller
             return;
         }
 
-        // Buscar contacto por número (normalizado a 12 dígitos: 52XXXXXXXXXX)
-        $phone   = ltrim($from, '+');
+        // Normalizar número: Meta envía 5219XXXXXXXX (13 dígitos) para México móvil
+        // Nosotros guardamos 529XXXXXXXX (12 dígitos) — quitamos el 1 extra
+        $phone = ltrim($from, '+');
+        if (str_starts_with($phone, '521') && strlen($phone) === 13) {
+            $phone = '52' . substr($phone, 3);
+        }
         $contact = Contact::where('phone', $phone)->first();
 
         if (!$contact) {
@@ -88,8 +92,11 @@ class WebhookController extends Controller
         }
 
         // Extraer texto o id del botón según tipo de mensaje
+        // 'button'      = respuesta a botón Quick Reply de una plantilla
+        // 'interactive' = respuesta a mensaje interactivo standalone
         [$body, $messageType] = match ($type) {
             'text'        => [$message['text']['body'] ?? '', 'text'],
+            'button'      => [data_get($message, 'button.text', ''), 'button_reply'],
             'interactive' => [
                 data_get($message, 'interactive.button_reply.title', ''),
                 'button_reply',
@@ -97,10 +104,11 @@ class WebhookController extends Controller
             default => ['', 'text'],
         };
 
-        $buttonId = data_get($message, 'interactive.button_reply.id', '');
+        $buttonId = data_get($message, 'interactive.button_reply.id')
+                 ?? data_get($message, 'button.payload', '');
 
         // Guardar mensaje en tabla conversations (abre ventana 24h)
-        $conversation = Conversation::create([
+        Conversation::create([
             'contact_id'   => $contact->id,
             'direction'    => 'inbound',
             'message_type' => $messageType,

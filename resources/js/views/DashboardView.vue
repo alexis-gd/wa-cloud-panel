@@ -36,6 +36,44 @@
             </Card>
         </div>
 
+        <!-- Salud del número -->
+        <Card class="health-card mb-4">
+            <template #content>
+                <div class="health-row">
+                    <div class="health-item">
+                        <span class="health-label">Calidad del número</span>
+                        <span class="health-badge" :class="qualityClass">
+                            <span class="health-dot"></span>
+                            {{ healthData.quality_rating ?? '…' }}
+                        </span>
+                    </div>
+                    <div class="health-item">
+                        <span class="health-label">Modo</span>
+                        <span class="health-value">{{ healthData.account_mode ?? '…' }}</span>
+                    </div>
+                    <div class="health-item">
+                        <span class="health-label">Enviados hoy / límite</span>
+                        <span class="health-value">
+                            {{ healthData.sent_today ?? '…' }} / {{ healthData.daily_limit ?? '…' }}
+                        </span>
+                    </div>
+                    <div class="health-item">
+                        <span class="health-label">Número</span>
+                        <span class="health-value">{{ healthData.display_phone ?? '…' }}</span>
+                    </div>
+                    <div v-if="healthData.is_paused" class="health-item">
+                        <span class="health-label">Circuit breaker</span>
+                        <span class="health-badge quality-red">
+                            <span class="health-dot"></span>
+                            PAUSADO hasta {{ healthData.paused_until?.substring(0, 16).replace('T', ' ') }}
+                        </span>
+                    </div>
+                    <Button icon="pi pi-refresh" text severity="secondary" size="small" :loading="loadingHealth" @click="loadHealth" class="health-refresh" />
+                </div>
+                <div v-if="healthError" class="health-error">{{ healthError }}</div>
+            </template>
+        </Card>
+
         <!-- Stats contactos -->
         <div class="stats-row contacts-row">
             <Card class="stat-card">
@@ -93,23 +131,39 @@
                         </small>
                     </div>
                     <div class="form-group">
-                        <label>Número destino (con código de país, sin +)</label>
-                        <InputText v-model="form.to" placeholder="529231311146" fluid />
+                        <label>Contacto destino</label>
+                        <Select
+                            v-model="form.to"
+                            :options="contactOptions"
+                            option-label="label"
+                            option-value="value"
+                            placeholder="Selecciona un contacto activo"
+                            fluid
+                            :loading="loadingContacts"
+                            filter
+                        />
                     </div>
-                    <div class="form-group">
-                        <label>Variables (separadas por coma)</label>
-                        <InputText v-model="form.body_vars_raw" placeholder="Nombre, Monto" fluid />
+                    <template v-if="selectedTemplate && templateVars.length">
+                        <div v-for="(varName, idx) in templateVars" :key="idx" class="form-group">
+                            <label>{{ varName }}</label>
+                            <InputText v-model="form.vars[idx]" :placeholder="varName" fluid />
+                        </div>
+                    </template>
+                    <div v-else-if="selectedTemplate && !templateVars.length" class="form-group">
+                        <small class="muted-msg">Esta plantilla no tiene variables.</small>
                     </div>
                     <Button
                         label="Enviar"
                         icon="pi pi-send"
                         :loading="sending"
-                        :disabled="!form.template_name || !form.to"
+                        :disabled="!form.template_name || !form.to || sending"
                         @click="sendTest"
                         class="mt-2"
                     />
                     <Message v-if="sendResult" :severity="sendResult.status === 'sent' ? 'success' : 'error'" class="mt-3">
-                        {{ sendResult.status === 'sent' ? 'Mensaje enviado correctamente' : sendResult.message }}
+                        {{ sendResult.status === 'sent'
+                            ? 'Mensaje enviado correctamente'
+                            : (sendResult.wa_response?.error?.message || sendResult.message || 'Error al enviar') }}
                     </Message>
                 </template>
             </Card>
@@ -119,7 +173,10 @@
                 <template #title>
                     <div class="card-title-row">
                         <span>Últimos mensajes</span>
-                        <Button icon="pi pi-refresh" severity="secondary" text @click="loadStats" :loading="loadingLogs" />
+                        <div class="title-actions">
+                            <Button icon="pi pi-download" severity="secondary" text @click="downloadMessages" title="Exportar Excel" />
+                            <Button icon="pi pi-refresh" severity="secondary" text @click="loadStats" :loading="loadingLogs" />
+                        </div>
                     </div>
                 </template>
                 <template #content>
@@ -148,7 +205,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import Card      from 'primevue/card';
 import Button    from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -159,19 +216,37 @@ import Tag       from 'primevue/tag';
 import Message   from 'primevue/message';
 import { api }   from '../api.js';
 
-const logs            = ref([]);
-const stats           = ref({});
-const contacts        = ref({});
-const sending         = ref(false);
-const loadingLogs     = ref(false);
+const logs             = ref([]);
+const stats            = ref({});
+const contacts         = ref({});
+const sending          = ref(false);
+const loadingLogs      = ref(false);
 const loadingTemplates = ref(false);
-const sendResult      = ref(null);
-const templateOptions = ref([]);
+const loadingContacts  = ref(false);
+const loadingHealth    = ref(false);
+const sendResult       = ref(null);
+const templateOptions  = ref([]); // [{ label, value, language_code, body_text, var_labels }]
+const contactOptions   = ref([]); // [{ label, value }] solo contactos activos
+const healthData       = ref({});
+const healthError      = ref(null);
 
 const form = ref({
     template_name: null,
     to:            '',
-    body_vars_raw: '',
+    vars:          [],
+});
+
+// Plantilla actualmente seleccionada (objeto completo)
+const selectedTemplate = computed(() =>
+    templateOptions.value.find(t => t.value === form.value.template_name) ?? null
+);
+
+// Etiquetas de variables extraídas del body_text (e.g. ["Nombre", "Monto"])
+const templateVars = computed(() => selectedTemplate.value?.var_labels ?? []);
+
+// Cuando cambia la plantilla: resetear vars al número correcto
+watch(selectedTemplate, (tpl) => {
+    form.value.vars = tpl ? Array(tpl.var_labels.length).fill('') : [];
 });
 
 const statusSeverity = (status) => ({
@@ -181,6 +256,36 @@ const statusSeverity = (status) => ({
     failed    : 'danger',
     pending   : 'warn',
 }[status] ?? 'secondary');
+
+// Extrae etiquetas de variables de un body_text.
+// Busca patrones {{Nombre}}, {{Monto}} (con texto) o {{1}}, {{2}} (numérico).
+function extractVarLabels(bodyText) {
+    if (!bodyText) return [];
+    const matches = [...bodyText.matchAll(/\{\{([^}]+)\}\}/g)];
+    return matches.map(m => {
+        const inner = m[1].trim();
+        return /^\d+$/.test(inner) ? `Variable ${inner}` : inner;
+    });
+}
+
+async function loadHealth() {
+    loadingHealth.value = true;
+    healthError.value   = null;
+    const res = await api.phoneHealth();
+    if (res.status === 'ok') {
+        healthData.value = res.data;
+    } else {
+        healthError.value = res.message ?? 'No se pudo obtener el estado del número';
+    }
+    loadingHealth.value = false;
+}
+
+const qualityClass = computed(() => ({
+    'quality-green'   : healthData.value.quality_rating === 'GREEN',
+    'quality-yellow'  : healthData.value.quality_rating === 'YELLOW',
+    'quality-red'     : healthData.value.quality_rating === 'RED',
+    'quality-unknown' : !['GREEN','YELLOW','RED'].includes(healthData.value.quality_rating),
+}));
 
 async function loadStats() {
     loadingLogs.value = true;
@@ -196,28 +301,54 @@ async function loadStats() {
 async function loadTemplates() {
     loadingTemplates.value = true;
     const res = await api.templates();
-    templateOptions.value = (res.data ?? []).map(t => ({
-        label: `${t.name} (${t.language_code})`,
-        value: t.name,
-        language_code: t.language_code,
-    }));
+    templateOptions.value = (res.data ?? [])
+        .filter(t => t.status === 'approved' && t.is_active)
+        .map(t => ({
+            label         : t.name,
+            value         : t.name,
+            language_code : t.language_code,
+            body_text     : t.body_text,
+            var_labels    : extractVarLabels(t.body_text),
+        }));
     loadingTemplates.value = false;
+}
+
+async function loadContactOptions() {
+    loadingContacts.value = true;
+    const data = await api.contacts({ status: 'active', per_page: 200 });
+    contactOptions.value = (data.data ?? []).map(c => ({
+        label : c.name ? `${c.name} — ${c.phone}` : c.phone,
+        value : c.phone,
+    }));
+    loadingContacts.value = false;
+}
+
+async function downloadMessages() {
+    const token = localStorage.getItem('wa_token');
+    const res   = await fetch('/api/export/messages', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return;
+    const blob     = await res.blob();
+    const url      = URL.createObjectURL(blob);
+    const filename = res.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1]
+                     ?? 'mensajes_export.xlsx';
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 async function sendTest() {
     sending.value    = true;
     sendResult.value = null;
 
-    const selected = templateOptions.value.find(t => t.value === form.value.template_name);
-    const bodyVars = form.value.body_vars_raw
-        ? form.value.body_vars_raw.split(',').map(v => v.trim()).filter(Boolean)
-        : [];
-
     sendResult.value = await api.sendTest({
-        template_name: form.value.template_name,
-        language_code: selected?.language_code ?? 'en_US',
-        to:            form.value.to,
-        body_vars:     bodyVars,
+        template_name : form.value.template_name,
+        language_code : selectedTemplate.value?.language_code ?? 'es_MX',
+        to            : form.value.to,
+        body_vars     : form.value.vars.filter(v => v !== ''),
     });
 
     sending.value = false;
@@ -227,6 +358,8 @@ async function sendTest() {
 onMounted(() => {
     loadStats();
     loadTemplates();
+    loadHealth();
+    loadContactOptions();
 });
 </script>
 
@@ -264,12 +397,47 @@ onMounted(() => {
     .stat-num   { font-size: 1.5rem; }
 }
 
+/* Health widget */
+.health-card  { margin-bottom: 16px; }
+.health-row   { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+.health-item  { display: flex; flex-direction: column; gap: 2px; }
+.health-label { font-size: .75rem; color: var(--p-text-muted-color); }
+.health-value { font-size: .95rem; font-weight: 600; }
+.health-refresh { margin-left: auto; }
+.health-error { margin-top: 8px; font-size: .82rem; color: var(--p-red-500); }
+
+.health-badge {
+    display     : inline-flex;
+    align-items : center;
+    gap         : 6px;
+    font-size   : .95rem;
+    font-weight : 700;
+}
+.health-dot {
+    width         : 10px;
+    height        : 10px;
+    border-radius : 50%;
+    flex-shrink   : 0;
+}
+.quality-green  .health-dot { background: var(--p-green-500); }
+.quality-green              { color: var(--p-green-600); }
+.quality-yellow .health-dot { background: var(--p-yellow-500); }
+.quality-yellow             { color: var(--p-yellow-700); }
+.quality-red    .health-dot { background: var(--p-red-500); }
+.quality-red                { color: var(--p-red-600); }
+.quality-unknown .health-dot { background: var(--p-text-muted-color); }
+.quality-unknown             { color: var(--p-text-muted-color); }
+
+.mb-4 { margin-bottom: 20px; }
+
 .form-group       { margin-bottom: 12px; }
 .form-group label { display: block; font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 4px; }
 
 .card-title-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.title-actions  { display: flex; gap: 2px; }
 .empty-msg      { color: var(--p-text-muted-color); font-size: .85rem; }
 .warn-msg       { color: var(--p-orange-500); font-size: .78rem; }
+.muted-msg      { color: var(--p-text-muted-color); font-size: .78rem; }
 .mt-2 { margin-top: 8px; }
 .mt-3 { margin-top: 12px; }
 </style>

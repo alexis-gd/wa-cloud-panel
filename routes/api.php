@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ConversationController;
@@ -79,8 +80,16 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::delete('/templates/{id}',     [TemplateController::class, 'destroy']);
     });
 
-    // Configuración — solo admin
+    // Exports (admin y operator pueden descargar)
+    Route::middleware('role:admin,operator')->group(function () {
+        Route::get('/export/contacts', [ExportController::class, 'contacts']);
+        Route::get('/export/messages', [ExportController::class, 'messages']);
+    });
+
+    // Configuración y operaciones admin-only
     Route::middleware('role:admin')->group(function () {
+        Route::put('/contacts/{id}',    [ContactController::class, 'update']);
+        Route::get('/settings/phone-health', [SettingsController::class, 'phoneHealth']);
         Route::get('/settings/token-status', [SettingsController::class, 'tokenStatus']);
         Route::post('/settings/token',       [SettingsController::class, 'updateToken']);
         Route::get('/settings/cooldown',     [SettingsController::class, 'getCooldown']);

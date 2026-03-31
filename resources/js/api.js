@@ -37,6 +37,8 @@ export const api = {
     dashboardStats: () => request('/dashboard/stats'),
 
     // ── Settings ─────────────────────────────────────────────────────────────
+    phoneHealth: () => request('/settings/phone-health'),
+
     tokenStatus: () => request('/settings/token-status'),
 
     updateToken: (token) => request('/settings/token', {
@@ -93,6 +95,11 @@ export const api = {
     },
 
     optOutContact: (id) => request(`/contacts/${id}`, { method: 'DELETE' }),
+
+    updateContact: (id, payload) => request(`/contacts/${id}`, {
+        method : 'PUT',
+        body   : JSON.stringify(payload),
+    }),
 
     // ── Campaigns ─────────────────────────────────────────────────────────────
     campaigns: (params = {}) => {

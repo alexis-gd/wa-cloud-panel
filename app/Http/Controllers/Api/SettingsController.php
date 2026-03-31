@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
+use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -62,6 +64,60 @@ class SettingsController extends Controller
         return response()->json([
             'message'    => 'Token actualizado correctamente',
             'token_user' => $check['user'],
+        ]);
+    }
+
+    /**
+     * GET /api/settings/phone-health
+     * Devuelve calidad del número (GREEN/YELLOW/RED), modo (SANDBOX/LIVE),
+     * tier/daily_limit desde BD, y estado del token.
+     */
+    public function phoneHealth(): JsonResponse
+    {
+        $phone = PhoneNumber::where('is_active', true)->first();
+
+        if (! $phone) {
+            return response()->json(['status' => 'error', 'message' => 'No hay número activo'], 404);
+        }
+
+        $client = new WhatsAppClient();
+        $result = $client->get(
+            $phone->phone_number_id,
+            $phone->token,
+            ['fields' => 'quality_rating,account_mode,display_phone_number,verified_name']
+        );
+
+        if (! $result['ok']) {
+            $error = $result['body']['error']['message'] ?? 'Error al consultar Meta';
+            $code  = $result['body']['error']['code']    ?? null;
+            return response()->json([
+                'status'  => 'error',
+                'message' => $error,
+                'code'    => $code,
+            ], 422);
+        }
+
+        $meta = $result['body'];
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => [
+                'display_phone'  => $meta['display_phone_number'] ?? null,
+                'verified_name'  => $meta['verified_name']        ?? null,
+                'quality_rating' => $meta['quality_rating']       ?? 'UNKNOWN',
+                'account_mode'   => $meta['account_mode']         ?? 'UNKNOWN',
+                'daily_limit'    => $phone->daily_limit,
+                'sent_today'     => MessageLog::where('phone_number_id', $phone->id)
+                                        ->whereBetween('sent_at', [
+                                            now('America/Mexico_City')->startOfDay()->utc(),
+                                            now('America/Mexico_City')->endOfDay()->utc(),
+                                        ])
+                                        ->whereIn('status', ['sent', 'delivered', 'read'])
+                                        ->count(),
+                'is_active'      => $phone->is_active,
+                'is_paused'      => $phone->isPaused(),
+                'paused_until'   => $phone->paused_until?->toIso8601String(),
+            ],
         ]);
     }
 

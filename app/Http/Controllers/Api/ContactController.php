@@ -164,6 +164,23 @@ class ContactController extends Controller
     }
 
     /**
+     * Editar nombre de un contacto (solo admin).
+     * PUT /api/contacts/{id}
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'name' => 'nullable|string|max:255',
+        ]);
+
+        $contact = Contact::findOrFail($id);
+        $contact->name = $request->input('name') ?: null;
+        $contact->save();
+
+        return response()->json(['status' => 'ok', 'data' => $contact]);
+    }
+
+    /**
      * Opt-out manual de un contacto.
      * DELETE /api/contacts/{id}
      */

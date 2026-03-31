@@ -36,6 +36,11 @@
             </Card>
         </div>
 
+        <!-- Exportar -->
+        <div class="export-row mb-4">
+            <Button label="Exportar contactos (.xlsx)" icon="pi pi-download" severity="secondary" @click="downloadExport('contacts')" />
+        </div>
+
         <!-- Upload -->
         <Card class="mb-4">
             <template #title>Cargar contactos desde Excel / CSV</template>
@@ -99,16 +104,26 @@
                             <span class="date-cell">{{ data.created_at?.substring(0, 10) }}</span>
                         </template>
                     </Column>
-                    <Column header="">
+                    <Column header="" style="width: 120px">
                         <template #body="{ data }">
-                            <Button
-                                v-if="data.status === 'active'"
-                                label="Opt-out"
-                                severity="danger"
-                                size="small"
-                                text
-                                @click="confirmOptOut(data)"
-                            />
+                            <div class="row-actions">
+                                <Button
+                                    v-if="isAdmin"
+                                    icon="pi pi-pencil"
+                                    severity="secondary"
+                                    size="small"
+                                    text
+                                    @click="openEdit(data)"
+                                />
+                                <Button
+                                    v-if="data.status === 'active'"
+                                    label="Opt-out"
+                                    severity="danger"
+                                    size="small"
+                                    text
+                                    @click="confirmOptOut(data)"
+                                />
+                            </div>
                         </template>
                     </Column>
                     <template #empty>
@@ -128,11 +143,28 @@
     </div>
 
     <ConfirmDialog />
+
+    <!-- Dialog editar contacto (solo admin) -->
+    <Dialog v-model:visible="editDialog" header="Editar contacto" modal style="width: 360px">
+        <div class="edit-field">
+            <label>Teléfono</label>
+            <InputText :value="editContact.phone" disabled fluid />
+        </div>
+        <div class="edit-field">
+            <label>Nombre</label>
+            <InputText v-model="editContact.name" placeholder="Nombre del contacto" fluid autofocus />
+        </div>
+        <template #footer>
+            <Button label="Cancelar" text @click="editDialog = false" />
+            <Button label="Guardar" :loading="saving" @click="saveEdit" />
+        </template>
+    </Dialog>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useConfirm } from 'primevue/useconfirm';
+import { useAuth }    from '../auth.js';
 import Card          from 'primevue/card';
 import Button        from 'primevue/button';
 import InputText     from 'primevue/inputtext';
@@ -141,9 +173,12 @@ import DataTable     from 'primevue/datatable';
 import Column        from 'primevue/column';
 import Tag           from 'primevue/tag';
 import ConfirmDialog from 'primevue/confirmdialog';
+import Dialog        from 'primevue/dialog';
 import { api }       from '../api.js';
 
 const confirm = useConfirm();
+const { user: authState } = useAuth();
+const isAdmin = computed(() => authState.user?.role === 'admin');
 
 const contacts     = ref([]);
 const meta         = ref(null);
@@ -155,6 +190,9 @@ const uploadFile   = ref(null);
 const uploading    = ref(false);
 const uploadResult = ref(null);
 const fileInput    = ref(null);
+const editDialog   = ref(false);
+const editContact  = ref({ id: null, phone: '', name: '' });
+const saving       = ref(false);
 
 const filterOptions = [
     { label: 'Todos',     value: '' },
@@ -204,6 +242,19 @@ async function uploadContacts() {
     if (uploadResult.value.success) await loadContacts(1);
 }
 
+function openEdit(contact) {
+    editContact.value = { id: contact.id, phone: contact.phone, name: contact.name ?? '' };
+    editDialog.value  = true;
+}
+
+async function saveEdit() {
+    saving.value = true;
+    await api.updateContact(editContact.value.id, { name: editContact.value.name });
+    editDialog.value = false;
+    saving.value     = false;
+    await loadContacts(meta.value?.current_page ?? 1);
+}
+
 function confirmOptOut(contact) {
     confirm.require({
         message : `¿Marcar ${contact.phone} como opt-out? Esta acción no se puede deshacer.`,
@@ -217,6 +268,23 @@ function confirmOptOut(contact) {
             await loadContacts(meta.value?.current_page ?? 1);
         },
     });
+}
+
+async function downloadExport(type) {
+    const token = localStorage.getItem('wa_token');
+    const res   = await fetch(`/api/export/${type}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return;
+    const blob     = await res.blob();
+    const url      = URL.createObjectURL(blob);
+    const filename = res.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1]
+                     ?? `${type}_export.xlsx`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 onMounted(() => loadContacts());
@@ -266,4 +334,9 @@ onMounted(() => loadContacts());
     font-size: .85rem;
 }
 .total-count { color: var(--p-text-muted-color); margin-left: 8px; }
+.export-row  { display: flex; justify-content: flex-end; }
+.row-actions { display: flex; gap: 2px; align-items: center; }
+
+.edit-field        { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.edit-field label  { font-size: .85rem; font-weight: 600; }
 </style>

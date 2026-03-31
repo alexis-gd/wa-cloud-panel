@@ -2,10 +2,13 @@
 
 namespace App\Services\WhatsApp;
 
+use App\Models\WaTemplate;
+
 class TemplateBuilder
 {
     /**
      * Construye el payload JSON para enviar una plantilla aprobada por Meta.
+     * Incluye el componente header (IMAGE/TEXT) si la plantilla lo tiene.
      *
      * @param string $to           Número destino con código de país, ej. "521234567890"
      * @param string $templateName Nombre exacto de la plantilla en Meta, ej. "hello_world"
@@ -24,15 +27,36 @@ class TemplateBuilder
             ],
         ];
 
-        if (!empty($bodyVars)) {
-            $parameters = array_map(fn($var) => ['type' => 'text', 'text' => (string) $var], $bodyVars);
+        $components = [];
 
-            $payload['template']['components'] = [
-                [
-                    'type'       => 'body',
-                    'parameters' => $parameters,
+        // Header — solo si la plantilla tiene header_type IMAGE o TEXT con URL
+        $template = WaTemplate::where('name', $templateName)->first();
+
+        if ($template?->header_type === 'IMAGE' && $template->header_image_url) {
+            $components[] = [
+                'type'       => 'header',
+                'parameters' => [
+                    [
+                        'type'  => 'image',
+                        'image' => ['link' => $template->header_image_url],
+                    ],
                 ],
             ];
+        }
+
+        // Body vars
+        if (!empty($bodyVars)) {
+            $components[] = [
+                'type'       => 'body',
+                'parameters' => array_map(
+                    fn($var) => ['type' => 'text', 'text' => (string) $var],
+                    $bodyVars
+                ),
+            ];
+        }
+
+        if (!empty($components)) {
+            $payload['template']['components'] = $components;
         }
 
         return $payload;

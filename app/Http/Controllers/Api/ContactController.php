@@ -16,7 +16,7 @@ class ContactController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Contact::query()->orderByDesc('id');
+        $query = Contact::with('tags:id,name,slug')->orderByDesc('id');
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
@@ -28,6 +28,10 @@ class ContactController extends Controller
                 $q->where('phone', 'like', "%{$term}%")
                   ->orWhere('name',  'like', "%{$term}%");
             });
+        }
+
+        if ($request->filled('tag_id')) {
+            $query->whereHas('tags', fn ($q) => $q->where('tags.id', (int) $request->input('tag_id')));
         }
 
         $contacts = $query->paginate(50);

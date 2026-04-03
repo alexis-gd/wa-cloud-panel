@@ -14,6 +14,7 @@ class Campaign extends Model
         'template_name',
         'language_code',
         'body_vars',
+        'tag_id',
         'phone_number_id',
         'status',
         'total_contacts',
@@ -31,6 +32,11 @@ class Campaign extends Model
         'started_at'   => 'datetime',
         'completed_at' => 'datetime',
     ];
+
+    public function tag()
+    {
+        return $this->belongsTo(Tag::class);
+    }
 
     public function phoneNumber()
     {

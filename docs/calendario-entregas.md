@@ -81,7 +81,7 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] Detalle y control de campañas — logs por contacto, discard_reason, pause, delete, auto-completar campaña
 - [ ] Redis + Laravel Horizon
 - [ ] Multi-número con balanceo inteligente
-- [ ] Tags y segmentación de contactos
+- [x] Tags y segmentación de contactos
 - [ ] Multi-agente de atención
 - [ ] Deploy script automatizado
 - [ ] Monitoreo + alertas

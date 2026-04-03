@@ -80,6 +80,7 @@
                 <div class="filter-row">
                     <InputText v-model="search" placeholder="Buscar teléfono o nombre..." @keyup.enter="loadContacts(1)" fluid />
                     <Select v-model="filter" :options="filterOptions" option-label="label" option-value="value" placeholder="Todos" @change="loadContacts(1)" />
+                    <Select v-model="tagFilter" :options="tagFilterOptions" option-label="label" option-value="value" placeholder="Todos los tags" @change="loadContacts(1)" style="min-width: 160px" />
                     <Button icon="pi pi-search" severity="secondary" @click="loadContacts(1)" />
                 </div>
 
@@ -232,6 +233,7 @@ const meta         = ref(null);
 const contactStats = ref(null);
 const search       = ref('');
 const filter       = ref('');
+const tagFilter    = ref(null);
 const loading      = ref(false);
 const uploadFile   = ref(null);
 const uploading    = ref(false);
@@ -240,6 +242,11 @@ const fileInput    = ref(null);
 const editDialog   = ref(false);
 const editContact  = ref({ id: null, phone: '', name: '' });
 const saving       = ref(false);
+
+const tagFilterOptions = computed(() => [
+    { label: 'Todos los tags', value: null },
+    ...allTags.value.map(t => ({ label: t.name, value: t.id })),
+]);
 
 // Tags
 const allTags       = ref([]);
@@ -266,8 +273,9 @@ const statusSeverity = (status) => ({
 async function loadContacts(page = 1) {
     loading.value = true;
     const params = { page };
-    if (filter.value) params.status = filter.value;
-    if (search.value) params.q      = search.value;
+    if (filter.value)    params.status = filter.value;
+    if (search.value)    params.q      = search.value;
+    if (tagFilter.value) params.tag_id = tagFilter.value;
 
     const data      = await api.contacts(params);
     contacts.value  = data.data ?? [];

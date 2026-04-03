@@ -74,6 +74,13 @@
                         <i class="pi pi-bars" />
                     </button>
                     <h1 class="page-title">{{ pageTitle }}</h1>
+                    <HelpPopover
+                        v-if="currentHelp"
+                        :title="currentHelp.title"
+                        :items="currentHelp.items"
+                        :warning="currentHelp.warning"
+                        :tip="currentHelp.tip"
+                    />
                 </div>
             </header>
 
@@ -89,11 +96,12 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useRoute, useRouter, RouterLink, RouterView } from 'vue-router';
-import Tag    from 'primevue/tag';
-import Toast  from 'primevue/toast';
-import Button from 'primevue/button';
-import { api }     from '../api.js';
-import { useAuth } from '../auth.js';
+import Tag          from 'primevue/tag';
+import Toast        from 'primevue/toast';
+import Button       from 'primevue/button';
+import HelpPopover  from './HelpPopover.vue';
+import { api }      from '../api.js';
+import { useAuth }  from '../auth.js';
 
 const route  = useRoute();
 const router = useRouter();
@@ -112,6 +120,81 @@ const pageTitles = {
 };
 
 const pageTitle = computed(() => pageTitles[route.path] ?? 'WA Cloud Panel');
+
+const helpContent = {
+    '/': {
+        title: 'Dashboard',
+        items: [
+            { icon: 'pi-chart-bar',     label: 'Métricas',   text: 'Totales acumulados de enviados, entregados, leídos y fallidos.' },
+            { icon: 'pi-chart-line',    label: 'Gráfica',    text: 'Envíos por día en los últimos 14 días. Usa ↺ para refrescar.' },
+            { icon: 'pi-circle-fill',   label: 'Semáforo',   text: 'Calidad del número en Meta. Verde = ok. Amarillo = cuidado. Rojo = problema.' },
+            { icon: 'pi-send',          label: 'Prueba',     text: 'Envía un mensaje individual para verificar que una plantilla funciona.' },
+            { icon: 'pi-list',          label: 'Últimos',    text: 'Los 20 envíos más recientes con su estado actual.' },
+        ],
+        warning: 'Si el semáforo está ROJO o PAUSADO, no ejecutar campañas hasta que se revise.',
+    },
+    '/contacts': {
+        title: 'Contactos',
+        items: [
+            { icon: 'pi-upload',        label: 'Importar',   text: 'Sube un Excel (.xlsx). Columna A: teléfono, Columna B: nombre (opcional).' },
+            { icon: 'pi-phone',         label: 'Formato',    text: 'Teléfonos en formato mexicano con código de país: 529231311146.' },
+            { icon: 'pi-check-circle',  label: 'Resultado',  text: 'Al importar verás: aceptados / duplicados / formato inválido.' },
+            { icon: 'pi-ban',           label: 'Eliminar',   text: 'Borrar un contacto lo marca como opt-out permanente, no se elimina de la BD.' },
+            { icon: 'pi-download',      label: 'Exportar',   text: 'Descarga la lista actual de contactos en Excel.' },
+        ],
+        tip: 'Los contactos con opt-out nunca reaparecen aunque se vuelvan a importar.',
+    },
+    '/campaigns': {
+        title: 'Campañas',
+        items: [
+            { icon: 'pi-plus-circle',   label: 'Crear',      text: 'Dale un nombre, elige una plantilla aprobada y llena las variables si las tiene.' },
+            { icon: 'pi-play-circle',   label: 'Ejecutar',   text: 'Abre la campaña y da clic en Ejecutar. Los mensajes se encolan en segundo plano.' },
+            { icon: 'pi-shield',        label: 'Protección', text: 'El sistema omite automáticamente: opt-out, inválidos, snooze activo y límite diario.' },
+            { icon: 'pi-clock',         label: 'Horario',    text: 'Solo envía L-V entre 9AM y 10PM hora México. Fuera de ese horario, bloquea el envío.' },
+        ],
+        warning: 'No ejecutar la misma campaña dos veces. Si necesitas reenviar, crea una nueva.',
+    },
+    '/conversations': {
+        title: 'Conversaciones',
+        items: [
+            { icon: 'pi-comments',      label: 'Ventana 24h', text: 'Solo puedes responder texto libre si el contacto te escribió en las últimas 24h.' },
+            { icon: 'pi-tag',           label: 'Tags',        text: 'Activa = puedes escribir. Cerrada = solo plantillas. Snooze = pausado. Baja = opt-out.' },
+            { icon: 'pi-bolt',          label: 'Rápidas',     text: 'Los chips de respuestas rápidas cargan el texto automáticamente. Clic para usarlos.' },
+            { icon: 'pi-lock',          label: 'Ventana cerrada', text: 'Cuando el campo está deshabilitado, crea una campaña con ese contacto para reabrirla.' },
+        ],
+        tip: 'Las respuestas rápidas las crea y elimina el administrador desde el panel derecho.',
+    },
+    '/templates': {
+        title: 'Plantillas',
+        items: [
+            { icon: 'pi-sync',          label: 'Sincronizar', text: 'Trae el estado actualizado de todas las plantillas desde Meta. Úsalo si ves estados desactualizados.' },
+            { icon: 'pi-check-circle',  label: 'Aprobadas',   text: 'Solo las plantillas con estado "Aprobada" aparecen al crear campañas.' },
+            { icon: 'pi-clock',         label: 'Revisión',    text: 'Meta tarda entre 1 minuto y 48 horas en aprobar. Sincroniza para ver el estado actual.' },
+            { icon: 'pi-image',         label: 'Header',      text: 'Las plantillas pueden tener imagen de encabezado. Se configura al crearlas.' },
+        ],
+        warning: 'Solo el administrador puede crear, editar o eliminar plantillas.',
+    },
+    '/users': {
+        title: 'Usuarios',
+        items: [
+            { icon: 'pi-shield',        label: 'Admin',      text: 'Acceso total: plantillas, configuración, campañas, usuarios.' },
+            { icon: 'pi-user',          label: 'Operador',   text: 'Puede cargar contactos, crear y ejecutar campañas, ver reportes.' },
+            { icon: 'pi-comments',      label: 'Agente',     text: 'Solo puede ver y responder conversaciones entrantes.' },
+        ],
+        tip: 'Crea una cuenta por persona. No compartir credenciales.',
+    },
+    '/settings': {
+        title: 'Configuración',
+        items: [
+            { icon: 'pi-key',           label: 'Token Meta', text: 'El token de acceso a WhatsApp. Si los envíos fallan con error 467, el token expiró.' },
+            { icon: 'pi-circle-fill',   label: 'Salud',      text: 'Muestra la calidad del número y si el circuito está pausado.' },
+            { icon: 'pi-clock',         label: 'Cooldown',   text: 'Días mínimos entre mensajes al mismo contacto. Default: 30 días.' },
+        ],
+        warning: 'El token es sensible. Solo el administrador debe actualizarlo.',
+    },
+};
+
+const currentHelp = computed(() => helpContent[route.path] ?? null);
 
 const roleLabel = computed(() => ({
     admin    : 'Admin',

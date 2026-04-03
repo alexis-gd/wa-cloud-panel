@@ -1,0 +1,213 @@
+# Guía del Operador — WA Cloud Panel
+
+> Para el equipo de Prestamaz. No se requiere conocimiento técnico.
+> Si algo no funciona como se describe aquí, contactar al administrador del sistema.
+
+---
+
+## 1. Acceso al panel
+
+1. Abrir el navegador y entrar a la URL del sistema (el administrador te la proporcionará).
+2. Ingresar con tu correo y contraseña.
+3. Si olvidaste tu contraseña, pedirle al administrador que la restablezca.
+
+**Roles disponibles:**
+- **Administrador** — acceso total (crear campañas, configurar plantillas, ver configuración)
+- **Operador** — puede cargar contactos, crear y ejecutar campañas, ver reportes
+- **Agente** — solo puede ver y responder conversaciones entrantes
+
+---
+
+## 2. Dashboard
+
+Al entrar verás el dashboard con:
+
+- **Métricas de mensajes**: enviados, entregados, leídos y fallidos (totales acumulados).
+- **Gráfica de envíos (14 días)**: barras por día mostrando enviados / entregados / leídos / fallidos.
+  Usa el botón ↺ para refrescar si acabas de ejecutar una campaña.
+- **Salud del número**: muestra la calidad del número WhatsApp en semáforo verde/amarillo/rojo,
+  cuántos mensajes se han enviado hoy vs. el límite diario, y si el circuito está pausado.
+- **Enviar mensaje de prueba**: para probar una plantilla con un contacto específico antes de lanzar campaña.
+- **Últimos mensajes**: tabla de envíos recientes con su estado. Puedes filtrar por estado
+  (enviados / entregados / leídos / fallidos) y navegar entre páginas con los controles de paginación.
+
+> ⚠️ Si el semáforo está en **ROJO** o aparece **PAUSADO**, no ejecutar campañas hasta que
+> el administrador lo revise. El sistema se pausó automáticamente para proteger la cuenta.
+
+---
+
+## 3. Cargar contactos
+
+1. Ir a **Contactos** en el menú lateral.
+2. Clic en **Importar Excel**.
+3. Subir el archivo `.xlsx`. Formato requerido:
+
+   | Columna A | Columna B (opcional) |
+   |-----------|----------------------|
+   | Teléfono  | Nombre               |
+
+   - Los teléfonos deben estar en formato mexicano: `529231311146` (sin +, con clave de país).
+   - La primera fila puede ser encabezado — el sistema la detecta automáticamente.
+
+4. El sistema mostrará un resumen: **aceptados / duplicados / formato inválido**.
+   - Duplicados: ya existen en la base de datos, no se agregan de nuevo.
+   - Formato inválido: número fuera del rango esperado, se ignoran.
+
+5. Los contactos con **opt-out** (que pidieron baja anteriormente) nunca reaparecen aunque se vuelvan a importar.
+
+> 💡 Para exportar los contactos actuales a Excel, usar el botón **Exportar** en la pantalla de Contactos.
+
+---
+
+## 4. Tags — etiquetar contactos
+
+Los tags permiten agrupar contactos para segmentar campañas.
+
+1. Ir a **Contactos** y hacer clic en el icono 🏷️ (etiqueta) de cualquier contacto.
+2. En el panel que abre:
+   - **Seleccionar tags** existentes con el selector múltiple.
+   - **Crear nuevo tag**: escribir el nombre en el campo de texto y presionar Enter o clic en "Crear".
+   - Clic en **Guardar** para aplicar los cambios al contacto.
+3. La columna **Tags** en la tabla de contactos muestra las etiquetas asignadas.
+4. Para **filtrar la lista por tag**: usar el selector "Todos los tags" en la barra de búsqueda de Contactos.
+
+> Los tags no afectan el comportamiento de opt-out ni snooze. Son solo para clasificar.
+
+---
+
+## 5. Crear una campaña
+
+1. Ir a **Campañas** → clic en **Nueva campaña**.
+2. Llenar el formulario:
+   - **Nombre**: identificador interno (ej. "Promo mayo semana 1").
+   - **Plantilla**: solo aparecen las plantillas aprobadas por Meta. No se puede escribir una a mano.
+   - **Destinatarios**: elige "Todos los contactos activos" o filtra por un tag específico.
+     Si seleccionas un tag, solo los contactos con esa etiqueta recibirán la campaña.
+   - **Variables de la plantilla**: si la plantilla tiene `{{Nombre}}` u otras variables, aparecerán
+     campos para capturar los valores que se enviarán a todos los contactos.
+3. Clic en **Guardar**.
+
+> ℹ️ La campaña queda en estado **borrador** hasta que se ejecute.
+
+---
+
+## 5.1. Ejecutar una campaña
+
+1. En la lista de **Campañas**, abrir la campaña deseada.
+2. Clic en **Ejecutar**.
+3. El sistema verifica:
+   - Que la plantilla siga aprobada.
+   - Que haya un número activo.
+   - Que el horario sea válido (lunes a viernes, 9AM–10PM hora México).
+4. Si alguna condición falla, mostrará el motivo y no enviará nada.
+5. Si todo está bien, los mensajes se encolan y se empiezan a procesar en segundo plano.
+
+**El sistema protege automáticamente:**
+- No envía a contactos con opt-out o marcados como inválidos.
+- No envía a contactos en snooze (que respondieron "No por ahora" recientemente).
+- Respeta el límite diario del número WhatsApp según el tier de Meta.
+- Solo envía dentro del horario permitido (9AM–10PM, L-V).
+
+> ⚠️ No ejecutar la misma campaña dos veces. Si necesitas reenviar, crear una nueva campaña.
+
+---
+
+## 6. Conversaciones — asignación de agentes
+
+Cada conversación puede asignarse a un agente específico del equipo.
+
+- **Tomar conversación**: cualquier agente puede hacer clic en este botón (panel derecho)
+  para asignarse la conversación a sí mismo y ser el responsable de darle seguimiento.
+- **Asignar a agente** (solo admin y operador): usa el selector de agentes para asignar
+  la conversación a cualquier miembro del equipo.
+- **Cola sin asignar**: los administradores y operadores ven todas las conversaciones.
+  Los agentes solo ven las que tienen asignadas.
+
+> Si un agente ya no está disponible, el administrador puede reasignar la conversación
+> a otro agente seleccionándolo en el selector.
+
+---
+
+## 7. Ver estado de envíos
+
+- En el **Dashboard**, tabla "Últimos mensajes", puedes ver el estado de cada envío:
+  - `sent` — el mensaje salió de nuestro sistema hacia Meta.
+  - `delivered` — Meta confirmó que llegó al celular del contacto.
+  - `read` — el contacto abrió el mensaje.
+  - `failed` — hubo un error. El administrador puede revisar el detalle.
+
+- Para descargar un reporte completo en Excel: Dashboard → botón ↓ en "Últimos mensajes".
+
+---
+
+## 7. Conversaciones (respuestas entrantes)
+
+Cuando un contacto responde al WhatsApp, el mensaje aparece en **Conversaciones**.
+
+1. Ir a **Conversaciones** en el menú lateral.
+2. En el panel izquierdo ver la lista de contactos con mensajes. Los tags indican el estado:
+   - **Activa** (verde) — ventana de 24h abierta, puedes responder texto libre.
+   - **Cerrada** (gris) — el contacto no ha respondido en las últimas 24h.
+     Solo se puede reabrir enviando una plantilla desde Campañas.
+   - **Snooze** (naranja) — el contacto pidió "No por ahora", se reactivará automáticamente.
+   - **Baja** (rojo) — opt-out permanente, no se puede contactar.
+
+3. Seleccionar un contacto para ver el historial de mensajes.
+4. Si la ventana está **abierta**, escribir en el campo de texto y presionar Enter (o el botón enviar).
+5. Si la ventana está **cerrada**, el campo de texto aparece deshabilitado.
+   Para retomar el contacto, crear una campaña con ese contacto y ejecutarla.
+
+**Respuestas rápidas**: los chips en la parte inferior son atajos de mensajes frecuentes.
+Clic en uno para cargar el texto automáticamente; luego clic en enviar.
+
+> ℹ️ Los administradores pueden crear y eliminar respuestas rápidas desde el panel derecho.
+
+---
+
+## 8. Opt-out — contactos que piden baja
+
+Cuando un contacto responde con cualquiera de estas palabras exactas:
+**STOP, BAJA, CANCELAR, NO**
+
+El sistema lo marca automáticamente como **opt-out** y nunca más le envía mensajes.
+Esto es irreversible — el cliente pidió explícitamente no recibir más mensajes.
+
+- Los contactos con opt-out se pueden **ver** en la lista de Contactos (filtro "Opt-out") pero no se eliminan de la base de datos (auditoría).
+- El botón **Eliminar** en un contacto activo también lo marca como opt-out (baja manual).
+
+---
+
+## 9. Exportar reportes
+
+| Reporte         | Cómo acceder                                          | Columnas incluidas                              |
+|-----------------|-------------------------------------------------------|-------------------------------------------------|
+| Contactos       | Contactos → botón **Exportar Excel**                  | Teléfono, Nombre, Estado, Snooze, Fecha alta    |
+| Mensajes        | Dashboard → botón ↓ en "Últimos mensajes"             | Destino, Plantilla, Estado, Número, Fecha envío |
+
+---
+
+## 10. Preguntas frecuentes
+
+**¿Por qué no puedo ejecutar una campaña fuera de horario?**
+El sistema bloquea los envíos fuera de 9AM–10PM hora México (lunes a viernes).
+Esto es un requisito para no violar las políticas de Meta y evitar reportes de spam.
+
+**¿Por qué el número aparece "PAUSADO"?**
+Meta detectó un volumen inusual o reportes de spam. El sistema pausó los envíos automáticamente
+para proteger la cuenta. El administrador debe revisar antes de reanudar.
+
+**¿Se puede enviar a un número que no tiene WhatsApp?**
+No. Los números sin WhatsApp se marcan automáticamente como "inválidos" tras el primer intento fallido y no se vuelven a intentar.
+
+**¿Cuántos mensajes se pueden enviar por día?**
+Depende del tier del número WhatsApp:
+- Tier 1 (inicio): hasta 250 conversaciones/día
+- Tier 2: hasta 1,000/día (sube automáticamente al llegar al límite con buena calidad)
+- Tier 3: hasta 10,000/día
+
+El sistema controla esto automáticamente — el operador no puede cambiarlo.
+
+**¿Qué es el "snooze"?**
+Si un contacto toca el botón "No por ahora" en una plantilla, el sistema lo pausa
+por el período configurado (por defecto 30 días). Pasado ese período, vuelve a estar
+disponible para campañas automáticamente.

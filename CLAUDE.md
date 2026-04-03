@@ -28,6 +28,7 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | [docs/calendario-entregas.md](docs/calendario-entregas.md) | Entregas al cliente + checklist de desarrollo por etapa |
 | [docs/testing.md](docs/testing.md) | Guía PHPUnit, tipos de tests, mocks, convenciones |
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |
+| [docs/guia-operador.md](docs/guia-operador.md) | Manual de usuario para el equipo de Prestamaz |
 
 ## Reglas de desarrollo
 
@@ -38,6 +39,20 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | Convenciones API REST | [.claude/rules/convenciones-api.md](.claude/rules/convenciones-api.md) |
 | **Protección cuenta Meta (PRIORIDAD MÁXIMA)** | [.claude/rules/proteccion-cuenta-meta.md](.claude/rules/proteccion-cuenta-meta.md) |
 | Contexto Meta/WhatsApp — decisiones y lecciones | [.claude/rules/contexto-meta-whatsapp.md](.claude/rules/contexto-meta-whatsapp.md) |
+
+## Regla: Mantener la guía de operador actualizada
+
+**Cuándo actualizar [`docs/guia-operador.md`](docs/guia-operador.md):**
+- Al agregar un feature nuevo que el operador necesita usar (nueva pantalla, nuevo flujo, nuevo botón visible).
+- Al cambiar el comportamiento de algo ya documentado (ej: cambiar el límite de snooze, cambiar el horario, cambiar cómo funciona opt-out).
+- Al renombrar o mover algo en la UI que el operador vería (labels, secciones, rutas).
+
+**Cuándo NO es necesario actualizar:**
+- Cambios internos de backend sin impacto en la UI del operador.
+- Refactors, cambios de performance, ajustes de tests.
+- Features solo visibles para admin que el operador no toca.
+
+**Cómo actualizar:** editar la sección correspondiente de `docs/guia-operador.md` en el mismo commit del feature. Si el cambio afecta las FAQ, actualizarlas también.
 
 ## Comandos
 

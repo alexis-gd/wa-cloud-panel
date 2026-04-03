@@ -76,3 +76,17 @@ Ejemplos que NO requieren actualizar:
 3. ¿Feature nuevo en Stage 3? → marcar `[x]` en `docs/calendario-entregas.md`
 4. Commit en español, Conventional Commits: `feat:`, `fix:`, `refactor:`, `test:`, `chore:`
 5. Sin `Co-Authored-By` en el commit
+6. Actualizar versión en `AppLayout.vue` si aplica (ver sección 8)
+
+## 8. Versionado — `<span class="version">` en AppLayout.vue
+
+Actualizar la versión en `resources/js/components/AppLayout.vue` cuando:
+
+| Cambio | Incremento | Ejemplo |
+|---|---|---|
+| `feat:` nuevo feature visible | minor (X.**Y**.0) | v0.3.0 → v0.4.0 |
+| `fix:` corrección de bug | patch (X.Y.**Z**) | v0.3.0 → v0.3.1 |
+| Nueva Stage completa | minor | v0.3.x → v0.4.0 |
+
+- El label `— Stage N` refleja la etapa activa de desarrollo
+- Versión actual: **v0.3.0 — Stage 3**

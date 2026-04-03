@@ -110,6 +110,20 @@
             </Card>
         </div>
 
+        <!-- Gráfica envíos por día -->
+        <Card class="chart-card">
+            <template #title>
+                <div class="card-title-row">
+                    <span>Envíos últimos 14 días</span>
+                    <Button icon="pi pi-refresh" severity="secondary" text size="small" :loading="loadingChart" @click="loadDailyStats" />
+                </div>
+            </template>
+            <template #content>
+                <div v-if="loadingChart || !chartData.labels?.length" class="chart-loading">Cargando...</div>
+                <Chart v-else type="bar" :data="chartData" :options="chartOptions" class="send-chart" />
+            </template>
+        </Card>
+
         <div class="dashboard-grid">
             <!-- Enviar mensaje de prueba -->
             <Card>
@@ -175,12 +189,23 @@
                         <span>Últimos mensajes</span>
                         <div class="title-actions">
                             <Button icon="pi pi-download" severity="secondary" text @click="downloadMessages" title="Exportar Excel" />
-                            <Button icon="pi pi-refresh" severity="secondary" text @click="loadStats" :loading="loadingLogs" />
+                            <Button icon="pi pi-refresh" severity="secondary" text @click="loadMessages(1)" :loading="loadingLogs" />
                         </div>
                     </div>
                 </template>
                 <template #content>
-                    <DataTable :value="logs" size="small" :rows="10" stripedRows>
+                    <div class="logs-filter-row">
+                        <Select
+                            v-model="logsStatusFilter"
+                            :options="logStatusOptions"
+                            option-label="label"
+                            option-value="value"
+                            placeholder="Todos los estados"
+                            size="small"
+                            @change="loadMessages(1)"
+                        />
+                    </div>
+                    <DataTable :value="logs" size="small" stripedRows :loading="loadingLogs" class="mt-2">
                         <Column field="id" header="ID" style="width: 60px" />
                         <Column field="to_number" header="Destino" />
                         <Column field="template_name" header="Plantilla" />
@@ -198,6 +223,14 @@
                             <span class="empty-msg">Sin mensajes aún</span>
                         </template>
                     </DataTable>
+                    <div class="logs-pagination" v-if="logsMeta">
+                        <Button icon="pi pi-chevron-left" text severity="secondary" size="small"
+                            :disabled="logsMeta.page <= 1" @click="loadMessages(logsMeta.page - 1)" />
+                        <span class="logs-page-info">{{ logsMeta.page }} / {{ logsMeta.pages }}</span>
+                        <Button icon="pi pi-chevron-right" text severity="secondary" size="small"
+                            :disabled="logsMeta.page >= logsMeta.pages" @click="loadMessages(logsMeta.page + 1)" />
+                        <span class="logs-total">{{ logsMeta.total }} mensajes</span>
+                    </div>
                 </template>
             </Card>
         </div>
@@ -214,9 +247,12 @@ import DataTable from 'primevue/datatable';
 import Column    from 'primevue/column';
 import Tag       from 'primevue/tag';
 import Message   from 'primevue/message';
+import Chart     from 'primevue/chart';
 import { api }   from '../api.js';
 
 const logs             = ref([]);
+const logsMeta         = ref(null);
+const logsStatusFilter = ref(null);
 const stats            = ref({});
 const contacts         = ref({});
 const sending          = ref(false);
@@ -225,10 +261,33 @@ const loadingTemplates = ref(false);
 const loadingContacts  = ref(false);
 const loadingHealth    = ref(false);
 const sendResult       = ref(null);
+
+const logStatusOptions = [
+    { label: 'Todos', value: null },
+    { label: 'Enviados',    value: 'sent' },
+    { label: 'Entregados',  value: 'delivered' },
+    { label: 'Leídos',      value: 'read' },
+    { label: 'Fallidos',    value: 'failed' },
+    { label: 'Pendientes',  value: 'pending' },
+];
 const templateOptions  = ref([]); // [{ label, value, language_code, body_text, var_labels }]
 const contactOptions   = ref([]); // [{ label, value }] solo contactos activos
 const healthData       = ref({});
 const healthError      = ref(null);
+const loadingChart     = ref(false);
+const chartData        = ref({});
+const chartOptions     = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { position: 'bottom' },
+        tooltip: { mode: 'index', intersect: false },
+    },
+    scales: {
+        x: { stacked: false },
+        y: { beginAtZero: true, ticks: { precision: 0 } },
+    },
+};
 
 const form = ref({
     template_name: null,
@@ -288,14 +347,62 @@ const qualityClass = computed(() => ({
 }));
 
 async function loadStats() {
-    loadingLogs.value = true;
     const res = await api.dashboardStats();
     if (res.status === 'ok') {
         stats.value    = res.data.stats    ?? {};
         contacts.value = res.data.contacts ?? {};
-        logs.value     = res.data.recent_messages ?? [];
+    }
+}
+
+async function loadMessages(page = 1) {
+    loadingLogs.value = true;
+    const params = { page, per_page: 20 };
+    if (logsStatusFilter.value) params.status = logsStatusFilter.value;
+    const res = await api.dashboardMessages(params);
+    if (res.status === 'ok') {
+        logs.value     = res.data   ?? [];
+        logsMeta.value = res.meta   ?? null;
     }
     loadingLogs.value = false;
+}
+
+async function loadDailyStats() {
+    loadingChart.value = true;
+    const res = await api.dashboardDailyStats();
+    if (res.status === 'ok') {
+        const series = res.data;
+        const labels = series.map(d => d.day.substring(5)); // MM-DD
+        chartData.value = {
+            labels,
+            datasets: [
+                {
+                    label          : 'Enviados',
+                    data           : series.map(d => d.sent),
+                    backgroundColor: 'rgba(99,102,241,0.7)',
+                    borderRadius   : 4,
+                },
+                {
+                    label          : 'Entregados',
+                    data           : series.map(d => d.delivered),
+                    backgroundColor: 'rgba(34,197,94,0.7)',
+                    borderRadius   : 4,
+                },
+                {
+                    label          : 'Leídos',
+                    data           : series.map(d => d.read),
+                    backgroundColor: 'rgba(14,165,233,0.7)',
+                    borderRadius   : 4,
+                },
+                {
+                    label          : 'Fallidos',
+                    data           : series.map(d => d.failed),
+                    backgroundColor: 'rgba(239,68,68,0.7)',
+                    borderRadius   : 4,
+                },
+            ],
+        };
+    }
+    loadingChart.value = false;
 }
 
 async function loadTemplates() {
@@ -352,11 +459,13 @@ async function sendTest() {
     });
 
     sending.value = false;
-    await loadStats();
+    await Promise.all([loadStats(), loadMessages(1)]);
 }
 
 onMounted(() => {
     loadStats();
+    loadMessages(1);
+    loadDailyStats();
     loadTemplates();
     loadHealth();
     loadContactOptions();
@@ -430,6 +539,11 @@ onMounted(() => {
 
 .mb-4 { margin-bottom: 20px; }
 
+/* Chart */
+.chart-card   { margin-bottom: 20px; }
+.chart-loading { text-align: center; padding: 48px; color: var(--p-text-muted-color); font-size: .85rem; }
+.send-chart   { height: 240px; }
+
 .form-group       { margin-bottom: 12px; }
 .form-group label { display: block; font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 4px; }
 
@@ -440,4 +554,9 @@ onMounted(() => {
 .muted-msg      { color: var(--p-text-muted-color); font-size: .78rem; }
 .mt-2 { margin-top: 8px; }
 .mt-3 { margin-top: 12px; }
+
+.logs-filter-row   { display: flex; gap: 8px; margin-bottom: 8px; }
+.logs-pagination   { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: .82rem; }
+.logs-page-info    { padding: 0 4px; }
+.logs-total        { color: var(--p-text-muted-color); margin-left: 8px; }
 </style>

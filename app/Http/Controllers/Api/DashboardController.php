@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\MessageLog;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -20,11 +22,6 @@ class DashboardController extends Controller
         $contactTotals = Contact::select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status');
-
-        $logs = MessageLog::with('phoneNumber:id,display_name')
-            ->latest()
-            ->limit(20)
-            ->get();
 
         return response()->json([
             'status' => 'ok',
@@ -41,8 +38,71 @@ class DashboardController extends Controller
                     'opted_out' => (int) ($contactTotals['opted_out'] ?? 0),
                     'invalid'   => (int) ($contactTotals['invalid']   ?? 0),
                 ],
-                'recent_messages' => $logs,
             ],
         ]);
+    }
+
+    // GET /api/dashboard/messages — mensajes recientes con filtros y paginación
+    public function messages(Request $request): JsonResponse
+    {
+        $query = MessageLog::with('phoneNumber:id,display_name')->latest();
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('phone_number_id')) {
+            $query->where('phone_number_id', (int) $request->phone_number_id);
+        }
+
+        $paginated = $query->paginate((int) $request->input('per_page', 20));
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => $paginated->items(),
+            'meta'   => [
+                'total'    => $paginated->total(),
+                'page'     => $paginated->currentPage(),
+                'per_page' => $paginated->perPage(),
+                'pages'    => $paginated->lastPage(),
+            ],
+        ]);
+    }
+
+    // GET /api/dashboard/daily-stats — envíos por día (últimos 14 días)
+    public function dailyStats(): JsonResponse
+    {
+        $tz    = 'America/Mexico_City';
+        $start = Carbon::now($tz)->subDays(13)->startOfDay()->utc();
+        $end   = Carbon::now($tz)->endOfDay()->utc();
+
+        $rows = MessageLog::select(
+                DB::raw("DATE(CONVERT_TZ(created_at, '+00:00', '-06:00')) as day"),
+                'status',
+                DB::raw('COUNT(*) as total')
+            )
+            ->whereBetween('created_at', [$start, $end])
+            ->whereIn('status', ['sent', 'delivered', 'read', 'failed'])
+            ->groupBy('day', 'status')
+            ->orderBy('day')
+            ->get();
+
+        // Construir serie de 14 días con ceros por default
+        $days = collect();
+        for ($i = 13; $i >= 0; $i--) {
+            $days->push(Carbon::now($tz)->subDays($i)->format('Y-m-d'));
+        }
+
+        $indexed = $rows->groupBy('day');
+
+        $series = $days->map(fn (string $day) => [
+            'day'       => $day,
+            'sent'      => (int) ($indexed->get($day)?->firstWhere('status', 'sent')?->total      ?? 0),
+            'delivered' => (int) ($indexed->get($day)?->firstWhere('status', 'delivered')?->total ?? 0),
+            'read'      => (int) ($indexed->get($day)?->firstWhere('status', 'read')?->total      ?? 0),
+            'failed'    => (int) ($indexed->get($day)?->firstWhere('status', 'failed')?->total    ?? 0),
+        ]);
+
+        return response()->json(['status' => 'ok', 'data' => $series]);
     }
 }

@@ -12,6 +12,7 @@
     },
     "dependencies": {
         "@primeuix/themes": "^2.0.3",
+        "chart.js": "^4.5.1",
         "primeicons": "^7.0.0",
         "primevue": "^4.0.0",
         "vue": "^3.4.0",

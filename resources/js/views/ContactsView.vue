@@ -98,15 +98,31 @@
                             <Tag :value="data.status" :severity="statusSeverity(data.status)" />
                         </template>
                     </Column>
+                    <Column header="Tags" style="min-width: 140px">
+                        <template #body="{ data }">
+                            <div class="tag-chips">
+                                <span v-for="t in data.tags" :key="t.id" class="tag-chip">{{ t.name }}</span>
+                                <span v-if="!data.tags?.length" class="tag-empty">—</span>
+                            </div>
+                        </template>
+                    </Column>
                     <Column field="source" header="Fuente" />
-                    <Column header="Fecha">
+                    <Column header="Registrado">
                         <template #body="{ data }">
                             <span class="date-cell">{{ data.created_at?.substring(0, 10) }}</span>
                         </template>
                     </Column>
-                    <Column header="" style="width: 120px">
+                    <Column header="" style="width: 140px">
                         <template #body="{ data }">
                             <div class="row-actions">
+                                <Button
+                                    icon="pi pi-tag"
+                                    text
+                                    size="small"
+                                    severity="secondary"
+                                    @click="openTags(data)"
+                                    title="Asignar tags"
+                                />
                                 <Button
                                     v-if="isAdmin"
                                     icon="pi pi-pencil"
@@ -144,6 +160,36 @@
 
     <ConfirmDialog />
 
+    <!-- Dialog asignar tags a contacto -->
+    <Dialog v-model:visible="tagsDialog" header="Asignar tags" modal style="width: 420px">
+        <p class="tags-dialog-contact">Contacto: <strong>{{ tagsContact?.phone }}</strong></p>
+        <MultiSelect
+            v-model="selectedTagIds"
+            :options="allTags"
+            option-label="name"
+            option-value="id"
+            placeholder="Seleccionar tags..."
+            display="chip"
+            fluid
+        />
+        <div class="tags-manage-row">
+            <InputText v-model="newTagName" placeholder="Nuevo tag..." @keyup.enter="createTag" style="flex:1" />
+            <Button label="Crear" size="small" severity="secondary" :loading="creatingTag" @click="createTag" />
+        </div>
+        <div class="tags-list-manage">
+            <div v-for="t in allTags" :key="t.id" class="tag-manage-item">
+                <span class="tag-chip">{{ t.name }}</span>
+                <span class="tag-count">{{ t.contacts_count ?? 0 }} contactos</span>
+                <Button icon="pi pi-trash" text severity="danger" size="small" @click="deleteTag(t)" />
+            </div>
+            <p v-if="!allTags.length" class="tags-empty-hint">No hay tags creados aún.</p>
+        </div>
+        <template #footer>
+            <Button label="Cancelar" text @click="tagsDialog = false" />
+            <Button label="Guardar" :loading="savingTags" @click="saveTags" />
+        </template>
+    </Dialog>
+
     <!-- Dialog editar contacto (solo admin) -->
     <Dialog v-model:visible="editDialog" header="Editar contacto" modal style="width: 360px">
         <div class="edit-field">
@@ -169,6 +215,7 @@ import Card          from 'primevue/card';
 import Button        from 'primevue/button';
 import InputText     from 'primevue/inputtext';
 import Select        from 'primevue/select';
+import MultiSelect   from 'primevue/multiselect';
 import DataTable     from 'primevue/datatable';
 import Column        from 'primevue/column';
 import Tag           from 'primevue/tag';
@@ -193,6 +240,15 @@ const fileInput    = ref(null);
 const editDialog   = ref(false);
 const editContact  = ref({ id: null, phone: '', name: '' });
 const saving       = ref(false);
+
+// Tags
+const allTags       = ref([]);
+const tagsDialog    = ref(false);
+const tagsContact   = ref(null);
+const selectedTagIds = ref([]);
+const savingTags    = ref(false);
+const newTagName    = ref('');
+const creatingTag   = ref(false);
 
 const filterOptions = [
     { label: 'Todos',     value: '' },
@@ -287,7 +343,46 @@ async function downloadExport(type) {
     URL.revokeObjectURL(url);
 }
 
-onMounted(() => loadContacts());
+async function loadTags() {
+    const res = await api.tags();
+    if (res.status === 'ok') allTags.value = res.data;
+}
+
+function openTags(contact) {
+    tagsContact.value  = contact;
+    selectedTagIds.value = (contact.tags ?? []).map(t => t.id);
+    tagsDialog.value   = true;
+}
+
+async function saveTags() {
+    savingTags.value = true;
+    const res = await api.syncContactTags(tagsContact.value.id, selectedTagIds.value);
+    if (res.status === 'ok') {
+        const c = contacts.value.find(c => c.id === tagsContact.value.id);
+        if (c) c.tags = res.data;
+        tagsDialog.value = false;
+    }
+    savingTags.value = false;
+}
+
+async function createTag() {
+    if (!newTagName.value.trim()) return;
+    creatingTag.value = true;
+    const res = await api.createTag(newTagName.value.trim());
+    if (res.status === 'ok') {
+        allTags.value.push(res.data);
+        newTagName.value = '';
+    }
+    creatingTag.value = false;
+}
+
+async function deleteTag(tag) {
+    await api.deleteTag(tag.id);
+    allTags.value = allTags.value.filter(t => t.id !== tag.id);
+    selectedTagIds.value = selectedTagIds.value.filter(id => id !== tag.id);
+}
+
+onMounted(() => { loadContacts(); loadTags(); });
 </script>
 
 <style scoped>
@@ -339,4 +434,16 @@ onMounted(() => loadContacts());
 
 .edit-field        { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
 .edit-field label  { font-size: .85rem; font-weight: 600; }
+
+/* Tags */
+.tag-chips  { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag-chip   { font-size: .7rem; padding: 2px 8px; border-radius: 20px; background: var(--p-primary-100); color: var(--p-primary-700); white-space: nowrap; }
+.tag-empty  { font-size: .78rem; color: var(--p-text-muted-color); }
+
+.tags-dialog-contact { font-size: .85rem; margin-bottom: 12px; }
+.tags-manage-row     { display: flex; gap: 8px; margin-top: 14px; }
+.tags-list-manage    { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }
+.tag-manage-item     { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.tag-count           { font-size: .75rem; color: var(--p-text-muted-color); flex: 1; }
+.tags-empty-hint     { font-size: .82rem; color: var(--p-text-muted-color); text-align: center; }
 </style>

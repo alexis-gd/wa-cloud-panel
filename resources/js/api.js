@@ -34,7 +34,8 @@ export const api = {
     me: () => request('/auth/me'),
 
     // ── Dashboard ─────────────────────────────────────────────────────────────
-    dashboardStats: () => request('/dashboard/stats'),
+    dashboardStats:      () => request('/dashboard/stats'),
+    dashboardDailyStats: () => request('/dashboard/daily-stats'),
 
     // ── Settings ─────────────────────────────────────────────────────────────
     phoneHealth: () => request('/settings/phone-health'),
@@ -101,6 +102,21 @@ export const api = {
         body   : JSON.stringify(payload),
     }),
 
+    // ── Tags ─────────────────────────────────────────────────────────────────
+    tags: () => request('/tags'),
+
+    createTag: (name) => request('/tags', {
+        method : 'POST',
+        body   : JSON.stringify({ name }),
+    }),
+
+    deleteTag: (id) => request(`/tags/${id}`, { method: 'DELETE' }),
+
+    syncContactTags: (contactId, tagIds) => request(`/contacts/${contactId}/tags`, {
+        method : 'PUT',
+        body   : JSON.stringify({ tag_ids: tagIds }),
+    }),
+
     // ── Campaigns ─────────────────────────────────────────────────────────────
     campaigns: (params = {}) => {
         const qs = new URLSearchParams(params).toString();
@@ -113,6 +129,15 @@ export const api = {
     }),
 
     executeCampaign: (id) => request(`/campaigns/${id}/execute`, { method: 'POST' }),
+
+    campaignLogs: (id, params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return request(`/campaigns/${id}/logs?${qs}`);
+    },
+
+    pauseCampaign: (id) => request(`/campaigns/${id}/pause`, { method: 'POST' }),
+
+    deleteCampaign: (id) => request(`/campaigns/${id}`, { method: 'DELETE' }),
 
     // ── Conversations ─────────────────────────────────────────────────────────
     conversations: () => request('/conversations'),
@@ -132,6 +157,27 @@ export const api = {
     }),
 
     deleteQuickReply: (id) => request(`/quick-replies/${id}`, { method: 'DELETE' }),
+
+    assignConversation: (contactId, userId) => request(`/conversations/${contactId}/assign`, {
+        method : 'POST',
+        body   : JSON.stringify({ user_id: userId }),
+    }),
+
+    claimConversation: (contactId) => request(`/conversations/${contactId}/claim`, { method: 'POST' }),
+
+    // ── Dashboard messages ────────────────────────────────────────────────────
+    dashboardMessages: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return request(`/dashboard/messages?${qs}`);
+    },
+
+    // ── Feature flags ─────────────────────────────────────────────────────────
+    getFeatures: () => request('/settings/features'),
+
+    updateFeatures: (payload) => request('/settings/features', {
+        method : 'PUT',
+        body   : JSON.stringify(payload),
+    }),
 
     // ── Users ─────────────────────────────────────────────────────────────────
     users: () => request('/users'),

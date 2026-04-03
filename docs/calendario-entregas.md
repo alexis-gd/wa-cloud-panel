@@ -49,42 +49,40 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 
 ### Etapa 1 (alimenta Entregas 1 y 2)
 
-- [ ] Deploy básico VPS: Ubuntu + Nginx + PHP-FPM + SSL + MySQL
-- [ ] Auth Laravel (login/registro)
-- [x] Upload Excel (PhpSpreadsheet) — parcialmente hecho
+- [ ] Deploy básico VPS: Ubuntu + Nginx + PHP-FPM + SSL + MySQL ← **pendiente server**
+- [x] Auth Laravel (login/registro) — Sanctum + roles admin/operator/agent
+- [x] Upload Excel (PhpSpreadsheet)
 - [x] ContactController: index, stats, upload, optOut
-- [ ] Dashboard con conteos básicos
+- [x] Dashboard con conteos básicos — stats mensajes + contactos + tabla recientes
 - [x] Job `SendWhatsAppMessage` con queue database
 - [x] CampaignController: crear, listar, ejecutar
 - [x] Scheduler horario legal: **ventana 9AM-10PM America/Mexico_City (CST/UTC-6)**
-  - Garantiza mínimo 7AM para Baja California (PST) y máximo 10PM para Veracruz (CST)
-  - Sin detección por LADA — ventana única cubre todo México de forma segura
-  - Sin override manual por el cliente
 - [x] Warm-up limits automáticos por tier (en el Job, daily_limit por número)
-- [x] Tests Feature: health, templates, webhook, contacts, campaigns (20 tests, 41 assertions)
-- [ ] ⚠️ Paralelo: crear/aprobar plantillas Marketing en Meta (1-48 hrs)
-- [ ] ⚠️ Paralelo: configurar Business Manager + System User token permanente
+- [x] Tests Feature: 118 tests, 317 assertions — suite completa verde
+- [x] ⚠️ Paralelo: `prestamaz_interes_v1` aprobada en Meta
+- [x] ⚠️ Paralelo: System User token permanente configurado (`waclouddev`)
 
 ### Etapa 2 (alimenta Entrega 3)
 
-- [ ] Dashboard métricas tiempo real (enviados, entregados, leídos, fallidos)
-- [ ] Gráficas envío por día/hora
-- [ ] Opt-out automático STOP/NO/BAJA
-- [ ] Feedback visual calidad número (semáforo)
-- [ ] Lista negra automática + manual
-- [ ] Circuit breaker por calidad
-- [ ] Export reportes CSV/Excel
-- [ ] Tests integración completos
-- [ ] 📘 Guía de operador (capturas paso a paso)
+- [x] Dashboard métricas tiempo real (enviados, entregados, leídos, fallidos)
+- [x] Gráficas envío por día/hora — Chart.js + PrimeVue, serie 14 días, endpoint `/api/dashboard/daily-stats`
+- [x] Opt-out automático STOP/NO/BAJA/CANCELAR
+- [x] Feedback visual calidad número (semáforo) — widget en dashboard
+- [x] Circuit breaker por calidad — `paused_until` en phone_numbers, error 131048/368
+- [x] Export reportes Excel — `/api/export/contacts` y `/api/export/messages`
+- [x] Snooze de contactos — botón "No por ahora" activa cooldown configurable
+- [x] Conversaciones — chat entrante/saliente, ventana 24h, respuestas rápidas
+- [x] Sincronización plantillas con Meta API
+- [x] Tests integración completos — ConversationController, Export, Settings, Webhook, etc.
+- [x] 📘 Guía de operador — ayuda contextual por sección (popover `?` en topbar) + `docs/guia-operador.md`
 
 ### Etapa 3 (alimenta Entrega 4)
 
+- [x] Detalle y control de campañas — logs por contacto, discard_reason, pause, delete, auto-completar campaña
 - [ ] Redis + Laravel Horizon
 - [ ] Multi-número con balanceo inteligente
-- [ ] Vue migrado a Vite (componentes `.vue`)
-- [ ] Inbound messages (chat entrante)
-- [ ] Multi-agente de atención
 - [ ] Tags y segmentación de contactos
+- [ ] Multi-agente de atención
 - [ ] Deploy script automatizado
 - [ ] Monitoreo + alertas
 - [ ] Tests regresión automatizados

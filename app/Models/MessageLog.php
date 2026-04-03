@@ -12,6 +12,7 @@ class MessageLog extends Model
 
     protected $fillable = [
         'phone_number_id',
+        'campaign_id',
         'to_number',
         'template_name',
         'language_code',
@@ -19,6 +20,7 @@ class MessageLog extends Model
         'wa_message_id',
         'status',
         'error_message',
+        'discard_reason',
         'sent_at',
     ];
 
@@ -32,16 +34,38 @@ class MessageLog extends Model
         return $this->belongsTo(PhoneNumber::class);
     }
 
+    public function campaign()
+    {
+        return $this->belongsTo(Campaign::class);
+    }
+
     // Crea el registro ANTES de llamar a la API (per CLAUDE.md regla #2)
-    public static function logSend(int $phoneNumberId, string $to, string $template, string $lang, array $vars = []): self
+    public static function logSend(int $phoneNumberId, string $to, string $template, string $lang, array $vars = [], ?int $campaignId = null): self
     {
         return self::create([
             'phone_number_id' => $phoneNumberId,
+            'campaign_id'     => $campaignId,
             'to_number'       => $to,
             'template_name'   => $template,
             'language_code'   => $lang,
             'body_vars'       => $vars,
             'status'          => 'pending',
+        ]);
+    }
+
+    // Registra un contacto descartado (cooldown / snooze / opted_out / dedup_today)
+    public static function logDiscard(int $phoneNumberId, ?int $campaignId, string $to, string $template, string $lang, string $reason): self
+    {
+        return self::create([
+            'phone_number_id' => $phoneNumberId,
+            'campaign_id'     => $campaignId,
+            'to_number'       => $to,
+            'template_name'   => $template,
+            'language_code'   => $lang,
+            'body_vars'       => [],
+            'status'          => 'discarded',
+            'discard_reason'  => $reason,
+            'sent_at'         => now(),
         ]);
     }
 

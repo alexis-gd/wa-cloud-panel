@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WebhookController;
@@ -43,18 +44,29 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::middleware('role:admin,operator')->group(function () {
         Route::get('/templates',             [TemplateController::class, 'index']);
         Route::get('/dashboard/stats',       [DashboardController::class, 'stats']);
+        Route::get('/dashboard/messages',    [DashboardController::class, 'messages']);
+        Route::get('/dashboard/daily-stats', [DashboardController::class, 'dailyStats']);
 
         // Contactos
-        Route::get('/contacts',         [ContactController::class, 'index']);
-        Route::get('/contacts/stats',   [ContactController::class, 'stats']);
-        Route::post('/contacts/upload', [ContactController::class, 'upload']);
-        Route::delete('/contacts/{id}', [ContactController::class, 'optOut']);
+        Route::get('/contacts',              [ContactController::class, 'index']);
+        Route::get('/contacts/stats',        [ContactController::class, 'stats']);
+        Route::post('/contacts/upload',      [ContactController::class, 'upload']);
+        Route::delete('/contacts/{id}',      [ContactController::class, 'optOut']);
+        Route::put('/contacts/{id}/tags',    [TagController::class, 'syncContact']);
+
+        // Tags
+        Route::get('/tags',         [TagController::class, 'index']);
+        Route::post('/tags',        [TagController::class, 'store']);
+        Route::delete('/tags/{id}', [TagController::class, 'destroy']);
 
         // Campañas
-        Route::get('/campaigns',               [CampaignController::class, 'index']);
-        Route::post('/campaigns',              [CampaignController::class, 'store']);
-        Route::get('/campaigns/{id}',          [CampaignController::class, 'show']);
-        Route::post('/campaigns/{id}/execute', [CampaignController::class, 'execute']);
+        Route::get('/campaigns',                [CampaignController::class, 'index']);
+        Route::post('/campaigns',               [CampaignController::class, 'store']);
+        Route::get('/campaigns/{id}',           [CampaignController::class, 'show']);
+        Route::get('/campaigns/{id}/logs',      [CampaignController::class, 'logs']);
+        Route::post('/campaigns/{id}/execute',  [CampaignController::class, 'execute']);
+        Route::post('/campaigns/{id}/pause',    [CampaignController::class, 'pause']);
+        Route::delete('/campaigns/{id}',        [CampaignController::class, 'destroy']);
     });
 
     // Conversaciones (chat con contactos) — admin, operator y agent
@@ -62,7 +74,13 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/conversations',                            [ConversationController::class, 'index']);
         Route::get('/conversations/{contactId}',               [ConversationController::class, 'show']);
         Route::post('/conversations/{contactId}/messages',     [ConversationController::class, 'send']);
+        Route::post('/conversations/{contactId}/claim',        [ConversationController::class, 'claim']);
         Route::get('/quick-replies',                           [ConversationController::class, 'quickReplies']);
+    });
+
+    // Asignación de conversaciones — solo admin y operator
+    Route::middleware('role:admin,operator')->group(function () {
+        Route::post('/conversations/{contactId}/assign', [ConversationController::class, 'assign']);
     });
 
     // Quick replies — solo admin puede crear/eliminar
@@ -86,9 +104,15 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/export/messages', [ExportController::class, 'messages']);
     });
 
+    // Feature flags — GET para todos, PUT solo admin
+    Route::middleware('role:admin,operator,agent')->group(function () {
+        Route::get('/settings/features', [SettingsController::class, 'getFeatures']);
+    });
+
     // Configuración y operaciones admin-only
     Route::middleware('role:admin')->group(function () {
-        Route::put('/contacts/{id}',    [ContactController::class, 'update']);
+        Route::put('/contacts/{id}',        [ContactController::class, 'update']);
+        Route::put('/settings/features',    [SettingsController::class, 'updateFeatures']);
         Route::get('/settings/phone-health', [SettingsController::class, 'phoneHealth']);
         Route::get('/settings/token-status', [SettingsController::class, 'tokenStatus']);
         Route::post('/settings/token',       [SettingsController::class, 'updateToken']);

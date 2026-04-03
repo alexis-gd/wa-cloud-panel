@@ -212,7 +212,12 @@ class SendWhatsAppMessageJobTest extends TestCase
             'id'           => $this->campaign->id,
             'failed_count' => 1,
         ]);
-        $this->assertDatabaseCount('message_log', 0);
+        $this->assertDatabaseHas('message_log', [
+            'campaign_id'    => $this->campaign->id,
+            'to_number'      => $this->contact->phone,
+            'status'         => 'discarded',
+            'discard_reason' => 'opted_out',
+        ]);
     }
 
     public function test_descarta_contacto_invalido(): void
@@ -228,7 +233,11 @@ class SendWhatsAppMessageJobTest extends TestCase
             'id'           => $this->campaign->id,
             'failed_count' => 1,
         ]);
-        $this->assertDatabaseCount('message_log', 0);
+        $this->assertDatabaseHas('message_log', [
+            'campaign_id'    => $this->campaign->id,
+            'status'         => 'discarded',
+            'discard_reason' => 'opted_out',
+        ]);
     }
 
     // ── Snooze ────────────────────────────────────────────────────────────────
@@ -246,7 +255,11 @@ class SendWhatsAppMessageJobTest extends TestCase
             'id'           => $this->campaign->id,
             'failed_count' => 1,
         ]);
-        $this->assertDatabaseCount('message_log', 0);
+        $this->assertDatabaseHas('message_log', [
+            'campaign_id'    => $this->campaign->id,
+            'status'         => 'discarded',
+            'discard_reason' => 'snooze',
+        ]);
     }
 
     public function test_permite_envio_si_snooze_ya_expiro(): void
@@ -263,5 +276,78 @@ class SendWhatsAppMessageJobTest extends TestCase
             'id'         => $this->campaign->id,
             'sent_count' => 1,
         ]);
+    }
+
+    // ── Circuit breaker ───────────────────────────────────────────────────────
+
+    public function test_circuit_breaker_numero_pausado_no_llama_post(): void
+    {
+        $this->phone->update(['paused_until' => now()->addHour()]);
+
+        $this->mock(WhatsAppClient::class, function ($mock) {
+            $mock->shouldReceive('post')->never();
+        });
+
+        // release() lanza Error cuando no hay queue job real — es comportamiento
+        // esperado en tests directos; lo que importa es que post() no se llamó
+        try {
+            $this->makeJob()->handle(
+                app(WhatsAppClient::class),
+                app(TemplateBuilder::class),
+            );
+        } catch (\Error) {
+            // release() sin queue job real — ignorar
+        }
+
+        // Contadores no deben moverse
+        $this->assertDatabaseHas('campaigns', [
+            'id'           => $this->campaign->id,
+            'sent_count'   => 0,
+            'failed_count' => 0,
+        ]);
+    }
+
+    public function test_error_131048_llama_pause_for_60_minutos(): void
+    {
+        $this->mock(WhatsAppClient::class, function ($mock) {
+            $mock->shouldReceive('post')->andReturn([
+                'ok'   => false,
+                'body' => ['error' => ['code' => 131048, 'message' => 'Spam rate limit']],
+            ]);
+        });
+
+        // release(3600) lanza Error sin queue job real; pauseFor() ya escribió a BD
+        try {
+            $this->makeJob()->handle(
+                app(WhatsAppClient::class),
+                app(TemplateBuilder::class),
+            );
+        } catch (\Error) {
+            // release() sin queue job real — ignorar
+        }
+
+        $this->phone->refresh();
+        $this->assertTrue($this->phone->isPaused());
+        $this->assertEqualsWithDelta(60, now()->diffInMinutes($this->phone->paused_until), 2);
+    }
+
+    public function test_error_368_llama_pause_for_24_horas(): void
+    {
+        $this->mock(WhatsAppClient::class, function ($mock) {
+            $mock->shouldReceive('post')->andReturn([
+                'ok'   => false,
+                'body' => ['error' => ['code' => 368, 'message' => 'Account temporarily blocked']],
+            ]);
+        });
+
+        // fail() no lanza cuando $this->job es null — test retorna normalmente
+        $this->makeJob()->handle(
+            app(WhatsAppClient::class),
+            app(TemplateBuilder::class),
+        );
+
+        $this->phone->refresh();
+        $this->assertTrue($this->phone->isPaused());
+        $this->assertEqualsWithDelta(1440, now()->diffInMinutes($this->phone->paused_until), 2);
     }
 }

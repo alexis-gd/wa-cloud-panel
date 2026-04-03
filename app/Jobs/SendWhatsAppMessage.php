@@ -49,6 +49,14 @@ class SendWhatsAppMessage implements ShouldQueue
             return;
         }
 
+        // ── Si la campaña fue pausada, descartar sin log ──
+        if ($campaign->status === 'paused') {
+            Log::info('SendWhatsAppMessage: campaña pausada, descartando job silenciosamente', [
+                'campaign_id' => $this->campaignId,
+            ]);
+            return;
+        }
+
         // ── Circuit breaker: número pausado por rate limit o bloqueo ──
         if ($phoneNumber->isPaused()) {
             Log::info('SendWhatsAppMessage: número pausado (circuit breaker), reintentando', [
@@ -61,10 +69,12 @@ class SendWhatsAppMessage implements ShouldQueue
 
         // ── Verificar opt-out ANTES de enviar (regla inquebrantable) ──
         if ($contact->status === 'opted_out' || $contact->status === 'invalid') {
-            Log::info('SendWhatsAppMessage: contacto con opt-out, descartando', [
+            Log::info('SendWhatsAppMessage: contacto con opt-out/inválido, descartando', [
                 'contact_id' => $this->contactId,
             ]);
+            MessageLog::logDiscard($this->phoneNumberId, $this->campaignId, $contact->phone, $this->templateName, $this->languageCode, 'opted_out');
             $campaign->increment('failed_count');
+            $this->checkAutoComplete($campaign);
             return;
         }
 
@@ -74,7 +84,9 @@ class SendWhatsAppMessage implements ShouldQueue
                 'contact_id'    => $this->contactId,
                 'snoozed_until' => $contact->snoozed_until,
             ]);
+            MessageLog::logDiscard($this->phoneNumberId, $this->campaignId, $contact->phone, $this->templateName, $this->languageCode, 'snooze');
             $campaign->increment('failed_count');
+            $this->checkAutoComplete($campaign);
             return;
         }
 
@@ -92,7 +104,9 @@ class SendWhatsAppMessage implements ShouldQueue
                 'contact_id' => $this->contactId,
                 'phone'      => substr($contact->phone, -4),
             ]);
+            MessageLog::logDiscard($this->phoneNumberId, $this->campaignId, $contact->phone, $this->templateName, $this->languageCode, 'dedup_today');
             $campaign->increment('failed_count');
+            $this->checkAutoComplete($campaign);
             return;
         }
 
@@ -110,7 +124,9 @@ class SendWhatsAppMessage implements ShouldQueue
                 'last_sent'     => $lastSent,
                 'cooldown_days' => $cooldownDays,
             ]);
+            MessageLog::logDiscard($this->phoneNumberId, $this->campaignId, $contact->phone, $this->templateName, $this->languageCode, 'cooldown');
             $campaign->increment('failed_count');
+            $this->checkAutoComplete($campaign);
             return;
         }
 
@@ -139,6 +155,7 @@ class SendWhatsAppMessage implements ShouldQueue
             $this->templateName,
             $this->languageCode,
             $this->bodyVars,
+            $this->campaignId,
         );
 
         $payload  = $builder->build($contact->phone, $this->templateName, $this->languageCode, $this->bodyVars);
@@ -148,6 +165,7 @@ class SendWhatsAppMessage implements ShouldQueue
 
         if ($response['ok']) {
             $campaign->increment('sent_count');
+            $this->checkAutoComplete($campaign);
             return;
         }
 
@@ -158,6 +176,7 @@ class SendWhatsAppMessage implements ShouldQueue
         // 131026: número inexistente — marcar inválido, no reintentar
         if ($errorCode === 131026) {
             $contact->update(['status' => 'invalid']);
+            $this->checkAutoComplete($campaign);
             $this->fail(new \RuntimeException("Número inexistente en WhatsApp: {$contact->phone}"));
             return;
         }
@@ -180,11 +199,13 @@ class SendWhatsAppMessage implements ShouldQueue
                 'phone_number_id' => $this->phoneNumberId,
                 'paused_until'    => $phoneNumber->fresh()->paused_until,
             ]);
+            $this->checkAutoComplete($campaign);
             $this->fail(new \RuntimeException('Cuenta Meta bloqueada temporalmente (368).'));
             return;
         }
 
         // Otros errores: dejar que el sistema reintente (hasta $tries)
+        $this->checkAutoComplete($campaign);
         throw new \RuntimeException("Error Meta {$errorCode}: " . json_encode($response['body']));
     }
 
@@ -195,5 +216,19 @@ class SendWhatsAppMessage implements ShouldQueue
             'campaign_id' => $this->campaignId,
             'error'       => $e->getMessage(),
         ]);
+    }
+
+    // Marca la campaña como 'done' si ya se procesaron todos los contactos
+    private function checkAutoComplete(Campaign $campaign): void
+    {
+        $fresh = $campaign->fresh();
+        if (
+            $fresh &&
+            $fresh->status === 'running' &&
+            $fresh->total_contacts > 0 &&
+            ($fresh->sent_count + $fresh->failed_count) >= $fresh->total_contacts
+        ) {
+            $fresh->update(['status' => 'completed', 'completed_at' => now()]);
+        }
     }
 }

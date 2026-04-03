@@ -78,7 +78,7 @@ Esto incluye sin excepción:
 - **WABA ID**: `1236630511398211`
 - **API Version**: `v22.0`
 - **Token**: en `.env` → `WA_TOKEN` (referencia), pero los envíos leen de `phone_numbers.token` en BD
-- Token temporal: dura ~24h. Producción requiere System User en `business.facebook.com`
+- **Token actual**: System User Token **sin expiración** — System User `waclouddev`, app `wa-api-test`, permisos `whatsapp_business_messaging` + `whatsapp_business_management`
 
 ## Prompt de retoma
 

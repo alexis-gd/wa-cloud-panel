@@ -40,14 +40,15 @@ relacionada con Meta, envíos o plantillas.
 
 ## Token de acceso — Reglas críticas
 
-- **Token temporal**: dura ~24h, se invalida al cerrar sesión en FB (error 467)
-- **System User Token**: no expira (o expira en 60 días si se configura así) — obligatorio antes de producción
-- Cómo crear: `business.facebook.com` → Configuración del negocio → Usuarios → Usuarios del sistema
-- Permisos necesarios: solo `whatsapp_business_messaging`
+- **Token actual**: System User Token **sin expiración** — ya configurado y en uso
+  - System User: `waclouddev` · App: `wa-api-test`
+  - Permisos: `whatsapp_business_messaging` + `whatsapp_business_management`
+  - WABA asignada con Control total
+- **Token temporal** (ya no usamos, solo referencia): duraba ~24h, se invalidaba al cerrar sesión en FB (error 467)
 - El token vive en `phone_numbers.token` en BD, cifrado con `cast: 'encrypted'` (AES-256)
 - El `.env WA_TOKEN` NO afecta los envíos — solo es referencia
 - Nunca loguear token completo — máximo últimos 4 caracteres
-- Actualizar token: pantalla Configuración del panel, o `php artisan wa:update-token TOKEN`
+- Actualizar token si fuera necesario: pantalla Configuración del panel, o `php artisan wa:update-token TOKEN`
 
 ## Cuenta del cliente vs cuenta de desarrollo
 

@@ -154,6 +154,49 @@ class SettingsController extends Controller
         ]);
     }
 
+    // ── Feature flags ────────────────────────────────────────────────────────────
+
+    private const FEATURE_FLAGS = [
+        'feature_daily_chart',
+        'feature_conversations',
+        'feature_export',
+        'feature_tags',
+        'feature_multi_agent',
+    ];
+
+    /**
+     * GET /api/settings/features
+     * Devuelve todos los feature flags activos/inactivos.
+     * Público para roles autenticados (no solo admin) — el frontend lo usa al login.
+     */
+    public function getFeatures(): JsonResponse
+    {
+        $flags = [];
+        foreach (self::FEATURE_FLAGS as $key) {
+            $flags[$key] = (bool) (int) Setting::get($key, '1');
+        }
+
+        return response()->json(['status' => 'ok', 'data' => $flags]);
+    }
+
+    /**
+     * PUT /api/settings/features
+     * Actualiza uno o varios feature flags.
+     * Body: { "feature_conversations": false, "feature_export": true }
+     */
+    public function updateFeatures(Request $request): JsonResponse
+    {
+        $data = $request->validate(
+            collect(self::FEATURE_FLAGS)->mapWithKeys(fn ($k) => [$k => 'boolean'])->toArray()
+        );
+
+        foreach ($data as $key => $value) {
+            Setting::set($key, $value ? '1' : '0');
+        }
+
+        return response()->json(['status' => 'ok', 'data' => $data]);
+    }
+
     /**
      * Llama a graph.facebook.com/me para verificar si el token es válido.
      */

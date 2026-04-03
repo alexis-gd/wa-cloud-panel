@@ -54,12 +54,23 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 
 **Cómo actualizar:** editar la sección correspondiente de `docs/guia-operador.md` en el mismo commit del feature. Si el cambio afecta las FAQ, actualizarlas también.
 
+## ⚠️ OBLIGATORIO antes de cualquier cambio de código
+
+Antes de escribir, editar o borrar cualquier archivo de código (feat, fix, refactor, test, chore), Claude **DEBE** leer y aplicar los lineamientos en [`.claude/commands/lineamientos.md`](.claude/commands/lineamientos.md).
+
+Esto incluye sin excepción:
+- Verificar si el cambio afecta la UI del operador → actualizar `docs/guia-operador.md`
+- Crear test antes o junto con el código
+- Verificar reglas de seguridad si toca envíos o tokens
+- Correr `php artisan test` antes del commit
+
 ## Comandos
 
 | Comando | Archivo |
 |---|---|
 | `/test` — correr suite completa | [.claude/commands/test.md](.claude/commands/test.md) |
 | `/nueva-feature` — checklist antes de codear | [.claude/commands/nueva-feature.md](.claude/commands/nueva-feature.md) |
+| `/lineamientos` — reglas a seguir en CADA cambio | [.claude/commands/lineamientos.md](.claude/commands/lineamientos.md) |
 
 ## Credenciales WhatsApp
 

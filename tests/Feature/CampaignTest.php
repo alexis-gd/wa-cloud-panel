@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\PhoneNumber;
+use App\Models\Tag;
 use App\Models\WaTemplate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -159,6 +160,60 @@ class CampaignTest extends TestCase
         $this->postJson("/api/campaigns/{$campaign->id}/execute")
              ->assertStatus(422)
              ->assertJsonPath('code', 'INVALID_STATUS');
+    }
+
+    public function test_execute_solo_encola_contactos_del_tag_cuando_se_especifica(): void
+    {
+        $this->actingAsOperator();
+        Queue::fake();
+
+        $phone = PhoneNumber::factory()->create(['is_active' => true]);
+        $tag   = Tag::create(['name' => 'VIP', 'slug' => 'vip']);
+
+        $contactConTag  = Contact::factory()->create(['status' => 'active']);
+        $contactSinTag  = Contact::factory()->create(['status' => 'active']);
+        $contactConTag->tags()->attach($tag->id);
+
+        $campaign = Campaign::factory()->create([
+            'phone_number_id' => $phone->id,
+            'status'          => 'draft',
+            'tag_id'          => $tag->id,
+        ]);
+
+        $this->travelTo(now('America/Mexico_City')->startOfWeek()->addDay()->setHour(10));
+
+        $this->postJson("/api/campaigns/{$campaign->id}/execute")
+            ->assertStatus(200)
+            ->assertJsonPath('data.jobs_dispatched', 1);
+
+        Queue::assertCount(1);
+    }
+
+    public function test_execute_sin_tag_encola_todos_los_activos(): void
+    {
+        $this->actingAsOperator();
+        Queue::fake();
+
+        $phone = PhoneNumber::factory()->create(['is_active' => true]);
+        $tag   = Tag::create(['name' => 'Solo unos', 'slug' => 'solo-unos']);
+
+        $c1 = Contact::factory()->create(['status' => 'active']);
+        $c2 = Contact::factory()->create(['status' => 'active']);
+        $c1->tags()->attach($tag->id);
+
+        $campaign = Campaign::factory()->create([
+            'phone_number_id' => $phone->id,
+            'status'          => 'draft',
+            'tag_id'          => null,
+        ]);
+
+        $this->travelTo(now('America/Mexico_City')->startOfWeek()->addDay()->setHour(10));
+
+        $this->postJson("/api/campaigns/{$campaign->id}/execute")
+            ->assertStatus(200)
+            ->assertJsonPath('data.jobs_dispatched', 2);
+
+        Queue::assertCount(2);
     }
 
     public function test_execute_rechaza_fuera_de_horario(): void

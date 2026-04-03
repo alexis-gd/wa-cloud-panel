@@ -150,4 +150,79 @@ class WebhookInboundTest extends TestCase
 
         $this->assertDatabaseCount('conversations', 0);
     }
+
+    // ── Normalización de número (521XXXXXXXXX → 52XXXXXXXXX) ─────────────────
+
+    public function test_numero_de_13_digitos_521_encuentra_contacto_guardado_como_12_digitos(): void
+    {
+        // Contacto guardado como 529231311146 (12 dígitos)
+        // Meta envía 5219231311146 (13 dígitos — añade "1" después de "52" en móviles México)
+        $payload = $this->inboundPayload('5219231311146', 'text', [
+            'text' => ['body' => 'Hola, me interesa el préstamo'],
+        ]);
+
+        $this->postWebhook($payload)->assertStatus(200);
+
+        $this->assertDatabaseHas('conversations', [
+            'contact_id' => $this->contact->id,
+            'direction'  => 'inbound',
+            'body'       => 'Hola, me interesa el préstamo',
+        ]);
+    }
+
+    public function test_numero_de_12_digitos_52_no_se_normaliza(): void
+    {
+        // 529231311146 ya tiene 12 dígitos — no debe modificarse
+        $payload = $this->inboundPayload('529231311146', 'text', [
+            'text' => ['body' => 'Consulta sobre préstamo'],
+        ]);
+
+        $this->postWebhook($payload)->assertStatus(200);
+
+        $this->assertDatabaseHas('conversations', [
+            'contact_id' => $this->contact->id,
+            'direction'  => 'inbound',
+        ]);
+    }
+
+    // ── Tipo button (Quick Reply de plantilla) ────────────────────────────────
+
+    public function test_mensaje_tipo_button_se_guarda_con_body_y_message_type_correctos(): void
+    {
+        // type=button es la respuesta de Meta cuando el usuario toca un botón de plantilla
+        $payload = $this->inboundPayload('529231311146', 'button', [
+            'button' => [
+                'text'    => 'Me interesa',
+                'payload' => 'interested',
+            ],
+        ]);
+
+        $this->postWebhook($payload)->assertStatus(200);
+
+        $this->assertDatabaseHas('conversations', [
+            'contact_id'   => $this->contact->id,
+            'direction'    => 'inbound',
+            'body'         => 'Me interesa',
+            'message_type' => 'button_reply',
+        ]);
+    }
+
+    public function test_mensaje_tipo_button_no_hace_opt_out(): void
+    {
+        // "NO" como botón no es opt-out — solo lo es como texto exacto
+        $payload = $this->inboundPayload('529231311146', 'button', [
+            'button' => [
+                'text'    => 'NO',
+                'payload' => 'decline',
+            ],
+        ]);
+
+        $this->postWebhook($payload)->assertStatus(200);
+
+        // El contacto sigue activo — opt-out solo aplica para texto libre
+        $this->assertDatabaseHas('contacts', [
+            'id'     => $this->contact->id,
+            'status' => 'active',
+        ]);
+    }
 }

@@ -69,31 +69,32 @@
 
         <!-- Input -->
         <div class="chat-input-area">
-          <div v-if="!windowOpen" class="chat-notice">
-            La ventana de 24h está cerrada. El cliente debe responder primero para retomar el chat.
-          </div>
-          <div v-else-if="selected.status==='opted_out'" class="chat-notice chat-notice--danger">
+          <div v-if="selected.status==='opted_out'" class="chat-notice chat-notice--danger">
             Este contacto tiene opt-out permanente — no se le puede enviar mensajes.
           </div>
           <template v-else>
-            <!-- Respuestas rápidas -->
-            <div v-if="quickReplies.length" class="quick-replies">
+            <div v-if="!windowOpen" class="chat-notice">
+              Ventana de 24h cerrada. Envía una plantilla para reabrir la conversación.
+            </div>
+            <!-- Respuestas rápidas (solo cuando ventana abierta) -->
+            <div v-if="windowOpen && quickReplies.length" class="quick-replies">
               <button v-for="qr in quickReplies" :key="qr.id" @click="useQuickReply(qr)" class="qr-chip">
                 {{ qr.title }}
               </button>
             </div>
             <div class="input-row">
-              <Textarea v-model="newMessage" placeholder="Escribe tu mensaje..." :autoResize="true" rows="1"
-                class="msg-input" @keydown.enter.exact.prevent="sendMessage" />
-              <Button icon="pi pi-send" :loading="sending" :disabled="!newMessage.trim()" @click="sendMessage" />
+              <Textarea v-model="newMessage" :disabled="!windowOpen" placeholder="Escribe tu mensaje..."
+                :autoResize="true" rows="1" class="msg-input" @keydown.enter.exact.prevent="sendMessage" />
+              <Button icon="pi pi-send" :loading="sending" :disabled="!newMessage.trim() || !windowOpen"
+                @click="sendMessage" />
             </div>
-            <p class="input-hint">Enter para enviar · Shift+Enter para nueva línea</p>
+            <p v-if="windowOpen" class="input-hint">Enter para enviar · Shift+Enter para nueva línea</p>
           </template>
         </div>
       </template>
     </div>
 
-    <!-- Panel derecho: info + quick replies admin -->
+    <!-- Panel derecho: info + asignación + quick replies admin -->
     <div v-if="selected" class="conv-info">
       <div class="info-section">
         <p class="info-title">Info del contacto</p>
@@ -106,6 +107,33 @@
             <span class="info-val info-val--warn">{{ formatDate(selected.snoozed_until) }}</span>
           </div>
         </div>
+      </div>
+
+      <!-- Asignación de agente -->
+      <div class="info-section">
+        <p class="info-title">Asignación</p>
+        <div class="assign-current" v-if="currentAssignment">
+          <i class="pi pi-user assign-icon"></i>
+          <span class="assign-name">{{ currentAssignment.name }}</span>
+        </div>
+        <p v-else class="assign-empty">Sin asignar</p>
+        <!-- Claim: cualquier agente puede tomarse la conv -->
+        <Button label="Tomar conversación" icon="pi pi-hand-pointer" size="small" severity="secondary"
+          class="assign-btn" :loading="claiming" @click="claimConversation" />
+        <!-- Reasignar: solo admin/operator -->
+        <template v-if="isAdminOrOperator">
+          <Select
+            v-model="assignUserId"
+            :options="users"
+            option-label="name"
+            option-value="id"
+            placeholder="Asignar a..."
+            size="small"
+            fluid
+            class="assign-select"
+          />
+          <Button label="Asignar" size="small" :loading="assigning" :disabled="!assignUserId" @click="doAssign" class="assign-btn" />
+        </template>
       </div>
 
       <div class="info-section info-section--grow">
@@ -154,12 +182,14 @@ import { api }      from '../api.js';
 import Button    from 'primevue/button';
 import Textarea  from 'primevue/textarea';
 import InputText from 'primevue/inputtext';
+import Select    from 'primevue/select';
 import Tag       from 'primevue/tag';
 import Dialog    from 'primevue/dialog';
 
 const toast = useToast();
 const { user: authState } = useAuth();
-const isAdmin = computed(() => authState.user?.role === 'admin');
+const isAdmin            = computed(() => authState.user?.role === 'admin');
+const isAdminOrOperator  = computed(() => ['admin', 'operator'].includes(authState.user?.role));
 
 const contacts     = ref([]);
 const selected     = ref(null);
@@ -175,9 +205,23 @@ const showNewQR = ref(false);
 const savingQR  = ref(false);
 const newQR     = ref({ title: '', body: '' });
 
+// Multi-agente
+const users            = ref([]);
+const currentAssignment = ref(null);
+const assignUserId     = ref(null);
+const assigning        = ref(false);
+const claiming         = ref(false);
+
 onMounted(async () => {
-  await Promise.all([loadContacts(), loadQuickReplies()]);
+  const promises = [loadContacts(), loadQuickReplies()];
+  if (isAdminOrOperator.value) promises.push(loadUsers());
+  await Promise.all(promises);
 });
+
+async function loadUsers() {
+  const res = await api.users();
+  if (res.status === 'ok') users.value = res.data ?? [];
+}
 
 async function loadContacts() {
   loadingContacts.value = true;
@@ -190,6 +234,8 @@ async function selectContact(contact) {
   selected.value    = contact;
   loadingChat.value = true;
   messages.value    = [];
+  currentAssignment.value = contact.assigned_to ?? null;
+  assignUserId.value = null;
   const res = await api.conversation(contact.id);
   if (res.status === 'ok') {
     messages.value   = res.data.messages;
@@ -199,6 +245,28 @@ async function selectContact(contact) {
   loadingChat.value = false;
   await nextTick();
   scrollToBottom();
+}
+
+async function claimConversation() {
+  claiming.value = true;
+  const res = await api.claimConversation(selected.value.id);
+  if (res.status === 'ok') {
+    currentAssignment.value = res.data.assigned_to;
+    toast.add({ severity: 'success', summary: 'Asignado', detail: 'Conversación tomada', life: 2500 });
+  }
+  claiming.value = false;
+}
+
+async function doAssign() {
+  if (!assignUserId.value) return;
+  assigning.value = true;
+  const res = await api.assignConversation(selected.value.id, assignUserId.value);
+  if (res.status === 'ok') {
+    currentAssignment.value = res.data.assigned_to;
+    assignUserId.value = null;
+    toast.add({ severity: 'success', summary: 'Asignado', detail: `Conversación asignada a ${res.data.assigned_to.name}`, life: 2500 });
+  }
+  assigning.value = false;
 }
 
 async function sendMessage() {
@@ -369,4 +437,12 @@ function formatDate(iso) {
 .form-grid  { display: flex; flex-direction: column; gap: 14px; padding-top: 8px; }
 .form-field { display: flex; flex-direction: column; gap: 4px; }
 .form-field label { font-size: .85rem; font-weight: 600; }
+
+/* Assignment */
+.assign-current { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.assign-icon    { font-size: .85rem; color: var(--p-primary-500); }
+.assign-name    { font-size: .82rem; font-weight: 600; }
+.assign-empty   { font-size: .78rem; color: var(--p-text-muted-color); margin-bottom: 8px; }
+.assign-btn     { width: 100%; margin-bottom: 6px; }
+.assign-select  { margin-bottom: 6px; }
 </style>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Contact extends Model
@@ -82,6 +83,21 @@ class Contact extends Model
     public function conversations(): HasMany
     {
         return $this->hasMany(Conversation::class);
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class);
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(ConversationAssignment::class);
+    }
+
+    public function currentAssignment(): ?ConversationAssignment
+    {
+        return $this->assignments()->latest('assigned_at')->first();
     }
 
     public function scopeActive($query)

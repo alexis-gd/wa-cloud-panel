@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\Conversation;
+use App\Models\ConversationAssignment;
 use App\Models\PhoneNumber;
 use App\Models\QuickReply;
+use App\Models\User;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,30 +17,94 @@ use Illuminate\Support\Facades\Log;
 class ConversationController extends Controller
 {
     // GET /api/conversations — lista de contactos con conversaciones abiertas
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $contacts = Contact::whereHas('conversations')
+        /** @var \App\Models\User $authUser */
+        $authUser = $request->user();
+
+        $query = Contact::whereHas('conversations')
             ->with([
                 'conversations' => fn ($q) => $q->latest()->limit(1),
-            ])
-            ->get()
+                'assignments'   => fn ($q) => $q->latest('assigned_at')->limit(1)->with('user:id,name'),
+            ]);
+
+        // Agentes solo ven conversaciones que tienen asignadas
+        if ($authUser->role === 'agent') {
+            $query->whereHas('assignments', function ($q) use ($authUser) {
+                // La asignación más reciente debe ser a este agente
+                $q->where('user_id', $authUser->id)
+                  ->whereRaw('id = (SELECT MAX(id) FROM conversation_assignments ca2 WHERE ca2.contact_id = conversation_assignments.contact_id)');
+            });
+        }
+
+        $contacts = $query->get()
             ->map(fn (Contact $c) => [
-                'id'             => $c->id,
-                'name'           => $c->name,
-                'phone'          => $c->phone,
-                'status'         => $c->status,
-                'snoozed_until'  => $c->snoozed_until,
-                'last_message'   => $c->conversations->first()?->body,
+                'id'              => $c->id,
+                'name'            => $c->name,
+                'phone'           => $c->phone,
+                'status'          => $c->status,
+                'snoozed_until'   => $c->snoozed_until,
+                'last_message'    => $c->conversations->first()?->body,
                 'last_message_at' => $c->conversations->first()?->created_at,
-                'window_open'    => $c->conversations()
+                'window_open'     => $c->conversations()
                     ->where('direction', 'inbound')
                     ->where('created_at', '>=', now()->subHours(24))
                     ->exists(),
+                'assigned_to'     => $c->assignments->first()?->user
+                    ? ['id' => $c->assignments->first()->user->id, 'name' => $c->assignments->first()->user->name]
+                    : null,
             ])
             ->sortByDesc('last_message_at')
             ->values();
 
         return response()->json(['status' => 'ok', 'data' => $contacts]);
+    }
+
+    // POST /api/conversations/{contactId}/assign — asignar a un agente (admin/operator)
+    public function assign(Request $request, int $contactId): JsonResponse
+    {
+        $request->validate(['user_id' => 'required|integer|exists:users,id']);
+
+        $contact = Contact::find($contactId);
+        if (! $contact) {
+            return response()->json(['status' => 'error', 'message' => 'Contacto no encontrado.'], 404);
+        }
+
+        $user = User::find($request->user_id);
+
+        ConversationAssignment::create([
+            'contact_id'  => $contactId,
+            'user_id'     => $request->user_id,
+            'assigned_at' => now(),
+        ]);
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => ['assigned_to' => ['id' => $user->id, 'name' => $user->name]],
+        ]);
+    }
+
+    // POST /api/conversations/{contactId}/claim — el agente se autoasigna
+    public function claim(Request $request, int $contactId): JsonResponse
+    {
+        $contact = Contact::find($contactId);
+        if (! $contact) {
+            return response()->json(['status' => 'error', 'message' => 'Contacto no encontrado.'], 404);
+        }
+
+        /** @var \App\Models\User $authUser */
+        $authUser = $request->user();
+
+        ConversationAssignment::create([
+            'contact_id'  => $contactId,
+            'user_id'     => $authUser->id,
+            'assigned_at' => now(),
+        ]);
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => ['assigned_to' => ['id' => $authUser->id, 'name' => $authUser->name]],
+        ]);
     }
 
     // GET /api/conversations/{contactId} — historial de chat con un contacto

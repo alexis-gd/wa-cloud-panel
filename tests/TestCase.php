@@ -31,4 +31,15 @@ abstract class TestCase extends BaseTestCase
         );
         return $this;
     }
+
+    /**
+     * Autenticar como agent para tests que requieren auth:sanctum.
+     */
+    protected function actingAsAgent(): static
+    {
+        Sanctum::actingAs(
+            User::factory()->create(['role' => 'agent', 'is_active' => true])
+        );
+        return $this;
+    }
 }

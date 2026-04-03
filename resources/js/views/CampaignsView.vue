@@ -204,9 +204,9 @@
                             <span v-else class="muted-cell">—</span>
                         </template>
                     </Column>
-                    <Column header="Procesado">
+                    <Column header="Procesado (CST)">
                         <template #body="{ data }">
-                            <span class="date-cell">{{ data.sent_at?.substring(0, 16)?.replace('T', ' ') }}</span>
+                            <span class="date-cell">{{ data.sent_at }}</span>
                         </template>
                     </Column>
                     <template #empty>

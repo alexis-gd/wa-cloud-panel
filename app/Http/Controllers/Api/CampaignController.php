@@ -224,7 +224,11 @@ class CampaignController extends Controller
                 'discarded' => $discardedCount,
                 'pending'   => $pending,
             ],
-            'data'      => $logs->items(),
+            // sent_at se formatea en CST para que el frontend muestre la hora local de México,
+            // no la hora UTC cruda (que diferiría hasta 6 horas de lo que el operador ve en su reloj).
+            'data'      => collect($logs->items())->map(fn ($log) => array_merge($log->toArray(), [
+                'sent_at' => $log->sent_at?->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
+            ]))->values(),
             'has_more'  => $logs->hasMorePages(),
             'next_page' => $logs->hasMorePages() ? ($request->integer('page', 1) + 1) : null,
             'prev_page' => $request->integer('page', 1) > 1 ? ($request->integer('page', 1) - 1) : null,

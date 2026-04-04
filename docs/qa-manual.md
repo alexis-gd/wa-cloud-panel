@@ -18,6 +18,9 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Filtro por tag**: crear campaña con tag específico → solo se envía a contactos de ese tag, no a todos
 - [ ] **Auto-completar**: cuando todos los contactos son procesados → campaña pasa automáticamente a `completed`
 - [ ] **Logs de campaña**: en detalle de campaña, verificar que aparecen todos los contactos con su estado y `discard_reason` si aplica
+- [ ] **Balanceo multi-número** *(nuevo)*: con 2+ números activos, ejecutar campaña → en los logs Laravel ver `phone_numbers: [1, 2]` → los jobs se distribuyen en round-robin → cada número recibe ~50% de contactos
+- [ ] **Sin números disponibles** *(nuevo)*: poner todos los números en `is_active = false` → intentar ejecutar campaña → responde 422 con `code: NO_PHONE_AVAILABLE`
+- [ ] **Número pausado excluido del balanceo** *(nuevo)*: poner un número en `paused_until = futuro` → ejecutar campaña → solo el número activo recibe los jobs
 
 ---
 
@@ -57,6 +60,7 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Token inválido**: pegar token falso en campo → debe rechazarse con mensaje de error de Meta antes de guardar
 - [ ] **Salud del número**: widget muestra calidad GREEN/YELLOW/RED y modo SANDBOX/LIVE correctamente
 - [ ] **Circuit breaker**: número pausado por error 131048 → widget muestra `paused_until` → campañas no se envían con ese número
+- [ ] **Expiración de sesión 8h** *(nuevo)*: verificar en Tinker que `PersonalAccessToken::latest()->first()->expires_at` sea `now() + 8h` tras hacer login → con token expirado → frontend redirige a login con 401
 
 ---
 

@@ -74,20 +74,21 @@ Ejemplos que NO requieren actualizar:
 1. `php artisan test` — 100% verde
 2. ¿UI visible para operador? → `docs/guia-operador.md` actualizado
 3. ¿Feature nuevo en Stage 3? → marcar `[x]` en `docs/calendario-entregas.md`
-4. Commit en español, Conventional Commits: `feat:`, `fix:`, `refactor:`, `test:`, `chore:`
-5. Sin `Co-Authored-By` en el commit
-6. Actualizar versión en `AppLayout.vue` si aplica (ver sección 8)
+4. **¿El commit es `feat:` o `fix:`? → OBLIGATORIO actualizar versión en `AppLayout.vue` antes de commitear** (ver sección 8)
+5. Commit en español, Conventional Commits: `feat:`, `fix:`, `refactor:`, `test:`, `chore:`
+6. Sin `Co-Authored-By` en el commit
 7. **Actualizar contexto** — consultar la tabla en [`.claude/context-map.md`](.claude/context-map.md) sección "Regla práctica" y actualizar los docs que correspondan. Si el cambio afecta más de uno, actualizar todos en el mismo commit.
 
 ## 8. Versionado — `<span class="version">` en AppLayout.vue
 
-Actualizar la versión en `resources/js/components/AppLayout.vue` cuando:
+Archivo: `resources/js/components/AppLayout.vue` — buscar `<span class="version">`.
 
-| Cambio | Incremento | Ejemplo |
+| Tipo de commit | Incremento | Ejemplo |
 |---|---|---|
-| `feat:` nuevo feature visible | minor (X.**Y**.0) | v0.3.0 → v0.4.0 |
-| `fix:` corrección de bug | patch (X.Y.**Z**) | v0.3.0 → v0.3.1 |
-| Nueva Stage completa | minor | v0.3.x → v0.4.0 |
+| `feat:` | minor (X.**Y**.0) — resetea patch a 0 | v0.5.2 → v0.6.0 |
+| `fix:` o `perf:` | patch (X.Y.**Z**) | v0.5.2 → v0.5.3 |
+| Nueva Stage completa | minor | v0.5.x → v0.6.0 |
 
-- El label `— Stage N` refleja la etapa activa de desarrollo
-- Versión actual: **v0.3.0 — Stage 3**
+- `test:`, `chore:`, `docs:`, `refactor:` **NO** incrementan versión
+- Siempre incluir `AppLayout.vue` en el mismo commit que el `feat:` o `fix:`, nunca en un commit separado
+- Versión actual: **v0.5.2 — Stage 3**

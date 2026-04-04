@@ -123,6 +123,40 @@ pending → sent → delivered → read
 5. Rate limiting: `throttle:60,1` — máximo 60 peticiones por minuto por IP
 6. `.env` en `.gitignore` — nunca se sube al repositorio
 
+## Decisiones tecnológicas — por qué se eligió cada cosa
+
+| Capa | Elegido | Descartados | Razón |
+|---|---|---|---|
+| Backend | Laravel 10 + PHP 8.1 | Symfony (overkill), CodeIgniter (sin queues), Node (no lo domina el dev) | Queue, scheduler, cast `encrypted`, middleware y rate limiting built-in |
+| Frontend S1 | Vue 3 CDN | React (build obligatorio), Blade puro (sin reactividad) | Sin npm, 3 tabs no justifican build step |
+| Frontend S2+ | Vue 3 + Vite + PrimeVue v4 | Vuetify (Material genérico), Naive UI, shadcn-vue | Componentes ricos, tema Aura moderno, ideal para dashboard empresarial |
+| BD | MySQL 8 | PostgreSQL (innecesario), SQLite (no escala) | Dev lo domina, soporte Laravel primera clase, suficiente para 200K contactos |
+| Tests BD | MySQL (`wa_cloud_panel_test`) | SQLite :memory: | Mismo motor dev=test=prod — XAMPP ya corre MySQL |
+| Queue S1 | `database` driver | Redis (instalación extra) | Zero setup, suficiente para desarrollo |
+| Queue S2 | Redis + Horizon | — | RAM-based para 200K/mes, Horizon para monitoreo visual |
+| Hosting | VPS Ubuntu 22.04 + Nginx | cPanel | Obligatorio para `queue:work` persistente y Redis |
+| VPS proveedor | Hetzner CX22 ~$5/mes | DigitalOcean ($6), Vultr ($5) | Mejor relación precio/specs |
+| API WhatsApp | Cloud API directa | Twilio ($$$), MessageBird ($$) | Sin intermediarios, control total, PMP directo sin markup |
+
+### Por qué NO cPanel
+
+cPanel no permite:
+- Procesos persistentes (`queue:work` + Supervisor)
+- Redis sin addon pago
+- Configuración de Nginx (solo Apache)
+- Cron con frecuencia menor a 1 minuto
+
+Para queues de WhatsApp masivas esto es bloqueante. VPS propio es el único camino viable.
+
+### Por qué Cloud API directa (no Twilio ni MessageBird)
+
+- Twilio cobra markup encima del PMP de Meta (~2–3× más caro)
+- Con Cloud API directa: `~$0.04/msg Marketing` × 200K = $8,000 USD/mes sin margen de intermediario
+- Control total sobre webhooks, delivery receipts y plantillas
+- Sin vendor lock-in
+
+---
+
 ## Comandos artisan usados (referencia)
 
 ```bash

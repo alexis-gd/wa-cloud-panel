@@ -20,15 +20,16 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 
 ## Documentación
 
+> Ver [.claude/context-map.md](.claude/context-map.md) para saber qué archivo actualizar según el tipo de cambio.
+
 | Doc | Contenido |
 |---|---|
-| [docs/arquitectura-referencia.md](docs/arquitectura-referencia.md) | Estructura Laravel, flujo de peticiones, archivos clave, rutas API Stage 1 |
-| [docs/stack-decisiones.md](docs/stack-decisiones.md) | Por qué se eligió cada tecnología y qué se descartó |
-| [docs/meta-politicas.md](docs/meta-politicas.md) | Warm-up, precios PMP, calidad de número, plantillas, opt-out, suspensiones |
-| [docs/calendario-entregas.md](docs/calendario-entregas.md) | Entregas al cliente + checklist de desarrollo por etapa |
+| [docs/arquitectura-referencia.md](docs/arquitectura-referencia.md) | Estructura Laravel, flujo de peticiones, archivos clave, decisiones tecnológicas |
+| [docs/calendario-entregas.md](docs/calendario-entregas.md) | Entregas al cliente + checklist de desarrollo por etapa + backlog técnico |
 | [docs/testing.md](docs/testing.md) | Guía PHPUnit, tipos de tests, mocks, convenciones |
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |
 | [docs/guia-operador.md](docs/guia-operador.md) | Manual de usuario para el equipo de Prestamaz |
+| [docs/qa-manual.md](docs/qa-manual.md) | Checklist de QA manual por módulo (happy path + casos borde) |
 
 ## Reglas de desarrollo
 
@@ -38,7 +39,7 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | Seguridad inquebrantable | [.claude/rules/seguridad.md](.claude/rules/seguridad.md) |
 | Convenciones API REST | [.claude/rules/convenciones-api.md](.claude/rules/convenciones-api.md) |
 | **Protección cuenta Meta (PRIORIDAD MÁXIMA)** | [.claude/rules/proteccion-cuenta-meta.md](.claude/rules/proteccion-cuenta-meta.md) |
-| Contexto Meta/WhatsApp — decisiones y lecciones | [.claude/rules/contexto-meta-whatsapp.md](.claude/rules/contexto-meta-whatsapp.md) |
+| Contexto Meta/WhatsApp — decisiones, políticas y lecciones | [.claude/rules/contexto-meta-whatsapp.md](.claude/rules/contexto-meta-whatsapp.md) |
 
 ## Regla: Mantener la guía de operador actualizada
 

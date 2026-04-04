@@ -120,3 +120,50 @@ relacionada con Meta, envíos o plantillas.
 
 - **Usernames como identificadores (deadline junio 2026)**: el campo `wa_id` y upload de contactos
   debe soportar usernames (`@username`) además de números E.164
+
+---
+
+## Warm-up semanal — cronograma orientativo
+
+| Semana | Límite diario aprox. | Condición para subir |
+|---|---|---|
+| 1 | 500 mensajes/día | Calidad High o Medium sostenida |
+| 2–3 | 10,000 mensajes/día (Tier 2) | Calidad sostenida |
+| 3–4+ | 100,000 mensajes/día (Tier 3) | Calidad sostenida |
+
+Los límites exactos los impone Meta automáticamente. El sistema los refleja en `phone_numbers.daily_limit`.
+
+## Precios PMP (vigentes desde julio 2025)
+
+- **Marketing**: ~$0.04 USD por conversación entregada
+- **Utility**: ~$0.01 USD por conversación entregada
+- **Authentication**: precio variable por país
+- Los mensajes no entregados **no se cobran** — la calidad del número impacta directamente en el costo
+- Los límites son por **Business Portfolio**, no por número individual: 2–4 números en el mismo portfolio comparten el tier
+
+*Verificar tabla actualizada en developers.facebook.com si los precios cambian.*
+
+## Calidad del número — niveles y causas
+
+| Nivel | Efecto | Causas típicas |
+|---|---|---|
+| **High** | Calidad óptima, puede subir de tier | — |
+| **Medium** | Aceptable, mantiene tier actual | Algunos bloqueos o mensajes no leídos |
+| **Low** | Degradación de tier, activa circuit breaker | Muchos bloqueos, reportes de spam, mensajes a números sin WhatsApp |
+
+La calidad baja cuando: usuarios bloquean el número, mensajes masivos no leídos, reportes de spam, envíos a números inexistentes en WhatsApp.
+
+## Causas comunes de rechazo de plantillas
+
+- Contenido de spam o promesas exageradas
+- Sin botón o texto de opt-out claro
+- Contenido engañoso
+- Mismo contenido rechazado y resometido sin cambios
+
+## Causas comunes de suspensión de cuenta
+
+1. Enviar sin consentimiento previo del destinatario
+2. Ignorar respuestas de opt-out (STOP/NO/BAJA/CANCELAR)
+3. Warm-up agresivo (subir límites antes de tiempo)
+4. Contenido engañoso o promesas falsas en plantillas
+5. Auto-responder a cualquier mensaje entrante (patrón de bot/spam)

@@ -80,12 +80,20 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 
 - [x] Detalle y control de campañas — logs por contacto, discard_reason, pause, delete, auto-completar campaña
 - [ ] Redis + Laravel Horizon
-- [ ] Multi-número con balanceo inteligente
+- [ ] Multi-número con balanceo inteligente — phone_numbers con quality_rating y circuit breaker ya existen, falta lógica de selección óptima en job
 - [x] Tags y segmentación de contactos
-- [ ] Multi-agente de atención
+- [x] Multi-agente de atención — auto-asignación, claim, assign, modos least_chats/first_available, chip Sin asignar, resaltado propias
 - [ ] Deploy script automatizado
 - [ ] Monitoreo + alertas
 - [ ] Tests regresión automatizados
 - [ ] ⚠️ Warm-up número producción (3-4 semanas paralelas)
-- [ ] 📘 Guía completa: operador + administrador
+- [ ] 📘 Guía completa operador — sección guías operacionales Meta (agregar número prueba, registrar número nuevo, renovar token, interpretar alertas Business Manager)
+- [ ] 📋 QA manual completo — ejecutar `docs/qa-manual.md` y corregir bugs encontrados
+- [ ] 📘 Sesión capacitación + video grabado
+
+### Backlog técnico (no bloquea Entrega 4, priorizar según crecimiento de BD)
+
+- [ ] **Optimización de queries para escala** — revisar N+1 en ContactController (index + stats), ConversationController (index con subquery MAX assignments), DashboardController (daily-stats group by), MessageLog (logs de campaña sin índices)
+- [ ] **Política de sesiones Sanctum** — tokens actualmente sin expiración; definir si se quiere TTL automático
+- [ ] **Índices de BD** — agregar índices en columnas de filtro frecuente: `contacts.status`, `message_log.sent_at`, `conversation_assignments.contact_id + id`ador
 - [ ] 📘 Sesión capacitación + video grabado

@@ -239,3 +239,113 @@ El sistema controla esto automáticamente — el operador no puede cambiarlo.
 Si un contacto toca el botón "No por ahora" en una plantilla, el sistema lo pausa
 por el período configurado (por defecto 30 días). Pasado ese período, vuelve a estar
 disponible para campañas automáticamente.
+
+---
+
+## 11. Guías operacionales Meta
+
+Esta sección aplica principalmente al **administrador del sistema**. El operador normal
+no necesita realizar estas acciones en el día a día, pero es útil conocerlas para entender
+qué está pasando si algo falla.
+
+---
+
+### 11.A. Agregar un número de prueba en sandbox
+
+**Cuándo se necesita:** un miembro del equipo no recibe los mensajes de prueba enviados
+desde el panel. Esto ocurre porque Meta (en cuenta sandbox) solo permite enviar a números
+que han sido registrados y verificados previamente.
+
+**Pasos:**
+
+1. Ir a [developers.facebook.com](https://developers.facebook.com) e iniciar sesión con la cuenta del administrador de Meta.
+2. Seleccionar la aplicación del proyecto (`wa-api-test` o el nombre que corresponda).
+3. En el menú lateral izquierdo: **WhatsApp → Configuración de API**.
+4. Desplazarse a la sección **"Números de teléfono de destinatario"**.
+5. Clic en **"Agregar número de teléfono"**.
+6. Ingresar el número en formato internacional (ejemplo: `+52 923 131 1146`).
+7. El número recibirá un código OTP por WhatsApp. Ingresarlo en el campo que aparece en pantalla.
+8. Una vez verificado, el número aparece en la lista y ya puede recibir mensajes de prueba.
+
+> ⚠️ Esta restricción es solo en la cuenta sandbox (desarrollo). En la cuenta de producción del cliente,
+> se puede enviar a cualquier número sin este requisito adicional.
+
+---
+
+### 11.B. Renovar el System User Token
+
+**Cuándo puede ocurrir:** el token de acceso normalmente **no expira** (es un System User Token permanente).
+Sin embargo, puede invalidarse si alguien revoca manualmente los permisos del System User en Business Manager,
+o si se cambia la contraseña maestra de la cuenta Meta asociada.
+
+**Señal de alerta:** el panel muestra errores en los envíos con código `467` (token expirado).
+
+**Pasos para generar un token nuevo:**
+
+1. Ir a [business.facebook.com](https://business.facebook.com) → **Configuración del negocio** (ícono de engranaje).
+2. En el menú izquierdo: **Usuarios → Usuarios del sistema**.
+3. Seleccionar el usuario del sistema `waclouddev`.
+4. Clic en **"Generar nuevo token"**.
+5. Seleccionar la app (`wa-api-test`) y marcar los permisos:
+   - `whatsapp_business_messaging`
+   - `whatsapp_business_management`
+6. Copiar el token generado (aparece solo una vez — guardarlo de inmediato).
+
+**Pegar el token nuevo en el panel:**
+
+- Opción A — Panel web: ir a **Configuración** en el menú del sistema → campo "Token de acceso" → pegar → Guardar.
+- Opción B — Comando artisan (en el servidor): `php artisan wa:update-token TOKEN_AQUI`
+
+> El token nunca se ve completo en el panel por seguridad — solo los últimos 4 caracteres confirman que se guardó.
+
+---
+
+### 11.C. Interpretar alertas en Business Manager
+
+Meta muestra alertas en [business.facebook.com](https://business.facebook.com) cuando algo requiere atención.
+Esta tabla explica qué significa cada una y qué hacer:
+
+| Alerta en Business Manager | Qué significa | Qué hacer |
+|---|---|---|
+| **Calidad del número: Baja (rojo)** | Muchos usuarios bloquearon el número o reportaron spam | El sistema ya pausó los envíos automáticamente. No reanudar hasta que la calidad suba a Medium. Revisar con el administrador qué campañas recientes pudieron causar el problema. |
+| **Calidad del número: Media (amarillo)** | Algunos bloqueos o mensajes no leídos. Calidad en riesgo | Continuar con precaución. Reducir volumen de envíos si la tendencia es a la baja. |
+| **Límite de mensajes alcanzado** | Se llegó al tope diario del tier actual | Normal — el sistema respeta este límite. Los mensajes pendientes se encolan para el día siguiente automáticamente. |
+| **Cuenta en revisión / Restricción temporal** | Meta está revisando la actividad de la cuenta | **Detener todos los envíos de inmediato.** Contactar al administrador del sistema. No intentar enviar mientras dure la revisión. |
+| **Plantilla rechazada** | Meta no aprobó una plantilla sometida a revisión | El rechazo de una plantilla no afecta la cuenta. Solo significa que esa plantilla no puede usarse. Revisar el motivo en la sección Plantillas de Business Manager y modificar el contenido antes de volver a someter. |
+| **Actualización de políticas** | Meta cambió sus términos de uso | Leer el aviso y aceptar si corresponde. El administrador técnico revisa si hay cambios que afecten el sistema. |
+| **Token expirado / Permiso revocado** | El acceso a la API fue cortado | Seguir los pasos de la sección 11.B para renovar el token. |
+
+> Si aparece una alerta no listada aquí, tomar nota del mensaje exacto y contactar al administrador
+> antes de tomar cualquier acción.
+
+---
+
+### 11.D. Registrar un número nuevo de WhatsApp
+
+**Cuándo se hace:** cuando el negocio decide agregar un número adicional para aumentar la capacidad
+de envíos, o para reemplazar un número con calidad degradada.
+
+**Requisitos previos (gestionados por el administrador):**
+
+- SIM nueva dedicada exclusivamente a WhatsApp (Telcel o AT&T recomendados).
+  **Nunca usar el número oficial del negocio.**
+- El número debe poder recibir llamadas o SMS para la verificación inicial de Meta.
+- El administrador registra el número en [business.facebook.com](https://business.facebook.com) → **Cuentas de WhatsApp → Números de teléfono → Agregar número**.
+
+**Lo que hace el operador en el panel:**
+
+1. Ir a **Configuración → Números de WhatsApp**.
+2. El número nuevo aparecerá en la lista una vez que el administrador lo haya registrado en Meta.
+3. No es necesario hacer nada más — el sistema inicia el warm-up automáticamente.
+
+**Qué es el warm-up (para entender qué pasa en las primeras semanas):**
+
+El número empieza con un límite bajo (≈ 250 mensajes/día). El sistema lo sube gradualmente
+de forma automática a medida que los envíos tienen buena calidad y no generan reportes de spam.
+Este proceso tarda entre 2 y 4 semanas en alcanzar capacidad plena.
+
+El operador **no puede acelerar el warm-up** ni cambiar los límites manualmente — el sistema
+lo controla para proteger la cuenta.
+
+> ℹ️ Durante el warm-up, el semáforo del número puede aparecer en amarillo ("calidad pendiente").
+> Esto es normal en los primeros días con un número nuevo.

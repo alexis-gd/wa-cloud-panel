@@ -23,6 +23,14 @@
 Al entrar verás el dashboard con:
 
 - **Métricas de mensajes**: enviados, entregados, leídos y fallidos (totales acumulados).
+- **Meta mensual**: barra de progreso que muestra cuántos mensajes se han enviado este mes
+  versus la meta configurada (por defecto 200,000). Los colores indican el ritmo de avance:
+  - Azul — buen ritmo (≥60% de la meta)
+  - Amarillo — por debajo del ritmo esperado (≥30%)
+  - Rojo — muy por debajo (<30%)
+  - Verde — meta alcanzada (100%)
+  También muestra cuántos días quedan en el mes y cuántos mensajes faltan para la meta.
+  El administrador puede cambiar la meta en **Configuración → Meta mensual de envíos**.
 - **Gráfica de envíos (14 días)**: barras por día mostrando enviados / entregados / leídos / fallidos.
   Usa el botón ↺ para refrescar si acabas de ejecutar una campaña.
 - **Salud del número**: muestra la calidad del número WhatsApp en semáforo verde/amarillo/rojo,

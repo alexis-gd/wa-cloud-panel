@@ -126,6 +126,7 @@ const helpContent = {
         title: 'Dashboard',
         items: [
             { icon: 'pi-chart-bar',     label: 'Métricas',   text: 'Totales acumulados de enviados, entregados, leídos y fallidos.' },
+            { icon: 'pi-chart-bar',     label: 'Meta mensual', text: 'Progreso del mes: mensajes enviados vs. la meta configurada. El color indica el avance (azul = ok, amarillo = por debajo, rojo = muy bajo).' },
             { icon: 'pi-chart-line',    label: 'Gráfica',    text: 'Envíos por día en los últimos 14 días. Usa ↺ para refrescar.' },
             { icon: 'pi-circle-fill',   label: 'Semáforo',   text: 'Calidad del número en Meta. Verde = ok. Amarillo = cuidado. Rojo = problema.' },
             { icon: 'pi-send',          label: 'Prueba',     text: 'Envía un mensaje individual para verificar que una plantilla funciona.' },

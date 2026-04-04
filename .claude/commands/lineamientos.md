@@ -77,19 +77,7 @@ Ejemplos que NO requieren actualizar:
 4. Commit en español, Conventional Commits: `feat:`, `fix:`, `refactor:`, `test:`, `chore:`
 5. Sin `Co-Authored-By` en el commit
 6. Actualizar versión en `AppLayout.vue` si aplica (ver sección 8)
-7. **Actualizar contexto** — según el tipo de cambio, actualizar el doc correspondiente (ver tabla abajo):
-
-| Cambio | Actualizar |
-|---|---|
-| Nueva regla de seguridad, middleware, rate limit, CORS | `docs/arquitectura-referencia.md` sección Seguridad |
-| Nueva variable de entorno requerida | `docs/deploy-vps.md` sección variables `.env` |
-| Nuevo endpoint o cambio en un endpoint existente | `docs/arquitectura-referencia.md` sección Rutas API |
-| Decisión tecnológica nueva (nueva librería, driver, patrón) | `docs/arquitectura-referencia.md` sección Decisiones |
-| Cambio en política Meta (token, warm-up, horario, opt-out) | `.claude/rules/contexto-meta-whatsapp.md` |
-| Feature nuevo visible en UI | `docs/guia-operador.md` (ya cubierto en punto 2) |
-| Nuevo archivo clave o reestructura de carpetas | `.claude/context-map.md` |
-
-Si el cambio afecta más de un doc, actualizar todos en el mismo commit.
+7. **Actualizar contexto** — consultar la tabla en [`.claude/context-map.md`](.claude/context-map.md) sección "Regla práctica" y actualizar los docs que correspondan. Si el cambio afecta más de uno, actualizar todos en el mismo commit.
 
 ## 8. Versionado — `<span class="version">` en AppLayout.vue
 

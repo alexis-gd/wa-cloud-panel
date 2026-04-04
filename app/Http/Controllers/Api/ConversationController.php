@@ -23,6 +23,11 @@ class ConversationController extends Controller
         $authUser = $request->user();
 
         $query = Contact::whereHas('conversations')
+            ->withExists([
+                'conversations as window_open' => fn ($q) => $q
+                    ->where('direction', 'inbound')
+                    ->where('created_at', '>=', now()->subHours(24)),
+            ])
             ->with([
                 'conversations' => fn ($q) => $q->latest()->limit(1),
                 'assignments'   => fn ($q) => $q->latest('assigned_at')->limit(1)->with('user:id,name'),
@@ -46,10 +51,7 @@ class ConversationController extends Controller
                 'snoozed_until'   => $c->snoozed_until,
                 'last_message'    => $c->conversations->first()?->body,
                 'last_message_at' => $c->conversations->first()?->created_at,
-                'window_open'     => $c->conversations()
-                    ->where('direction', 'inbound')
-                    ->where('created_at', '>=', now()->subHours(24))
-                    ->exists(),
+                'window_open'     => (bool) $c->window_open,
                 'assigned_to'     => $c->assignments->first()?->user
                     ? ['id' => $c->assignments->first()->user->id, 'name' => $c->assignments->first()->user->name]
                     : null,

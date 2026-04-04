@@ -10,12 +10,14 @@ use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Tag;
 use App\Models\WaTemplate;
+use App\Services\PhoneNumberSelector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class CampaignController extends Controller
 {
+    public function __construct(private readonly PhoneNumberSelector $selector) {}
     // GET /api/campaigns
     public function index(): JsonResponse
     {
@@ -144,23 +146,40 @@ class CampaignController extends Controller
             ], 422);
         }
 
+        // ── Balanceo multi-número: seleccionar números disponibles ──
+        $phoneNumbers = $this->selector->available();
+
+        if ($phoneNumbers->isEmpty()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No hay números de teléfono disponibles (todos pausados o sin capacidad).',
+                'code'    => 'NO_PHONE_AVAILABLE',
+            ], 422);
+        }
+
         $campaign->update([
             'status'         => 'running',
             'total_contacts' => $contacts->count(),
             'started_at'     => now(),
         ]);
 
+        $phoneCount = $phoneNumbers->count();
+
         Log::info("Campaña #{$campaign->id} iniciada", [
-            'campaign'    => $campaign->name,
-            'contacts'    => $contacts->count(),
-            'template'    => $campaign->template_name,
+            'campaign'      => $campaign->name,
+            'contacts'      => $contacts->count(),
+            'template'      => $campaign->template_name,
+            'phone_numbers' => $phoneNumbers->pluck('id')->all(),
         ]);
 
-        foreach ($contacts as $contact) {
+        // Distribuir contactos en round-robin entre números disponibles
+        foreach ($contacts as $index => $contact) {
+            $phone = $phoneNumbers[$index % $phoneCount];
+
             SendWhatsAppMessage::dispatch(
                 $contact->id,
                 $campaign->id,
-                $campaign->phone_number_id,
+                $phone->id,
                 $campaign->template_name,
                 $campaign->language_code,
                 $campaign->body_vars ?? [],
@@ -170,9 +189,10 @@ class CampaignController extends Controller
         return response()->json([
             'status' => 'ok',
             'data'   => [
-                'campaign_id'    => $campaign->id,
+                'campaign_id'     => $campaign->id,
                 'jobs_dispatched' => $contacts->count(),
-                'message'        => "Se encolaron {$contacts->count()} mensajes.",
+                'phone_numbers'   => $phoneCount,
+                'message'         => "Se encolaron {$contacts->count()} mensajes entre {$phoneCount} número(s).",
             ],
         ]);
     }

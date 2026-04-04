@@ -22,6 +22,10 @@ class Kernel extends ConsoleKernel
             ->between('9:00', '22:00')
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Limpiar tokens Sanctum expirados de la BD (los marca expirados en memoria,
+        // pero no los borra automáticamente sin este comando).
+        $schedule->command('sanctum:prune-expired --hours=8')->daily();
     }
 
     /**

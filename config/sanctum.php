@@ -46,7 +46,7 @@ return [
     |
     */
 
-    'expiration' => null,
+    'expiration' => 480, // 8 horas — cubre un turno completo, expira al acabar el día laboral
 
     /*
     |--------------------------------------------------------------------------

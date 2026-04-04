@@ -29,8 +29,10 @@ Route::get('/health', function () {
 Route::get('/webhook',  [WebhookController::class, 'verify']);
 Route::post('/webhook', [WebhookController::class, 'handle']);
 
-// ── Auth — público ───────────────────────────────────────────────────────────
-Route::prefix('auth')->group(function () {
+// ── Auth — público, con rate limit anti-brute-force ─────────────────────────
+// 5 intentos por minuto por IP — bloquea ataques de fuerza bruta sin molestar
+// a usuarios legítimos (un operador no hace 5 logins en 60 segundos).
+Route::prefix('auth')->middleware('throttle:5,1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 

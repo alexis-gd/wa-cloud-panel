@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ContactController extends Controller
@@ -45,11 +46,16 @@ class ContactController extends Controller
      */
     public function stats(): JsonResponse
     {
+        // 1 query con GROUP BY en vez de 4 COUNT separadas
+        $counts = Contact::select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
         return response()->json([
-            'total'     => Contact::count(),
-            'active'    => Contact::where('status', 'active')->count(),
-            'opted_out' => Contact::where('status', 'opted_out')->count(),
-            'invalid'   => Contact::where('status', 'invalid')->count(),
+            'total'     => $counts->sum(),
+            'active'    => (int) ($counts['active']    ?? 0),
+            'opted_out' => (int) ($counts['opted_out'] ?? 0),
+            'invalid'   => (int) ($counts['invalid']   ?? 0),
         ]);
     }
 

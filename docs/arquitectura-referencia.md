@@ -120,8 +120,10 @@ pending → sent → delivered → read
 2. Validación de `X-Hub-Signature-256` en cada webhook POST (HMAC-SHA256)
 3. Token de WhatsApp encriptado en BD con `cast: 'encrypted'` (AES-256 via APP_KEY)
 4. Endpoints protegidos con `X-API-Key` header (ApiKeyMiddleware)
-5. Rate limiting: `throttle:60,1` — máximo 60 peticiones por minuto por IP
+5. Rate limiting: `throttle:60,1` en rutas autenticadas; `throttle:5,1` en `POST /auth/login` (anti-brute-force)
 6. `.env` en `.gitignore` — nunca se sube al repositorio
+7. CORS restringido a `APP_URL` + Vite dev (no `*`); métodos explícitos; `max_age: 7200`
+8. Tokens Sanctum expiran a las **8 horas**; `sanctum:prune-expired` corre diario vía scheduler
 
 ## Decisiones tecnológicas — por qué se eligió cada cosa
 

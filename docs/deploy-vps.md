@@ -109,10 +109,28 @@ cd wa-cloud-panel
 
 composer install --no-dev --optimize-autoloader
 cp .env.example .env
-nano .env  # configurar DB, WA tokens, APP_KEY
+nano .env
 php artisan key:generate
 php artisan migrate --force
 ```
+
+Variables críticas a configurar en `.env` (además de DB y APP_KEY):
+
+```env
+APP_URL=https://tudominio.com        # ⚠️ CORS usa este valor — debe ser la URL real del panel
+APP_ENV=production
+APP_DEBUG=false
+
+WA_TOKEN=...                         # Token Meta (referencia — los envíos leen de BD)
+WA_PHONE_ID=...
+WA_WABA_ID=...
+WA_WEBHOOK_VERIFY_TOKEN=...          # Secreto separado del token Meta
+WA_APP_SECRET=...                    # Para validar firma X-Hub-Signature-256
+
+QUEUE_CONNECTION=database            # Cambiar a redis cuando se instale Horizon
+```
+
+> **Nota CORS**: `APP_URL` determina qué origen puede hacer peticiones al API. Si el dominio no coincide exactamente (http vs https, con www vs sin www), el navegador bloqueará las peticiones del frontend.
 
 ---
 

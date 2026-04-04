@@ -80,12 +80,12 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 
 - [x] Detalle y control de campañas — logs por contacto, discard_reason, pause, delete, auto-completar campaña
 - [ ] Redis + Laravel Horizon
-- [ ] Multi-número con balanceo inteligente — phone_numbers con quality_rating y circuit breaker ya existen, falta lógica de selección óptima en job
+- [x] Multi-número con balanceo inteligente — PhoneNumberSelector distribuye en round-robin por capacidad restante
 - [x] Tags y segmentación de contactos
 - [x] Multi-agente de atención — auto-asignación, claim, assign, modos least_chats/first_available, chip Sin asignar, resaltado propias
 - [ ] Deploy script automatizado
 - [ ] Monitoreo + alertas
-- [ ] Tests regresión automatizados
+- [ ] Tests regresión automatizados (CI GitHub Actions)
 - [ ] ⚠️ Warm-up número producción (3-4 semanas paralelas)
 - [ ] 📘 Guía completa operador — sección guías operacionales Meta (agregar número prueba, registrar número nuevo, renovar token, interpretar alertas Business Manager)
 - [ ] 📋 QA manual completo — ejecutar `docs/qa-manual.md` y corregir bugs encontrados
@@ -93,7 +93,6 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 
 ### Backlog técnico (no bloquea Entrega 4, priorizar según crecimiento de BD)
 
-- [ ] **Optimización de queries para escala** — revisar N+1 en ContactController (index + stats), ConversationController (index con subquery MAX assignments), DashboardController (daily-stats group by), MessageLog (logs de campaña sin índices)
-- [ ] **Política de sesiones Sanctum** — tokens actualmente sin expiración; definir si se quiere TTL automático
-- [ ] **Índices de BD** — agregar índices en columnas de filtro frecuente: `contacts.status`, `message_log.sent_at`, `conversation_assignments.contact_id + id`ador
-- [ ] 📘 Sesión capacitación + video grabado
+- [x] **Optimización de queries para escala** — N+1 en ConversationController (window_open → withExists), ContactController::stats (4 queries → 1 GROUP BY)
+- [x] **Política de sesiones Sanctum** — tokens expiran a las 8h, sanctum:prune-expired corre diario
+- [x] **Índices de BD** — índice compuesto (contact_id, id) en conversation_assignments; índices previos en message_log y contacts.status ya existían

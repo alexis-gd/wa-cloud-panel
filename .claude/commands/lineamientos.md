@@ -73,7 +73,7 @@ Ejemplos que NO requieren actualizar:
 
 1. `php artisan test` — 100% verde
 2. ¿UI visible para operador? → `docs/guia-operador.md` actualizado
-3. ¿Feature nuevo en Stage 3? → marcar `[x]` en `docs/calendario-entregas.md`
+3. ¿Feature nuevo en Stage 3? → **preguntar al usuario antes de marcar `[x]` en `docs/calendario-entregas.md`** — no marcar como listo sin confirmación explícita
 4. **¿El commit es `feat:` o `fix:`? → OBLIGATORIO actualizar versión en `AppLayout.vue` antes de commitear** (ver sección 8)
 5. Commit en español, Conventional Commits: `feat:`, `fix:`, `refactor:`, `test:`, `chore:`
 6. Sin `Co-Authored-By` en el commit

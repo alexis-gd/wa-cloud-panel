@@ -186,9 +186,10 @@ const helpContent = {
     '/settings': {
         title: 'Configuración',
         items: [
-            { icon: 'pi-key',           label: 'Token Meta', text: 'El token de acceso a WhatsApp. Si los envíos fallan con error 467, el token expiró.' },
-            { icon: 'pi-circle-fill',   label: 'Salud',      text: 'Muestra la calidad del número y si el circuito está pausado.' },
-            { icon: 'pi-clock',         label: 'Cooldown',   text: 'Días mínimos entre mensajes al mismo contacto. Default: 30 días.' },
+            { icon: 'pi-key',           label: 'Token Meta',    text: 'El token de acceso a WhatsApp. Si los envíos fallan con error 467, el token expiró.' },
+            { icon: 'pi-circle-fill',   label: 'Salud',         text: 'Muestra la calidad del número y si el circuito está pausado.' },
+            { icon: 'pi-users',         label: 'Multi-agente',  text: 'Modo de asignación automática al llegar un mensaje: "Menos chats" asigna al agente con menos conversaciones; "Primer disponible" al primero activo.' },
+            { icon: 'pi-clock',         label: 'Cooldown',      text: 'Días mínimos entre mensajes al mismo contacto. Default: 30 días.' },
         ],
         warning: 'El token es sensible. Solo el administrador debe actualizarlo.',
     },

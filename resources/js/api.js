@@ -171,6 +171,13 @@ export const api = {
         return request(`/dashboard/messages?${qs}`);
     },
 
+    getAssignmentMode: () => request('/settings/assignment-mode'),
+
+    updateAssignmentMode: (mode) => request('/settings/assignment-mode', {
+        method : 'PUT',
+        body   : JSON.stringify({ assignment_mode: mode }),
+    }),
+
     // ── Feature flags ─────────────────────────────────────────────────────────
     getFeatures: () => request('/settings/features'),
 

@@ -14,17 +14,20 @@
 
         <div v-for="c in contacts" :key="c.id"
           @click="selectContact(c)"
-          :class="['sidebar-item', selected?.id === c.id ? 'sidebar-item--active' : '']">
+          :class="['sidebar-item',
+                   selected?.id === c.id ? 'sidebar-item--active' : '',
+                   isMyConversation(c) ? 'sidebar-item--mine' : '']">
           <div class="item-row">
             <span class="item-name">{{ c.name || c.phone }}</span>
             <span class="item-time">{{ formatTime(c.last_message_at) }}</span>
           </div>
           <div class="item-row">
             <span class="item-preview">{{ c.last_message }}</span>
-            <Tag v-if="!c.window_open"          value="Cerrada"  severity="secondary" class="item-tag" />
-            <Tag v-else-if="c.snoozed_until"    value="Snooze"   severity="warn"      class="item-tag" />
-            <Tag v-else-if="c.status==='opted_out'" value="Baja" severity="danger"    class="item-tag" />
-            <Tag v-else                          value="Activa"   severity="success"   class="item-tag" />
+            <Tag v-if="!c.assigned_to"              value="Sin asignar" severity="warn"      class="item-tag" />
+            <Tag v-else-if="!c.window_open"          value="Cerrada"    severity="secondary" class="item-tag" />
+            <Tag v-else-if="c.snoozed_until"         value="Snooze"     severity="warn"      class="item-tag" />
+            <Tag v-else-if="c.status==='opted_out'"  value="Baja"       severity="danger"    class="item-tag" />
+            <Tag v-else                              value="Activa"      severity="success"   class="item-tag" />
           </div>
         </div>
       </div>
@@ -191,6 +194,10 @@ const { user: authState } = useAuth();
 const isAdmin            = computed(() => authState.user?.role === 'admin');
 const isAdminOrOperator  = computed(() => ['admin', 'operator'].includes(authState.user?.role));
 
+function isMyConversation(contact) {
+  return contact.assigned_to?.id === authState.user?.id;
+}
+
 const contacts     = ref([]);
 const selected     = ref(null);
 const messages     = ref([]);
@@ -354,6 +361,7 @@ function formatDate(iso) {
 }
 .sidebar-item:hover         { background: var(--p-surface-50); }
 .sidebar-item--active       { background: var(--p-primary-50); border-left: 3px solid var(--p-primary-500); }
+.sidebar-item--mine         { border-left: 3px solid var(--p-green-500); }
 
 .item-row    { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 3px; }
 .item-name   { font-size: .85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }

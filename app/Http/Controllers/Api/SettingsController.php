@@ -197,6 +197,35 @@ class SettingsController extends Controller
         return response()->json(['status' => 'ok', 'data' => $data]);
     }
 
+    // ── Modo de asignación automática ────────────────────────────────────────────
+
+    /**
+     * GET /api/settings/assignment-mode
+     * Devuelve el modo de auto-asignación de conversaciones.
+     */
+    public function getAssignmentMode(): JsonResponse
+    {
+        $mode = Setting::get('assignment_mode', 'least_chats');
+
+        return response()->json(['status' => 'ok', 'data' => ['assignment_mode' => $mode]]);
+    }
+
+    /**
+     * PUT /api/settings/assignment-mode
+     * Actualiza el modo de auto-asignación.
+     * Body: { "assignment_mode": "least_chats" | "first_available" }
+     */
+    public function updateAssignmentMode(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'assignment_mode' => 'required|in:least_chats,first_available',
+        ]);
+
+        Setting::set('assignment_mode', $data['assignment_mode']);
+
+        return response()->json(['status' => 'ok', 'data' => $data]);
+    }
+
     /**
      * Llama a graph.facebook.com/me para verificar si el token es válido.
      */

@@ -7,6 +7,7 @@ use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\MessageLog;
 use App\Models\Setting;
+use App\Services\AssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
@@ -16,6 +17,8 @@ class WebhookController extends Controller
 {
     // Palabras que disparan opt-out permanente (coincidencia exacta de palabra completa, case-insensitive)
     private const OPT_OUT_WORDS = ['STOP', 'BAJA', 'CANCELAR', 'NO'];
+
+    public function __construct(private readonly AssignmentService $assignmentService) {}
 
     // GET /webhook — Meta verifica la URL enviando un hub.challenge
     public function verify(Request $request): Response
@@ -117,6 +120,11 @@ class WebhookController extends Controller
             'status'       => 'received',
             'window_open'  => true,
         ]);
+
+        // Auto-asignar si el contacto aún no tiene ninguna asignación
+        if (! $contact->assignments()->exists()) {
+            $this->assignmentService->autoAssign($contact->id);
+        }
 
         // Procesar intención del mensaje
         if ($messageType === 'button_reply') {

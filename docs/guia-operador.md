@@ -116,15 +116,43 @@ Los tags permiten agrupar contactos para segmentar campañas.
 
 Cada conversación puede asignarse a un agente específico del equipo.
 
+### Auto-asignación al llegar un mensaje
+
+Cuando un contacto envía su primer mensaje, el sistema lo asigna automáticamente a un agente
+según el **modo de asignación** configurado en **Configuración → Multi-agente**:
+
+| Modo | Comportamiento |
+|---|---|
+| **Menos chats activos** (predeterminado) | Asigna al agente con menos conversaciones actualmente asignadas |
+| **Primer disponible** | Asigna al primer agente activo en el sistema |
+
+Si **no hay agentes activos**, la conversación queda sin asignar y aparece el chip
+naranja **"Sin asignar"** en la lista. El admin u operador puede tomarla manualmente.
+
+### Indicadores visuales en la lista de conversaciones
+
+- Barra verde a la izquierda — conversación asignada al agente que está viendo la pantalla.
+- Chip **"Sin asignar"** (naranja) — nadie tiene esta conversación asignada aún.
+- Chip **"Activa"** (verde) — ventana de 24h abierta, se puede responder.
+- Chip **"Cerrada"** (gris) — el contacto no ha respondido en las últimas 24h.
+- Chip **"Snooze"** (naranja) — el contacto pidió "No por ahora".
+- Chip **"Baja"** (rojo) — opt-out permanente.
+
+### Acciones de asignación manual
+
 - **Tomar conversación**: cualquier agente puede hacer clic en este botón (panel derecho)
-  para asignarse la conversación a sí mismo y ser el responsable de darle seguimiento.
-- **Asignar a agente** (solo admin y operador): usa el selector de agentes para asignar
+  para asignarse la conversación a sí mismo.
+- **Asignar a agente** (solo admin y operador): usa el selector de agentes para reasignar
   la conversación a cualquier miembro del equipo.
-- **Cola sin asignar**: los administradores y operadores ven todas las conversaciones.
-  Los agentes solo ven las que tienen asignadas.
+- Los agentes solo ven las conversaciones que tienen asignadas.
+  Los administradores y operadores ven todas.
 
 > Si un agente ya no está disponible, el administrador puede reasignar la conversación
 > a otro agente seleccionándolo en el selector.
+
+### Cambiar el modo de asignación
+
+Solo el administrador puede modificarlo: **Configuración → Multi-agente → Modo de asignación → Guardar**.
 
 ---
 

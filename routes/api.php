@@ -116,8 +116,10 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/settings/phone-health', [SettingsController::class, 'phoneHealth']);
         Route::get('/settings/token-status', [SettingsController::class, 'tokenStatus']);
         Route::post('/settings/token',       [SettingsController::class, 'updateToken']);
-        Route::get('/settings/cooldown',     [SettingsController::class, 'getCooldown']);
-        Route::put('/settings/cooldown',     [SettingsController::class, 'updateCooldown']);
+        Route::get('/settings/cooldown',         [SettingsController::class, 'getCooldown']);
+        Route::put('/settings/cooldown',         [SettingsController::class, 'updateCooldown']);
+        Route::get('/settings/assignment-mode',  [SettingsController::class, 'getAssignmentMode']);
+        Route::put('/settings/assignment-mode',  [SettingsController::class, 'updateAssignmentMode']);
 
         // Gestión de usuarios
         Route::get('/users',        [UserController::class, 'index']);

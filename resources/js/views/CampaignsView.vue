@@ -179,6 +179,16 @@
                     </div>
                 </div>
 
+                <!-- Aviso mensajes pendientes: cuándo reanudan -->
+                <div
+                    v-if="detailStats?.pending > 0 && detailStats?.resumes_at && selectedCampaign?.status === 'running'"
+                    class="resumes-notice"
+                >
+                    <i class="pi pi-clock"></i>
+                    {{ detailStats.pending }} mensaje{{ detailStats.pending > 1 ? 's' : '' }} pendiente{{ detailStats.pending > 1 ? 's' : '' }} —
+                    reanudarán el <strong>{{ detailStats.resumes_at }}</strong>
+                </div>
+
                 <!-- Aviso datos históricos -->
                 <div v-if="!detailLoading && detailLogs.length === 0 && selectedCampaign && (selectedCampaign.sent_count + selectedCampaign.failed_count) > 0" class="historical-note">
                     Esta campaña corrió antes de que el sistema comenzara a registrar el detalle por contacto.
@@ -243,6 +253,14 @@
                     :loading="pausing"
                     @click="doPause(selectedCampaign)"
                 />
+                <Button
+                    v-if="selectedCampaign?.status === 'running' && detailStats?.pending > 0"
+                    label="Re-despachar pendientes"
+                    icon="pi pi-refresh"
+                    severity="secondary"
+                    :loading="retrying"
+                    @click="doRetryPending(selectedCampaign)"
+                />
                 <Button label="Cerrar" text @click="showDetail = false" />
             </template>
         </Dialog>
@@ -291,6 +309,7 @@ const detailPrevPage    = ref(null);
 const detailStats       = ref(null);
 const detailLoading     = ref(false);
 const pausing           = ref(false);
+const retrying          = ref(false);
 
 const form = ref({ name: '', template: null, bodyVars: [], tagId: null });
 
@@ -488,6 +507,24 @@ async function doPause(campaign) {
     }
 }
 
+async function doRetryPending(campaign) {
+    retrying.value = true;
+    const res = await api.retryPending(campaign.id);
+    retrying.value = false;
+    if (res.status === 'ok') {
+        toast.add({
+            severity : 'success',
+            summary  : 'Jobs re-encolados',
+            detail   : res.data?.message,
+            life     : 4000,
+        });
+        await loadDetailLogs(campaign.id, 1);
+        await loadCampaigns(meta.value?.page ?? 1);
+    } else {
+        toast.add({ severity: 'error', summary: 'Error', detail: res.message, life: 5000 });
+    }
+}
+
 function confirmDelete(campaign) {
     confirm.require({
         message    : `¿Borrar la campaña "${campaign.name}"? Esta acción no se puede deshacer.`,
@@ -644,4 +681,18 @@ onMounted(() => loadCampaigns());
 .phone-code { font-size: .8rem; }
 .discard-reason { color: var(--p-orange-700); font-size: .8rem; }
 .error-msg { color: var(--p-red-600); font-size: .8rem; cursor: help; }
+
+.resumes-notice {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--p-blue-50);
+    border-left: 3px solid var(--p-primary-400);
+    border-radius: 4px;
+    font-size: .82rem;
+    color: var(--p-primary-700);
+    margin-bottom: 12px;
+}
+.resumes-notice .pi { font-size: .9rem; flex-shrink: 0; }
 </style>

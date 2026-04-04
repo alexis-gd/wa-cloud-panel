@@ -176,4 +176,65 @@ class DashboardTest extends TestCase
              ->getJson('/api/dashboard/daily-stats')
              ->assertStatus(403);
     }
+
+    // ── GET /api/dashboard/stats — bloque monthly ─────────────────────────────
+
+    public function test_stats_incluye_bloque_monthly(): void
+    {
+        $this->actingAsOperator()
+             ->getJson('/api/dashboard/stats')
+             ->assertStatus(200)
+             ->assertJsonStructure([
+                 'data' => [
+                     'monthly' => ['sent', 'goal', 'pct', 'days_remaining', 'month_label'],
+                 ],
+             ]);
+    }
+
+    public function test_stats_monthly_cuenta_solo_mensajes_del_mes_en_curso(): void
+    {
+        $phone = PhoneNumber::factory()->create();
+
+        // Este mes — deben contarse
+        MessageLog::factory()->count(5)->create([
+            'phone_number_id' => $phone->id,
+            'status'          => 'sent',
+            'sent_at'         => now(),
+        ]);
+
+        // Mes pasado — NO deben contarse
+        $oldLog = MessageLog::factory()->make([
+            'phone_number_id' => $phone->id,
+            'status'          => 'sent',
+            'sent_at'         => now()->subMonths(1),
+        ]);
+        $oldLog->created_at = now()->subMonths(1);
+        $oldLog->updated_at = now()->subMonths(1);
+        $oldLog->save();
+
+        $res = $this->actingAsOperator()
+                    ->getJson('/api/dashboard/stats')
+                    ->assertStatus(200);
+
+        $this->assertEquals(5, $res->json('data.monthly.sent'));
+    }
+
+    public function test_stats_monthly_pct_se_calcula_correctamente(): void
+    {
+        \App\Models\Setting::set('monthly_goal', 1000);
+
+        $phone = PhoneNumber::factory()->create();
+        MessageLog::factory()->count(250)->create([
+            'phone_number_id' => $phone->id,
+            'status'          => 'sent',
+            'sent_at'         => now(),
+        ]);
+
+        $res = $this->actingAsOperator()
+                    ->getJson('/api/dashboard/stats')
+                    ->assertStatus(200);
+
+        $this->assertEquals(25.0, $res->json('data.monthly.pct'));
+        $this->assertEquals(1000, $res->json('data.monthly.goal'));
+    }
 }

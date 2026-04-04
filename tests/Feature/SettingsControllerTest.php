@@ -131,4 +131,48 @@ class SettingsControllerTest extends TestCase
              ->assertStatus(422)
              ->assertJsonPath('status', 'error');
     }
+
+    // ── GET /api/settings/monthly-goal ───────────────────────────────────────
+
+    public function test_get_monthly_goal_devuelve_default_200000(): void
+    {
+        $this->actingAsAdmin()
+             ->getJson('/api/settings/monthly-goal')
+             ->assertStatus(200)
+             ->assertJsonPath('status', 'ok')
+             ->assertJsonPath('data.monthly_goal', 200000);
+    }
+
+    public function test_get_monthly_goal_devuelve_valor_guardado(): void
+    {
+        \App\Models\Setting::set('monthly_goal', 50000);
+
+        $this->actingAsAdmin()
+             ->getJson('/api/settings/monthly-goal')
+             ->assertJsonPath('data.monthly_goal', 50000);
+    }
+
+    public function test_put_monthly_goal_actualiza_valor(): void
+    {
+        $this->actingAsAdmin()
+             ->putJson('/api/settings/monthly-goal', ['monthly_goal' => 150000])
+             ->assertStatus(200)
+             ->assertJsonPath('data.monthly_goal', 150000);
+
+        $this->assertEquals('150000', \App\Models\Setting::get('monthly_goal'));
+    }
+
+    public function test_put_monthly_goal_rechaza_valor_cero(): void
+    {
+        $this->actingAsAdmin()
+             ->putJson('/api/settings/monthly-goal', ['monthly_goal' => 0])
+             ->assertStatus(422);
+    }
+
+    public function test_monthly_goal_requiere_rol_admin(): void
+    {
+        $this->actingAsOperator()
+             ->getJson('/api/settings/monthly-goal')
+             ->assertStatus(403);
+    }
 }

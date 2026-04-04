@@ -36,6 +36,38 @@
             </Card>
         </div>
 
+        <!-- Progreso mensual -->
+        <Card class="monthly-card mb-4" v-if="monthly.goal">
+            <template #content>
+                <div class="monthly-header">
+                    <div class="monthly-title">
+                        <span class="monthly-label">Envíos del mes</span>
+                        <span class="monthly-month">{{ monthly.month_label }}</span>
+                    </div>
+                    <div class="monthly-numbers">
+                        <span class="monthly-sent">{{ monthly.sent?.toLocaleString('es-MX') }}</span>
+                        <span class="monthly-sep"> / </span>
+                        <span class="monthly-goal-num">{{ monthly.goal?.toLocaleString('es-MX') }}</span>
+                        <span class="monthly-pct" :class="pctClass">{{ monthly.pct }}%</span>
+                    </div>
+                </div>
+                <div class="monthly-bar-track">
+                    <div
+                        class="monthly-bar-fill"
+                        :class="pctClass"
+                        :style="{ width: (monthly.pct ?? 0) + '%' }"
+                    ></div>
+                </div>
+                <div class="monthly-footer">
+                    <span class="monthly-days">{{ monthly.days_remaining }} días restantes en el mes</span>
+                    <span class="monthly-remaining" v-if="monthly.goal - monthly.sent > 0">
+                        Faltan {{ (monthly.goal - monthly.sent).toLocaleString('es-MX') }} mensajes para la meta
+                    </span>
+                    <span class="monthly-done" v-else>¡Meta alcanzada!</span>
+                </div>
+            </template>
+        </Card>
+
         <!-- Salud del número -->
         <Card class="health-card mb-4">
             <template #content>
@@ -255,6 +287,7 @@ const logsMeta         = ref(null);
 const logsStatusFilter = ref(null);
 const stats            = ref({});
 const contacts         = ref({});
+const monthly          = ref({});
 const sending          = ref(false);
 const loadingLogs      = ref(false);
 const loadingTemplates = ref(false);
@@ -351,8 +384,17 @@ async function loadStats() {
     if (res.status === 'ok') {
         stats.value    = res.data.stats    ?? {};
         contacts.value = res.data.contacts ?? {};
+        monthly.value  = res.data.monthly  ?? {};
     }
 }
+
+const pctClass = computed(() => {
+    const p = monthly.value.pct ?? 0;
+    if (p >= 100) return 'pct-done';
+    if (p >= 60)  return 'pct-ok';
+    if (p >= 30)  return 'pct-warn';
+    return 'pct-low';
+});
 
 async function loadMessages(page = 1) {
     loadingLogs.value = true;
@@ -559,4 +601,56 @@ onMounted(() => {
 .logs-pagination   { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: .82rem; }
 .logs-page-info    { padding: 0 4px; }
 .logs-total        { color: var(--p-text-muted-color); margin-left: 8px; }
+
+/* Widget progreso mensual */
+.monthly-card { margin-bottom: 16px; }
+
+.monthly-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 10px;
+}
+.monthly-title  { display: flex; flex-direction: column; gap: 2px; }
+.monthly-label  { font-size: .75rem; color: var(--p-text-muted-color); text-transform: uppercase; letter-spacing: .04em; }
+.monthly-month  { font-size: .95rem; font-weight: 600; text-transform: capitalize; }
+.monthly-numbers { display: flex; align-items: baseline; gap: 4px; }
+.monthly-sent    { font-size: 1.4rem; font-weight: 700; }
+.monthly-sep     { color: var(--p-text-muted-color); }
+.monthly-goal-num { font-size: 1rem; color: var(--p-text-muted-color); }
+.monthly-pct     { font-size: .85rem; font-weight: 700; margin-left: 8px; }
+
+.monthly-bar-track {
+    width: 100%;
+    height: 10px;
+    background: var(--p-surface-200);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.monthly-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width .4s ease;
+}
+
+.monthly-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: .78rem;
+    color: var(--p-text-muted-color);
+}
+
+/* Colores por nivel de avance */
+.pct-done .monthly-bar-fill, .pct-done.monthly-bar-fill { background: var(--p-green-500); }
+.pct-ok   .monthly-bar-fill, .pct-ok.monthly-bar-fill   { background: var(--p-primary-500); }
+.pct-warn .monthly-bar-fill, .pct-warn.monthly-bar-fill { background: var(--p-yellow-500); }
+.pct-low  .monthly-bar-fill, .pct-low.monthly-bar-fill  { background: var(--p-red-400); }
+
+.pct-done { color: var(--p-green-600); }
+.pct-ok   { color: var(--p-primary-600); }
+.pct-warn { color: var(--p-yellow-700); }
+.pct-low  { color: var(--p-red-500); }
+
+.monthly-done { color: var(--p-green-600); font-weight: 600; }
 </style>

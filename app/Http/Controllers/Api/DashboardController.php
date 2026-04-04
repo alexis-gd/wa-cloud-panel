@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\MessageLog;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -23,6 +24,19 @@ class DashboardController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
+        // ── Stats mensuales ──
+        $tz         = 'America/Mexico_City';
+        $now        = Carbon::now($tz);
+        $monthStart = $now->copy()->startOfMonth()->utc();
+        $monthEnd   = $now->copy()->endOfMonth()->utc();
+
+        $monthlySent   = MessageLog::whereBetween('created_at', [$monthStart, $monthEnd])
+            ->whereIn('status', ['sent', 'delivered', 'read'])
+            ->count();
+        $monthlyGoal   = (int) Setting::get('monthly_goal', 200000);
+        $daysRemaining = (int) $now->daysInMonth - (int) $now->day;
+        $pct           = $monthlyGoal > 0 ? min(100, round($monthlySent / $monthlyGoal * 100, 1)) : 0;
+
         return response()->json([
             'status' => 'ok',
             'data'   => [
@@ -37,6 +51,13 @@ class DashboardController extends Controller
                     'active'    => (int) ($contactTotals['active']    ?? 0),
                     'opted_out' => (int) ($contactTotals['opted_out'] ?? 0),
                     'invalid'   => (int) ($contactTotals['invalid']   ?? 0),
+                ],
+                'monthly' => [
+                    'sent'           => $monthlySent,
+                    'goal'           => $monthlyGoal,
+                    'pct'            => $pct,
+                    'days_remaining' => $daysRemaining,
+                    'month_label'    => $now->locale('es')->isoFormat('MMMM YYYY'),
                 ],
             ],
         ]);

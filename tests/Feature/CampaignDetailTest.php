@@ -360,4 +360,131 @@ class CampaignDetailTest extends TestCase
         $this->assertEquals('paused', $campaign->status);
         $this->assertEquals(0, $campaign->sent_count);
     }
+
+    // ── POST /api/campaigns/{id}/retry-pending ────────────────────────────────
+
+    public function test_retry_pending_requiere_autenticacion(): void
+    {
+        $this->postJson("/api/campaigns/{$this->campaign->id}/retry-pending")
+             ->assertStatus(401);
+    }
+
+    public function test_retry_pending_falla_si_campana_no_existe(): void
+    {
+        $this->actingAsOperator()
+             ->postJson('/api/campaigns/9999/retry-pending')
+             ->assertStatus(404);
+    }
+
+    public function test_retry_pending_falla_si_campana_no_esta_running(): void
+    {
+        $campaign = Campaign::factory()->create([
+            'status'         => 'completed',
+            'total_contacts' => 10,
+            'sent_count'     => 10,
+            'failed_count'   => 0,
+        ]);
+
+        $this->actingAsOperator()
+             ->postJson("/api/campaigns/{$campaign->id}/retry-pending")
+             ->assertStatus(422)
+             ->assertJsonPath('code', 'INVALID_STATUS');
+    }
+
+    public function test_retry_pending_falla_si_no_hay_pendientes(): void
+    {
+        // sent + failed == total → pending = 0
+        $campaign = Campaign::factory()->create([
+            'status'         => 'running',
+            'total_contacts' => 2,
+            'sent_count'     => 1,
+            'failed_count'   => 1,
+        ]);
+
+        $this->actingAsOperator()
+             ->postJson("/api/campaigns/{$campaign->id}/retry-pending")
+             ->assertStatus(422)
+             ->assertJsonPath('code', 'NO_PENDING');
+    }
+
+    public function test_retry_pending_despacha_solo_contactos_sin_log(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+
+        // Campaña con 3 total, 1 procesado, 2 "perdidos" (pending=2)
+        $campaign = Campaign::factory()->create([
+            'status'         => 'running',
+            'total_contacts' => 3,
+            'sent_count'     => 1,
+            'failed_count'   => 0,
+        ]);
+
+        // Contacto que YA tiene log — no debe re-despacharse
+        $processed = Contact::factory()->create(['status' => 'active', 'phone' => '529231311001']);
+        MessageLog::create([
+            'phone_number_id' => $this->phone->id,
+            'campaign_id'     => $campaign->id,
+            'to_number'       => $processed->phone,
+            'template_name'   => 'hello_world',
+            'language_code'   => 'en_US',
+            'body_vars'       => [],
+            'status'          => 'sent',
+            'sent_at'         => now(),
+        ]);
+
+        // Dos contactos sin log — deben re-despacharse
+        Contact::factory()->create(['status' => 'active', 'phone' => '529231311002']);
+        Contact::factory()->create(['status' => 'active', 'phone' => '529231311003']);
+
+        $res = $this->actingAsOperator()
+                    ->postJson("/api/campaigns/{$campaign->id}/retry-pending")
+                    ->assertStatus(200)
+                    ->assertJsonPath('data.jobs_dispatched', 2);
+
+        \Illuminate\Support\Facades\Queue::assertPushed(
+            \App\Jobs\SendWhatsAppMessage::class,
+            2
+        );
+
+        // total_contacts debe ajustarse: sent(1) + failed(0) + nuevos(2) = 3
+        $campaign->refresh();
+        $this->assertEquals(3, $campaign->total_contacts);
+    }
+
+    public function test_retry_pending_stats_incluye_resumes_at_cuando_hay_pendientes(): void
+    {
+        // Campaña con pending > 0
+        $campaign = Campaign::factory()->create([
+            'status'         => 'running',
+            'total_contacts' => 5,
+            'sent_count'     => 2,
+            'failed_count'   => 1,
+        ]);
+
+        $res = $this->actingAsOperator()
+                    ->getJson("/api/campaigns/{$campaign->id}/logs")
+                    ->assertStatus(200);
+
+        // pending = 2 → resumes_at debe ser una cadena no nula
+        $resumesAt = $res->json('stats.resumes_at');
+        $this->assertNotNull($resumesAt);
+        $this->assertIsString($resumesAt);
+    }
+
+    public function test_retry_pending_stats_resumes_at_es_null_cuando_no_hay_pendientes(): void
+    {
+        // Campaña sin pendientes
+        $campaign = Campaign::factory()->create([
+            'status'         => 'completed',
+            'total_contacts' => 2,
+            'sent_count'     => 1,
+            'failed_count'   => 1,
+        ]);
+
+        $res = $this->actingAsOperator()
+                    ->getJson("/api/campaigns/{$campaign->id}/logs")
+                    ->assertStatus(200);
+
+        $this->assertNull($res->json('stats.resumes_at'));
+    }
 }

@@ -226,6 +226,35 @@ class SettingsController extends Controller
         return response()->json(['status' => 'ok', 'data' => $data]);
     }
 
+    // ── Meta mensual ────────────────────────────────────────────────────────────
+
+    /**
+     * GET /api/settings/monthly-goal
+     * Devuelve la meta mensual de envíos (default 200 000).
+     */
+    public function getMonthlyGoal(): JsonResponse
+    {
+        $goal = (int) Setting::get('monthly_goal', 200000);
+
+        return response()->json(['status' => 'ok', 'data' => ['monthly_goal' => $goal]]);
+    }
+
+    /**
+     * PUT /api/settings/monthly-goal
+     * Actualiza la meta mensual.
+     * Body: { "monthly_goal": 200000 }
+     */
+    public function updateMonthlyGoal(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'monthly_goal' => 'required|integer|min:1|max:10000000',
+        ]);
+
+        Setting::set('monthly_goal', $data['monthly_goal']);
+
+        return response()->json(['status' => 'ok', 'data' => $data]);
+    }
+
     /**
      * Llama a graph.facebook.com/me para verificar si el token es válido.
      */

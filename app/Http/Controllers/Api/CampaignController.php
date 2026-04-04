@@ -13,6 +13,7 @@ use App\Models\WaTemplate;
 use App\Services\PhoneNumberSelector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class CampaignController extends Controller
@@ -227,6 +228,28 @@ class CampaignController extends Controller
         // Incluir el campaign fresco para que el frontend no use datos rancios del listado
         $freshCampaign = $campaign->fresh();
 
+        // ── Calcular cuándo reanudarán los jobs pendientes ──
+        $resumesAt = null;
+        if ($pending > 0) {
+            $tz    = 'America/Mexico_City';
+            $phone = PhoneNumber::where('is_active', true)->orderByDesc('daily_limit')->first();
+
+            if ($phone && $phone->isPaused()) {
+                // Circuit breaker activo: reanudan cuando se desbloquee el número
+                $resumesAt = $phone->paused_until
+                    ->setTimezone($tz)
+                    ->locale('es')
+                    ->isoFormat('dddd D [de] MMMM [a las] H:mm');
+            } else {
+                // Límite diario alcanzado: los jobs se liberarán al siguiente día hábil a las 9AM
+                $candidate = Carbon::now($tz)->addDay()->startOfDay()->addHours(9);
+                while (in_array($candidate->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY])) {
+                    $candidate->addDay();
+                }
+                $resumesAt = $candidate->locale('es')->isoFormat('dddd D [de] MMMM [a las] H:mm');
+            }
+        }
+
         return response()->json([
             'status'   => 'ok',
             'campaign' => [
@@ -243,6 +266,7 @@ class CampaignController extends Controller
                 'failed'    => $failedCount,
                 'discarded' => $discardedCount,
                 'pending'   => $pending,
+                'resumes_at' => $resumesAt,
             ],
             // sent_at se formatea en CST para que el frontend muestre la hora local de México,
             // no la hora UTC cruda (que diferiría hasta 6 horas de lo que el operador ve en su reloj).
@@ -275,6 +299,99 @@ class CampaignController extends Controller
         $campaign->update(['status' => 'paused']);
 
         return response()->json(['status' => 'ok', 'data' => $campaign->fresh()]);
+    }
+
+    // POST /api/campaigns/{id}/retry-pending
+    // Re-encola los contactos que aún no tienen ningún log en esta campaña.
+    // Útil cuando los jobs se perdieron (ej: queue:clear accidental) y la campaña
+    // quedó en 'running' para siempre.
+    public function retryPending(int $id): JsonResponse
+    {
+        $campaign = Campaign::find($id);
+
+        if (! $campaign) {
+            return response()->json(['status' => 'error', 'message' => 'Campaña no encontrada.'], 404);
+        }
+
+        if ($campaign->status !== 'running') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => "Solo se puede re-despachar una campaña en ejecución. Estado actual: '{$campaign->status}'.",
+                'code'    => 'INVALID_STATUS',
+            ], 422);
+        }
+
+        $pending = $campaign->total_contacts - $campaign->sent_count - $campaign->failed_count;
+
+        if ($pending <= 0) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No hay mensajes pendientes en esta campaña.',
+                'code'    => 'NO_PENDING',
+            ], 422);
+        }
+
+        // Contactos que ya tienen algún log (ya se procesaron, con cualquier resultado)
+        $alreadyProcessed = MessageLog::where('campaign_id', $id)->pluck('to_number')->all();
+
+        // Contactos activos del mismo segmento que aún no tienen log
+        $contactsQuery = Contact::active();
+        if ($campaign->tag_id) {
+            $contactsQuery->whereHas('tags', fn ($q) => $q->where('tags.id', $campaign->tag_id));
+        }
+        $contacts = $contactsQuery->whereNotIn('phone', $alreadyProcessed)->get();
+
+        if ($contacts->isEmpty()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No se encontraron contactos pendientes de procesar.',
+                'code'    => 'NO_CONTACTS',
+            ], 422);
+        }
+
+        $phoneNumbers = $this->selector->available();
+
+        if ($phoneNumbers->isEmpty()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No hay números de teléfono disponibles (todos pausados o sin capacidad).',
+                'code'    => 'NO_PHONE_AVAILABLE',
+            ], 422);
+        }
+
+        $phoneCount = $phoneNumbers->count();
+
+        foreach ($contacts as $index => $contact) {
+            $phone = $phoneNumbers[$index % $phoneCount];
+
+            SendWhatsAppMessage::dispatch(
+                $contact->id,
+                $campaign->id,
+                $phone->id,
+                $campaign->template_name,
+                $campaign->language_code,
+                $campaign->body_vars ?? [],
+            );
+        }
+
+        // Ajustar total_contacts para que checkAutoComplete funcione correctamente
+        // con el nuevo set de jobs: sent + failed (ya procesados) + nuevos dispatched
+        $campaign->update([
+            'total_contacts' => $campaign->sent_count + $campaign->failed_count + $contacts->count(),
+        ]);
+
+        Log::info("Campaña #{$campaign->id} — retry-pending", [
+            'campaign'        => $campaign->name,
+            'contacts_redispatch' => $contacts->count(),
+        ]);
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => [
+                'jobs_dispatched' => $contacts->count(),
+                'message'         => "Se re-encolaron {$contacts->count()} mensaje(s) pendiente(s).",
+            ],
+        ]);
     }
 
     // DELETE /api/campaigns/{id}

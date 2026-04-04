@@ -137,6 +137,8 @@ export const api = {
 
     pauseCampaign: (id) => request(`/campaigns/${id}/pause`, { method: 'POST' }),
 
+    retryPending: (id) => request(`/campaigns/${id}/retry-pending`, { method: 'POST' }),
+
     deleteCampaign: (id) => request(`/campaigns/${id}`, { method: 'DELETE' }),
 
     // ── Conversations ─────────────────────────────────────────────────────────
@@ -176,6 +178,13 @@ export const api = {
     updateAssignmentMode: (mode) => request('/settings/assignment-mode', {
         method : 'PUT',
         body   : JSON.stringify({ assignment_mode: mode }),
+    }),
+
+    getMonthlyGoal: () => request('/settings/monthly-goal'),
+
+    updateMonthlyGoal: (goal) => request('/settings/monthly-goal', {
+        method : 'PUT',
+        body   : JSON.stringify({ monthly_goal: goal }),
     }),
 
     // ── Feature flags ─────────────────────────────────────────────────────────

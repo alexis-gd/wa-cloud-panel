@@ -67,8 +67,9 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/campaigns/{id}',           [CampaignController::class, 'show']);
         Route::get('/campaigns/{id}/logs',      [CampaignController::class, 'logs']);
         Route::post('/campaigns/{id}/execute',  [CampaignController::class, 'execute']);
-        Route::post('/campaigns/{id}/pause',    [CampaignController::class, 'pause']);
-        Route::delete('/campaigns/{id}',        [CampaignController::class, 'destroy']);
+        Route::post('/campaigns/{id}/pause',         [CampaignController::class, 'pause']);
+        Route::post('/campaigns/{id}/retry-pending', [CampaignController::class, 'retryPending']);
+        Route::delete('/campaigns/{id}',             [CampaignController::class, 'destroy']);
     });
 
     // Conversaciones (chat con contactos) — admin, operator y agent
@@ -122,6 +123,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::put('/settings/cooldown',         [SettingsController::class, 'updateCooldown']);
         Route::get('/settings/assignment-mode',  [SettingsController::class, 'getAssignmentMode']);
         Route::put('/settings/assignment-mode',  [SettingsController::class, 'updateAssignmentMode']);
+        Route::get('/settings/monthly-goal',     [SettingsController::class, 'getMonthlyGoal']);
+        Route::put('/settings/monthly-goal',     [SettingsController::class, 'updateMonthlyGoal']);
 
         // Gestión de usuarios
         Route::get('/users',        [UserController::class, 'index']);

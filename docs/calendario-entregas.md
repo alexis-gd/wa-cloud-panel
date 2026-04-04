@@ -87,7 +87,7 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [ ] Monitoreo + alertas
 - [ ] Tests regresión automatizados (CI GitHub Actions)
 - [ ] ⚠️ Warm-up número producción (3-4 semanas paralelas)
-- [ ] 📘 Guía completa operador — sección guías operacionales Meta (agregar número prueba, registrar número nuevo, renovar token, interpretar alertas Business Manager)
+- [x] 📘 Guía completa operador — sección guías operacionales Meta (agregar número prueba, registrar número nuevo, renovar token, interpretar alertas Business Manager)
 - [ ] 📋 QA manual completo — ejecutar `docs/qa-manual.md` y corregir bugs encontrados
 - [ ] 📘 Sesión capacitación + video grabado
 

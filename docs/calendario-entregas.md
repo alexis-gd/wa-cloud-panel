@@ -96,3 +96,4 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] **Optimización de queries para escala** — N+1 en ConversationController (window_open → withExists), ContactController::stats (4 queries → 1 GROUP BY)
 - [x] **Política de sesiones Sanctum** — tokens expiran a las 8h, sanctum:prune-expired corre diario
 - [x] **Índices de BD** — índice compuesto (contact_id, id) en conversation_assignments; índices previos en message_log y contacts.status ya existían
+- [ ] **Auto-sincronizar `daily_limit` cuando Meta sube el tier** — actualmente el `daily_limit` en BD se actualiza solo manualmente (botón Salud del número en Settings). Cuando Meta promueve el tier automáticamente, el PhoneNumberSelector sigue usando el límite viejo hasta que alguien presione el botón. Solución: el job de envío o un comando `wa:sync-limits` debería llamar al endpoint de Meta y actualizar `phone_numbers.daily_limit` si cambió.

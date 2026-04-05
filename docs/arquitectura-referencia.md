@@ -157,6 +157,22 @@ Para queues de WhatsApp masivas esto es bloqueante. VPS propio es el único cami
 - Control total sobre webhooks, delivery receipts y plantillas
 - Sin vendor lock-in
 
+### Por qué `unreachable` como status separado (no `invalid`)
+
+`invalid` significa que Meta rechazó el número (`error 131026` — no tiene WhatsApp).
+`unreachable` significa que tiene WhatsApp pero los mensajes nunca llegan (probable bloqueo).
+Son causas distintas con comportamientos distintos: `invalid` es permanente, `unreachable`
+es reversible si el contacto vuelve a escribir.
+
+**Regla de detección:** 2+ mensajes en `sent` con el más antiguo de 30+ días y ningún
+`delivered`/`read` histórico. Los 30 días corresponden al TTL de expiración de mensajes
+de WhatsApp — un mensaje de 30+ días en `sent` jamás se entregará.
+
+**Horario del comando `wa:mark-unreachable`:** 6:00 AM CST — antes de que abra la ventana
+de envíos (9AM). Sin contención de BD con los jobs de campaña.
+
+Ver plan de implementación completo en [`docs/plan-unreachable.md`](plan-unreachable.md).
+
 ---
 
 ## Comandos artisan usados (referencia)

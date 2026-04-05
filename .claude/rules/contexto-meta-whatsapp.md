@@ -38,6 +38,14 @@ relacionada con Meta, envíos o plantillas.
 - **Warm-up gradual es obligatorio** — subir directo a miles de mensajes = ban
 - El sistema impone límites diarios por tier automáticamente, el cliente no los ve ni edita
 
+**Cambio de plataforma (2025):** Meta movió los límites de por-número a por-cuenta (Business Portfolio/WABA).
+- El tier aplica a la cuenta entera, no a cada número individualmente.
+- Múltiples números bajo la misma WABA **no multiplican el límite total** — comparten el techo de la cuenta.
+- Se pueden agregar números sin límite de cantidad, pero el volumen sigue siendo el del tier de la cuenta.
+- Business Verification es el requisito para desbloquear tiers superiores a 1.
+- Verificar en: business.facebook.com → Configuración → Información del negocio → campo "Verificación del negocio".
+- Tener página de FB o cuenta personal verificada NO equivale a Business Verification.
+
 ## Token de acceso — Reglas críticas
 
 - **Token actual**: System User Token **sin expiración** — ya configurado y en uso

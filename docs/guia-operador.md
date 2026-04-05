@@ -357,3 +357,36 @@ lo controla para proteger la cuenta.
 
 > ℹ️ Durante el warm-up, el semáforo del número puede aparecer en amarillo ("calidad pendiente").
 > Esto es normal en los primeros días con un número nuevo.
+
+---
+
+### 11.E. Verificar el negocio en Meta (Business Verification)
+
+**Qué es:** Meta requiere verificar que el negocio es legítimo antes de permitir envíos en producción
+a gran escala. Sin esta verificación la cuenta queda limitada a 250 mensajes/día en total.
+
+**Importante — hay 3 tipos de "verificado" en Meta y no son lo mismo:**
+
+| Tipo | Dónde se ve | ¿Sirve para WhatsApp API? |
+|---|---|---|
+| Cuenta personal de FB verificada | Perfil personal | No |
+| Página de FB verificada (palomita azul) | Fan page pública | No |
+| **Meta Business Manager verificado** | Business Manager → Configuración → Información del negocio | **Sí, esta es la que se necesita** |
+
+**Cómo confirmar si ya está hecha:**
+
+1. Ir a [business.facebook.com](https://business.facebook.com).
+2. **Configuración del negocio → Información del negocio**.
+3. Buscar el campo **"Verificación del negocio"**:
+   - ✅ Dice **"Verificado"** con palomita verde → ya está lista, no se necesita subir documentos.
+   - ❌ Dice **"Sin verificar"** o **"Verificación pendiente"** → falta completarla, aunque la página o cuenta personal estén verificadas.
+
+**Si falta verificar — qué documentos pide Meta (México):**
+
+- **RFC** — el más común y generalmente suficiente.
+- O Acta Constitutiva / Cédula de Identificación Fiscal.
+
+El administrador sube los documentos directamente en Business Manager. Meta tarda **3 a 10 días hábiles** en aprobar.
+
+> ⚠️ Esta verificación se hace una sola vez. Una vez aprobada, aplica para todos los números
+> de WhatsApp y aplicaciones bajo ese Business Manager.

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\MessageLog;
-use App\Models\Setting;
+use App\Models\PhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -24,18 +24,23 @@ class DashboardController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        // ── Stats mensuales ──
+        // ── Stats mensuales basados en capacidad real ──
         $tz         = 'America/Mexico_City';
         $now        = Carbon::now($tz);
         $monthStart = $now->copy()->startOfMonth()->utc();
         $monthEnd   = $now->copy()->endOfMonth()->utc();
 
-        $monthlySent   = MessageLog::whereBetween('created_at', [$monthStart, $monthEnd])
+        $monthlySent = MessageLog::whereBetween('created_at', [$monthStart, $monthEnd])
             ->whereIn('status', ['sent', 'delivered', 'read'])
             ->count();
-        $monthlyGoal   = (int) Setting::get('monthly_goal', 200000);
-        $daysRemaining = (int) $now->daysInMonth - (int) $now->day;
-        $pct           = $monthlyGoal > 0 ? min(100, round($monthlySent / $monthlyGoal * 100, 1)) : 0;
+
+        // Días hábiles totales y restantes en el mes actual
+        [$workingDaysTotal, $workingDaysRemaining] = $this->countWorkingDays($now);
+
+        // Capacidad = suma de daily_limit de números activos × días hábiles
+        $totalDailyLimit = (int) PhoneNumber::where('is_active', true)->sum('daily_limit');
+        $capacity         = $totalDailyLimit * $workingDaysTotal;
+        $pct              = $capacity > 0 ? min(100, round($monthlySent / $capacity * 100, 1)) : 0;
 
         return response()->json([
             'status' => 'ok',
@@ -53,11 +58,13 @@ class DashboardController extends Controller
                     'invalid'   => (int) ($contactTotals['invalid']   ?? 0),
                 ],
                 'monthly' => [
-                    'sent'           => $monthlySent,
-                    'goal'           => $monthlyGoal,
-                    'pct'            => $pct,
-                    'days_remaining' => $daysRemaining,
-                    'month_label'    => $now->locale('es')->isoFormat('MMMM YYYY'),
+                    'sent'                  => $monthlySent,
+                    'capacity'              => $capacity,
+                    'pct'                   => $pct,
+                    'working_days_total'    => $workingDaysTotal,
+                    'working_days_remaining'=> $workingDaysRemaining,
+                    'daily_limit'           => $totalDailyLimit,
+                    'month_label'           => $now->locale('es')->isoFormat('MMMM YYYY'),
                 ],
             ],
         ]);
@@ -90,12 +97,13 @@ class DashboardController extends Controller
         ]);
     }
 
-    // GET /api/dashboard/daily-stats — envíos por día (últimos 14 días)
+    // GET /api/dashboard/daily-stats — envíos por día del mes en curso
     public function dailyStats(): JsonResponse
     {
         $tz    = 'America/Mexico_City';
-        $start = Carbon::now($tz)->subDays(13)->startOfDay()->utc();
-        $end   = Carbon::now($tz)->endOfDay()->utc();
+        $now   = Carbon::now($tz);
+        $start = $now->copy()->startOfMonth()->utc();
+        $end   = $now->copy()->endOfDay()->utc();
 
         $rows = MessageLog::select(
                 DB::raw("DATE(CONVERT_TZ(created_at, '+00:00', '-06:00')) as day"),
@@ -108,10 +116,13 @@ class DashboardController extends Controller
             ->orderBy('day')
             ->get();
 
-        // Construir serie de 14 días con ceros por default
-        $days = collect();
-        for ($i = 13; $i >= 0; $i--) {
-            $days->push(Carbon::now($tz)->subDays($i)->format('Y-m-d'));
+        // Construir serie desde el día 1 del mes hasta hoy
+        $days    = collect();
+        $daysInMonth = (int) $now->daysInMonth;
+        $today   = (int) $now->day;
+
+        for ($d = 1; $d <= $today; $d++) {
+            $days->push($now->copy()->setDay($d)->format('Y-m-d'));
         }
 
         $indexed = $rows->groupBy('day');
@@ -125,5 +136,73 @@ class DashboardController extends Controller
         ]);
 
         return response()->json(['status' => 'ok', 'data' => $series]);
+    }
+
+    // GET /api/dashboard/monthly-history — histórico de los últimos 6 meses
+    // 1 sola query GROUP BY año-mes en vez de 6 COUNT separados
+    public function monthlyHistory(): JsonResponse
+    {
+        $tz              = 'America/Mexico_City';
+        $now             = Carbon::now($tz);
+        $totalDailyLimit = (int) PhoneNumber::where('is_active', true)->sum('daily_limit');
+
+        $rangeStart = $now->copy()->subMonths(5)->startOfMonth()->utc();
+        $rangeEnd   = $now->copy()->endOfDay()->utc();
+
+        // Una sola query — idx_logs_created_status cubre el WHERE
+        $rows = MessageLog::select(
+                DB::raw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '-06:00'), '%Y-%m') as ym"),
+                DB::raw('COUNT(*) as total')
+            )
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->whereIn('status', ['sent', 'delivered', 'read'])
+            ->groupBy('ym')
+            ->pluck('total', 'ym');
+
+        $history = collect();
+
+        for ($i = 5; $i >= 0; $i--) {
+            $month    = $now->copy()->subMonths($i);
+            $ym       = $month->format('Y-m');
+            $sent     = (int) ($rows[$ym] ?? 0);
+
+            [$wdTotal,] = $this->countWorkingDays($month);
+            $capacity   = $totalDailyLimit * $wdTotal;
+
+            $history->push([
+                'month'       => $month->format('Y-m'),
+                'month_label' => $month->locale('es')->isoFormat('MMM YYYY'),
+                'sent'        => $sent,
+                'capacity'    => $capacity,
+                'pct'         => $capacity > 0 ? min(100, round($sent / $capacity * 100, 1)) : 0,
+            ]);
+        }
+
+        return response()->json(['status' => 'ok', 'data' => $history]);
+    }
+
+    /**
+     * Cuenta días hábiles (L-V) en el mes de $date.
+     * Devuelve [total_en_el_mes, restantes_desde_hoy_inclusive].
+     */
+    private function countWorkingDays(Carbon $date): array
+    {
+        $tz    = 'America/Mexico_City';
+        $today = Carbon::now($tz)->startOfDay();
+        $start = $date->copy()->startOfMonth();
+        $end   = $date->copy()->endOfMonth();
+        $total = 0;
+        $remaining = 0;
+
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            if (! in_array($d->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY])) {
+                $total++;
+                if ($d->gte($today)) {
+                    $remaining++;
+                }
+            }
+        }
+
+        return [$total, $remaining];
     }
 }

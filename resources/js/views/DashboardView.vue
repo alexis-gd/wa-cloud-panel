@@ -1,75 +1,8 @@
 <template>
     <div class="dashboard">
-        <!-- Stats mensajes -->
-        <div class="stats-row">
-            <Card class="stat-card">
-                <template #content>
-                    <div class="stat">
-                        <span class="stat-num">{{ stats.sent ?? '—' }}</span>
-                        <span class="stat-lbl">Enviados</span>
-                    </div>
-                </template>
-            </Card>
-            <Card class="stat-card">
-                <template #content>
-                    <div class="stat">
-                        <span class="stat-num delivered">{{ stats.delivered ?? '—' }}</span>
-                        <span class="stat-lbl">Entregados</span>
-                    </div>
-                </template>
-            </Card>
-            <Card class="stat-card">
-                <template #content>
-                    <div class="stat">
-                        <span class="stat-num read">{{ stats.read ?? '—' }}</span>
-                        <span class="stat-lbl">Leídos</span>
-                    </div>
-                </template>
-            </Card>
-            <Card class="stat-card">
-                <template #content>
-                    <div class="stat">
-                        <span class="stat-num failed">{{ stats.failed ?? '—' }}</span>
-                        <span class="stat-lbl">Fallidos</span>
-                    </div>
-                </template>
-            </Card>
-        </div>
 
-        <!-- Progreso mensual -->
-        <Card class="monthly-card mb-4" v-if="monthly.goal">
-            <template #content>
-                <div class="monthly-header">
-                    <div class="monthly-title">
-                        <span class="monthly-label">Envíos del mes</span>
-                        <span class="monthly-month">{{ monthly.month_label }}</span>
-                    </div>
-                    <div class="monthly-numbers">
-                        <span class="monthly-sent">{{ monthly.sent?.toLocaleString('es-MX') }}</span>
-                        <span class="monthly-sep"> / </span>
-                        <span class="monthly-goal-num">{{ monthly.goal?.toLocaleString('es-MX') }}</span>
-                        <span class="monthly-pct" :class="pctClass">{{ monthly.pct }}%</span>
-                    </div>
-                </div>
-                <div class="monthly-bar-track">
-                    <div
-                        class="monthly-bar-fill"
-                        :class="pctClass"
-                        :style="{ width: (monthly.pct ?? 0) + '%' }"
-                    ></div>
-                </div>
-                <div class="monthly-footer">
-                    <span class="monthly-days">{{ monthly.days_remaining }} días restantes en el mes</span>
-                    <span class="monthly-remaining" v-if="monthly.goal - monthly.sent > 0">
-                        Faltan {{ (monthly.goal - monthly.sent).toLocaleString('es-MX') }} mensajes para la meta
-                    </span>
-                    <span class="monthly-done" v-else>¡Meta alcanzada!</span>
-                </div>
-            </template>
-        </Card>
-
-        <!-- Salud del número -->
-        <Card class="health-card mb-4">
+        <!-- 1. Calidad del número -->
+        <Card class="health-card mb">
             <template #content>
                 <div class="health-row">
                     <div class="health-item">
@@ -106,53 +39,130 @@
             </template>
         </Card>
 
-        <!-- Stats contactos -->
-        <div class="stats-row contacts-row">
-            <Card class="stat-card">
-                <template #content>
-                    <div class="stat">
-                        <span class="stat-num">{{ contacts.total ?? '—' }}</span>
-                        <span class="stat-lbl">Total contactos</span>
+        <!-- 2. Envíos del mes -->
+        <Card class="monthly-card mb">
+            <template #content>
+                <div class="monthly-header">
+                    <div class="monthly-title">
+                        <div class="monthly-label-row">
+                            <span class="monthly-label">Envíos del mes</span>
+                            <i
+                                class="pi pi-info-circle monthly-info"
+                                v-tooltip.top="'Mensajes enviados en ' + monthly.month_label + ' vs. la capacidad real del sistema (días hábiles × límite diario del número). Los fines de semana no cuentan.'"
+                            ></i>
+                        </div>
+                        <span class="monthly-month">{{ monthly.month_label }}</span>
                     </div>
-                </template>
-            </Card>
-            <Card class="stat-card">
-                <template #content>
-                    <div class="stat">
-                        <span class="stat-num active">{{ contacts.active ?? '—' }}</span>
-                        <span class="stat-lbl">Activos</span>
+                    <div class="monthly-numbers">
+                        <span class="monthly-sent">{{ (monthly.sent ?? 0).toLocaleString('es-MX') }}</span>
+                        <span class="monthly-sep"> / </span>
+                        <span class="monthly-capacity">{{ (monthly.capacity ?? 0).toLocaleString('es-MX') }}</span>
+                        <span class="monthly-pct" :class="pctClass">{{ monthly.pct ?? 0 }}%</span>
                     </div>
-                </template>
-            </Card>
-            <Card class="stat-card">
+                </div>
+                <div class="monthly-bar-track">
+                    <div
+                        class="monthly-bar-fill"
+                        :class="pctClass"
+                        :style="{ width: (monthly.pct ?? 0) + '%' }"
+                    ></div>
+                </div>
+                <div class="monthly-footer">
+                    <span class="monthly-meta">
+                        {{ monthly.working_days_total }} días hábiles en el mes
+                        · {{ monthly.daily_limit ?? 0 }} mensajes/día de capacidad
+                    </span>
+                    <span class="monthly-remaining" v-if="(monthly.capacity - monthly.sent) > 0">
+                        Faltan {{ ((monthly.capacity ?? 0) - (monthly.sent ?? 0)).toLocaleString('es-MX') }}
+                    </span>
+                    <span class="monthly-done" v-else-if="monthly.capacity > 0">¡Capacidad usada al 100%!</span>
+                </div>
+            </template>
+        </Card>
+
+        <!-- 3. Stats de mensajes -->
+        <div class="stats-row mb">
+            <Card class="stat-card" v-for="s in messageStats" :key="s.key">
                 <template #content>
                     <div class="stat">
-                        <span class="stat-num opted-out">{{ contacts.opted_out ?? '—' }}</span>
-                        <span class="stat-lbl">Opt-out</span>
-                    </div>
-                </template>
-            </Card>
-            <Card class="stat-card">
-                <template #content>
-                    <div class="stat">
-                        <span class="stat-num failed">{{ contacts.invalid ?? '—' }}</span>
-                        <span class="stat-lbl">Inválidos</span>
+                        <div class="stat-label-row">
+                            <span class="stat-lbl">{{ s.label }}</span>
+                            <i class="pi pi-info-circle stat-info" v-tooltip.top="s.tooltip"></i>
+                        </div>
+                        <span class="stat-num" :class="s.class">{{ stats[s.key] ?? '—' }}</span>
                     </div>
                 </template>
             </Card>
         </div>
 
-        <!-- Gráfica envíos por día -->
-        <Card class="chart-card">
+        <!-- 4. Stats de contactos -->
+        <div class="stats-row mb">
+            <Card class="stat-card" v-for="c in contactStats" :key="c.key">
+                <template #content>
+                    <div class="stat">
+                        <div class="stat-label-row">
+                            <span class="stat-lbl">{{ c.label }}</span>
+                            <i class="pi pi-info-circle stat-info" v-tooltip.top="c.tooltip"></i>
+                        </div>
+                        <span class="stat-num" :class="c.class">{{ contacts[c.key] ?? '—' }}</span>
+                    </div>
+                </template>
+            </Card>
+        </div>
+
+        <!-- 5. Gráfica envíos del mes -->
+        <Card class="chart-card mb">
             <template #title>
                 <div class="card-title-row">
-                    <span>Envíos últimos 14 días</span>
+                    <span>Envíos día a día — {{ monthly.month_label }}</span>
                     <Button icon="pi pi-refresh" severity="secondary" text size="small" :loading="loadingChart" @click="loadDailyStats" />
                 </div>
             </template>
             <template #content>
                 <div v-if="loadingChart || !chartData.labels?.length" class="chart-loading">Cargando...</div>
                 <Chart v-else type="bar" :data="chartData" :options="chartOptions" class="send-chart" />
+            </template>
+        </Card>
+
+        <!-- 6. Histórico mensual -->
+        <Card class="history-card mb">
+            <template #title>
+                <div class="card-title-row">
+                    <span>Histórico por mes</span>
+                    <i class="pi pi-info-circle stat-info" v-tooltip.top="'Mensajes enviados vs. capacidad máxima de cada mes (días hábiles × límite diario). La capacidad histórica usa el límite actual como referencia.'"></i>
+                </div>
+            </template>
+            <template #content>
+                <div v-if="loadingHistory" class="chart-loading">Cargando...</div>
+                <table v-else class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Mes</th>
+                            <th class="num-col">Enviados</th>
+                            <th class="num-col">Capacidad</th>
+                            <th class="num-col">Uso</th>
+                            <th class="bar-col">Avance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="row in monthlyHistory" :key="row.month" :class="{ 'row-current': row.month === currentMonthKey }">
+                            <td class="month-cell">
+                                {{ row.month_label }}
+                                <span v-if="row.month === currentMonthKey" class="current-badge">actual</span>
+                            </td>
+                            <td class="num-col">{{ row.sent.toLocaleString('es-MX') }}</td>
+                            <td class="num-col muted">{{ row.capacity.toLocaleString('es-MX') }}</td>
+                            <td class="num-col">
+                                <span :class="pctColorClass(row.pct)">{{ row.pct }}%</span>
+                            </td>
+                            <td class="bar-col">
+                                <div class="mini-bar-track">
+                                    <div class="mini-bar-fill" :class="pctColorClass(row.pct)" :style="{ width: row.pct + '%' }"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </template>
         </Card>
 
@@ -282,34 +292,83 @@ import Message   from 'primevue/message';
 import Chart     from 'primevue/chart';
 import { api }   from '../api.js';
 
+// ── Estado ────────────────────────────────────────────────────────────────────
 const logs             = ref([]);
 const logsMeta         = ref(null);
 const logsStatusFilter = ref(null);
 const stats            = ref({});
 const contacts         = ref({});
 const monthly          = ref({});
+const monthlyHistory   = ref([]);
 const sending          = ref(false);
 const loadingLogs      = ref(false);
 const loadingTemplates = ref(false);
 const loadingContacts  = ref(false);
 const loadingHealth    = ref(false);
+const loadingChart     = ref(false);
+const loadingHistory   = ref(false);
 const sendResult       = ref(null);
-
-const logStatusOptions = [
-    { label: 'Todos', value: null },
-    { label: 'Enviados',    value: 'sent' },
-    { label: 'Entregados',  value: 'delivered' },
-    { label: 'Leídos',      value: 'read' },
-    { label: 'Fallidos',    value: 'failed' },
-    { label: 'Pendientes',  value: 'pending' },
-];
-const templateOptions  = ref([]); // [{ label, value, language_code, body_text, var_labels }]
-const contactOptions   = ref([]); // [{ label, value }] solo contactos activos
 const healthData       = ref({});
 const healthError      = ref(null);
-const loadingChart     = ref(false);
 const chartData        = ref({});
-const chartOptions     = {
+const templateOptions  = ref([]);
+const contactOptions   = ref([]);
+
+const currentMonthKey = computed(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+});
+
+// ── Tooltips de métricas ──────────────────────────────────────────────────────
+const messageStats = [
+    {
+        key: 'sent', label: 'Enviados', class: '',
+        tooltip: 'Mensajes que salieron de nuestro sistema a Meta. Se cuentan en el momento del envío, antes de confirmar entrega.',
+    },
+    {
+        key: 'delivered', label: 'Entregados', class: 'delivered',
+        tooltip: 'Meta confirmó que el mensaje llegó al celular del contacto. Siempre es ≤ Enviados.',
+    },
+    {
+        key: 'read', label: 'Leídos', class: 'read',
+        tooltip: 'El contacto abrió el mensaje en WhatsApp. Puede aparecer mayor que Enviados porque incluye mensajes de días anteriores que el contacto leyó recientemente.',
+    },
+    {
+        key: 'failed', label: 'Fallidos', class: 'failed',
+        tooltip: 'No se pudo enviar el mensaje: número inexistente en WhatsApp, cuenta pausada u otro error de Meta. Ver detalle en la tabla de campañas.',
+    },
+];
+
+const contactStats = [
+    {
+        key: 'total', label: 'Total contactos', class: '',
+        tooltip: 'Todos los contactos en la base de datos, sin importar su estado.',
+    },
+    {
+        key: 'active', label: 'Activos', class: 'active',
+        tooltip: 'Contactos que pueden recibir mensajes de campaña. No tienen opt-out ni están marcados como inválidos.',
+    },
+    {
+        key: 'opted_out', label: 'Opt-out', class: 'opted-out',
+        tooltip: 'Contactos que pidieron no recibir mensajes (respondieron STOP, NO, BAJA o CANCELAR). 0 opt-outs es una buena señal. Son irreversibles y nunca se eliminan de la BD.',
+    },
+    {
+        key: 'invalid', label: 'Inválidos', class: 'failed',
+        tooltip: 'Números que no tienen WhatsApp o que Meta rechazó. Se marcan automáticamente al primer fallo con código de error 131026. No se vuelven a intentar.',
+    },
+];
+
+// ── Computed ──────────────────────────────────────────────────────────────────
+const logStatusOptions = [
+    { label: 'Todos', value: null },
+    { label: 'Enviados',   value: 'sent' },
+    { label: 'Entregados', value: 'delivered' },
+    { label: 'Leídos',     value: 'read' },
+    { label: 'Fallidos',   value: 'failed' },
+    { label: 'Pendientes', value: 'pending' },
+];
+
+const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -322,24 +381,32 @@ const chartOptions     = {
     },
 };
 
-const form = ref({
-    template_name: null,
-    to:            '',
-    vars:          [],
-});
+const form = ref({ template_name: null, to: '', vars: [] });
 
-// Plantilla actualmente seleccionada (objeto completo)
 const selectedTemplate = computed(() =>
     templateOptions.value.find(t => t.value === form.value.template_name) ?? null
 );
-
-// Etiquetas de variables extraídas del body_text (e.g. ["Nombre", "Monto"])
 const templateVars = computed(() => selectedTemplate.value?.var_labels ?? []);
 
-// Cuando cambia la plantilla: resetear vars al número correcto
 watch(selectedTemplate, (tpl) => {
     form.value.vars = tpl ? Array(tpl.var_labels.length).fill('') : [];
 });
+
+const pctClass = computed(() => pctColorClass(monthly.value.pct ?? 0));
+
+function pctColorClass(pct) {
+    if (pct >= 100) return 'pct-done';
+    if (pct >= 60)  return 'pct-ok';
+    if (pct >= 30)  return 'pct-warn';
+    return 'pct-low';
+}
+
+const qualityClass = computed(() => ({
+    'quality-green'  : healthData.value.quality_rating === 'GREEN',
+    'quality-yellow' : healthData.value.quality_rating === 'YELLOW',
+    'quality-red'    : healthData.value.quality_rating === 'RED',
+    'quality-unknown': !['GREEN','YELLOW','RED'].includes(healthData.value.quality_rating),
+}));
 
 const statusSeverity = (status) => ({
     sent      : 'info',
@@ -349,17 +416,7 @@ const statusSeverity = (status) => ({
     pending   : 'warn',
 }[status] ?? 'secondary');
 
-// Extrae etiquetas de variables de un body_text.
-// Busca patrones {{Nombre}}, {{Monto}} (con texto) o {{1}}, {{2}} (numérico).
-function extractVarLabels(bodyText) {
-    if (!bodyText) return [];
-    const matches = [...bodyText.matchAll(/\{\{([^}]+)\}\}/g)];
-    return matches.map(m => {
-        const inner = m[1].trim();
-        return /^\d+$/.test(inner) ? `Variable ${inner}` : inner;
-    });
-}
-
+// ── Loaders ───────────────────────────────────────────────────────────────────
 async function loadHealth() {
     loadingHealth.value = true;
     healthError.value   = null;
@@ -372,13 +429,6 @@ async function loadHealth() {
     loadingHealth.value = false;
 }
 
-const qualityClass = computed(() => ({
-    'quality-green'   : healthData.value.quality_rating === 'GREEN',
-    'quality-yellow'  : healthData.value.quality_rating === 'YELLOW',
-    'quality-red'     : healthData.value.quality_rating === 'RED',
-    'quality-unknown' : !['GREEN','YELLOW','RED'].includes(healthData.value.quality_rating),
-}));
-
 async function loadStats() {
     const res = await api.dashboardStats();
     if (res.status === 'ok') {
@@ -388,22 +438,14 @@ async function loadStats() {
     }
 }
 
-const pctClass = computed(() => {
-    const p = monthly.value.pct ?? 0;
-    if (p >= 100) return 'pct-done';
-    if (p >= 60)  return 'pct-ok';
-    if (p >= 30)  return 'pct-warn';
-    return 'pct-low';
-});
-
 async function loadMessages(page = 1) {
     loadingLogs.value = true;
     const params = { page, per_page: 20 };
     if (logsStatusFilter.value) params.status = logsStatusFilter.value;
     const res = await api.dashboardMessages(params);
     if (res.status === 'ok') {
-        logs.value     = res.data   ?? [];
-        logsMeta.value = res.meta   ?? null;
+        logs.value     = res.data ?? [];
+        logsMeta.value = res.meta ?? null;
     }
     loadingLogs.value = false;
 }
@@ -413,38 +455,28 @@ async function loadDailyStats() {
     const res = await api.dashboardDailyStats();
     if (res.status === 'ok') {
         const series = res.data;
-        const labels = series.map(d => d.day.substring(5)); // MM-DD
+        // Mostrar solo el día del mes (DD) para no saturar el eje X
+        const labels = series.map(d => d.day.substring(8)); // día DD
         chartData.value = {
             labels,
             datasets: [
-                {
-                    label          : 'Enviados',
-                    data           : series.map(d => d.sent),
-                    backgroundColor: 'rgba(99,102,241,0.7)',
-                    borderRadius   : 4,
-                },
-                {
-                    label          : 'Entregados',
-                    data           : series.map(d => d.delivered),
-                    backgroundColor: 'rgba(34,197,94,0.7)',
-                    borderRadius   : 4,
-                },
-                {
-                    label          : 'Leídos',
-                    data           : series.map(d => d.read),
-                    backgroundColor: 'rgba(14,165,233,0.7)',
-                    borderRadius   : 4,
-                },
-                {
-                    label          : 'Fallidos',
-                    data           : series.map(d => d.failed),
-                    backgroundColor: 'rgba(239,68,68,0.7)',
-                    borderRadius   : 4,
-                },
+                { label: 'Enviados',   data: series.map(d => d.sent),      backgroundColor: 'rgba(99,102,241,0.7)',  borderRadius: 4 },
+                { label: 'Entregados', data: series.map(d => d.delivered), backgroundColor: 'rgba(34,197,94,0.7)',   borderRadius: 4 },
+                { label: 'Leídos',     data: series.map(d => d.read),      backgroundColor: 'rgba(14,165,233,0.7)',  borderRadius: 4 },
+                { label: 'Fallidos',   data: series.map(d => d.failed),    backgroundColor: 'rgba(239,68,68,0.7)',   borderRadius: 4 },
             ],
         };
     }
     loadingChart.value = false;
+}
+
+async function loadMonthlyHistory() {
+    loadingHistory.value = true;
+    const res = await api.dashboardMonthlyHistory();
+    if (res.status === 'ok') {
+        monthlyHistory.value = res.data ?? [];
+    }
+    loadingHistory.value = false;
 }
 
 async function loadTemplates() {
@@ -453,11 +485,11 @@ async function loadTemplates() {
     templateOptions.value = (res.data ?? [])
         .filter(t => t.status === 'approved' && t.is_active)
         .map(t => ({
-            label         : t.name,
-            value         : t.name,
-            language_code : t.language_code,
-            body_text     : t.body_text,
-            var_labels    : extractVarLabels(t.body_text),
+            label        : t.name,
+            value        : t.name,
+            language_code: t.language_code,
+            body_text    : t.body_text,
+            var_labels   : extractVarLabels(t.body_text),
         }));
     loadingTemplates.value = false;
 }
@@ -466,8 +498,8 @@ async function loadContactOptions() {
     loadingContacts.value = true;
     const data = await api.contacts({ status: 'active', per_page: 200 });
     contactOptions.value = (data.data ?? []).map(c => ({
-        label : c.name ? `${c.name} — ${c.phone}` : c.phone,
-        value : c.phone,
+        label: c.name ? `${c.name} — ${c.phone}` : c.phone,
+        value: c.phone,
     }));
     loadingContacts.value = false;
 }
@@ -480,76 +512,49 @@ async function downloadMessages() {
     if (!res.ok) return;
     const blob     = await res.blob();
     const url      = URL.createObjectURL(blob);
-    const filename = res.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1]
-                     ?? 'mensajes_export.xlsx';
+    const filename = res.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] ?? 'mensajes_export.xlsx';
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
+    a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
 }
 
 async function sendTest() {
     sending.value    = true;
     sendResult.value = null;
-
     sendResult.value = await api.sendTest({
         template_name : form.value.template_name,
         language_code : selectedTemplate.value?.language_code ?? 'es_MX',
         to            : form.value.to,
         body_vars     : form.value.vars.filter(v => v !== ''),
     });
-
     sending.value = false;
     await Promise.all([loadStats(), loadMessages(1)]);
 }
 
+function extractVarLabels(bodyText) {
+    if (!bodyText) return [];
+    const matches = [...bodyText.matchAll(/\{\{([^}]+)\}\}/g)];
+    return matches.map(m => {
+        const inner = m[1].trim();
+        return /^\d+$/.test(inner) ? `Variable ${inner}` : inner;
+    });
+}
+
 onMounted(() => {
+    loadHealth();
     loadStats();
     loadMessages(1);
     loadDailyStats();
+    loadMonthlyHistory();
     loadTemplates();
-    loadHealth();
     loadContactOptions();
 });
 </script>
 
 <style scoped>
-.stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 16px;
-}
+.mb { margin-bottom: 16px; }
 
-.stat { text-align: center; }
-.stat-num           { display: block; font-size: 2rem; font-weight: 700; color: var(--p-text-color); }
-.stat-num.delivered { color: var(--p-green-500); }
-.stat-num.active    { color: var(--p-green-500); }
-.stat-num.read      { color: var(--p-primary-color); }
-.stat-num.failed    { color: var(--p-red-500); }
-.stat-num.opted-out { color: var(--p-orange-500); }
-.stat-lbl { display: block; font-size: .75rem; color: var(--p-text-muted-color); margin-top: 4px; }
-
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: 380px 1fr;
-    gap: 20px;
-    align-items: start;
-}
-
-@media (max-width: 900px) {
-    .stats-row        { grid-template-columns: repeat(2, 1fr); }
-    .dashboard-grid   { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 480px) {
-    .stats-row  { gap: 10px; }
-    .stat-num   { font-size: 1.5rem; }
-}
-
-/* Health widget */
-.health-card  { margin-bottom: 16px; }
+/* ── Health ─────────────────────────────────────────────────── */
 .health-row   { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
 .health-item  { display: flex; flex-direction: column; gap: 2px; }
 .health-label { font-size: .75rem; color: var(--p-text-muted-color); }
@@ -558,18 +563,10 @@ onMounted(() => {
 .health-error { margin-top: 8px; font-size: .82rem; color: var(--p-red-500); }
 
 .health-badge {
-    display     : inline-flex;
-    align-items : center;
-    gap         : 6px;
-    font-size   : .95rem;
-    font-weight : 700;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: .95rem; font-weight: 700;
 }
-.health-dot {
-    width         : 10px;
-    height        : 10px;
-    border-radius : 50%;
-    flex-shrink   : 0;
-}
+.health-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .quality-green  .health-dot { background: var(--p-green-500); }
 .quality-green              { color: var(--p-green-600); }
 .quality-yellow .health-dot { background: var(--p-yellow-500); }
@@ -579,78 +576,110 @@ onMounted(() => {
 .quality-unknown .health-dot { background: var(--p-text-muted-color); }
 .quality-unknown             { color: var(--p-text-muted-color); }
 
-.mb-4 { margin-bottom: 20px; }
-
-/* Chart */
-.chart-card   { margin-bottom: 20px; }
-.chart-loading { text-align: center; padding: 48px; color: var(--p-text-muted-color); font-size: .85rem; }
-.send-chart   { height: 240px; }
-
-.form-group       { margin-bottom: 12px; }
-.form-group label { display: block; font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 4px; }
-
-.card-title-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-.title-actions  { display: flex; gap: 2px; }
-.empty-msg      { color: var(--p-text-muted-color); font-size: .85rem; }
-.warn-msg       { color: var(--p-orange-500); font-size: .78rem; }
-.muted-msg      { color: var(--p-text-muted-color); font-size: .78rem; }
-.mt-2 { margin-top: 8px; }
-.mt-3 { margin-top: 12px; }
-
-.logs-filter-row   { display: flex; gap: 8px; margin-bottom: 8px; }
-.logs-pagination   { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: .82rem; }
-.logs-page-info    { padding: 0 4px; }
-.logs-total        { color: var(--p-text-muted-color); margin-left: 8px; }
-
-/* Widget progreso mensual */
-.monthly-card { margin-bottom: 16px; }
-
+/* ── Monthly ────────────────────────────────────────────────── */
 .monthly-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;
 }
 .monthly-title  { display: flex; flex-direction: column; gap: 2px; }
+.monthly-label-row { display: flex; align-items: center; gap: 5px; }
 .monthly-label  { font-size: .75rem; color: var(--p-text-muted-color); text-transform: uppercase; letter-spacing: .04em; }
+.monthly-info   { font-size: .75rem; color: var(--p-text-muted-color); cursor: help; }
 .monthly-month  { font-size: .95rem; font-weight: 600; text-transform: capitalize; }
 .monthly-numbers { display: flex; align-items: baseline; gap: 4px; }
-.monthly-sent    { font-size: 1.4rem; font-weight: 700; }
-.monthly-sep     { color: var(--p-text-muted-color); }
-.monthly-goal-num { font-size: 1rem; color: var(--p-text-muted-color); }
-.monthly-pct     { font-size: .85rem; font-weight: 700; margin-left: 8px; }
+.monthly-sent     { font-size: 1.4rem; font-weight: 700; }
+.monthly-sep      { color: var(--p-text-muted-color); }
+.monthly-capacity { font-size: 1rem; color: var(--p-text-muted-color); }
+.monthly-pct      { font-size: .85rem; font-weight: 700; margin-left: 8px; }
 
 .monthly-bar-track {
-    width: 100%;
-    height: 10px;
-    background: var(--p-surface-200);
-    border-radius: 6px;
-    overflow: hidden;
+    width: 100%; height: 10px;
+    background: var(--p-surface-200); border-radius: 6px; overflow: hidden;
 }
-.monthly-bar-fill {
-    height: 100%;
-    border-radius: 6px;
-    transition: width .4s ease;
-}
+.monthly-bar-fill { height: 100%; border-radius: 6px; transition: width .4s ease; }
 
 .monthly-footer {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 6px;
-    font-size: .78rem;
-    color: var(--p-text-muted-color);
+    display: flex; justify-content: space-between; margin-top: 6px;
+    font-size: .78rem; color: var(--p-text-muted-color);
 }
+.monthly-done { color: var(--p-green-600); font-weight: 600; }
 
-/* Colores por nivel de avance */
-.pct-done .monthly-bar-fill, .pct-done.monthly-bar-fill { background: var(--p-green-500); }
-.pct-ok   .monthly-bar-fill, .pct-ok.monthly-bar-fill   { background: var(--p-primary-500); }
-.pct-warn .monthly-bar-fill, .pct-warn.monthly-bar-fill { background: var(--p-yellow-500); }
-.pct-low  .monthly-bar-fill, .pct-low.monthly-bar-fill  { background: var(--p-red-400); }
+/* ── Stat cards ─────────────────────────────────────────────── */
+.stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+.stat { text-align: center; }
+.stat-label-row { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 4px; }
+.stat-lbl  { font-size: .75rem; color: var(--p-text-muted-color); }
+.stat-info { font-size: .7rem; color: var(--p-text-muted-color); cursor: help; }
+.stat-num           { display: block; font-size: 2rem; font-weight: 700; color: var(--p-text-color); }
+.stat-num.delivered { color: var(--p-green-500); }
+.stat-num.active    { color: var(--p-green-500); }
+.stat-num.read      { color: var(--p-primary-color); }
+.stat-num.failed    { color: var(--p-red-500); }
+.stat-num.opted-out { color: var(--p-orange-500); }
 
+/* ── Chart ──────────────────────────────────────────────────── */
+.chart-loading { text-align: center; padding: 48px; color: var(--p-text-muted-color); font-size: .85rem; }
+.send-chart    { height: 240px; }
+
+/* ── Histórico ──────────────────────────────────────────────── */
+.history-table {
+    width: 100%; border-collapse: collapse; font-size: .85rem;
+}
+.history-table th {
+    text-align: left; font-size: .75rem; font-weight: 600;
+    color: var(--p-text-muted-color); padding: 4px 8px 8px; border-bottom: 1px solid var(--p-surface-200);
+}
+.history-table td { padding: 7px 8px; border-bottom: 1px solid var(--p-surface-100); }
+.history-table .num-col { text-align: right; font-variant-numeric: tabular-nums; }
+.history-table .bar-col { width: 120px; }
+.month-cell { font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.current-badge {
+    font-size: .68rem; background: var(--p-primary-100); color: var(--p-primary-700);
+    border-radius: 4px; padding: 1px 5px; font-weight: 600;
+}
+.row-current { background: var(--p-surface-50); }
+.muted { color: var(--p-text-muted-color); }
+
+.mini-bar-track { width: 100%; height: 7px; background: var(--p-surface-200); border-radius: 4px; overflow: hidden; }
+.mini-bar-fill  { height: 100%; border-radius: 4px; transition: width .4s ease; }
+
+/* ── Colores de avance ──────────────────────────────────────── */
 .pct-done { color: var(--p-green-600); }
 .pct-ok   { color: var(--p-primary-600); }
 .pct-warn { color: var(--p-yellow-700); }
 .pct-low  { color: var(--p-red-500); }
 
-.monthly-done { color: var(--p-green-600); font-weight: 600; }
+.pct-done.monthly-bar-fill, .pct-done.mini-bar-fill { background: var(--p-green-500); }
+.pct-ok.monthly-bar-fill,   .pct-ok.mini-bar-fill   { background: var(--p-primary-500); }
+.pct-warn.monthly-bar-fill, .pct-warn.mini-bar-fill { background: var(--p-yellow-500); }
+.pct-low.monthly-bar-fill,  .pct-low.mini-bar-fill  { background: var(--p-red-400); }
+
+/* ── Grid inferior ──────────────────────────────────────────── */
+.dashboard-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+
+/* ── Mensajes tabla ─────────────────────────────────────────── */
+.form-group       { margin-bottom: 12px; }
+.form-group label { display: block; font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 4px; }
+.card-title-row   { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.title-actions    { display: flex; gap: 2px; }
+.empty-msg        { color: var(--p-text-muted-color); font-size: .85rem; }
+.warn-msg         { color: var(--p-orange-500); font-size: .78rem; }
+.muted-msg        { color: var(--p-text-muted-color); font-size: .78rem; }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+
+.logs-filter-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.logs-pagination { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: .82rem; }
+.logs-page-info  { padding: 0 4px; }
+.logs-total      { color: var(--p-text-muted-color); margin-left: 8px; }
+
+@media (max-width: 900px) {
+    .stats-row      { grid-template-columns: repeat(2, 1fr); }
+    .dashboard-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+    .stats-row { gap: 10px; }
+    .stat-num  { font-size: 1.5rem; }
+}
 </style>

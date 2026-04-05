@@ -6,6 +6,7 @@ use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
@@ -82,14 +83,16 @@ class DashboardTest extends TestCase
         $this->getJson('/api/dashboard/daily-stats')->assertStatus(401);
     }
 
-    public function test_daily_stats_devuelve_serie_de_14_dias(): void
+    public function test_daily_stats_devuelve_dias_del_mes_en_curso(): void
     {
         $res = $this->actingAsOperator()
                     ->getJson('/api/dashboard/daily-stats')
                     ->assertStatus(200)
                     ->assertJsonPath('status', 'ok');
 
-        $this->assertCount(14, $res->json('data'));
+        // La serie debe tener exactamente tantos días como el día de hoy en el mes
+        $expectedDays = (int) now('America/Mexico_City')->day;
+        $this->assertCount($expectedDays, $res->json('data'));
     }
 
     public function test_daily_stats_estructura_por_dia(): void
@@ -124,9 +127,8 @@ class DashboardTest extends TestCase
                     ->getJson('/api/dashboard/daily-stats')
                     ->assertStatus(200);
 
-        // El controller agrupa por DATE(CONVERT_TZ(created_at, '+00:00', '-06:00')),
-        // así que "hoy" hay que consultarlo en CST, no en UTC (fallaría entre 00:00-06:00 UTC).
-        $today = now('America/Mexico_City')->format('Y-m-d');
+        // El controller agrupa por DATE(CONVERT_TZ(created_at, '+00:00', '-06:00'))
+        $today    = now('America/Mexico_City')->format('Y-m-d');
         $todayRow = collect($res->json('data'))->firstWhere('day', $today);
 
         $this->assertNotNull($todayRow, "No se encontró el día de hoy en la serie");
@@ -149,16 +151,16 @@ class DashboardTest extends TestCase
         }
     }
 
-    public function test_daily_stats_no_incluye_mensajes_fuera_de_14_dias(): void
+    public function test_daily_stats_no_incluye_mensajes_del_mes_pasado(): void
     {
         $phone = PhoneNumber::factory()->create();
         $old   = new MessageLog(MessageLog::factory()->make([
             'phone_number_id' => $phone->id,
             'status'          => 'sent',
-            'sent_at'         => now()->subDays(15),
+            'sent_at'         => now()->subMonths(1),
         ])->toArray());
-        $old->created_at = now()->subDays(15);
-        $old->updated_at = now()->subDays(15);
+        $old->created_at = now()->subMonths(1);
+        $old->updated_at = now()->subMonths(1);
         $old->save();
 
         $res = $this->actingAsOperator()
@@ -166,12 +168,11 @@ class DashboardTest extends TestCase
                     ->assertStatus(200);
 
         $total = collect($res->json('data'))->sum('sent');
-        $this->assertEquals(0, $total, "No deben aparecer mensajes de hace más de 14 días");
+        $this->assertEquals(0, $total, "No deben aparecer mensajes del mes anterior");
     }
 
     public function test_daily_stats_agente_no_tiene_acceso(): void
     {
-        // daily-stats está en el grupo role:admin,operator — agent no puede
         $this->actingAsAgent()
              ->getJson('/api/dashboard/daily-stats')
              ->assertStatus(403);
@@ -186,7 +187,11 @@ class DashboardTest extends TestCase
              ->assertStatus(200)
              ->assertJsonStructure([
                  'data' => [
-                     'monthly' => ['sent', 'goal', 'pct', 'days_remaining', 'month_label'],
+                     'monthly' => [
+                         'sent', 'capacity', 'pct',
+                         'working_days_total', 'working_days_remaining',
+                         'daily_limit', 'month_label',
+                     ],
                  ],
              ]);
     }
@@ -219,12 +224,31 @@ class DashboardTest extends TestCase
         $this->assertEquals(5, $res->json('data.monthly.sent'));
     }
 
-    public function test_stats_monthly_pct_se_calcula_correctamente(): void
+    public function test_stats_monthly_capacidad_usa_daily_limit_de_numeros_activos(): void
     {
-        \App\Models\Setting::set('monthly_goal', 1000);
+        // Número activo con 250/día
+        PhoneNumber::factory()->create(['is_active' => true, 'daily_limit' => 250]);
 
-        $phone = PhoneNumber::factory()->create();
-        MessageLog::factory()->count(250)->create([
+        $res = $this->actingAsOperator()
+                    ->getJson('/api/dashboard/stats')
+                    ->assertStatus(200);
+
+        $dailyLimit = $res->json('data.monthly.daily_limit');
+        $capacity   = $res->json('data.monthly.capacity');
+        $wdTotal    = $res->json('data.monthly.working_days_total');
+
+        // capacity = daily_limit × working_days_total
+        $this->assertEquals(250, $dailyLimit);
+        $this->assertEquals($dailyLimit * $wdTotal, $capacity);
+        $this->assertGreaterThan(0, $wdTotal);
+    }
+
+    public function test_stats_monthly_pct_se_calcula_sobre_capacidad(): void
+    {
+        $phone = PhoneNumber::factory()->create(['is_active' => true, 'daily_limit' => 250]);
+
+        // Enviamos justo la mitad de la capacidad de un día
+        MessageLog::factory()->count(125)->create([
             'phone_number_id' => $phone->id,
             'status'          => 'sent',
             'sent_at'         => now(),
@@ -234,7 +258,69 @@ class DashboardTest extends TestCase
                     ->getJson('/api/dashboard/stats')
                     ->assertStatus(200);
 
-        $this->assertEquals(25.0, $res->json('data.monthly.pct'));
-        $this->assertEquals(1000, $res->json('data.monthly.goal'));
+        // pct = 125 / (250 × working_days_total) × 100
+        $capacity = $res->json('data.monthly.capacity');
+        $expected = round(125 / $capacity * 100, 1);
+        $this->assertEquals($expected, $res->json('data.monthly.pct'));
+    }
+
+    // ── GET /api/dashboard/monthly-history ───────────────────────────────────
+
+    public function test_monthly_history_requiere_autenticacion(): void
+    {
+        $this->getJson('/api/dashboard/monthly-history')->assertStatus(401);
+    }
+
+    public function test_monthly_history_devuelve_6_meses(): void
+    {
+        $res = $this->actingAsOperator()
+                    ->getJson('/api/dashboard/monthly-history')
+                    ->assertStatus(200)
+                    ->assertJsonPath('status', 'ok');
+
+        $this->assertCount(6, $res->json('data'));
+    }
+
+    public function test_monthly_history_estructura_por_mes(): void
+    {
+        $res = $this->actingAsOperator()
+                    ->getJson('/api/dashboard/monthly-history')
+                    ->assertStatus(200);
+
+        $first = $res->json('data.0');
+        $this->assertArrayHasKey('month',       $first);
+        $this->assertArrayHasKey('month_label', $first);
+        $this->assertArrayHasKey('sent',        $first);
+        $this->assertArrayHasKey('capacity',    $first);
+        $this->assertArrayHasKey('pct',         $first);
+    }
+
+    public function test_monthly_history_ultimo_mes_es_mes_en_curso(): void
+    {
+        $res = $this->actingAsOperator()
+                    ->getJson('/api/dashboard/monthly-history')
+                    ->assertStatus(200);
+
+        $lastMonth = last($res->json('data'));
+        $this->assertEquals(now('America/Mexico_City')->format('Y-m'), $lastMonth['month']);
+    }
+
+    public function test_monthly_history_cuenta_mensajes_del_mes_correcto(): void
+    {
+        $phone = PhoneNumber::factory()->create(['is_active' => true, 'daily_limit' => 250]);
+
+        // 3 mensajes este mes
+        MessageLog::factory()->count(3)->create([
+            'phone_number_id' => $phone->id,
+            'status'          => 'sent',
+            'sent_at'         => now(),
+        ]);
+
+        $res = $this->actingAsOperator()
+                    ->getJson('/api/dashboard/monthly-history')
+                    ->assertStatus(200);
+
+        $lastMonth = last($res->json('data'));
+        $this->assertEquals(3, $lastMonth['sent']);
     }
 }

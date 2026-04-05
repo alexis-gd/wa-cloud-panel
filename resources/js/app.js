@@ -5,6 +5,7 @@ import Aura                 from '@primeuix/themes/aura';
 import { definePreset }     from '@primeuix/themes';
 import ToastService         from 'primevue/toastservice';
 import ConfirmationService  from 'primevue/confirmationservice';
+import Tooltip              from 'primevue/tooltip';
 import 'primeicons/primeicons.css';
 
 const WaPreset = definePreset(Aura, {
@@ -82,4 +83,5 @@ createApp(AppLayout)
     .use(PrimeVue, { theme: { preset: WaPreset, options: { darkModeSelector: '.app-dark' } } })
     .use(ToastService)
     .use(ConfirmationService)
+    .directive('tooltip', Tooltip)
     .mount('#app');

@@ -34,7 +34,8 @@ export const api = {
     me: () => request('/auth/me'),
 
     // ── Dashboard ─────────────────────────────────────────────────────────────
-    dashboardStats:      () => request('/dashboard/stats'),
+    dashboardStats:         () => request('/dashboard/stats'),
+    dashboardMonthlyHistory: () => request('/dashboard/monthly-history'),
     dashboardDailyStats: () => request('/dashboard/daily-stats'),
 
     // ── Settings ─────────────────────────────────────────────────────────────

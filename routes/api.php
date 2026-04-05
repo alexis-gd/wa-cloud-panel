@@ -45,9 +45,10 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // Dashboard, templates, configuración — admin y operator
     Route::middleware('role:admin,operator')->group(function () {
         Route::get('/templates',             [TemplateController::class, 'index']);
-        Route::get('/dashboard/stats',       [DashboardController::class, 'stats']);
-        Route::get('/dashboard/messages',    [DashboardController::class, 'messages']);
-        Route::get('/dashboard/daily-stats', [DashboardController::class, 'dailyStats']);
+        Route::get('/dashboard/stats',           [DashboardController::class, 'stats']);
+        Route::get('/dashboard/messages',        [DashboardController::class, 'messages']);
+        Route::get('/dashboard/daily-stats',     [DashboardController::class, 'dailyStats']);
+        Route::get('/dashboard/monthly-history', [DashboardController::class, 'monthlyHistory']);
 
         // Contactos
         Route::get('/contacts',              [ContactController::class, 'index']);

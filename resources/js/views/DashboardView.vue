@@ -81,6 +81,11 @@
         </Card>
 
         <!-- 3. Stats de mensajes -->
+        <div class="section-header mb-xs">
+            <i class="pi pi-send section-icon"></i>
+            <span class="section-title">Estado de mensajes</span>
+            <span class="section-subtitle">— etapas por las que pasa cada mensaje enviado</span>
+        </div>
         <div class="stats-row mb">
             <Card class="stat-card" v-for="s in messageStats" :key="s.key">
                 <template #content>
@@ -96,6 +101,11 @@
         </div>
 
         <!-- 4. Stats de contactos -->
+        <div class="section-header mb-xs">
+            <i class="pi pi-users section-icon"></i>
+            <span class="section-title">Base de contactos</span>
+            <span class="section-subtitle">— estado actual de todos los contactos registrados</span>
+        </div>
         <div class="stats-row mb">
             <Card class="stat-card" v-for="c in contactStats" :key="c.key">
                 <template #content>
@@ -145,7 +155,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="row in monthlyHistory" :key="row.month" :class="{ 'row-current': row.month === currentMonthKey }">
+                        <tr v-for="row in [...monthlyHistory].reverse()" :key="row.month" :class="{ 'row-current': row.month === currentMonthKey }">
                             <td class="month-cell">
                                 {{ row.month_label }}
                                 <span v-if="row.month === currentMonthKey" class="current-badge">actual</span>
@@ -322,8 +332,8 @@ const currentMonthKey = computed(() => {
 // ── Tooltips de métricas ──────────────────────────────────────────────────────
 const messageStats = [
     {
-        key: 'sent', label: 'Enviados', class: '',
-        tooltip: 'Mensajes que salieron de nuestro sistema a Meta. Se cuentan en el momento del envío, antes de confirmar entrega.',
+        key: 'sent', label: 'En tránsito', class: '',
+        tooltip: 'Mensajes que salieron hacia Meta pero aún no se confirmó que llegaron al celular. Cuando Meta confirma la entrega, este número baja y sube "Entregados".',
     },
     {
         key: 'delivered', label: 'Entregados', class: 'delivered',
@@ -552,7 +562,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.mb { margin-bottom: 16px; }
+.mb    { margin-bottom: 16px; }
+.mb-xs { margin-bottom: 6px; }
+
+/* ── Section headers ────────────────────────────────────────── */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.section-icon     { font-size: .85rem; color: var(--p-primary-500); }
+.section-title    { font-size: .82rem; font-weight: 700; color: var(--p-text-color); }
+.section-subtitle { font-size: .78rem; color: var(--p-text-muted-color); }
 
 /* ── Health ─────────────────────────────────────────────────── */
 .health-row   { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }

@@ -94,8 +94,9 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter, RouterLink, RouterView } from 'vue-router';
+import { useToast } from 'primevue/usetoast';
 import Tag          from 'primevue/tag';
 import Toast        from 'primevue/toast';
 import Button       from 'primevue/button';
@@ -105,7 +106,27 @@ import { useAuth }  from '../auth.js';
 
 const route  = useRoute();
 const router = useRouter();
+const toast  = useToast();
 const { user: authState, isAdmin, clearUser } = useAuth();
+
+function handleSessionExpired() {
+    clearUser();
+    toast.add({
+        severity : 'warn',
+        summary  : 'Sesión expirada',
+        detail   : 'Tu sesión ha expirado. Por favor inicia sesión nuevamente.',
+        life     : 5000,
+    });
+    router.push('/login');
+}
+
+onMounted(() => {
+    window.addEventListener('wa:session-expired', handleSessionExpired);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('wa:session-expired', handleSessionExpired);
+});
 
 const sidebarOpen = ref(false);
 
@@ -129,8 +150,7 @@ const helpContent = {
             { icon: 'pi-chart-bar',     label: 'Meta mensual', text: 'Progreso del mes: mensajes enviados vs. la meta configurada. El color indica el avance (azul = ok, amarillo = por debajo, rojo = muy bajo).' },
             { icon: 'pi-chart-line',    label: 'Gráfica',    text: 'Envíos por día en los últimos 14 días. Usa ↺ para refrescar.' },
             { icon: 'pi-circle-fill',   label: 'Semáforo',   text: 'Calidad del número en Meta. Verde = ok. Amarillo = cuidado. Rojo = problema.' },
-            { icon: 'pi-send',          label: 'Prueba',     text: 'Envía un mensaje individual para verificar que una plantilla funciona.' },
-            { icon: 'pi-list',          label: 'Últimos',    text: 'Los 20 envíos más recientes con su estado actual.' },
+            { icon: 'pi-list',          label: 'Últimos',    text: 'Los 10 envíos más recientes con su estado actual.' },
         ],
         warning: 'Si el semáforo está ROJO o PAUSADO, no ejecutar campañas hasta que se revise.',
     },
@@ -172,6 +192,7 @@ const helpContent = {
             { icon: 'pi-check-circle',  label: 'Aprobadas',   text: 'Solo las plantillas con estado "Aprobada" aparecen al crear campañas.' },
             { icon: 'pi-clock',         label: 'Revisión',    text: 'Meta tarda entre 1 minuto y 48 horas en aprobar. Sincroniza para ver el estado actual.' },
             { icon: 'pi-image',         label: 'Header',      text: 'Las plantillas pueden tener imagen de encabezado. Se configura al crearlas.' },
+            { icon: 'pi-send',          label: 'Enviar prueba', text: 'Selecciona una plantilla aprobada y usa el botón "Enviar prueba" para mandar un mensaje de prueba a un contacto activo.' },
         ],
         warning: 'Solo el administrador puede crear, editar o eliminar plantillas.',
     },

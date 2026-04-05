@@ -17,6 +17,18 @@ async function request(path, options = {}) {
         headers: authHeaders(),
         ...options,
     });
+
+    if (res.status === 401) {
+        localStorage.removeItem('wa_token');
+        window.dispatchEvent(new CustomEvent('wa:session-expired'));
+        return { status: 'error', code: 'UNAUTHENTICATED', message: 'Sesión expirada' };
+    }
+
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!contentType.includes('application/json')) {
+        return { status: 'error', message: `Error del servidor (${res.status})` };
+    }
+
     return res.json();
 }
 

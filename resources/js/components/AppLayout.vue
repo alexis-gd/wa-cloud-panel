@@ -146,11 +146,13 @@ const helpContent = {
     '/': {
         title: 'Dashboard',
         items: [
-            { icon: 'pi-chart-bar',     label: 'Métricas',   text: 'Totales acumulados de enviados, entregados, leídos y fallidos.' },
-            { icon: 'pi-chart-bar',     label: 'Meta mensual', text: 'Progreso del mes: mensajes enviados vs. la meta configurada. El color indica el avance (azul = ok, amarillo = por debajo, rojo = muy bajo).' },
-            { icon: 'pi-chart-line',    label: 'Gráfica',    text: 'Envíos por día en los últimos 14 días. Usa ↺ para refrescar.' },
-            { icon: 'pi-circle-fill',   label: 'Semáforo',   text: 'Calidad del número en Meta. Verde = ok. Amarillo = cuidado. Rojo = problema.' },
-            { icon: 'pi-list',          label: 'Últimos',    text: 'Los 10 envíos más recientes con su estado actual.' },
+            { icon: 'pi-circle-fill',   label: 'Semáforo',    text: 'Calidad del número en Meta. Verde = ok. Amarillo = cuidado. Rojo = problema. Si está PAUSADO, el sistema detuvo envíos automáticamente.' },
+            { icon: 'pi-chart-bar',     label: 'Meta mensual', text: 'Progreso del mes: mensajes enviados vs. la capacidad real del sistema (días hábiles × límite diario). El color indica el avance.' },
+            { icon: 'pi-send',          label: 'Mensajes',    text: 'Totales acumulados históricos de enviados (en tránsito), entregados, leídos y fallidos.' },
+            { icon: 'pi-users',         label: 'Contactos',   text: 'Estado actual de la base: total, activos (pueden recibir mensajes), opt-out e inválidos.' },
+            { icon: 'pi-chart-line',    label: 'Gráfica',     text: 'Envíos día a día del mes actual. Usa ↺ para refrescar.' },
+            { icon: 'pi-history',       label: 'Histórico',   text: 'Enviados vs. capacidad de los últimos 6 meses. Útil para ver tendencia de crecimiento.' },
+            { icon: 'pi-list',          label: 'Últimos',     text: 'Los 10 mensajes más recientes con su estado actual. Filtra por estado con el selector.' },
         ],
         warning: 'Si el semáforo está ROJO o PAUSADO, no ejecutar campañas hasta que se revise.',
     },

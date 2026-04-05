@@ -43,6 +43,23 @@ Mantener consistencia entre todas las vistas. No variar estilos de componentes s
 - Variables de diseño: usar las de PrimeVue (`var(--p-primary-500)`, `var(--p-surface-100)`, `var(--p-text-muted-color)`, etc.) — nunca colores hardcodeados.
 - Si el proyecto adopta Tailwind en el futuro, se actualiza esta regla y se instala explícitamente.
 
+## Fechas y timezones
+
+- Los timestamps (`sent_at`, `created_at`, etc.) se guardan en UTC en BD — esto NO cambia.
+- **Al devolver timestamps al frontend** (en resources, controllers o responses), siempre convertir a `America/Mexico_City`:
+  ```php
+  $model->sent_at->setTimezone('America/Mexico_City')->format('Y-m-d H:i')
+  ```
+- **Nunca devolver un ISO UTC crudo** si el dato se va a mostrar como hora al operador.
+- El frontend nunca hace conversión de zona — recibe la hora ya en CST.
+- Para filtros de fecha en queries, nunca `today()` ni `whereDate()` con UTC — usar:
+  ```php
+  whereBetween('sent_at', [
+      now('America/Mexico_City')->startOfDay()->utc(),
+      now('America/Mexico_City')->endOfDay()->utc(),
+  ])
+  ```
+
 ## General
 
 - Commits en español, imperativos: "Agrega job de envío", "Corrige validación de webhook".

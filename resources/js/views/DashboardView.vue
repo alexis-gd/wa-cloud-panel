@@ -176,129 +176,68 @@
             </template>
         </Card>
 
-        <div class="dashboard-grid">
-            <!-- Enviar mensaje de prueba -->
-            <Card>
-                <template #title>Enviar mensaje de prueba</template>
-                <template #content>
-                    <div class="form-group">
-                        <label>Plantilla</label>
-                        <Select
-                            v-model="form.template_name"
-                            :options="templateOptions"
-                            option-label="label"
-                            option-value="value"
-                            placeholder="Selecciona una plantilla aprobada"
-                            fluid
-                            :loading="loadingTemplates"
-                        />
-                        <small v-if="templateOptions.length === 0 && !loadingTemplates" class="warn-msg">
-                            No hay plantillas aprobadas disponibles.
-                        </small>
+        <!-- Últimos mensajes -->
+        <Card>
+            <template #title>
+                <div class="card-title-row">
+                    <span>Últimos mensajes</span>
+                    <div class="title-actions">
+                        <Button icon="pi pi-download" severity="secondary" text @click="downloadMessages" title="Exportar Excel" />
+                        <Button icon="pi pi-refresh" severity="secondary" text @click="loadMessages(1)" :loading="loadingLogs" />
                     </div>
-                    <div class="form-group">
-                        <label>Contacto destino</label>
-                        <Select
-                            v-model="form.to"
-                            :options="contactOptions"
-                            option-label="label"
-                            option-value="value"
-                            placeholder="Selecciona un contacto activo"
-                            fluid
-                            :loading="loadingContacts"
-                            filter
-                        />
-                    </div>
-                    <template v-if="selectedTemplate && templateVars.length">
-                        <div v-for="(varName, idx) in templateVars" :key="idx" class="form-group">
-                            <label>{{ varName }}</label>
-                            <InputText v-model="form.vars[idx]" :placeholder="varName" fluid />
-                        </div>
-                    </template>
-                    <div v-else-if="selectedTemplate && !templateVars.length" class="form-group">
-                        <small class="muted-msg">Esta plantilla no tiene variables.</small>
-                    </div>
-                    <Button
-                        label="Enviar"
-                        icon="pi pi-send"
-                        :loading="sending"
-                        :disabled="!form.template_name || !form.to || sending"
-                        @click="sendTest"
-                        class="mt-2"
+                </div>
+            </template>
+            <template #content>
+                <div class="logs-filter-row">
+                    <Select
+                        v-model="logsStatusFilter"
+                        :options="logStatusOptions"
+                        option-label="label"
+                        option-value="value"
+                        placeholder="Todos los estados"
+                        size="small"
+                        @change="loadMessages(1)"
                     />
-                    <Message v-if="sendResult" :severity="sendResult.status === 'sent' ? 'success' : 'error'" class="mt-3">
-                        {{ sendResult.status === 'sent'
-                            ? 'Mensaje enviado correctamente'
-                            : (sendResult.wa_response?.error?.message || sendResult.message || 'Error al enviar') }}
-                    </Message>
-                </template>
-            </Card>
-
-            <!-- Últimos mensajes -->
-            <Card>
-                <template #title>
-                    <div class="card-title-row">
-                        <span>Últimos mensajes</span>
-                        <div class="title-actions">
-                            <Button icon="pi pi-download" severity="secondary" text @click="downloadMessages" title="Exportar Excel" />
-                            <Button icon="pi pi-refresh" severity="secondary" text @click="loadMessages(1)" :loading="loadingLogs" />
-                        </div>
-                    </div>
-                </template>
-                <template #content>
-                    <div class="logs-filter-row">
-                        <Select
-                            v-model="logsStatusFilter"
-                            :options="logStatusOptions"
-                            option-label="label"
-                            option-value="value"
-                            placeholder="Todos los estados"
-                            size="small"
-                            @change="loadMessages(1)"
-                        />
-                    </div>
-                    <DataTable :value="logs" size="small" stripedRows :loading="loadingLogs" class="mt-2">
-                        <Column field="id" header="ID" style="width: 60px" />
-                        <Column field="to_number" header="Destino" />
-                        <Column field="template_name" header="Plantilla" />
-                        <Column header="Estado">
-                            <template #body="{ data }">
-                                <Tag :value="data.status" :severity="statusSeverity(data.status)" />
-                            </template>
-                        </Column>
-                        <Column header="Fecha">
-                            <template #body="{ data }">
-                                {{ data.created_at?.substring(0, 16).replace('T', ' ') }}
-                            </template>
-                        </Column>
-                        <template #empty>
-                            <span class="empty-msg">Sin mensajes aún</span>
+                </div>
+                <DataTable :value="logs" size="small" stripedRows :loading="loadingLogs" class="mt-2">
+                    <Column field="id" header="ID" style="width: 60px" />
+                    <Column field="to_number" header="Destino" />
+                    <Column field="template_name" header="Plantilla" />
+                    <Column header="Estado">
+                        <template #body="{ data }">
+                            <Tag :value="data.status" :severity="statusSeverity(data.status)" />
                         </template>
-                    </DataTable>
-                    <div class="logs-pagination" v-if="logsMeta">
-                        <Button icon="pi pi-chevron-left" text severity="secondary" size="small"
-                            :disabled="logsMeta.page <= 1" @click="loadMessages(logsMeta.page - 1)" />
-                        <span class="logs-page-info">{{ logsMeta.page }} / {{ logsMeta.pages }}</span>
-                        <Button icon="pi pi-chevron-right" text severity="secondary" size="small"
-                            :disabled="logsMeta.page >= logsMeta.pages" @click="loadMessages(logsMeta.page + 1)" />
-                        <span class="logs-total">{{ logsMeta.total }} mensajes</span>
-                    </div>
-                </template>
-            </Card>
-        </div>
+                    </Column>
+                    <Column header="Fecha">
+                        <template #body="{ data }">
+                            {{ data.created_at }}
+                        </template>
+                    </Column>
+                    <template #empty>
+                        <span class="empty-msg">Sin mensajes aún</span>
+                    </template>
+                </DataTable>
+                <div class="logs-pagination" v-if="logsMeta">
+                    <Button icon="pi pi-chevron-left" text severity="secondary" size="small"
+                        :disabled="logsMeta.page <= 1" @click="loadMessages(logsMeta.page - 1)" />
+                    <span class="logs-page-info">{{ logsMeta.page }} / {{ logsMeta.pages }}</span>
+                    <Button icon="pi pi-chevron-right" text severity="secondary" size="small"
+                        :disabled="logsMeta.page >= logsMeta.pages" @click="loadMessages(logsMeta.page + 1)" />
+                    <span class="logs-total">{{ logsMeta.total }} mensajes</span>
+                </div>
+            </template>
+        </Card>
     </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import Card      from 'primevue/card';
 import Button    from 'primevue/button';
-import InputText from 'primevue/inputtext';
 import Select    from 'primevue/select';
 import DataTable from 'primevue/datatable';
 import Column    from 'primevue/column';
 import Tag       from 'primevue/tag';
-import Message   from 'primevue/message';
 import Chart     from 'primevue/chart';
 import { api }   from '../api.js';
 
@@ -310,19 +249,13 @@ const stats            = ref({});
 const contacts         = ref({});
 const monthly          = ref({});
 const monthlyHistory   = ref([]);
-const sending          = ref(false);
 const loadingLogs      = ref(false);
-const loadingTemplates = ref(false);
-const loadingContacts  = ref(false);
 const loadingHealth    = ref(false);
 const loadingChart     = ref(false);
 const loadingHistory   = ref(false);
-const sendResult       = ref(null);
 const healthData       = ref({});
 const healthError      = ref(null);
 const chartData        = ref({});
-const templateOptions  = ref([]);
-const contactOptions   = ref([]);
 
 const currentMonthKey = computed(() => {
     const d = new Date();
@@ -391,17 +324,6 @@ const chartOptions = {
     },
 };
 
-const form = ref({ template_name: null, to: '', vars: [] });
-
-const selectedTemplate = computed(() =>
-    templateOptions.value.find(t => t.value === form.value.template_name) ?? null
-);
-const templateVars = computed(() => selectedTemplate.value?.var_labels ?? []);
-
-watch(selectedTemplate, (tpl) => {
-    form.value.vars = tpl ? Array(tpl.var_labels.length).fill('') : [];
-});
-
 const pctClass = computed(() => pctColorClass(monthly.value.pct ?? 0));
 
 function pctColorClass(pct) {
@@ -450,7 +372,7 @@ async function loadStats() {
 
 async function loadMessages(page = 1) {
     loadingLogs.value = true;
-    const params = { page, per_page: 20 };
+    const params = { page, per_page: 10 };
     if (logsStatusFilter.value) params.status = logsStatusFilter.value;
     const res = await api.dashboardMessages(params);
     if (res.status === 'ok') {
@@ -489,31 +411,6 @@ async function loadMonthlyHistory() {
     loadingHistory.value = false;
 }
 
-async function loadTemplates() {
-    loadingTemplates.value = true;
-    const res = await api.templates();
-    templateOptions.value = (res.data ?? [])
-        .filter(t => t.status === 'approved' && t.is_active)
-        .map(t => ({
-            label        : t.name,
-            value        : t.name,
-            language_code: t.language_code,
-            body_text    : t.body_text,
-            var_labels   : extractVarLabels(t.body_text),
-        }));
-    loadingTemplates.value = false;
-}
-
-async function loadContactOptions() {
-    loadingContacts.value = true;
-    const data = await api.contacts({ status: 'active', per_page: 200 });
-    contactOptions.value = (data.data ?? []).map(c => ({
-        label: c.name ? `${c.name} — ${c.phone}` : c.phone,
-        value: c.phone,
-    }));
-    loadingContacts.value = false;
-}
-
 async function downloadMessages() {
     const token = localStorage.getItem('wa_token');
     const res   = await fetch('/api/export/messages', {
@@ -528,36 +425,12 @@ async function downloadMessages() {
     URL.revokeObjectURL(url);
 }
 
-async function sendTest() {
-    sending.value    = true;
-    sendResult.value = null;
-    sendResult.value = await api.sendTest({
-        template_name : form.value.template_name,
-        language_code : selectedTemplate.value?.language_code ?? 'es_MX',
-        to            : form.value.to,
-        body_vars     : form.value.vars.filter(v => v !== ''),
-    });
-    sending.value = false;
-    await Promise.all([loadStats(), loadMessages(1)]);
-}
-
-function extractVarLabels(bodyText) {
-    if (!bodyText) return [];
-    const matches = [...bodyText.matchAll(/\{\{([^}]+)\}\}/g)];
-    return matches.map(m => {
-        const inner = m[1].trim();
-        return /^\d+$/.test(inner) ? `Variable ${inner}` : inner;
-    });
-}
-
 onMounted(() => {
     loadHealth();
     loadStats();
     loadMessages(1);
     loadDailyStats();
     loadMonthlyHistory();
-    loadTemplates();
-    loadContactOptions();
 });
 </script>
 
@@ -676,19 +549,11 @@ onMounted(() => {
 .pct-warn.monthly-bar-fill, .pct-warn.mini-bar-fill { background: var(--p-yellow-500); }
 .pct-low.monthly-bar-fill,  .pct-low.mini-bar-fill  { background: var(--p-red-400); }
 
-/* ── Grid inferior ──────────────────────────────────────────── */
-.dashboard-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
-
 /* ── Mensajes tabla ─────────────────────────────────────────── */
-.form-group       { margin-bottom: 12px; }
-.form-group label { display: block; font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 4px; }
 .card-title-row   { display: flex; justify-content: space-between; align-items: center; width: 100%; }
 .title-actions    { display: flex; gap: 2px; }
-.empty-msg        { color: var(--p-text-muted-color); font-size: .85rem; }
-.warn-msg         { color: var(--p-orange-500); font-size: .78rem; }
-.muted-msg        { color: var(--p-text-muted-color); font-size: .78rem; }
-.mt-2 { margin-top: 8px; }
-.mt-3 { margin-top: 12px; }
+.empty-msg { color: var(--p-text-muted-color); font-size: .85rem; }
+.mt-2      { margin-top: 8px; }
 
 .logs-filter-row { display: flex; gap: 8px; margin-bottom: 8px; }
 .logs-pagination { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: .82rem; }
@@ -696,8 +561,7 @@ onMounted(() => {
 .logs-total      { color: var(--p-text-muted-color); margin-left: 8px; }
 
 @media (max-width: 900px) {
-    .stats-row      { grid-template-columns: repeat(2, 1fr); }
-    .dashboard-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 480px) {
     .stats-row { gap: 10px; }

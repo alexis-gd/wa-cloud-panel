@@ -109,11 +109,66 @@
           <div v-if="selected.rejection_reason" class="preview-rejection">
             <strong>Rechazada:</strong> {{ selected.rejection_reason }}
           </div>
+          <!-- Enviar prueba -->
+          <Button
+            v-if="selected.status === 'approved'"
+            label="Enviar prueba"
+            icon="pi pi-send"
+            size="small"
+            severity="secondary"
+            class="test-btn"
+            @click="openTestDialog"
+          />
         </div>
       </div>
     </div>
 
     <ConfirmDialog />
+
+    <!-- Dialog: Enviar mensaje de prueba -->
+    <Dialog v-model:visible="showTestDialog" header="Enviar mensaje de prueba" :modal="true" :style="{ width: '400px' }">
+      <div class="test-form">
+        <div class="form-group">
+          <label>Plantilla</label>
+          <code class="tpl-chip">{{ selected?.name }}</code>
+        </div>
+        <div class="form-group">
+          <label>Contacto destino</label>
+          <Select
+            v-model="testForm.to"
+            :options="contactOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="Selecciona un contacto activo"
+            fluid
+            :loading="loadingContacts"
+            filter
+          />
+        </div>
+        <template v-if="templateVarLabels.length">
+          <div v-for="(varName, idx) in templateVarLabels" :key="idx" class="form-group">
+            <label>{{ varName }}</label>
+            <InputText v-model="testForm.vars[idx]" :placeholder="varName" fluid />
+          </div>
+        </template>
+        <p v-else class="no-vars">Esta plantilla no tiene variables.</p>
+        <Message v-if="testResult" :severity="testResult.status === 'sent' ? 'success' : 'error'" class="test-result">
+          {{ testResult.status === 'sent'
+              ? 'Mensaje enviado correctamente'
+              : (testResult.wa_response?.error?.message || testResult.message || 'Error al enviar') }}
+        </Message>
+      </div>
+      <template #footer>
+        <Button label="Cancelar" text @click="showTestDialog = false" />
+        <Button
+          label="Enviar"
+          icon="pi pi-send"
+          :loading="testSending"
+          :disabled="!testForm.to || testSending"
+          @click="sendTest"
+        />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -126,6 +181,10 @@ import Button        from 'primevue/button';
 import Tag           from 'primevue/tag';
 import ToggleSwitch  from 'primevue/toggleswitch';
 import ConfirmDialog from 'primevue/confirmdialog';
+import Dialog        from 'primevue/dialog';
+import Select        from 'primevue/select';
+import InputText     from 'primevue/inputtext';
+import Message       from 'primevue/message';
 
 const toast   = useToast();
 const confirm = useConfirm();
@@ -134,6 +193,16 @@ const templates = ref([]);
 const selected  = ref(null);
 const loading   = ref(false);
 const syncing   = ref(false);
+
+// ── Enviar prueba ─────────────────────────────────────────────
+const showTestDialog  = ref(false);
+const testForm        = ref({ to: '', vars: [] });
+const testSending     = ref(false);
+const testResult      = ref(null);
+const contactOptions  = ref([]);
+const loadingContacts = ref(false);
+
+const templateVarLabels = computed(() => extractVarLabels(selected.value?.body_text));
 
 const alertTemplates = computed(() =>
   templates.value.filter(t =>
@@ -188,6 +257,44 @@ async function deleteTemplate(template) {
     if (selected.value?.id === template.id) selected.value = null;
     toast.add({ severity: 'success', summary: 'Plantilla eliminada', life: 3000 });
   }
+}
+
+async function loadContactOptions() {
+  loadingContacts.value = true;
+  const data = await api.contacts({ status: 'active', per_page: 200 });
+  contactOptions.value = (data.data ?? []).map(c => ({
+    label: c.name ? `${c.name} — ${c.phone}` : c.phone,
+    value: c.phone,
+  }));
+  loadingContacts.value = false;
+}
+
+function openTestDialog() {
+  testForm.value  = { to: '', vars: Array(templateVarLabels.value.length).fill('') };
+  testResult.value = null;
+  showTestDialog.value = true;
+  if (!contactOptions.value.length) loadContactOptions();
+}
+
+async function sendTest() {
+  testSending.value  = true;
+  testResult.value   = null;
+  testResult.value   = await api.sendTest({
+    template_name : selected.value.name,
+    language_code : selected.value.language_code,
+    to            : testForm.value.to,
+    body_vars     : testForm.value.vars.filter(v => v !== ''),
+  });
+  testSending.value = false;
+}
+
+function extractVarLabels(bodyText) {
+  if (!bodyText) return [];
+  const matches = [...bodyText.matchAll(/\{\{([^}]+)\}\}/g)];
+  return matches.map(m => {
+    const inner = m[1].trim();
+    return /^\d+$/.test(inner) ? `Variable ${inner}` : inner;
+  });
 }
 
 function renderBody(text) {
@@ -312,5 +419,18 @@ function statusSeverity(s) {
   background: var(--p-red-50); border: 1px solid var(--p-red-200);
   border-radius: 8px; padding: 8px 12px; font-size: .78rem; color: var(--p-red-800);
 }
+
+.test-btn { width: 100%; margin-top: 10px; }
+
+/* Dialog: enviar prueba */
+.test-form     { display: flex; flex-direction: column; gap: 4px; }
+.form-group    { margin-bottom: 10px; }
+.form-group label { display: block; font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 4px; }
+.tpl-chip  {
+  display: inline-block; background: var(--p-surface-100);
+  padding: 2px 8px; border-radius: 4px; font-size: .78rem; font-family: monospace;
+}
+.no-vars     { font-size: .8rem; color: var(--p-text-muted-color); margin: 0 0 10px; }
+.test-result { margin-top: 12px; }
 
 </style>

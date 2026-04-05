@@ -85,9 +85,14 @@ class DashboardController extends Controller
 
         $paginated = $query->paginate((int) $request->input('per_page', 20));
 
+        $items = collect($paginated->items())->map(fn (MessageLog $log) => array_merge(
+            $log->toArray(),
+            ['created_at' => $log->created_at->setTimezone('America/Mexico_City')->format('Y-m-d H:i')]
+        ));
+
         return response()->json([
             'status' => 'ok',
-            'data'   => $paginated->items(),
+            'data'   => $items,
             'meta'   => [
                 'total'    => $paginated->total(),
                 'page'     => $paginated->currentPage(),

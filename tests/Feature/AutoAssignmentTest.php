@@ -159,7 +159,7 @@ class AutoAssignmentTest extends TestCase
 
     public function test_admin_puede_leer_assignment_mode(): void
     {
-        $this->actingAsAdmin();
+        $this->actingAsSuperAdmin();
         Setting::set('assignment_mode', 'first_available');
 
         $this->getJson('/api/settings/assignment-mode')
@@ -170,7 +170,7 @@ class AutoAssignmentTest extends TestCase
 
     public function test_admin_puede_cambiar_assignment_mode(): void
     {
-        $this->actingAsAdmin();
+        $this->actingAsSuperAdmin();
 
         $this->putJson('/api/settings/assignment-mode', ['assignment_mode' => 'first_available'])
             ->assertOk()
@@ -181,7 +181,7 @@ class AutoAssignmentTest extends TestCase
 
     public function test_assignment_mode_invalido_retorna_422(): void
     {
-        $this->actingAsAdmin();
+        $this->actingAsSuperAdmin();
 
         $this->putJson('/api/settings/assignment-mode', ['assignment_mode' => 'round_robin'])
             ->assertStatus(422);

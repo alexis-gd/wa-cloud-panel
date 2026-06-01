@@ -16,8 +16,13 @@ class FeatureFlagsTest extends TestCase
 
         // Seed feature flags (la migración los inserta, RefreshDatabase los necesita aquí)
         $flags = [
-            'feature_daily_chart'   => '1',
+            'feature_dashboard'     => '1',
+            'feature_contacts'      => '1',
+            'feature_campaigns'     => '1',
+            'feature_templates'     => '1',
+            'feature_users'         => '1',
             'feature_conversations' => '1',
+            'feature_daily_chart'   => '1',
             'feature_export'        => '1',
             'feature_tags'          => '1',
             'feature_multi_agent'   => '1',
@@ -37,8 +42,15 @@ class FeatureFlagsTest extends TestCase
             ->assertJsonPath('status', 'ok');
 
         $data = $res->json('data');
-        $this->assertArrayHasKey('feature_daily_chart', $data);
+        // Módulos
+        $this->assertArrayHasKey('feature_dashboard', $data);
+        $this->assertArrayHasKey('feature_contacts', $data);
+        $this->assertArrayHasKey('feature_campaigns', $data);
+        $this->assertArrayHasKey('feature_templates', $data);
+        $this->assertArrayHasKey('feature_users', $data);
         $this->assertArrayHasKey('feature_conversations', $data);
+        // Sub-features
+        $this->assertArrayHasKey('feature_daily_chart', $data);
         $this->assertArrayHasKey('feature_export', $data);
         $this->assertArrayHasKey('feature_tags', $data);
         $this->assertArrayHasKey('feature_multi_agent', $data);
@@ -60,7 +72,7 @@ class FeatureFlagsTest extends TestCase
 
     public function test_admin_can_update_feature_flags(): void
     {
-        $this->actingAsAdmin();
+        $this->actingAsSuperAdmin();
 
         $this->putJson('/api/settings/features', [
             'feature_conversations' => false,

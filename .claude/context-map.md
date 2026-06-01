@@ -10,7 +10,7 @@ El proyecto usa varios archivos de contexto porque cada uno tiene una función d
 La idea es evitar mezclar:
 - reglas permanentes de trabajo
 - estado actual del producto y pendientes
-- conocimiento acumulado de Meta / WhatsApp
+- conocimiento acumulado de Meta / WhatsApp / Twilio SMS
 - memoria operativa y pitfalls de sesión
 
 Si todo se mezcla, el contexto se vuelve pesado, se repite y es difícil de mantener.
@@ -27,6 +27,7 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 │   ├── guia-operador.md               ← manual de usuario para el equipo Prestamaz
 │   ├── qa-manual.md                   ← checklist de pruebas manuales por módulo
 │   ├── arquitectura-referencia.md     ← cómo está construido + decisiones tecnológicas
+│   ├── sms-referencia.md              ← arquitectura multicanal SMS, flujos, anti-duplicado
 │   ├── testing.md                     ← guía PHPUnit, convenciones de tests
 │   └── deploy-vps.md                  ← receta de deploy VPS Ubuntu + Nginx + SSL
 │
@@ -37,7 +38,8 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 │   │   ├── estilo-codigo.md           ← convenciones PHP, Vue, CSS
 │   │   ├── convenciones-api.md        ← formato de respuestas, rutas, middlewares
 │   │   ├── proteccion-cuenta-meta.md  ← checklist protección cuenta Meta (PRIORIDAD MÁXIMA)
-│   │   └── contexto-meta-whatsapp.md  ← conocimiento acumulado de Meta/WhatsApp API
+│   │   ├── contexto-meta-whatsapp.md  ← conocimiento acumulado de Meta/WhatsApp API
+│   │   └── contexto-twilio-sms.md     ← conocimiento acumulado de Twilio/SMS: errores, opt-out, legal, cooldown
 │   └── commands/
 │       ├── lineamientos.md            ← checklist obligatorio ANTES de cada cambio de código
 │       ├── nueva-feature.md           ← checklist al arrancar un feature nuevo
@@ -58,7 +60,7 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 
 **Sí va aquí:**
 - Referencia al stack (Laravel 10, Vue 3, MySQL, etc.)
-- Credenciales WhatsApp (Phone ID, WABA ID — no el token)
+- Credenciales WhatsApp y SMS (Phone ID, WABA ID, Twilio SID — no tokens)
 - Prompt de retoma de sesión
 - Links a los demás docs
 
@@ -87,13 +89,37 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 **No va aquí:**
 - Decisiones técnicas de implementación
 - Pitfalls o bugs resueltos
-- Schema de BD o detalles de API Meta
+- Schema de BD o detalles de API Meta/Twilio
 - QA y casos de prueba (eso va en `docs/qa-manual.md`)
 
 **Actualizar cuando:**
 - Se complete un feature → marcar `[x]`
 - Se descubra un pendiente nuevo → agregar `[ ]`
 - Cambie el plan de entrega al cliente
+
+---
+
+### `docs/sms-referencia.md`
+**Para qué sirve:** documento técnico de referencia para el canal SMS — arquitectura multicanal, flujos, comparativo con WhatsApp, anti-duplicado, delivery reports
+
+**Sí va aquí:**
+- Diagrama de arquitectura multicanal (WA + SMS)
+- Comparativo de canales (horarios, opt-out, costos, riesgos)
+- Flujo de creación de campaña multicanal
+- Protección anti-duplicado cross-channel
+- Reglas de SmsClient.php
+- Mapeo de estados Twilio a acciones en BD
+- Cumplimiento legal SMS México
+
+**No va aquí:**
+- Estado de features (va en calendario)
+- Reglas de código generales (va en rules/)
+- Pitfalls puntuales (va en MEMORY.md)
+
+**Actualizar cuando:**
+- Cambie el flujo multicanal o se agregue un canal nuevo
+- Cambie la lógica de anti-duplicado o cooldown
+- Se descubra un comportamiento nuevo de Twilio
 
 ---
 
@@ -131,11 +157,37 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 - Estado de features implementadas
 - Guías para el operador (eso va en `docs/guia-operador.md`)
 - Pitfalls de código PHP/Laravel (eso va en `MEMORY.md`)
+- Información de SMS/Twilio (eso va en `contexto-twilio-sms.md`)
 
 **Actualizar cuando:**
 - Se descubra un comportamiento nuevo de Meta no documentado
 - Se tome una decisión importante relacionada con la API
 - Meta anuncie un cambio relevante
+
+---
+
+### `.claude/rules/contexto-twilio-sms.md`
+**Para qué sirve:** conocimiento acumulado sobre Twilio / SMS — errores, opt-out automático, carrier fees, cumplimiento legal México, cooldown cross-channel, configuraciones recomendadas
+
+**Sí va aquí:**
+- Tabla de errores Twilio y acciones automáticas (21610, 30004, 30005, etc.)
+- Reglas de auto-blacklist por rebotes consecutivos
+- Diferencias de horario entre WA (forzado) y SMS (libre)
+- Cumplimiento legal SMS México (LFPDPPP, REPEP, opt-out en mensaje)
+- Protección anti-duplicado cross-channel (ventana de exclusión)
+- Config de desarrollo (trial, mocks, testing)
+- Decisiones pendientes (CFDI, ventana exclusión, límite semanal)
+
+**No va aquí:**
+- Estado de features implementadas (va en calendario)
+- Información de WhatsApp/Meta (va en `contexto-meta-whatsapp.md`)
+- Pitfalls de código PHP/Laravel (va en `MEMORY.md`)
+
+**Actualizar cuando:**
+- Se descubra un error Twilio nuevo o cambie el comportamiento de uno existente
+- Cambie la regulación SMS en México
+- Se tome una decisión sobre el proveedor (Twilio vs SMS Masivos)
+- Se ajuste la ventana de exclusión o el cooldown
 
 ---
 
@@ -145,7 +197,7 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 **Sí va aquí:**
 - Cómo usar cada pantalla del panel
 - Qué significan los chips, estados y botones
-- Flujos de trabajo (crear campaña, gestionar conversaciones, etc.)
+- Flujos de trabajo (crear campaña WA o SMS, gestionar conversaciones, etc.)
 - Guías operacionales de Meta (cómo agregar número de prueba, cómo renovar token, etc.)
 - FAQ del operador
 
@@ -173,7 +225,7 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 ### `docs/testing.md`
 **Para qué sirve:** guía interna de cómo escribir tests en este proyecto
 
-**Sí va aquí:** convenciones de nombres, Feature vs Unit, cómo mockear WhatsAppClient, configuración phpunit
+**Sí va aquí:** convenciones de nombres, Feature vs Unit, cómo mockear WhatsAppClient y SmsClient, configuración phpunit
 **No va aquí:** tests automáticos reales (en `tests/`), casos de prueba manuales (en `docs/qa-manual.md`)
 **Actualizar cuando:** cambie la convención de tests o la configuración de phpunit
 
@@ -261,8 +313,10 @@ CLAUDE.md                    ← punto de entrada, reglas y referencias
   ├── docs/guia-operador.md           ← cómo usa el sistema el operador
   ├── docs/qa-manual.md               ← cómo validar que todo funciona
   ├── docs/arquitectura-referencia.md ← cómo está construido
+  ├── docs/sms-referencia.md          ← arquitectura multicanal SMS
   ├── .claude/rules/*.md              ← reglas permanentes para Claude
-  └── .claude/rules/contexto-meta-whatsapp.md ← conocimiento acumulado Meta
+  ├── .claude/rules/contexto-meta-whatsapp.md ← conocimiento acumulado Meta
+  └── .claude/rules/contexto-twilio-sms.md    ← conocimiento acumulado Twilio/SMS
 
 MEMORY.md  ← no parte del repo — pitfalls y lecciones entre sesiones de Claude
 ```
@@ -270,10 +324,12 @@ MEMORY.md  ← no parte del repo — pitfalls y lecciones entre sesiones de Clau
 En resumen:
 - `CLAUDE.md` = cómo se trabaja y referencias
 - `docs/calendario-entregas.md` = qué existe hoy
+- `docs/sms-referencia.md` = cómo funciona el canal SMS
 - `docs/guia-operador.md` = cómo lo usa el operador
 - `docs/qa-manual.md` = cómo se valida
 - `.claude/rules/` = reglas permanentes de código
 - `.claude/rules/contexto-meta-whatsapp.md` = qué sabemos de Meta
+- `.claude/rules/contexto-twilio-sms.md` = qué sabemos de Twilio/SMS
 - `MEMORY.md` = qué no debemos olvidar entre sesiones
 
 ---
@@ -286,9 +342,11 @@ En resumen:
 | Cambia algo visible en la UI para el operador | `docs/guia-operador.md` + popover en `AppLayout.vue` |
 | Cambia cómo validar manualmente un flujo | `docs/qa-manual.md` |
 | Cambia la estructura técnica o se toma una decisión tecnológica | `docs/arquitectura-referencia.md` |
+| Cambia el flujo multicanal, cooldown o anti-duplicado | `docs/sms-referencia.md` |
 | Cambia el proceso de deploy | `docs/deploy-vps.md` |
 | Cambia la convención de tests | `docs/testing.md` |
 | Se descubre comportamiento no obvio de la API Meta | `.claude/rules/contexto-meta-whatsapp.md` |
+| Se descubre error Twilio, cambia regulación SMS, o se ajusta cooldown | `.claude/rules/contexto-twilio-sms.md` |
 | Se establece una regla de código permanente | `.claude/rules/seguridad.md` / `estilo-codigo.md` / `convenciones-api.md` |
 | Hay riesgo nuevo sobre la cuenta Meta | `.claude/rules/proteccion-cuenta-meta.md` |
 | Cambia el flujo obligatorio antes de codear | `.claude/commands/lineamientos.md` |
@@ -319,6 +377,7 @@ No actualizar un archivo por inercia si no hubo cambios de ese tipo.
 - `.claude/rules/*.md` manda en reglas de código permanentes
 - `docs/calendario-entregas.md` manda en estado actual del producto
 - `.claude/rules/contexto-meta-whatsapp.md` manda en comportamiento de Meta
+- `.claude/rules/contexto-twilio-sms.md` manda en comportamiento de Twilio/SMS
 - `MEMORY.md` complementa, pero no reemplaza a los otros
 
 Si `MEMORY.md` contradice algo estable ya confirmado en otro archivo → corregir `MEMORY.md`.

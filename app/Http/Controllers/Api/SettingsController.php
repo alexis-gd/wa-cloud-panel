@@ -157,8 +157,15 @@ class SettingsController extends Controller
     // ── Feature flags ────────────────────────────────────────────────────────────
 
     private const FEATURE_FLAGS = [
-        'feature_daily_chart',
+        // Módulos (nav items)
+        'feature_dashboard',
+        'feature_contacts',
+        'feature_campaigns',
+        'feature_templates',
+        'feature_users',
         'feature_conversations',
+        // Sub-features dentro de módulos
+        'feature_daily_chart',
         'feature_export',
         'feature_tags',
         'feature_multi_agent',

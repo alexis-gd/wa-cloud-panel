@@ -46,7 +46,8 @@ class User extends Authenticatable
         'is_active'         => 'boolean',
     ];
 
-    public function isAdmin(): bool    { return $this->role === 'admin'; }
-    public function isOperator(): bool { return $this->role === 'operator'; }
-    public function isAgent(): bool    { return $this->role === 'agent'; }
+    public function isSuperAdmin(): bool { return $this->role === 'superadmin'; }
+    public function isAdmin(): bool      { return in_array($this->role, ['admin', 'superadmin']); }
+    public function isOperator(): bool   { return $this->role === 'operator'; }
+    public function isAgent(): bool      { return $this->role === 'agent'; }
 }

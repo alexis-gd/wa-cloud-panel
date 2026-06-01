@@ -50,7 +50,8 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 ### Etapa 1 (alimenta Entregas 1 y 2)
 
 - [ ] Deploy básico VPS: Ubuntu + Nginx + PHP-FPM + SSL + MySQL ← **pendiente server**
-- [x] Auth Laravel (login/registro) — Sanctum + roles admin/operator/agent
+- [x] Auth Laravel (login/registro) — Sanctum + roles superadmin/admin/operator/agent
+- [x] Feature gating por etapa — 10 flags reactivos (módulos + sub-features), presets E1-E4, superadmin bypasa siempre
 - [x] Upload Excel (PhpSpreadsheet)
 - [x] ContactController: index, stats, upload, optOut
 - [x] Dashboard con conteos básicos — stats mensajes + contactos + tabla recientes

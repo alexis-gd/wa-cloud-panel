@@ -11,9 +11,10 @@ export function useAuth() {
         user     : state,
         setUser  : (u) => { state.user = u; state.ready = true; },
         clearUser: ()  => { state.user = null; state.ready = true; },
-        isAdmin  : ()  => state.user?.role === 'admin',
-        isOperator: () => state.user?.role === 'operator',
-        isAgent  : ()  => state.user?.role === 'agent',
+        isSuperAdmin: () => state.user?.role === 'superadmin',
+        isAdmin     : () => ['admin', 'superadmin'].includes(state.user?.role),
+        isOperator  : () => state.user?.role === 'operator',
+        isAgent     : () => state.user?.role === 'agent',
     };
 }
 

@@ -108,24 +108,32 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/export/messages', [ExportController::class, 'messages']);
     });
 
-    // Feature flags — GET para todos, PUT solo admin
+    // Feature flags — GET para todos los roles autenticados
     Route::middleware('role:admin,operator,agent')->group(function () {
         Route::get('/settings/features', [SettingsController::class, 'getFeatures']);
     });
 
-    // Configuración y operaciones admin-only
-    Route::middleware('role:admin')->group(function () {
-        Route::put('/contacts/{id}',        [ContactController::class, 'update']);
-        Route::put('/settings/features',    [SettingsController::class, 'updateFeatures']);
+    // Info operativa — admin y operator pueden leer (dato del dashboard)
+    Route::middleware('role:admin,operator')->group(function () {
         Route::get('/settings/phone-health', [SettingsController::class, 'phoneHealth']);
-        Route::get('/settings/token-status', [SettingsController::class, 'tokenStatus']);
-        Route::post('/settings/token',       [SettingsController::class, 'updateToken']);
+    });
+
+    // Configuración — solo superadmin (superadmin bypasa el check en RoleMiddleware)
+    Route::middleware('role:superadmin')->group(function () {
+        Route::put('/settings/features',         [SettingsController::class, 'updateFeatures']);
+        Route::get('/settings/token-status',     [SettingsController::class, 'tokenStatus']);
+        Route::post('/settings/token',           [SettingsController::class, 'updateToken']);
         Route::get('/settings/cooldown',         [SettingsController::class, 'getCooldown']);
         Route::put('/settings/cooldown',         [SettingsController::class, 'updateCooldown']);
         Route::get('/settings/assignment-mode',  [SettingsController::class, 'getAssignmentMode']);
         Route::put('/settings/assignment-mode',  [SettingsController::class, 'updateAssignmentMode']);
         Route::get('/settings/monthly-goal',     [SettingsController::class, 'getMonthlyGoal']);
         Route::put('/settings/monthly-goal',     [SettingsController::class, 'updateMonthlyGoal']);
+    });
+
+    // Operaciones admin (superadmin hereda vía bypass en RoleMiddleware)
+    Route::middleware('role:admin')->group(function () {
+        Route::put('/contacts/{id}',        [ContactController::class, 'update']);
 
         // Gestión de usuarios
         Route::get('/users',        [UserController::class, 'index']);

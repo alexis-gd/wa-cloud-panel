@@ -23,7 +23,7 @@ class SettingsCooldownTest extends TestCase
     {
         Setting::set('cooldown_days', '20');
 
-        $this->actingAsAdmin()
+        $this->actingAsSuperAdmin()
              ->getJson('/api/settings/cooldown')
              ->assertStatus(200)
              ->assertJsonPath('status', 'ok')
@@ -33,7 +33,7 @@ class SettingsCooldownTest extends TestCase
     public function test_get_cooldown_usa_default_si_no_existe_en_bd(): void
     {
         // Sin fila en settings — debe devolver 30 (default)
-        $this->actingAsAdmin()
+        $this->actingAsSuperAdmin()
              ->getJson('/api/settings/cooldown')
              ->assertStatus(200)
              ->assertJsonPath('data.cooldown_days', 30);
@@ -50,7 +50,7 @@ class SettingsCooldownTest extends TestCase
 
     public function test_update_cooldown_guarda_valor(): void
     {
-        $this->actingAsAdmin()
+        $this->actingAsSuperAdmin()
              ->putJson('/api/settings/cooldown', ['cooldown_days' => 15])
              ->assertStatus(200)
              ->assertJsonPath('data.cooldown_days', 15);
@@ -60,14 +60,14 @@ class SettingsCooldownTest extends TestCase
 
     public function test_update_cooldown_rechaza_menos_de_7(): void
     {
-        $this->actingAsAdmin()
+        $this->actingAsSuperAdmin()
              ->putJson('/api/settings/cooldown', ['cooldown_days' => 3])
              ->assertStatus(422);
     }
 
     public function test_update_cooldown_rechaza_mas_de_365(): void
     {
-        $this->actingAsAdmin()
+        $this->actingAsSuperAdmin()
              ->putJson('/api/settings/cooldown', ['cooldown_days' => 400])
              ->assertStatus(422);
     }

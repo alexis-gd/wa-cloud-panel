@@ -36,6 +36,7 @@ import TemplatesView       from './views/TemplatesView.vue';
 import UsersView           from './views/UsersView.vue';
 import SettingsView        from './views/SettingsView.vue';
 import { initAuth, useAuth } from './auth.js';
+import { initFeatures, useFeatures } from './features.js';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -47,17 +48,19 @@ const router = createRouter({
         { path: '/conversations',  component: ConversationsView  },
         { path: '/templates',     component: TemplatesView, meta: { role: 'admin' } },
         { path: '/users',     component: UsersView,  meta: { role: 'admin' } },
-        { path: '/settings',  component: SettingsView, meta: { role: 'admin' } },
+        { path: '/settings',  component: SettingsView, meta: { role: 'superadmin' } },
     ],
 });
 
-// Navigation guard — verificar auth antes de cada ruta
+// Navigation guard — verificar auth y feature flags antes de cada ruta
 router.beforeEach(async (to) => {
     const { user: authState } = useAuth();
+    const { isEnabled } = useFeatures();
 
     // Esperar a que initAuth haya corrido
     if (!authState.ready) {
         await initAuth();
+        if (authState.user) await initFeatures();
     }
 
     const loggedIn = !!authState.user;
@@ -70,9 +73,23 @@ router.beforeEach(async (to) => {
 
     if (!loggedIn) return '/login';
 
-    // Verificar rol si la ruta lo requiere
-    if (to.meta.role && authState.user?.role !== to.meta.role) {
-        return '/';
+    // Verificar rol — superadmin pasa cualquier check
+    if (to.meta.role) {
+        const userRole = authState.user?.role;
+        if (userRole !== to.meta.role && userRole !== 'superadmin') return '/';
+    }
+
+    // Verificar feature flags por ruta — superadmin bypasa, dashboard siempre accesible
+    if (authState.user?.role !== 'superadmin') {
+        const featureForRoute = {
+            '/contacts':      'feature_contacts',
+            '/campaigns':     'feature_campaigns',
+            '/templates':     'feature_templates',
+            '/users':         'feature_users',
+            '/conversations': 'feature_conversations',
+        };
+        const requiredFlag = featureForRoute[to.path];
+        if (requiredFlag && !isEnabled(requiredFlag)) return '/';
     }
 
     return true;

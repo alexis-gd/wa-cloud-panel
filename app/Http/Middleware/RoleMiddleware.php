@@ -19,7 +19,7 @@ class RoleMiddleware
             return response()->json(['status' => 'error', 'message' => 'No autenticado.'], 401);
         }
 
-        if (! in_array($user->role, $roles)) {
+        if ($user->role !== 'superadmin' && ! in_array($user->role, $roles)) {
             return response()->json(['status' => 'error', 'message' => 'Sin permisos para esta acción.'], 403);
         }
 

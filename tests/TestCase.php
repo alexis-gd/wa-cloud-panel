@@ -22,6 +22,17 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * Autenticar como superadmin para tests que requieren rutas de configuración.
+     */
+    protected function actingAsSuperAdmin(): static
+    {
+        Sanctum::actingAs(
+            User::factory()->create(['role' => 'superadmin', 'is_active' => true])
+        );
+        return $this;
+    }
+
+    /**
      * Autenticar como operator para tests que requieren auth:sanctum.
      */
     protected function actingAsOperator(): static

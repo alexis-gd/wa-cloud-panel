@@ -1,6 +1,6 @@
 # WA Cloud Panel
 
-Sistema de envío masivo de WhatsApp para empresa de préstamos (México). Caso de uso: **marketing/publicidad** — promocionar préstamos a prospectos. Meta: 200,000 contactos/mes vía WhatsApp Cloud API oficial de Meta.
+Sistema de envío masivo multicanal (WhatsApp + SMS) para empresa de préstamos (México). Caso de uso: **marketing/publicidad** — promocionar préstamos a prospectos. Meta: 200,000 contactos/mes vía WhatsApp Cloud API oficial de Meta + SMS vía Twilio.
 
 ## Stack técnico
 
@@ -13,10 +13,12 @@ Sistema de envío masivo de WhatsApp para empresa de préstamos (México). Caso 
 | Queue S1 | `database` driver |
 | Queue S2 | Redis + Laravel Horizon |
 | Hosting | VPS Ubuntu 22.04 + Nginx + PHP-FPM |
+| WhatsApp | Meta Cloud API directa (sin intermediarios) |
+| RAM 8GB(alternativa: SMS Masivos si requieren CFDI) |
 
 ## Principio de diseño: Sistema a prueba de errores del cliente
 
-El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir que el usuario NO conoce las políticas de Meta. El sistema hace imposible cometer errores que causen suspensión: warm-up automático, horario forzado, opt-out inmediato, solo plantillas aprobadas, tokens nunca expuestos.
+El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir que el usuario NO conoce las políticas de Meta ni las regulaciones de SMS. El sistema hace imposible cometer errores que causen suspensión: warm-up automático, horario forzado (WA), opt-out inmediato (ambos canales), solo plantillas aprobadas (WA), tokens nunca expuestos, cooldown anti-duplicado cross-channel.
 
 ## Documentación
 
@@ -25,6 +27,8 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | Doc | Contenido |
 |---|---|
 | [docs/arquitectura-referencia.md](docs/arquitectura-referencia.md) | Estructura Laravel, flujo de peticiones, archivos clave, decisiones tecnológicas |
+| [docs/sms-referencia.md](docs/sms-referencia.md) | Arquitectura multicanal SMS, flujo de campaña, anti-duplicado, delivery reports |
+| [docs/guia-twilio-setup.md](docs/guia-twilio-setup.md) | Paso a paso: crear cuenta Twilio, credenciales, verificar números, probar |
 | [docs/calendario-entregas.md](docs/calendario-entregas.md) | Entregas al cliente + checklist de desarrollo por etapa + backlog técnico |
 | [docs/testing.md](docs/testing.md) | Guía PHPUnit, tipos de tests, mocks, convenciones |
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |
@@ -40,6 +44,7 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | Convenciones API REST | [.claude/rules/convenciones-api.md](.claude/rules/convenciones-api.md) |
 | **Protección cuenta Meta (PRIORIDAD MÁXIMA)** | [.claude/rules/proteccion-cuenta-meta.md](.claude/rules/proteccion-cuenta-meta.md) |
 | Contexto Meta/WhatsApp — decisiones, políticas y lecciones | [.claude/rules/contexto-meta-whatsapp.md](.claude/rules/contexto-meta-whatsapp.md) |
+| Contexto Twilio/SMS — reglas, errores, cooldown, legal | [.claude/rules/contexto-twilio-sms.md](.claude/rules/contexto-twilio-sms.md) |
 
 ## Regla: Mantener la guía de operador actualizada
 
@@ -80,6 +85,13 @@ Esto incluye sin excepción:
 - **API Version**: `v22.0`
 - **Token**: en `.env` → `WA_TOKEN` (referencia), pero los envíos leen de `phone_numbers.token` en BD
 - **Token actual**: System User Token **sin expiración** — System User `waclouddev`, app `wa-api-test`, permisos `whatsapp_business_messaging` + `whatsapp_business_management`
+
+## Credenciales SMS (Twilio)
+
+- **Credenciales**: en `.env` → `TWILIO_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
+- **Setup**: ver [docs/guia-twilio-setup.md](docs/guia-twilio-setup.md) para crear cuenta y obtener credenciales
+- **Trial**: cuenta gratuita para desarrollo, 50 msgs/día a números verificados
+- **Producción**: cuenta pagada, ~$0.01 USD/msg a México
 
 ## Prompt de retoma
 

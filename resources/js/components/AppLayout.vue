@@ -14,38 +14,39 @@
             </div>
 
             <nav class="sidebar-nav">
-                <RouterLink to="/" class="nav-item" :class="{ active: route.path === '/' }" @click="sidebarOpen = false">
+                <!-- Dashboard: nav oculto si flag off, ruta siempre accesible (fallback) -->
+                <RouterLink v-if="isEnabled('feature_dashboard')" to="/" class="nav-item" :class="{ active: route.path === '/' }" @click="sidebarOpen = false">
                     <i class="pi pi-home" />
                     <span>Dashboard</span>
                 </RouterLink>
-                <RouterLink to="/contacts" class="nav-item" :class="{ active: route.path === '/contacts' }" @click="sidebarOpen = false">
+                <RouterLink v-if="isEnabled('feature_contacts')" to="/contacts" class="nav-item" :class="{ active: route.path === '/contacts' }" @click="sidebarOpen = false">
                     <i class="pi pi-users" />
                     <span>Contactos</span>
                 </RouterLink>
-                <RouterLink to="/campaigns" class="nav-item" :class="{ active: route.path === '/campaigns' }" @click="sidebarOpen = false">
+                <RouterLink v-if="isEnabled('feature_campaigns')" to="/campaigns" class="nav-item" :class="{ active: route.path === '/campaigns' }" @click="sidebarOpen = false">
                     <i class="pi pi-send" />
                     <span>Campañas</span>
                 </RouterLink>
-                <RouterLink to="/conversations" class="nav-item" :class="{ active: route.path === '/conversations' }" @click="sidebarOpen = false">
+                <RouterLink v-if="isEnabled('feature_conversations')" to="/conversations" class="nav-item" :class="{ active: route.path === '/conversations' }" @click="sidebarOpen = false">
                     <i class="pi pi-comments" />
                     <span>Conversaciones</span>
                 </RouterLink>
 
                 <!-- Solo admin -->
-                <template v-if="isAdmin()">
-                    <RouterLink to="/templates" class="nav-item" :class="{ active: route.path === '/templates' }" @click="sidebarOpen = false">
-                        <i class="pi pi-file-edit" />
-                        <span>Plantillas</span>
-                    </RouterLink>
-                    <RouterLink to="/users" class="nav-item" :class="{ active: route.path === '/users' }" @click="sidebarOpen = false">
-                        <i class="pi pi-user-edit" />
-                        <span>Usuarios</span>
-                    </RouterLink>
-                    <RouterLink to="/settings" class="nav-item" :class="{ active: route.path === '/settings' }" @click="sidebarOpen = false">
-                        <i class="pi pi-cog" />
-                        <span>Configuración</span>
-                    </RouterLink>
-                </template>
+                <RouterLink v-if="isAdmin() && isEnabled('feature_templates')" to="/templates" class="nav-item" :class="{ active: route.path === '/templates' }" @click="sidebarOpen = false">
+                    <i class="pi pi-file-edit" />
+                    <span>Plantillas</span>
+                </RouterLink>
+                <RouterLink v-if="isAdmin() && isEnabled('feature_users')" to="/users" class="nav-item" :class="{ active: route.path === '/users' }" @click="sidebarOpen = false">
+                    <i class="pi pi-user-edit" />
+                    <span>Usuarios</span>
+                </RouterLink>
+
+                <!-- Solo superadmin -->
+                <RouterLink v-if="isSuperAdmin()" to="/settings" class="nav-item" :class="{ active: route.path === '/settings' }" @click="sidebarOpen = false">
+                    <i class="pi pi-cog" />
+                    <span>Configuración</span>
+                </RouterLink>
             </nav>
 
             <div class="sidebar-footer">
@@ -101,13 +102,15 @@ import Tag          from 'primevue/tag';
 import Toast        from 'primevue/toast';
 import Button       from 'primevue/button';
 import HelpPopover  from './HelpPopover.vue';
-import { api }      from '../api.js';
-import { useAuth }  from '../auth.js';
+import { api }         from '../api.js';
+import { useAuth }     from '../auth.js';
+import { useFeatures } from '../features.js';
 
 const route  = useRoute();
 const router = useRouter();
 const toast  = useToast();
-const { user: authState, isAdmin, clearUser } = useAuth();
+const { user: authState, isAdmin, isSuperAdmin, clearUser } = useAuth();
+const { isEnabled } = useFeatures();
 
 function handleSessionExpired() {
     clearUser();

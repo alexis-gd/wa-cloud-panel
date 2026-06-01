@@ -70,6 +70,36 @@
             </template>
         </Card>
         <Card style="max-width: 560px; margin-top: 24px">
+            <template #title>Etapas de entrega</template>
+            <template #content>
+                <p class="stage-desc">Activa las funciones disponibles según la entrega pactada con el cliente.</p>
+
+                <div class="preset-btns">
+                    <Button label="E1 — Contactos" severity="secondary" size="small" @click="applyPreset(1)" :loading="savingFlags" />
+                    <Button label="E2 — Demo WA"   severity="secondary" size="small" @click="applyPreset(2)" :loading="savingFlags" />
+                    <Button label="E3 — Métricas"  severity="secondary" size="small" @click="applyPreset(3)" :loading="savingFlags" />
+                    <Button label="E4 — Completo"  severity="secondary" size="small" @click="applyPreset(4)" :loading="savingFlags" />
+                </div>
+
+                <div class="flags-modules">
+                    <div v-for="mod in flagModules" :key="mod.key">
+                        <div class="flag-row">
+                            <ToggleSwitch v-model="flags[mod.key]" @update:modelValue="saveFlags" />
+                            <span class="flag-label">{{ mod.label }}</span>
+                        </div>
+                        <div v-for="sub in mod.subs" :key="sub.key" class="flag-row flag-row--sub">
+                            <ToggleSwitch v-model="flags[sub.key]" @update:modelValue="saveFlags" />
+                            <span class="flag-label flag-label--sub">{{ sub.label }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <Message v-if="flagsResult" :severity="flagsResult.error ? 'error' : 'success'" class="mt-3">
+                    {{ flagsResult.error ?? 'Funciones actualizadas.' }}
+                </Message>
+            </template>
+        </Card>
+        <Card style="max-width: 560px; margin-top: 24px">
             <template #title>Control de envíos</template>
             <template #content>
                 <div class="form-group">
@@ -106,14 +136,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import Card        from 'primevue/card';
-import Button      from 'primevue/button';
-import Password    from 'primevue/password';
-import Tag         from 'primevue/tag';
-import Message     from 'primevue/message';
-import InputNumber from 'primevue/inputnumber';
-import Select      from 'primevue/select';
-import { api }     from '../api.js';
+import Card         from 'primevue/card';
+import Button       from 'primevue/button';
+import Password     from 'primevue/password';
+import Tag          from 'primevue/tag';
+import Message      from 'primevue/message';
+import InputNumber  from 'primevue/inputnumber';
+import Select       from 'primevue/select';
+import ToggleSwitch from 'primevue/toggleswitch';
+import { api }      from '../api.js';
 
 const tokenStatus = ref(null);
 const newToken    = ref('');
@@ -131,6 +162,75 @@ const assignmentModes = [
     { label: 'Menos chats activos',    value: 'least_chats' },
     { label: 'Primer disponible',      value: 'first_available' },
 ];
+
+const flagModules = [
+    {
+        key: 'feature_dashboard', label: 'Dashboard',
+        subs: [
+            { key: 'feature_daily_chart', label: 'Gráfica diaria' },
+        ],
+    },
+    {
+        key: 'feature_contacts', label: 'Contactos',
+        subs: [
+            { key: 'feature_export', label: 'Exportar reportes' },
+            { key: 'feature_tags',   label: 'Tags y segmentación' },
+        ],
+    },
+    { key: 'feature_campaigns',     label: 'Campañas',        subs: [] },
+    { key: 'feature_templates',     label: 'Plantillas',       subs: [] },
+    { key: 'feature_users',         label: 'Usuarios',         subs: [] },
+    {
+        key: 'feature_conversations', label: 'Conversaciones',
+        subs: [
+            { key: 'feature_multi_agent', label: 'Multi-agente' },
+        ],
+    },
+];
+const flags       = ref({});
+const savingFlags = ref(false);
+const flagsResult = ref(null);
+
+const PRESETS = {
+    1: {
+        feature_dashboard: true,  feature_contacts: true,
+        feature_campaigns: false, feature_templates: false, feature_users: false, feature_conversations: false,
+        feature_daily_chart: false, feature_export: false, feature_tags: false, feature_multi_agent: false,
+    },
+    2: {
+        feature_dashboard: true,  feature_contacts: true,
+        feature_campaigns: true,  feature_templates: true,  feature_users: true,  feature_conversations: false,
+        feature_daily_chart: false, feature_export: false, feature_tags: false, feature_multi_agent: false,
+    },
+    3: {
+        feature_dashboard: true,  feature_contacts: true,
+        feature_campaigns: true,  feature_templates: true,  feature_users: true,  feature_conversations: false,
+        feature_daily_chart: true,  feature_export: true,  feature_tags: true,  feature_multi_agent: false,
+    },
+    4: {
+        feature_dashboard: true,  feature_contacts: true,
+        feature_campaigns: true,  feature_templates: true,  feature_users: true,  feature_conversations: true,
+        feature_daily_chart: true,  feature_export: true,  feature_tags: true,  feature_multi_agent: true,
+    },
+};
+
+async function loadFlags() {
+    const res = await api.getFeatures();
+    if (res.status === 'ok') flags.value = { ...res.data };
+}
+
+async function saveFlags() {
+    savingFlags.value = true;
+    flagsResult.value = null;
+    const res = await api.updateFeatures(flags.value);
+    flagsResult.value = res.status === 'ok' ? { ok: true } : { error: res.message };
+    savingFlags.value = false;
+}
+
+async function applyPreset(stage) {
+    flags.value = { ...PRESETS[stage] };
+    await saveFlags();
+}
 
 async function loadStatus() {
     tokenStatus.value = await api.tokenStatus();
@@ -175,6 +275,7 @@ onMounted(() => {
     loadStatus();
     loadCooldown();
     loadAssignmentMode();
+    loadFlags();
 });
 </script>
 
@@ -186,4 +287,11 @@ onMounted(() => {
 .form-group small { display: block; font-size: .78rem; color: var(--p-text-muted-color); margin-top: 6px; }
 .mt-3         { margin-top: 12px; }
 .cooldown-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.stage-desc   { font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 14px; }
+.preset-btns  { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.flags-modules    { display: flex; flex-direction: column; gap: 12px; }
+.flag-row         { display: flex; align-items: center; gap: 10px; }
+.flag-row--sub    { margin-left: 28px; margin-top: 6px; }
+.flag-label       { font-size: .88rem; }
+.flag-label--sub  { font-size: .82rem; color: var(--p-text-muted-color); }
 </style>

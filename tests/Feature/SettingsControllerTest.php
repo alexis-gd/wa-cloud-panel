@@ -31,7 +31,7 @@ class SettingsControllerTest extends TestCase
             ], 200),
         ]);
 
-        $response = $this->actingAsAdmin()
+        $response = $this->actingAsSuperAdmin()
                          ->getJson('/api/settings/phone-health');
 
         $response->assertStatus(200)
@@ -68,7 +68,7 @@ class SettingsControllerTest extends TestCase
             ], 200),
         ]);
 
-        $response = $this->actingAsAdmin()
+        $response = $this->actingAsSuperAdmin()
                          ->getJson('/api/settings/phone-health');
 
         $response->assertStatus(200)
@@ -89,7 +89,7 @@ class SettingsControllerTest extends TestCase
             ], 200),
         ]);
 
-        $response = $this->actingAsAdmin()
+        $response = $this->actingAsSuperAdmin()
                          ->getJson('/api/settings/phone-health');
 
         $response->assertStatus(200)
@@ -101,14 +101,14 @@ class SettingsControllerTest extends TestCase
     public function test_phone_health_sin_numero_activo_retorna_404(): void
     {
         // Sin registros en phone_numbers
-        $this->actingAsAdmin()
+        $this->actingAsSuperAdmin()
              ->getJson('/api/settings/phone-health')
              ->assertStatus(404);
     }
 
-    public function test_phone_health_requiere_admin(): void
+    public function test_phone_health_requiere_al_menos_operator(): void
     {
-        $this->actingAsOperator()
+        $this->actingAsAgent()
              ->getJson('/api/settings/phone-health')
              ->assertStatus(403);
     }
@@ -126,7 +126,7 @@ class SettingsControllerTest extends TestCase
             ], 401),
         ]);
 
-        $this->actingAsAdmin()
+        $this->actingAsSuperAdmin()
              ->getJson('/api/settings/phone-health')
              ->assertStatus(422)
              ->assertJsonPath('status', 'error');
@@ -136,7 +136,7 @@ class SettingsControllerTest extends TestCase
 
     public function test_get_monthly_goal_devuelve_default_200000(): void
     {
-        $this->actingAsAdmin()
+        $this->actingAsSuperAdmin()
              ->getJson('/api/settings/monthly-goal')
              ->assertStatus(200)
              ->assertJsonPath('status', 'ok')
@@ -147,14 +147,14 @@ class SettingsControllerTest extends TestCase
     {
         \App\Models\Setting::set('monthly_goal', 50000);
 
-        $this->actingAsAdmin()
+        $this->actingAsSuperAdmin()
              ->getJson('/api/settings/monthly-goal')
              ->assertJsonPath('data.monthly_goal', 50000);
     }
 
     public function test_put_monthly_goal_actualiza_valor(): void
     {
-        $this->actingAsAdmin()
+        $this->actingAsSuperAdmin()
              ->putJson('/api/settings/monthly-goal', ['monthly_goal' => 150000])
              ->assertStatus(200)
              ->assertJsonPath('data.monthly_goal', 150000);
@@ -164,7 +164,7 @@ class SettingsControllerTest extends TestCase
 
     public function test_put_monthly_goal_rechaza_valor_cero(): void
     {
-        $this->actingAsAdmin()
+        $this->actingAsSuperAdmin()
              ->putJson('/api/settings/monthly-goal', ['monthly_goal' => 0])
              ->assertStatus(422);
     }

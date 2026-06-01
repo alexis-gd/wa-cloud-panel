@@ -121,7 +121,7 @@
         </div>
 
         <!-- 5. Gráfica envíos del mes -->
-        <Card class="chart-card mb">
+        <Card v-if="isEnabled('feature_daily_chart')" class="chart-card mb">
             <template #title>
                 <div class="card-title-row">
                     <span>Envíos día a día — {{ monthly.month_label }}</span>
@@ -239,10 +239,12 @@ import DataTable from 'primevue/datatable';
 import Column    from 'primevue/column';
 import Tag       from 'primevue/tag';
 import Chart     from 'primevue/chart';
-import { api }   from '../api.js';
+import { api }          from '../api.js';
+import { useFeatures }  from '../features.js';
 
 // ── Estado ────────────────────────────────────────────────────────────────────
 const logs             = ref([]);
+const { isEnabled } = useFeatures();
 const logsMeta         = ref(null);
 const logsStatusFilter = ref(null);
 const stats            = ref({});

@@ -141,14 +141,16 @@ Ejemplos que NO requieren actualizar:
 | Refactor | `refactor/` | `refactor/auth-service` |
 
 ### Proceso
-- [ ] Crear rama desde `develop`: `git checkout develop && git checkout -b tipo/kebab-name`
+- [ ] Crear rama desde `develop`: `git checkout develop && git pull && git checkout -b tipo/kebab-name`
 - [ ] Mostrar preview al usuario ANTES de commitear:
   - Rama: `tipo/kebab-name`
   - Mensaje propuesto: seguir convención global (`~/.claude/CLAUDE.md` → Git commits)
   - Archivos que se van a incluir
 - [ ] Esperar aprobación explícita
 - [ ] Solo entonces ejecutar `git add` + `git commit`
-- [ ] `git push` + merge a `develop` solo si el usuario lo pidió explícitamente
+- [ ] `git push origin tipo/kebab-name`
+- [ ] Abrir PR en GitHub: rama → `develop`. **Siempre PR, sin merge local**
+- [ ] Merge a `main` igual: PR desde `develop` → `main` en GitHub, solo cuando el usuario valide
 
 ---
 

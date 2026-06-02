@@ -2,6 +2,8 @@
 
 LEER ANTES de cualquier cambio de código — feat, fix, refactor, test, chore.
 
+> **Regla de contexto: no duplicar.** Si una regla ya existe en `~/.claude/CLAUDE.md` (global) o en otro archivo del proyecto, referenciarla — no copiarla. La fuente de verdad es un solo lugar. Si algo cambia, cambia en un lugar y se propaga.
+
 ---
 
 ## 1. Guía de operador — OBLIGATORIO
@@ -83,13 +85,29 @@ Ejemplos que NO requieren actualizar:
 
 ## 8. Flujo de commit (obligatorio — nunca saltarse)
 
-- [ ] Mostrar preview al usuario ANTES de ejecutar:
-  - Rama propuesta: `tipo/description-kebab-case` (inglés)
-  - Mensaje propuesto: `tipo: description in english imperative` (inglés)
+### Ramas
+- **Nunca commitear directo a `main` ni a `develop`** — siempre en rama propia
+- Toda rama nace desde `develop` y muere al hacer merge a `develop`
+- Merge a `main` solo cuando el usuario valide los cambios en `develop`
+- Hotfix urgente (bug en producción): rama `hotfix/kebab-name` desde `main`, merge a `main` + `develop`
+
+| Tipo | Prefijo | Ejemplo |
+|---|---|---|
+| Feature nuevo | `feature/` | `feature/sms-campaign` |
+| Bug fix | `fix/` | `fix/login-redirect` |
+| Mantenimiento/config | `chore/` | `chore/branch-strategy` |
+| Documentación | `docs/` | `docs/operador-guide` |
+| Refactor | `refactor/` | `refactor/auth-service` |
+
+### Proceso
+- [ ] Crear rama desde `develop`: `git checkout develop && git checkout -b tipo/kebab-name`
+- [ ] Mostrar preview al usuario ANTES de commitear:
+  - Rama: `tipo/kebab-name`
+  - Mensaje propuesto: seguir convención global (`~/.claude/CLAUDE.md` → Git commits)
   - Archivos que se van a incluir
 - [ ] Esperar aprobación explícita
 - [ ] Solo entonces ejecutar `git add` + `git commit`
-- [ ] `git push` solo si el usuario lo pidió explícitamente
+- [ ] `git push` + merge a `develop` solo si el usuario lo pidió explícitamente
 
 ---
 

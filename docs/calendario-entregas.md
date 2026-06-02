@@ -99,3 +99,12 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] **Índices de BD** — índice compuesto (contact_id, id) en conversation_assignments; índices previos en message_log y contacts.status ya existían
 - [ ] **Detección de contactos inalcanzables (`unreachable`)** — ver plan completo en [`docs/plan-unreachable.md`](plan-unreachable.md). Comando `wa:mark-unreachable` corre diario a las 6AM CST (antes de la ventana de envíos). Marca contactos `active` con 2+ mensajes en `sent` de 30+ días sin ningún `delivered`/`read` histórico. Protege el ratio `delivered/sent` y la calidad del número en Meta.
 - [ ] **Auto-sincronizar `daily_limit` cuando Meta sube el tier** — actualmente el `daily_limit` en BD se actualiza solo manualmente (botón Salud del número en Settings). Cuando Meta promueve el tier automáticamente, el PhoneNumberSelector sigue usando el límite viejo hasta que alguien presione el botón. Solución: el job de envío o un comando `wa:sync-limits` debería llamar al endpoint de Meta y actualizar `phone_numbers.daily_limit` si cambió.
+
+### Bugs y mejoras UI (pendientes)
+
+- [ ] **Homologar botones** — hay inconsistencias entre vistas (ej. Contactos usa estilos distintos al editar y las pills/badges de tags varían). Crear componente base o definir uso estricto de PrimeVue Button según la tabla del estilo-codigo.md.
+- [ ] **Responsive mobile** — Dashboard y Contactos no funcionan adecuadamente en móvil. Revisar layout de cards de stats, tabla de últimos mensajes y tabla de contactos en pantallas < 768px.
+- [ ] **Pills de estado en tabla "Últimos mensajes"** — agregar icono `ⓘ` con tooltip explicando cada estado posible (en tránsito, entregado, leído, fallido) para que el operador entienda el semáforo sin ir al Help.
+- [ ] **Actualizar popovers de ayuda** — revisar todos los `helpContent` en `AppLayout.vue` al finalizar cada entrega y alinearlos con el comportamiento real del sistema.
+- [ ] **Mejorar pantalla de login** — rediseñar al estilo Doters Admin (más visual, con branding, fondo con gradiente o imagen, card centrada con sombra más pronunciada).
+- [ ] **Consola limpia** — suprimir el warning de i18next que aparece en consola del navegador. Agregar mensaje de firma de NodosMX (ej. `console.log` estilizado con CSS) como branding de desarrollo.

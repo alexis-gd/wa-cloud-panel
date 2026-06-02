@@ -353,6 +353,8 @@ En resumen:
 | Cambia el flujo de arranque de un feature | `.claude/commands/nueva-feature.md` |
 | Aparece un pitfall técnico o lección de sesión | `MEMORY.md` |
 | Cambia el stack o una referencia global | `CLAUDE.md` |
+| Cambia la estrategia de ramas o flujo de git del proyecto | `CLAUDE.md` + `lineamientos.md` |
+| Cambia la convención de commits (formato, idioma) | `~/.claude/CLAUDE.md` (global) — no duplicar en proyecto |
 
 Si un cambio toca varias capas → actualizar todos los que correspondan, nunca forzar todo en uno solo.
 
@@ -360,15 +362,43 @@ Si un cambio toca varias capas → actualizar todos los que correspondan, nunca 
 
 ## Comando operativo: `actualiza contextos`
 
-Cuando se diga `actualiza contextos`, el flujo correcto es:
+Cuando se diga `actualiza contextos`, ejecutar este flujo completo:
 
-1. Leer este `context-map.md`
-2. Revisar los cambios recientes del proyecto
-3. Decidir qué contexto corresponde actualizar según la tabla de arriba
-4. Actualizar solo los archivos necesarios
-5. Mantener consistencia y eliminar contradicciones
+### 1. Revisar cambios recientes
+```
+git log --oneline -10
+```
+Identificar qué tipo de cambios hubo y qué archivos de contexto deberían haberse actualizado según la tabla "Regla práctica".
 
-No actualizar un archivo por inercia si no hubo cambios de ese tipo.
+### 2. Auditar CLAUDE.md — no debe crecer indefinidamente
+Verificar que CLAUDE.md solo contenga lo que le corresponde (ver sección "Fuente de verdad"):
+- ¿Hay contenido que debería estar en `docs/` o en `.claude/rules/`? → moverlo
+- ¿Hay listas largas o estado actual del proyecto? → moverlo a `calendario-entregas.md`
+- ¿Hay pitfalls o lecciones? → moverlos a `MEMORY.md`
+- Si CLAUDE.md supera ~120 líneas de contenido real, hay algo mal ubicado
+
+### 3. Auditar MEMORY.md — riesgo de truncación después de 200 líneas
+- ¿Hay entradas que ya son conocimiento estable documentado en otro archivo? → eliminarlas de MEMORY.md (la fuente de verdad ya las tiene)
+- ¿Hay duplicados entre MEMORY.md y CLAUDE.md? → conservar en el archivo correcto según la tabla, eliminar del otro
+- ¿Hay entradas obsoletas (decisiones revertidas, bugs ya corregidos estructuralmente)? → eliminar
+- MEMORY.md debe contener solo lo que NO está en ningún otro archivo y ayuda a no repetir errores
+
+### 4. Verificar duplicidades entre archivos
+Revisar si el mismo contenido aparece en más de un lugar:
+- `CLAUDE.md` ↔ `MEMORY.md` — el más común
+- `lineamientos.md` ↔ `~/.claude/CLAUDE.md` — convenciones globales no deben repetirse en el proyecto
+- `.claude/rules/*.md` ↔ `MEMORY.md` — si algo ya está en rules/, borrarlo de MEMORY.md
+
+### 5. Actualizar lo que corresponda
+Basándose en los cambios recientes y la tabla "Regla práctica", actualizar solo los archivos que correspondan. No tocar archivos por inercia.
+
+### 6. Reportar
+Al terminar, listar brevemente:
+- Qué se actualizó y por qué
+- Qué duplicidades se eliminaron
+- Si CLAUDE.md o MEMORY.md están en riesgo de crecer demasiado
+
+**Regla:** un archivo de contexto que no se actualiza en 2+ entregas probablemente está desactualizado o era innecesario.
 
 ---
 

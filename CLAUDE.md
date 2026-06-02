@@ -93,6 +93,18 @@ Esto incluye sin excepción:
 - **Trial**: cuenta gratuita para desarrollo, 50 msgs/día a números verificados
 - **Producción**: cuenta pagada, ~$0.01 USD/msg a México
 
+## Estrategia de ramas
+
+| Rama | Propósito |
+|---|---|
+| `main` | Producción validada — nunca commitear directo |
+| `develop` | Integración — toda la actividad de desarrollo va aquí |
+| `feature/*` | Features nuevos — nacen y mueren en `develop` |
+| `fix/*` | Bugs — nacen y mueren en `develop` |
+| `hotfix/*` | Urgencias en prod — desde `main`, merge a `main` + `develop` |
+
+Rama activa de trabajo: **`develop`**. Merge a `main` solo cuando el usuario valide.
+
 ## Prompt de retoma
 
 ```

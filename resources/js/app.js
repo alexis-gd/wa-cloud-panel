@@ -52,12 +52,20 @@ const router = createRouter({
     ],
 });
 
+// Marcar app como lista DESPUÉS de que la navegación completó —
+// evita que AppLayout re-renderice con appReady=true mientras route.path
+// todavía apunta a la ruta protegida (antes de que el redirect a /login ocurra).
+router.afterEach(() => {
+    const { user: authState, setAppReady } = useAuth();
+    if (!authState.appReady) setAppReady();
+});
+
 // Navigation guard — verificar auth y feature flags antes de cada ruta
 router.beforeEach(async (to) => {
     const { user: authState } = useAuth();
     const { isEnabled } = useFeatures();
 
-    // Esperar a que initAuth haya corrido
+    // Esperar a que initAuth + initFeatures hayan corrido (solo una vez)
     if (!authState.ready) {
         await initAuth();
         if (authState.user) await initFeatures();

@@ -2,19 +2,23 @@ import { reactive } from 'vue';
 import { api } from './api.js';
 
 const state = reactive({
-    user : null,
-    ready: false, // true una vez que se intentó cargar el usuario
+    user        : null,
+    ready       : false, // true una vez que se intentó cargar el usuario
+    appReady    : false, // true tras auth + features ambos inicializados
+    isInitialLoad: true, // false una vez que initAuth completó
 });
 
 export function useAuth() {
     return {
-        user     : state,
-        setUser  : (u) => { state.user = u; state.ready = true; },
-        clearUser: ()  => { state.user = null; state.ready = true; },
-        isSuperAdmin: () => state.user?.role === 'superadmin',
-        isAdmin     : () => ['admin', 'superadmin'].includes(state.user?.role),
-        isOperator  : () => state.user?.role === 'operator',
-        isAgent     : () => state.user?.role === 'agent',
+        user         : state,
+        setUser      : (u) => { state.user = u; state.ready = true; },
+        clearUser    : ()  => { state.user = null; state.ready = true; },
+        setAppReady  : ()  => { state.appReady = true; },
+        isSuperAdmin : () => state.user?.role === 'superadmin',
+        isAdmin      : () => ['admin', 'superadmin'].includes(state.user?.role),
+        isOperator   : () => state.user?.role === 'operator',
+        isAgent      : () => state.user?.role === 'agent',
+        isInitialLoad: () => state.isInitialLoad,
     };
 }
 
@@ -27,6 +31,7 @@ export async function initAuth() {
 
     if (! token) {
         state.ready = true;
+        state.isInitialLoad = false;
         return;
     }
 
@@ -42,4 +47,5 @@ export async function initAuth() {
     }
 
     state.ready = true;
+    state.isInitialLoad = false;
 }

@@ -74,12 +74,26 @@ Ejemplos que NO requieren actualizar:
 1. `php artisan test` — 100% verde
 2. ¿UI visible para operador? → `docs/guia-operador.md` actualizado
 3. ¿Feature nuevo en Stage 3? → **preguntar al usuario antes de marcar `[x]` en `docs/calendario-entregas.md`** — no marcar como listo sin confirmación explícita
-4. **¿El commit es `feat:` o `fix:`? → OBLIGATORIO actualizar versión en `AppLayout.vue` antes de commitear** (ver sección 8)
-5. Commit en español, Conventional Commits: `feat:`, `fix:`, `refactor:`, `test:`, `chore:`
+4. **¿El commit es `feat:` o `fix:`? → OBLIGATORIO actualizar versión en `AppLayout.vue` antes de commitear** (ver sección 9)
+5. Ejecutar flujo de commit — **ver sección 8** (preview → aprobación → commit)
 6. Sin `Co-Authored-By` en el commit
 7. **Actualizar contexto** — consultar la tabla en [`.claude/context-map.md`](.claude/context-map.md) sección "Regla práctica" y actualizar los docs que correspondan. Si el cambio afecta más de uno, actualizar todos en el mismo commit.
 
-## 8. Versionado — `<span class="version">` en AppLayout.vue
+---
+
+## 8. Flujo de commit (obligatorio — nunca saltarse)
+
+- [ ] Mostrar preview al usuario ANTES de ejecutar:
+  - Rama propuesta: `tipo/description-kebab-case` (inglés)
+  - Mensaje propuesto: `tipo: description in english imperative` (inglés)
+  - Archivos que se van a incluir
+- [ ] Esperar aprobación explícita
+- [ ] Solo entonces ejecutar `git add` + `git commit`
+- [ ] `git push` solo si el usuario lo pidió explícitamente
+
+---
+
+## 9. Versionado — `<span class="version">` en AppLayout.vue
 
 Archivo: `resources/js/components/AppLayout.vue` — buscar `<span class="version">`.
 

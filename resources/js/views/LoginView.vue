@@ -59,6 +59,7 @@ import Password  from 'primevue/password';
 import Button    from 'primevue/button';
 import { api }   from '../api.js';
 import { useAuth } from '../auth.js';
+import { initFeatures } from '../features.js';
 
 const router   = useRouter();
 const { setUser } = useAuth();
@@ -80,6 +81,7 @@ async function submit() {
     if (res.status === 'ok') {
         localStorage.setItem('wa_token', res.data.token);
         setUser(res.data.user);
+        await initFeatures();
         router.push('/');
     } else {
         error.value = res.message ?? 'Error al iniciar sesión.';

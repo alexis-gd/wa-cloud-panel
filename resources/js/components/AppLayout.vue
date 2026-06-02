@@ -1,6 +1,11 @@
 <template>
+    <!-- Loading screen mientras auth + features inicializan -->
+    <div v-if="!authState.appReady" class="app-loading">
+        <i class="pi pi-spin pi-spinner app-loading__icon" />
+    </div>
+
     <!-- Pantalla de login: sin layout, solo RouterView -->
-    <RouterView v-if="route.path === '/login'" />
+    <RouterView v-else-if="route.path === '/login'" />
 
     <div v-else class="app-wrapper">
         <!-- Overlay mobile -->
@@ -109,11 +114,14 @@ import { useFeatures } from '../features.js';
 const route  = useRoute();
 const router = useRouter();
 const toast  = useToast();
-const { user: authState, isAdmin, isSuperAdmin, clearUser } = useAuth();
+const { user: authState, isAdmin, isSuperAdmin, clearUser, isInitialLoad } = useAuth();
 const { isEnabled } = useFeatures();
 
 function handleSessionExpired() {
+    if (!authState.user) return; // ya fue manejado, no repetir
     clearUser();
+    // Durante carga inicial: el guard ya redirige a /login — sin toast ni push duplicado
+    if (isInitialLoad()) return;
     toast.add({
         severity : 'warn',
         summary  : 'Sesión expirada',
@@ -123,12 +131,21 @@ function handleSessionExpired() {
     router.push('/login');
 }
 
+async function handleVisibilityChange() {
+    if (document.visibilityState !== 'visible' || !authState.user) return;
+    const res = await api.me();
+    // Cubre 401 (token expirado) y 500/otros (token ausente o servidor)
+    if (res.status !== 'ok') handleSessionExpired();
+}
+
 onMounted(() => {
     window.addEventListener('wa:session-expired', handleSessionExpired);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 });
 
 onUnmounted(() => {
     window.removeEventListener('wa:session-expired', handleSessionExpired);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 
 const sidebarOpen = ref(false);
@@ -225,12 +242,14 @@ const helpContent = {
 const currentHelp = computed(() => helpContent[route.path] ?? null);
 
 const roleLabel = computed(() => ({
+    superadmin: 'Super Admin',
     admin    : 'Admin',
     operator : 'Operador',
     agent    : 'Agente',
 }[authState.user?.role] ?? ''));
 
 const roleSeverity = computed(() => ({
+    superadmin: 'warn',
     admin    : 'danger',
     operator : 'info',
     agent    : 'secondary',
@@ -364,6 +383,20 @@ async function logout() {
 .page-title { font-size: 1rem; font-weight: 600; color: #0f172a; }
 
 .content { padding: 24px; flex: 1; }
+
+/* ── Loading screen inicial ────────────────────── */
+.app-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #0f172a;
+}
+
+.app-loading__icon {
+    font-size: 2rem;
+    color: #10b981;
+}
 
 /* ── Responsive ────────────────────────────────── */
 @media (max-width: 768px) {

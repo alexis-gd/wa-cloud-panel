@@ -6,6 +6,47 @@ LEER ANTES de cualquier cambio de código — feat, fix, refactor, test, chore.
 
 ---
 
+## 0. Verificación de rama — ANTES de cualquier cambio
+
+Ejecutar siempre al inicio de una tarea nueva:
+
+```bash
+git fetch origin
+git status
+git branch -vv
+```
+
+### Decidir si continuar en la rama actual o crear una nueva
+
+**Continuar en la rama actual si:**
+- Estamos en una rama activa (`feature/*`, `fix/*`, `chore/*`, etc.) **y** el cambio es del mismo scope **y** la rama aún NO ha sido mergeada a `develop`
+
+**Crear rama nueva si:**
+- Estamos en `main` o `develop`
+- La rama actual ya fue mergeada — aunque el scope sea el mismo, el ciclo de esa rama terminó. Mezclar historial viejo con cambios nuevos ensucia el PR
+- La rama es de un scope claramente distinto al cambio solicitado
+
+### Acciones según estado detectado
+
+| Situación | Acción |
+|---|---|
+| En `main` o `develop` | `git checkout develop && git pull && git checkout -b tipo/nombre` |
+| En rama mergeada, sin cambios | `git checkout develop && git pull && git checkout -b tipo/nombre` |
+| En rama activa del mismo scope, limpia y al día | Continuar en esa rama |
+| Rama local desactualizada vs `origin/develop` | `git pull origin develop --rebase` antes de continuar |
+| Cambios sin commitear de scope diferente | Avisar al usuario — stash o commit antes de cambiar |
+
+### Reporte obligatorio al usuario antes de empezar
+
+```
+📍 Rama actual: nombre-de-rama
+📊 Estado: limpia / N cambios pendientes
+🔄 Remoto: al día / N commits atrás / N commits adelante
+🌿 Decisión: continuar aquí / crear rama nueva `tipo/nombre`
+```
+
+---
+
 ## 1. Guía de operador — OBLIGATORIO
 
 Antes de hacer el commit, responde: **¿este cambio es visible para el operador en la UI?**

@@ -166,4 +166,4 @@ Archivo: `resources/js/components/AppLayout.vue` — buscar `<span class="versio
 
 - `test:`, `chore:`, `docs:`, `refactor:` **NO** incrementan versión
 - Siempre incluir `AppLayout.vue` en el mismo commit que el `feat:` o `fix:`, nunca en un commit separado
-- Versión actual: **v0.5.2 — Stage 3**
+- Versión actual: **v0.5.3 - Stage 3**

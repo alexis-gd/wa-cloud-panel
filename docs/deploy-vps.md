@@ -1,72 +1,69 @@
 # Deploy VPS — Guía paso a paso
 
-> Receta de cocina para Ubuntu 22.04. El dev no tiene experiencia VPS — todos los comandos son copy-paste exactos.
+> Receta de cocina para Ubuntu 24.04. El dev no tiene experiencia VPS — todos los comandos son copy-paste exactos.
+> Verificado en producción: `sender.prestamaz.site` (Ubuntu 24.04.4 LTS, junio 2026).
 
 ---
 
-## 1. Contratar VPS
+## 1. Acceso al servidor
 
-- Proveedor: **Hetzner** (hetzner.com)
-- Servidor: **CX22** (~$5/mes) — 2 vCPU, 4GB RAM, 40GB SSD
-- Sistema operativo: **Ubuntu 22.04 LTS**
-- Datacenter: **Ashburn, VA** (latencia baja desde México)
-- Crear cuenta, agregar método de pago, lanzar servidor
-- Al crear: cargar tu llave SSH pública (ver paso 2)
+El servidor de producción es una VM con acceso SSH:
+
+```bash
+ssh adminsender@prestamazcln.dyndns.biz
+```
+
+Para un VPS propio (Hetzner CX22 ~$5/mes), crear con Ubuntu 24.04 LTS y cargar llave SSH pública al crearlo.
 
 ---
 
 ## 2. Generar llave SSH (si no tienes)
 
-En tu PC local (Windows, en Git Bash o WSL):
+En tu PC local (Windows PowerShell):
 
 ```bash
 ssh-keygen -t ed25519 -C "wa-cloud-panel"
-# Presiona Enter a todo (sin passphrase para automatización)
+# Presiona Enter a todo (sin passphrase)
 cat ~/.ssh/id_ed25519.pub
-# Copia ese output → lo pegas en Hetzner al crear el servidor
+# Copia ese output → lo mandas al admin del server para que lo agregue
 ```
 
 ---
 
-## 3. Primer acceso y usuario no-root
-
-```bash
-# Conectar como root (sustituye la IP de tu VPS)
-ssh root@TU_IP_VPS
-
-# Crear usuario de deploy
-adduser deploy
-usermod -aG sudo deploy
-
-# Copiar llaves SSH al nuevo usuario
-rsync --archive --chown=deploy:deploy ~/.ssh /home/deploy
-
-# Deshabilitar login con contraseña (más seguro)
-sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
-systemctl restart sshd
-
-# Salir y reconectar como deploy
-exit
-ssh deploy@TU_IP_VPS
-```
-
----
-
-## 4. Instalar el stack completo
+## 3. Actualizar paquetes
 
 ```bash
 sudo apt update && sudo apt upgrade -y
+```
 
+---
+
+## 4. Agregar repositorio PHP y instalar stack
+
+En Ubuntu 24.04 PHP 8.2 no está en los repos por defecto — agregar primero:
+
+```bash
+sudo apt install -y software-properties-common
+sudo add-apt-repository ppa:ondrej/php -y
+sudo apt update
+```
+
+Luego instalar todo:
+
+```bash
 sudo apt install -y \
   nginx \
-  php8.1-fpm php8.1-mysql php8.1-xml php8.1-curl php8.1-mbstring php8.1-zip \
+  php8.2 php8.2-fpm php8.2-mysql php8.2-xml php8.2-curl \
+  php8.2-mbstring php8.2-zip php8.2-bcmath php8.2-tokenizer \
+  php8.2-cli php8.2-gd \
   mysql-server \
-  redis-server \
   supervisor \
   git \
   unzip \
   curl
 ```
+
+> `php8.2-gd` es obligatorio — lo requiere phpspreadsheet para exports Excel.
 
 ---
 
@@ -80,13 +77,21 @@ composer --version  # debe mostrar versión 2.x
 
 ---
 
-## 6. Configurar MySQL
+## 6. Instalar Node.js 20
 
 ```bash
-sudo mysql_secure_installation
-# Responder: Y, Y, Y, Y, Y (todas las opciones de seguridad)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+node --version  # v20.x
+npm --version   # 10.x
+```
 
-sudo mysql -u root -p
+---
+
+## 7. Configurar MySQL
+
+```bash
+sudo mysql
 ```
 
 ```sql
@@ -99,53 +104,118 @@ EXIT;
 
 ---
 
-## 7. Deploy del código
+## 8. Clonar el repositorio
 
 ```bash
 cd /var/www
-sudo git clone https://github.com/TU_USUARIO/wa-cloud-panel.git
-sudo chown -R deploy:www-data wa-cloud-panel
+sudo git clone https://TU_GITHUB_TOKEN@github.com/alexis-gd/wa-cloud-panel.git
+sudo chown -R adminsender:www-data wa-cloud-panel
 cd wa-cloud-panel
+```
 
+---
+
+## 9. Instalar dependencias PHP y compilar frontend
+
+```bash
 composer install --no-dev --optimize-autoloader
+npm install && npm run build
+```
+
+---
+
+## 10. Configurar .env
+
+```bash
 cp .env.example .env
 nano .env
 php artisan key:generate
-php artisan migrate --force
 ```
 
-Variables críticas a configurar en `.env` (además de DB y APP_KEY):
+Variables críticas:
 
 ```env
-APP_URL=https://tudominio.com        # ⚠️ CORS usa este valor — debe ser la URL real del panel
+APP_URL=https://sender.prestamaz.site   # ⚠️ CORS usa este valor — URL exacta del panel
 APP_ENV=production
 APP_DEBUG=false
 
-WA_TOKEN=...                         # Token Meta (referencia — los envíos leen de BD)
-WA_PHONE_ID=...
-WA_WABA_ID=...
-WA_WEBHOOK_VERIFY_TOKEN=...          # Secreto separado del token Meta
-WA_APP_SECRET=...                    # Para validar firma X-Hub-Signature-256
+DB_DATABASE=wa_cloud_panel
+DB_USERNAME=wa_user
+DB_PASSWORD=tu_password_aqui
 
-QUEUE_CONNECTION=database            # Cambiar a redis cuando se instale Horizon
+WA_TOKEN=...                            # Token Meta (referencia — los envíos leen de BD)
+WA_PHONE_ID=1082360764952377
+WA_WABA_ID=1236630511398211
+WA_WEBHOOK_VERIFY_TOKEN=...             # Secreto separado del token Meta
+WA_APP_SECRET=...                       # Para validar firma X-Hub-Signature-256
+
+QUEUE_CONNECTION=database
 ```
 
 > **Nota CORS**: `APP_URL` determina qué origen puede hacer peticiones al API. Si el dominio no coincide exactamente (http vs https, con www vs sin www), el navegador bloqueará las peticiones del frontend.
 
 ---
 
-## 8. Configurar Nginx
+## 11. Migraciones y permisos
+
+```bash
+php artisan migrate --force
+php artisan storage:link
+sudo chown -R adminsender:www-data /var/www/wa-cloud-panel
+sudo chown -R www-data:www-data /var/www/wa-cloud-panel/storage
+sudo chown -R www-data:www-data /var/www/wa-cloud-panel/bootstrap/cache
+sudo chmod -R 775 /var/www/wa-cloud-panel/storage
+sudo chmod -R 775 /var/www/wa-cloud-panel/bootstrap/cache
+```
+
+---
+
+## 12. Crear usuario admin inicial
+
+```bash
+php artisan tinker
+```
+
+```php
+User::create(['name' => 'Admin', 'email' => 'admin@prestamas.mx', 'password' => bcrypt('admin1234'), 'role' => 'superadmin', 'is_active' => true]);
+```
+
+---
+
+## 13. Insertar número de WhatsApp
+
+```bash
+php artisan tinker
+```
+
+```php
+\App\Models\PhoneNumber::create([
+    'display_name'    => 'Sandbox Prestamaz',
+    'phone_number_id' => '1082360764952377',
+    'waba_id'         => '1236630511398211',
+    'token'           => env('WA_TOKEN'),
+    'daily_limit'     => 250,
+    'is_active'       => true,
+]);
+```
+
+> Si el token aparece como expirado en `/api/phone-health`, generar nuevo System User Token en business.facebook.com → Usuarios del sistema → `waclouddev` → Generar token, y actualizarlo vía tinker:
+> ```php
+> \App\Models\PhoneNumber::where('phone_number_id', '1082360764952377')->update(['token' => 'TOKEN_NUEVO']);
+> ```
+
+---
+
+## 14. Configurar Nginx
 
 ```bash
 sudo nano /etc/nginx/sites-available/wa-cloud-panel
 ```
 
-Pegar este contenido (sustituir `tudominio.com`):
-
 ```nginx
 server {
     listen 80;
-    server_name tudominio.com www.tudominio.com;
+    server_name sender.prestamaz.site;
     root /var/www/wa-cloud-panel/public;
 
     index index.php;
@@ -155,7 +225,7 @@ server {
     }
 
     location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         include fastcgi_params;
@@ -169,37 +239,18 @@ server {
 
 ```bash
 sudo ln -s /etc/nginx/sites-available/wa-cloud-panel /etc/nginx/sites-enabled/
-sudo nginx -t  # debe decir "syntax is ok"
+sudo nginx -t
 sudo systemctl reload nginx
 ```
 
----
-
-## 9. Permisos de carpetas
-
-```bash
-sudo chown -R www-data:www-data /var/www/wa-cloud-panel/storage
-sudo chown -R www-data:www-data /var/www/wa-cloud-panel/bootstrap/cache
-sudo chmod -R 775 /var/www/wa-cloud-panel/storage
-sudo chmod -R 775 /var/www/wa-cloud-panel/bootstrap/cache
-```
+> SSL lo maneja el proxy inverso de Joseph (Nginx edge) — no se necesita Certbot en esta VM.
 
 ---
 
-## 10. SSL con Let's Encrypt
+## 15. Configurar Supervisor (queue worker)
 
 ```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d tudominio.com -d www.tudominio.com
-# Seguir instrucciones, aceptar términos, ingresar email
-# Certbot configura Nginx automáticamente para HTTPS
-```
-
----
-
-## 11. Configurar Supervisor (queue worker)
-
-```bash
+sudo apt install -y supervisor
 sudo nano /etc/supervisor/conf.d/wa-queue.conf
 ```
 
@@ -227,13 +278,13 @@ sudo supervisorctl status  # debe mostrar RUNNING
 
 ---
 
-## 12. Cron para scheduler Laravel
+## 16. Cron para scheduler Laravel
 
 ```bash
 sudo crontab -e -u www-data
 ```
 
-Agregar esta línea:
+Agregar:
 
 ```
 * * * * * cd /var/www/wa-cloud-panel && php artisan schedule:run >> /dev/null 2>&1
@@ -241,48 +292,45 @@ Agregar esta línea:
 
 ---
 
-## 13. Redis en .env (Stage 2)
-
-En `.env`:
-```
-QUEUE_CONNECTION=redis
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
-```
-
-Verificar:
-```bash
-redis-cli ping  # debe responder PONG
-```
-
----
-
-## 14. Firewall
+## 17. Health check final
 
 ```bash
-sudo ufw allow 22    # SSH
-sudo ufw allow 80    # HTTP
-sudo ufw allow 443   # HTTPS
-sudo ufw enable
-sudo ufw status
-```
-
----
-
-## 15. Health check final
-
-```bash
-curl https://tudominio.com/api/health
+curl https://sender.prestamaz.site/api/health
 # Debe responder: {"status":"ok","db":"ok"}
+```
+
+---
+
+## Actualizar código (deploys futuros)
+
+```bash
+cd /var/www/wa-cloud-panel
+sudo git pull
+composer install --no-dev --optimize-autoloader
+npm run build
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+sudo supervisorctl restart wa-queue:*
 ```
 
 ---
 
 ## Troubleshooting
 
+**500 — Vite manifest not found:**
+```bash
+npm install && npm run build
+```
+
+**500 — Ver error real:**
+```bash
+sudo grep "production.ERROR" storage/logs/laravel.log | tail -5
+```
+
 **502 Bad Gateway:**
 ```bash
-sudo systemctl status php8.1-fpm
+sudo systemctl status php8.2-fpm
 sudo tail -f /var/log/nginx/error.log
 ```
 
@@ -304,4 +352,11 @@ sudo supervisorctl restart wa-queue:*
 php artisan migrate:status
 # Verificar credenciales en .env
 # Verificar que el usuario MySQL tiene permisos
+```
+
+**Token Meta expirado:**
+```bash
+# Generar nuevo en business.facebook.com → Usuarios del sistema → waclouddev → Generar token
+php artisan tinker
+\App\Models\PhoneNumber::where('phone_number_id', '1082360764952377')->update(['token' => 'TOKEN_NUEVO']);
 ```

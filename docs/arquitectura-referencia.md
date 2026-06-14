@@ -1,4 +1,4 @@
-# Referencia de arquitectura — WA Cloud Panel
+# Referencia de arquitectura — Prestamaz Panel
 
 ## Estructura de carpetas Laravel
 

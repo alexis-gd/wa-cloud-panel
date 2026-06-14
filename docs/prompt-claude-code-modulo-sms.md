@@ -1,4 +1,4 @@
-# Prompt para iniciar módulo SMS — WA Cloud Panel
+# Prompt para iniciar módulo SMS — Prestamaz Panel
 
 > **Instrucciones**: Copia y pega este documento como primer mensaje en una sesión de Claude Code dentro del proyecto `C:\xampp\htdocs\wa-cloud-panel`. Claude Code implementará la base del módulo SMS sobre la arquitectura existente.
 

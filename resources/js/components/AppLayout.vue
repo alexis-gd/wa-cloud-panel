@@ -15,7 +15,7 @@
         <aside class="sidebar" :class="{ 'sidebar--open': sidebarOpen }">
             <div class="sidebar-brand">
                 <i class="pi pi-whatsapp" />
-                <span>WA Cloud Panel</span>
+                <span>Prestamaz Panel</span>
             </div>
 
             <nav class="sidebar-nav">
@@ -68,7 +68,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.5.3 — Stage 3</span>
+                <span class="version">v0.5.3 - Stage 3</span>
             </div>
         </aside>
 
@@ -160,7 +160,7 @@ const pageTitles = {
     '/settings'       : 'Configuración',
 };
 
-const pageTitle = computed(() => pageTitles[route.path] ?? 'WA Cloud Panel');
+const pageTitle = computed(() => pageTitles[route.path] ?? 'Prestamaz Panel');
 
 const helpContent = {
     '/': {

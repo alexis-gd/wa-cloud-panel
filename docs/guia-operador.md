@@ -1,4 +1,4 @@
-# Guía del Operador — WA Cloud Panel
+# Guía del Operador — Prestamaz Panel
 
 > Para el equipo de Prestamaz. No se requiere conocimiento técnico.
 > Si algo no funciona como se describe aquí, contactar al administrador del sistema.

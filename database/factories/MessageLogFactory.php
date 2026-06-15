@@ -10,13 +10,15 @@ class MessageLogFactory extends Factory
     public function definition(): array
     {
         return [
-            'phone_number_id' => PhoneNumber::factory(),
-            'to_number'       => '52' . $this->faker->numerify('##########'),
-            'template_name'   => 'hello_world',
-            'language_code'   => 'en_US',
-            'body_vars'       => [],
-            'status'          => 'sent',
-            'sent_at'         => now(),
+            'phone_number_id'      => PhoneNumber::factory(),
+            'to_number'            => '52' . $this->faker->numerify('##########'),
+            'template_name'        => 'hello_world',
+            'language_code'        => 'en_US',
+            'body_vars'            => [],
+            'status'               => 'sent',
+            'delivery_error_code'  => null,
+            'delivery_error_title' => null,
+            'sent_at'              => now(),
         ];
     }
 }

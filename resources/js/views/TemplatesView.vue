@@ -109,9 +109,9 @@
           <div v-if="selected.rejection_reason" class="preview-rejection">
             <strong>Rechazada:</strong> {{ selected.rejection_reason }}
           </div>
-          <!-- Enviar prueba -->
+          <!-- Enviar prueba — solo admin/superadmin -->
           <Button
-            v-if="selected.status === 'approved'"
+            v-if="selected.status === 'approved' && isAdmin"
             label="Enviar prueba"
             icon="pi pi-send"
             size="small"
@@ -176,7 +176,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useToast }   from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
-import { api } from '../api.js';
+import { api }     from '../api.js';
+import { useAuth } from '../auth.js';
 import Button        from 'primevue/button';
 import Tag           from 'primevue/tag';
 import ToggleSwitch  from 'primevue/toggleswitch';
@@ -188,6 +189,8 @@ import Message       from 'primevue/message';
 
 const toast   = useToast();
 const confirm = useConfirm();
+const { user: authState } = useAuth();
+const isAdmin = computed(() => ['admin', 'superadmin'].includes(authState.user?.role));
 
 const templates = ref([]);
 const selected  = ref(null);

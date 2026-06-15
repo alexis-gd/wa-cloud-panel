@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppNotification;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\MessageLog;
+use App\Models\PhoneNumber;
 use App\Models\Setting;
 use App\Services\AssignmentService;
 use Illuminate\Http\Request;
@@ -17,6 +19,14 @@ class WebhookController extends Controller
 {
     // Palabras que disparan opt-out permanente (coincidencia exacta de palabra completa, case-insensitive)
     private const OPT_OUT_WORDS = ['STOP', 'BAJA', 'CANCELAR', 'NO'];
+
+    private const DELIVERY_ERROR_MESSAGES = [
+        131049 => 'Meta pausó temporalmente las entregas por calidad del número.',
+        131048 => 'Meta detectó actividad inusual. Envíos pausados automáticamente.',
+        131026 => 'El número no tiene WhatsApp activo.',
+        368    => 'La cuenta fue bloqueada temporalmente por Meta.',
+        470    => 'La plantilla usada no está aprobada.',
+    ];
 
     public function __construct(private readonly AssignmentService $assignmentService) {}
 
@@ -56,7 +66,37 @@ class WebhookController extends Controller
 
             if ($waMessageId && $status) {
                 $log = MessageLog::where('wa_message_id', $waMessageId)->first();
-                $log?->updateStatus($status);
+
+                if ($status === 'failed') {
+                    $errorData  = $statusEvent['errors'][0] ?? [];
+                    $errorCode  = isset($errorData['code']) ? (int) $errorData['code'] : null;
+                    $errorTitle = $errorData['title'] ?? null;
+
+                    $log?->updateStatus($status, $errorCode, $errorTitle);
+
+                    Log::warning('Webhook: message delivery failed', [
+                        'wa_message_id' => $waMessageId,
+                        'log_id'        => $log?->id,
+                        'error_code'    => $errorCode,
+                        'error_title'   => $errorTitle,
+                    ]);
+
+                    // 131049: quality rate limit — circuit breaker 60 min
+                    if ($errorCode === 131049 && $log?->phone_number_id) {
+                        $phoneNumber = PhoneNumber::find($log->phone_number_id);
+                        if ($phoneNumber && ! $phoneNumber->isPaused()) {
+                            $phoneNumber->pauseFor(60);
+                            Log::error('Webhook: quality limit hit (131049) — número pausado 60 min', [
+                                'phone_number_id' => $log->phone_number_id,
+                                'paused_until'    => $phoneNumber->fresh()->paused_until,
+                            ]);
+                        }
+                    }
+
+                    $this->createFailedDeliveryNotification($log, $errorCode);
+                } else {
+                    $log?->updateStatus($status);
+                }
 
                 // Sincronizar status en conversations (mensajes salientes)
                 Conversation::where('wa_message_id', $waMessageId)
@@ -166,5 +206,25 @@ class WebhookController extends Controller
             $contact->optOut();
             Log::info("Opt-out por texto '{$body}' — contacto {$contact->id}");
         }
+    }
+
+    private function createFailedDeliveryNotification(?MessageLog $log, ?int $errorCode): void
+    {
+        if (! $log) {
+            return;
+        }
+
+        $humanMessage = self::DELIVERY_ERROR_MESSAGES[$errorCode] ?? 'Error de entrega desconocido.';
+
+        $contact     = Contact::where('phone', $log->to_number)->first();
+        $contactDesc = $contact
+            ? "{$contact->name} ({$log->to_number})"
+            : $log->to_number;
+
+        AppNotification::create([
+            'type'  => 'delivery_failed',
+            'title' => 'Entrega fallida',
+            'body'  => "El mensaje a {$contactDesc} no fue entregado. {$humanMessage}",
+        ]);
     }
 }

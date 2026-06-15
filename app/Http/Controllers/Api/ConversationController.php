@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationAssignment;
+use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\QuickReply;
 use App\Models\User;
@@ -162,6 +163,30 @@ class ConversationController extends Controller
             ], 422);
         }
 
+        // Bloquear si el último mensaje a este contacto fue un fallo de entrega conocido
+        $lastLog = MessageLog::where('to_number', $contact->phone)
+            ->whereIn('status', ['failed', 'sent', 'delivered', 'read'])
+            ->latest('updated_at')
+            ->first();
+
+        if ($lastLog && $lastLog->status === 'failed' && $lastLog->delivery_error_code) {
+            $friendlyErrors = [
+                131049 => 'Meta bloqueó temporalmente las entregas a este número por calidad. Intenta más tarde.',
+                131048 => 'Meta detectó actividad inusual. Los mensajes a este número están pausados.',
+                131026 => 'Este número no tiene WhatsApp activo.',
+                368    => 'La cuenta de WhatsApp fue bloqueada temporalmente por Meta.',
+                470    => 'La plantilla usada no fue aprobada por Meta.',
+            ];
+            $reason = $friendlyErrors[$lastLog->delivery_error_code]
+                ?? 'El último mensaje a este contacto no fue entregado por Meta.';
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => "No se puede enviar: {$reason}",
+                'code'    => 'DELIVERY_BLOCKED',
+            ], 422);
+        }
+
         // Verificar ventana de 24h
         $windowOpen = Conversation::where('contact_id', $contactId)
             ->where('direction', 'inbound')
@@ -185,6 +210,15 @@ class ConversationController extends Controller
                 'message' => 'No hay número de WhatsApp activo configurado.',
                 'code'    => 'NO_PHONE_NUMBER',
             ], 500);
+        }
+
+        if ($phoneNumber->isPaused()) {
+            $retryAt = $phoneNumber->paused_until->setTimezone('America/Mexico_City')->format('g:i A');
+            return response()->json([
+                'status'  => 'error',
+                'message' => "Este número no puede recibir mensajes ahora. Meta bloqueó temporalmente las entregas. Vuelve a intentarlo después de las {$retryAt}.",
+                'code'    => 'PHONE_PAUSED',
+            ], 422);
         }
 
         $payload = [

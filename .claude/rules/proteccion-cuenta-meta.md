@@ -36,6 +36,7 @@
 
 - `error_code: 131026` → número no existe en WhatsApp (marcar inválido, no reintentar)
 - `error_code: 131048` → spam rate limit hit — **PARAR envíos mínimo 1 hora**
+- `error_code: 131049` → quality rate limit hit — **PARAR envíos mínimo 1 hora** (igual que 131048 pero por calidad del número, llega vía webhook de delivery, no por respuesta directa del API)
 - `error_code: 368` → cuenta temporalmente bloqueada — **PARAR TODO, revisar Business Manager**
 - `error_code: 467` → token expirado — renovar antes de continuar
 - `error_code: 470` → plantilla rechazada/no aprobada — revisar status en Meta

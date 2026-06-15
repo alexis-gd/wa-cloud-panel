@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TemplateController;
@@ -71,6 +72,13 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::post('/campaigns/{id}/pause',         [CampaignController::class, 'pause']);
         Route::post('/campaigns/{id}/retry-pending', [CampaignController::class, 'retryPending']);
         Route::delete('/campaigns/{id}',             [CampaignController::class, 'destroy']);
+    });
+
+    // Notificaciones — todos los roles autenticados
+    Route::middleware('role:admin,operator,agent')->group(function () {
+        Route::get('/notifications',              [NotificationController::class, 'index']);
+        Route::post('/notifications/read-all',    [NotificationController::class, 'markReadAll']);
+        Route::delete('/notifications/{id}',      [NotificationController::class, 'destroy']);
     });
 
     // Conversaciones (chat con contactos) — admin, operator y agent

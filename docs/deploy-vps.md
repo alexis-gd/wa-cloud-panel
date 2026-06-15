@@ -314,6 +314,12 @@ php artisan route:cache
 sudo supervisorctl restart wa-queue:*
 ```
 
+> ⚠️ **`php artisan migrate --force` siempre ANTES de reiniciar el queue.** Si el queue arranca con código nuevo pero la BD no tiene las tablas nuevas, los jobs explotan silenciosamente. El orden importa.
+>
+> Migraciones pendientes de delivery-feedback (v0.6.0):
+> - `add_delivery_error_to_message_log` — columnas `delivery_error_code` y `delivery_error_title` en `message_log`
+> - `create_app_notifications_table` — tabla `app_notifications` para el badge de campana
+
 ---
 
 ## Troubleshooting

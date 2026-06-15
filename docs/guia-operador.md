@@ -35,12 +35,30 @@ Al entrar verás el dashboard con:
   Usa el botón ↺ para refrescar si acabas de ejecutar una campaña.
 - **Salud del número**: muestra la calidad del número WhatsApp en semáforo verde/amarillo/rojo,
   cuántos mensajes se han enviado hoy vs. el límite diario, y si el circuito está pausado.
-- **Enviar mensaje de prueba**: para probar una plantilla con un contacto específico antes de lanzar campaña.
+- **Enviar mensaje de prueba** *(solo administradores)*: para probar una plantilla con un contacto específico antes de lanzar campaña. Los operadores no ven este botón.
 - **Últimos mensajes**: tabla de envíos recientes con su estado. Puedes filtrar por estado
   (enviados / entregados / leídos / fallidos) y navegar entre páginas con los controles de paginación.
 
 > ⚠️ Si el semáforo está en **ROJO** o aparece **PAUSADO**, no ejecutar campañas hasta que
 > el administrador lo revise. El sistema se pausó automáticamente para proteger la cuenta.
+
+---
+
+## 2.1 Notificaciones (campana en la barra superior)
+
+En la esquina superior derecha del panel hay un ícono de campana 🔔. Cuando hay mensajes que no se entregaron, aparece un número rojo indicando cuántas alertas nuevas hay.
+
+**Al hacer clic en la campana:**
+- Se abre un panel con las últimas 20 alertas del sistema.
+- Las alertas sin leer aparecen con fondo azul claro.
+- Al abrir el panel, todas las alertas se marcan como leídas automáticamente.
+
+**Tipos de alertas:**
+- **Entrega fallida** — un mensaje no llegó al destinatario. El motivo se describe en lenguaje claro.
+  - Ejemplo: "El mensaje a Juan García (529231311146) no fue entregado. Meta pausó temporalmente las entregas por calidad del número."
+  - Si ves muchas alertas de este tipo, revisa la **Salud del número** en el Dashboard.
+
+> No es necesario actuar en cada alerta. Son informativas. Si el mensaje falló por un bloqueo temporal, el sistema lo retomará automáticamente al levantarse el bloqueo.
 
 ---
 

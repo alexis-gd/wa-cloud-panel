@@ -20,6 +20,8 @@ class MessageLog extends Model
         'wa_message_id',
         'status',
         'error_message',
+        'delivery_error_code',
+        'delivery_error_title',
         'discard_reason',
         'sent_at',
     ];
@@ -87,8 +89,15 @@ class MessageLog extends Model
     }
 
     // Actualiza el status desde eventos del webhook (delivered, read, failed)
-    public function updateStatus(string $status): void
+    public function updateStatus(string $status, ?int $errorCode = null, ?string $errorTitle = null): void
     {
-        $this->update(['status' => $status]);
+        $data = ['status' => $status];
+
+        if ($errorCode !== null) {
+            $data['delivery_error_code']  = $errorCode;
+            $data['delivery_error_title'] = $errorTitle;
+        }
+
+        $this->update($data);
     }
 }

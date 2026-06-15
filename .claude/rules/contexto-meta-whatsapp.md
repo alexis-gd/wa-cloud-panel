@@ -92,6 +92,7 @@ relacionada con Meta, envíos o plantillas.
 |---|---|---|
 | `131026` | Número no existe en WhatsApp | Marcar inválido, no reintentar |
 | `131048` | Spam rate limit | **PARAR envíos mínimo 1 hora** |
+| `131049` | Quality rate limit (llega por webhook de delivery, no por respuesta API directa) | **PARAR envíos mínimo 1 hora** — `WebhookController` pausa el número igual que 131048 |
 | `368` | Cuenta bloqueada temporalmente | **PARAR TODO, revisar Business Manager** |
 | `467` | Token expirado | Renovar token antes de continuar |
 | `470` | Plantilla no aprobada | Revisar status en Meta |

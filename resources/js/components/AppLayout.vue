@@ -68,7 +68,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.5.3 - Stage 3</span>
+                <span class="version">v0.6.0 - Stage 3</span>
             </div>
         </aside>
 
@@ -88,6 +88,43 @@
                         :tip="currentHelp.tip"
                     />
                 </div>
+
+                <div class="topbar-right">
+                    <button class="notif-btn" @click="openNotifications" title="Notificaciones">
+                        <i class="pi pi-bell" />
+                        <span v-if="notifUnread > 0" class="notif-badge">{{ notifUnread > 9 ? '9+' : notifUnread }}</span>
+                    </button>
+                    <Popover ref="notifPanel" class="notif-pop">
+                        <div class="notif-content">
+                            <p class="notif-header">
+                                <i class="pi pi-bell" />
+                                Notificaciones
+                                <span v-if="notifUnread > 0" class="notif-header-badge">{{ notifUnread }} sin leer</span>
+                            </p>
+                            <div v-if="notifList.length === 0" class="notif-empty">
+                                Sin notificaciones recientes.
+                            </div>
+                            <ul v-else class="notif-list">
+                                <li
+                                    v-for="n in notifList"
+                                    :key="n.id"
+                                    class="notif-item"
+                                    :class="{ 'notif-item--unread': !n.read }"
+                                >
+                                    <i class="pi pi-exclamation-circle notif-item-icon" />
+                                    <div class="notif-item-body">
+                                        <span class="notif-item-title">{{ n.title }}</span>
+                                        <span class="notif-item-text">{{ n.body }}</span>
+                                        <span class="notif-item-time">{{ n.created_at }}</span>
+                                    </div>
+                                    <button class="notif-delete-btn" @click.stop="deleteNotification(n.id)" title="Eliminar">
+                                        <i class="pi pi-times" />
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </Popover>
+                </div>
             </header>
 
             <main class="content">
@@ -106,6 +143,7 @@ import { useToast } from 'primevue/usetoast';
 import Tag          from 'primevue/tag';
 import Toast        from 'primevue/toast';
 import Button       from 'primevue/button';
+import Popover      from 'primevue/popover';
 import HelpPopover  from './HelpPopover.vue';
 import { api }         from '../api.js';
 import { useAuth }     from '../auth.js';
@@ -138,14 +176,64 @@ async function handleVisibilityChange() {
     if (res.status !== 'ok') handleSessionExpired();
 }
 
+// ── Notifications ────────────────────────────────────────────────────────────
+const notifPanel   = ref(null);
+const notifUnread  = ref(0);
+const notifList    = ref([]);
+let   notifTimer   = null;
+let   notifInitial = true; // no disparar toast en la carga inicial
+
+async function fetchNotifications() {
+    if (!authState.user) return;
+    const res = await api.notifications();
+    if (res.status === 'ok') {
+        const prevUnread = notifUnread.value;
+        const newUnread  = res.data.unread_count;
+
+        notifUnread.value = newUnread;
+        notifList.value   = res.data.notifications;
+
+        // Toast solo en polls posteriores a la carga inicial
+        if (!notifInitial && newUnread > prevUnread) {
+            const newest = res.data.notifications.find(n => !n.read);
+            if (newest) {
+                toast.add({
+                    severity : 'warn',
+                    summary  : newest.title,
+                    detail   : newest.body,
+                    life     : 7000,
+                });
+            }
+        }
+        notifInitial = false;
+    }
+}
+
+async function openNotifications(event) {
+    notifPanel.value.toggle(event);
+    if (notifUnread.value > 0) {
+        await api.markNotificationsRead();
+        notifUnread.value = 0;
+        notifList.value   = notifList.value.map(n => ({ ...n, read: true }));
+    }
+}
+
+async function deleteNotification(id) {
+    await api.deleteNotification(id);
+    notifList.value = notifList.value.filter(n => n.id !== id);
+}
+
 onMounted(() => {
     window.addEventListener('wa:session-expired', handleSessionExpired);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    fetchNotifications();
+    notifTimer = setInterval(fetchNotifications, 30_000);
 });
 
 onUnmounted(() => {
     window.removeEventListener('wa:session-expired', handleSessionExpired);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
+    clearInterval(notifTimer);
 });
 
 const sidebarOpen = ref(false);
@@ -361,13 +449,142 @@ async function logout() {
     border-bottom: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 0 16px 0 20px;
     position: sticky;
     top: 0;
     z-index: 50;
 }
 
-.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-left  { display: flex; align-items: center; gap: 12px; }
+.topbar-right { display: flex; align-items: center; }
+
+/* ── Notification bell ─────────────────────────── */
+.notif-btn {
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    font-size: 1.1rem;
+    padding: 6px 8px;
+    border-radius: 8px;
+    line-height: 1;
+    transition: color .15s, background .15s;
+}
+.notif-btn:hover { color: #0f172a; background: #f1f5f9; }
+
+.notif-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #ef4444;
+    color: #fff;
+    font-size: .6rem;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+}
+
+/* ── Notification panel (Popover interior) ─────── */
+.notif-content { width: 340px; padding: 4px 2px; }
+
+.notif-header {
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--p-text-color);
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.notif-header .pi { color: var(--p-primary-500); }
+
+.notif-header-badge {
+    margin-left: auto;
+    font-size: .7rem;
+    font-weight: 600;
+    color: #ef4444;
+    background: #fee2e2;
+    border-radius: 10px;
+    padding: 2px 7px;
+}
+
+.notif-empty {
+    font-size: .82rem;
+    color: var(--p-text-muted-color);
+    padding: 8px 0;
+    text-align: center;
+}
+
+.notif-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.notif-item {
+    display: flex;
+    gap: 10px;
+    padding: 8px 6px;
+    border-radius: 6px;
+    transition: background .12s;
+}
+.notif-item:hover { background: var(--p-surface-100); }
+.notif-item--unread { background: var(--p-primary-50); }
+
+.notif-item-icon {
+    font-size: .9rem;
+    color: #ef4444;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.notif-item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.notif-item-title {
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--p-text-color);
+}
+
+.notif-item-text {
+    font-size: .78rem;
+    color: var(--p-text-color);
+    line-height: 1.4;
+    white-space: normal;
+}
+
+.notif-item-time {
+    font-size: .7rem;
+    color: var(--p-text-muted-color);
+    margin-top: 2px;
+}
+
+.notif-delete-btn {
+    margin-left: auto;
+    align-self: flex-start;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--p-text-muted-color);
+    font-size: .75rem;
+    padding: 3px 5px;
+    border-radius: 4px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity .15s, color .15s, background .15s;
+}
+.notif-item:hover .notif-delete-btn { opacity: 1; }
+.notif-delete-btn:hover { color: #ef4444; background: #fee2e2; }
 
 .menu-btn {
     display: none;

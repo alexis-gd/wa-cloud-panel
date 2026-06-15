@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Contact;
 use App\Models\Conversation;
+use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -296,6 +297,71 @@ class ConversationControllerTest extends TestCase
             ->postJson("/api/conversations/{$this->contact->id}/messages", [
                 'body' => 'Mensaje de agente',
             ])
+            ->assertStatus(201);
+    }
+
+    public function test_send_con_numero_pausado_devuelve_422_phone_paused(): void
+    {
+        $this->openWindow();
+        $this->phone->update(['paused_until' => now()->addHours(1)]);
+
+        $response = $this->actingAsAgent()
+            ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
+            ->assertStatus(422)
+            ->assertJsonPath('status', 'error')
+            ->assertJsonPath('code', 'PHONE_PAUSED');
+
+        $this->assertStringContainsString('Meta bloqueó', $response->json('message'));
+    }
+
+    public function test_send_bloqueado_si_ultimo_mensaje_fue_failed_con_error_conocido(): void
+    {
+        $this->openWindow();
+
+        MessageLog::factory()->create([
+            'to_number'           => $this->contact->phone,
+            'status'              => 'failed',
+            'delivery_error_code' => 131049,
+            'delivery_error_title' => 'Quality rate limit hit',
+        ]);
+
+        $response = $this->actingAsAgent()
+            ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'DELIVERY_BLOCKED');
+
+        $this->assertStringContainsString('calidad', $response->json('message'));
+    }
+
+    public function test_send_permitido_si_ultimo_mensaje_fue_delivered(): void
+    {
+        $this->openWindow();
+        $this->mockSuccessfulClient();
+
+        MessageLog::factory()->create([
+            'to_number' => $this->contact->phone,
+            'status'    => 'delivered',
+        ]);
+
+        $this->actingAsAgent()
+            ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
+            ->assertStatus(201);
+    }
+
+    public function test_send_permitido_si_fallo_sin_error_code(): void
+    {
+        $this->openWindow();
+        $this->mockSuccessfulClient();
+
+        // failed sin delivery_error_code (ej: error de API directo, no de webhook) no bloquea
+        MessageLog::factory()->create([
+            'to_number'           => $this->contact->phone,
+            'status'              => 'failed',
+            'delivery_error_code' => null,
+        ]);
+
+        $this->actingAsAgent()
+            ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
             ->assertStatus(201);
     }
 }

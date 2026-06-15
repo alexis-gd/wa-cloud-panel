@@ -208,6 +208,13 @@ export const api = {
         body   : JSON.stringify(payload),
     }),
 
+    // ── Notifications ─────────────────────────────────────────────────────────
+    notifications: () => request('/notifications'),
+
+    markNotificationsRead: () => request('/notifications/read-all', { method: 'POST' }),
+
+    deleteNotification: (id) => request(`/notifications/${id}`, { method: 'DELETE' }),
+
     // ── Users ─────────────────────────────────────────────────────────────────
     users: () => request('/users'),
 

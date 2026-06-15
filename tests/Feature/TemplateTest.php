@@ -87,4 +87,15 @@ class TemplateTest extends TestCase
 
         $this->assertDatabaseMissing('wa_templates', ['id' => $tpl->id]);
     }
+
+    public function test_operator_no_puede_enviar_prueba(): void
+    {
+        $this->actingAsOperator()
+             ->postJson('/api/templates/send-test', [
+                 'template_name' => 'hello_world',
+                 'language_code' => 'en_US',
+                 'to'            => '529231311146',
+             ])
+             ->assertStatus(403);
+    }
 }

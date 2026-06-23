@@ -116,7 +116,7 @@ class SettingsController extends Controller
                                         ->count(),
                 'is_active'      => $phone->is_active,
                 'is_paused'      => $phone->isPaused(),
-                'paused_until'   => $phone->paused_until?->toIso8601String(),
+                'paused_until'   => $phone->paused_until?->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
             ],
         ]);
     }

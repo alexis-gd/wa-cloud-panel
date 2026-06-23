@@ -49,13 +49,14 @@ class TemplateBuilderTest extends TestCase
 
     public function test_build_con_image_header_incluye_componente_header_tipo_image(): void
     {
+        // Nombre sin archivo local para aislar del WA_MEDIA_BASE_URL del entorno
         WaTemplate::factory()->create([
-            'name'             => 'prestamaz_interes_v1',
+            'name'             => 'plantilla_imagen_remota',
             'header_type'      => 'IMAGE',
             'header_image_url' => 'https://cdn.example.com/header.jpg',
         ]);
 
-        $payload = $this->builder->build('521234567890', 'prestamaz_interes_v1', 'es_MX');
+        $payload = $this->builder->build('521234567890', 'plantilla_imagen_remota', 'es_MX');
 
         $components = $payload['template']['components'];
         $header = collect($components)->firstWhere('type', 'header');
@@ -121,6 +122,48 @@ class TemplateBuilderTest extends TestCase
         $bodyComponents = array_filter($components, fn($c) => $c['type'] === 'body');
 
         $this->assertEmpty($bodyComponents);
+    }
+
+    // ── Resolución de URL local (WA_MEDIA_BASE_URL) ──────────────────────────
+
+    public function test_build_image_header_usa_url_local_cuando_existe_archivo_y_media_base_url(): void
+    {
+        config(['services.whatsapp.media_base_url' => 'https://ngrok.example.io']);
+
+        WaTemplate::factory()->create([
+            'name'             => 'prestamaz_interes_v1',
+            'header_type'      => 'IMAGE',
+            'header_image_url' => 'https://scontent.whatsapp.net/old-cdn-url.jpg',
+        ]);
+
+        $payload = $this->builder->build('521234567890', 'prestamaz_interes_v1', 'es_MX');
+
+        $header = collect($payload['template']['components'])->firstWhere('type', 'header');
+
+        $this->assertSame(
+            'https://ngrok.example.io/storage/templates/prestamaz_interes_v1.jpg',
+            $header['parameters'][0]['image']['link']
+        );
+    }
+
+    public function test_build_image_header_fallback_a_db_cuando_no_hay_archivo_local(): void
+    {
+        config(['services.whatsapp.media_base_url' => 'https://ngrok.example.io']);
+
+        WaTemplate::factory()->create([
+            'name'             => 'plantilla_sin_archivo_local',
+            'header_type'      => 'IMAGE',
+            'header_image_url' => 'https://cdn.example.com/header.jpg',
+        ]);
+
+        $payload = $this->builder->build('521234567890', 'plantilla_sin_archivo_local', 'es_MX');
+
+        $header = collect($payload['template']['components'])->firstWhere('type', 'header');
+
+        $this->assertSame(
+            'https://cdn.example.com/header.jpg',
+            $header['parameters'][0]['image']['link']
+        );
     }
 
     // ── Estructura base del payload ───────────────────────────────────────────

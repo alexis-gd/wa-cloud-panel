@@ -95,7 +95,10 @@ class SettingsControllerTest extends TestCase
         $response->assertStatus(200)
                  ->assertJsonPath('data.is_paused', true);
 
-        $this->assertNotNull($response->json('data.paused_until'));
+        $pausedUntil = $response->json('data.paused_until');
+        $this->assertNotNull($pausedUntil);
+        // Debe ser formato Y-m-d H:i en CST — no ISO UTC (sin T ni +00:00)
+        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/', $pausedUntil);
     }
 
     public function test_phone_health_sin_numero_activo_retorna_404(): void

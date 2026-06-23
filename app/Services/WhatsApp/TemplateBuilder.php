@@ -32,16 +32,20 @@ class TemplateBuilder
         // Header — solo si la plantilla tiene header_type IMAGE o TEXT con URL
         $template = WaTemplate::where('name', $templateName)->first();
 
-        if ($template?->header_type === 'IMAGE' && $template->header_image_url) {
-            $components[] = [
-                'type'       => 'header',
-                'parameters' => [
-                    [
-                        'type'  => 'image',
-                        'image' => ['link' => $template->header_image_url],
+        if ($template?->header_type === 'IMAGE') {
+            $imageUrl = $this->resolveImageUrl($templateName, $template->header_image_url);
+
+            if ($imageUrl) {
+                $components[] = [
+                    'type'       => 'header',
+                    'parameters' => [
+                        [
+                            'type'  => 'image',
+                            'image' => ['link' => $imageUrl],
+                        ],
                     ],
-                ],
-            ];
+                ];
+            }
         }
 
         // Body vars
@@ -60,5 +64,19 @@ class TemplateBuilder
         }
 
         return $payload;
+    }
+
+    private function resolveImageUrl(string $templateName, ?string $fallback): ?string
+    {
+        $localPath = public_path("storage/templates/{$templateName}.jpg");
+
+        if (file_exists($localPath)) {
+            $base = rtrim(config('services.whatsapp.media_base_url', ''), '/');
+            if ($base) {
+                return "{$base}/storage/templates/{$templateName}.jpg";
+            }
+        }
+
+        return $fallback;
     }
 }

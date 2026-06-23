@@ -254,7 +254,7 @@ const helpContent = {
     '/': {
         title: 'Dashboard',
         items: [
-            { icon: 'pi-circle-fill',   label: 'Semáforo',    text: 'Calidad del número en Meta. Verde = ok. Amarillo = cuidado. Rojo = problema. Si está PAUSADO, el sistema detuvo envíos automáticamente.' },
+            { icon: 'pi-circle-fill',   label: 'Semáforo',    text: 'Calidad del número en Meta. Verde = ok. Amarillo = cuidado. Rojo = problema. Si está PAUSADO, el sistema activó el circuit breaker: detectó un error de calidad o spam y pausó los envíos automáticamente 60 minutos para proteger la cuenta. Se reanuda solo.' },
             { icon: 'pi-chart-bar',     label: 'Meta mensual', text: 'Progreso del mes: mensajes enviados vs. la capacidad real del sistema (días hábiles × límite diario). El color indica el avance.' },
             { icon: 'pi-send',          label: 'Mensajes',    text: 'Totales acumulados históricos de enviados (en tránsito), entregados, leídos y fallidos.' },
             { icon: 'pi-users',         label: 'Contactos',   text: 'Estado actual de la base: total, activos (pueden recibir mensajes), opt-out e inválidos.' },

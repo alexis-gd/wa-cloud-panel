@@ -37,6 +37,7 @@ return [
         'webhook_verify_token' => env('WA_WEBHOOK_VERIFY_TOKEN'),
         'api_key'              => env('API_KEY'),
         'waba_id'              => env('WA_WABA_ID'),
+        'media_base_url'       => env('WA_MEDIA_BASE_URL'),
     ],
 
 ];

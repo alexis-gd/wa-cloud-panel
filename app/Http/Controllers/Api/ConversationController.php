@@ -170,21 +170,29 @@ class ConversationController extends Controller
             ->first();
 
         if ($lastLog && $lastLog->status === 'failed' && $lastLog->delivery_error_code) {
-            $friendlyErrors = [
-                131049 => 'Meta bloqueó temporalmente las entregas a este número por calidad. Intenta más tarde.',
-                131048 => 'Meta detectó actividad inusual. Los mensajes a este número están pausados.',
-                131026 => 'Este número no tiene WhatsApp activo.',
-                368    => 'La cuenta de WhatsApp fue bloqueada temporalmente por Meta.',
-                470    => 'La plantilla usada no fue aprobada por Meta.',
-            ];
-            $reason = $friendlyErrors[$lastLog->delivery_error_code]
-                ?? 'El último mensaje a este contacto no fue entregado por Meta.';
+            // Si el contacto respondió después del fallo, el bloqueo no aplica
+            $repliedAfterFailure = Conversation::where('contact_id', $contactId)
+                ->where('direction', 'inbound')
+                ->where('created_at', '>', $lastLog->updated_at)
+                ->exists();
 
-            return response()->json([
-                'status'  => 'error',
-                'message' => "No se puede enviar: {$reason}",
-                'code'    => 'DELIVERY_BLOCKED',
-            ], 422);
+            if (!$repliedAfterFailure) {
+                $friendlyErrors = [
+                    131049 => 'Meta bloqueó temporalmente las entregas a este número por calidad. Intenta más tarde.',
+                    131048 => 'Meta detectó actividad inusual. Los mensajes a este número están pausados.',
+                    131026 => 'Este número no tiene WhatsApp activo.',
+                    368    => 'La cuenta de WhatsApp fue bloqueada temporalmente por Meta.',
+                    470    => 'La plantilla usada no fue aprobada por Meta.',
+                ];
+                $reason = $friendlyErrors[$lastLog->delivery_error_code]
+                    ?? 'El último mensaje a este contacto no fue entregado por Meta.';
+
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => "No se puede enviar: {$reason}",
+                    'code'    => 'DELIVERY_BLOCKED',
+                ], 422);
+            }
         }
 
         // Verificar ventana de 24h

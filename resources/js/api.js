@@ -67,6 +67,8 @@ export const api = {
         body   : JSON.stringify({ cooldown_days: days }),
     }),
 
+    demoReset: () => request('/settings/demo-reset', { method: 'POST' }),
+
     // ── Templates ─────────────────────────────────────────────────────────────
     templates: () => request('/templates'),
 

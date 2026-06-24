@@ -148,6 +148,24 @@ class SendWhatsAppMessage implements ShouldQueue
             return;
         }
 
+        // ── Idempotencia: si ya existe un log pending para este contacto+campaña
+        //    significa que un intento anterior llegó a Meta pero timed out antes
+        //    de recibir respuesta — no reenviar para evitar duplicados ──
+        $existingPending = MessageLog::where('campaign_id', $this->campaignId)
+            ->where('to_number', $contact->phone)
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($existingPending) {
+            Log::warning('SendWhatsAppMessage: log pending previo encontrado — posible envío anterior exitoso, descartando retry para evitar duplicado', [
+                'contact_id'  => $this->contactId,
+                'campaign_id' => $this->campaignId,
+            ]);
+            $campaign->increment('sent_count');
+            $this->checkAutoComplete($campaign);
+            return;
+        }
+
         // ── Crear log ANTES de llamar a la API ──
         $log = MessageLog::logSend(
             $this->phoneNumberId,

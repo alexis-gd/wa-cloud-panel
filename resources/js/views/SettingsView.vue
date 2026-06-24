@@ -131,20 +131,47 @@
                 </Message>
             </template>
         </Card>
+        <Card style="max-width: 560px; margin-top: 24px" class="demo-card">
+            <template #title>Modo demo</template>
+            <template #content>
+                <p class="stage-desc">
+                    Quita el circuit breaker del número y resetea el cooldown de todos los contactos.
+                    Úsalo antes de una demostración para poder reenviar plantillas libremente.
+                </p>
+                <Button
+                    label="Resetear para demo"
+                    icon="pi pi-refresh"
+                    severity="danger"
+                    :loading="resettingDemo"
+                    @click="confirmDemoReset"
+                />
+                <Message v-if="demoResetResult" :severity="demoResetResult.error ? 'error' : 'success'" class="mt-3">
+                    {{ demoResetResult.error ?? 'Listo — cooldown reseteado, circuit breaker quitado.' }}
+                </Message>
+            </template>
+        </Card>
+        <ConfirmDialog />
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import Card         from 'primevue/card';
-import Button       from 'primevue/button';
-import Password     from 'primevue/password';
-import Tag          from 'primevue/tag';
-import Message      from 'primevue/message';
-import InputNumber  from 'primevue/inputnumber';
-import Select       from 'primevue/select';
-import ToggleSwitch from 'primevue/toggleswitch';
-import { api }      from '../api.js';
+import Card          from 'primevue/card';
+import Button        from 'primevue/button';
+import Password      from 'primevue/password';
+import Tag           from 'primevue/tag';
+import Message       from 'primevue/message';
+import InputNumber   from 'primevue/inputnumber';
+import Select        from 'primevue/select';
+import ToggleSwitch  from 'primevue/toggleswitch';
+import ConfirmDialog from 'primevue/confirmdialog';
+import { useConfirm } from 'primevue/useconfirm';
+import { api }       from '../api.js';
+
+const confirm = useConfirm();
+
+const resettingDemo  = ref(false);
+const demoResetResult = ref(null);
 
 const tokenStatus = ref(null);
 const newToken    = ref('');
@@ -263,6 +290,23 @@ async function saveToken() {
     await loadStatus();
 }
 
+function confirmDemoReset() {
+    confirm.require({
+        message: '¿Quitar el circuit breaker y resetear el cooldown de todos los contactos?',
+        header:  'Resetear para demo',
+        icon:    'pi pi-exclamation-triangle',
+        acceptLabel: 'Sí, resetear',
+        rejectLabel: 'Cancelar',
+        accept: async () => {
+            resettingDemo.value  = true;
+            demoResetResult.value = null;
+            const res = await api.demoReset();
+            demoResetResult.value = res.status === 'ok' ? res : { error: res.message };
+            resettingDemo.value  = false;
+        },
+    });
+}
+
 async function saveCooldown() {
     savingCooldown.value = true;
     cooldownResult.value = null;
@@ -294,4 +338,5 @@ onMounted(() => {
 .flag-row--sub    { margin-left: 28px; margin-top: 6px; }
 .flag-label       { font-size: .88rem; }
 .flag-label--sub  { font-size: .82rem; color: var(--p-text-muted-color); }
+.demo-card :deep(.p-card-title) { color: var(--p-red-600); }
 </style>

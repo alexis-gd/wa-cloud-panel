@@ -19,6 +19,20 @@ use Illuminate\Support\Facades\Log;
 class CampaignController extends Controller
 {
     public function __construct(private readonly PhoneNumberSelector $selector) {}
+
+    // Conteo de contactos activos que recibiría una campaña según su tag.
+    // COUNT(*) indexado — barato aunque haya cientos de miles de contactos.
+    private function countTargetContacts(?int $tagId): int
+    {
+        $query = Contact::active();
+
+        if ($tagId) {
+            $query->whereHas('tags', fn ($q) => $q->where('tags.id', $tagId));
+        }
+
+        return $query->count();
+    }
+
     // GET /api/campaigns
     public function index(): JsonResponse
     {
@@ -80,7 +94,7 @@ class CampaignController extends Controller
             'tag_id'          => $data['tag_id'] ?? null,
             'phone_number_id' => $phone->id,
             'status'          => 'draft',
-            'total_contacts'  => 0,
+            'total_contacts'  => $this->countTargetContacts($data['tag_id'] ?? null),
             'sent_count'      => 0,
             'delivered_count' => 0,
             'failed_count'    => 0,
@@ -221,9 +235,15 @@ class CampaignController extends Controller
             ->where('status', 'discarded')
             ->count();
 
+        // Para draft recalculamos el total en vivo: refleja imports/opt-outs hechos
+        // después de crear la campaña. COUNT(*) indexado, costo trivial.
+        $totalContacts = $campaign->status === 'draft'
+            ? $this->countTargetContacts($campaign->tag_id)
+            : $campaign->total_contacts;
+
         $sentCount   = $campaign->sent_count;
         $failedCount = max(0, $campaign->failed_count - $discardedCount);
-        $pending     = max(0, $campaign->total_contacts - $campaign->sent_count - $campaign->failed_count);
+        $pending     = max(0, $totalContacts - $campaign->sent_count - $campaign->failed_count);
 
         // Incluir el campaign fresco para que el frontend no use datos rancios del listado
         $freshCampaign = $campaign->fresh();
@@ -258,7 +278,7 @@ class CampaignController extends Controller
                 'status'         => $freshCampaign->status,
                 'sent_count'     => $freshCampaign->sent_count,
                 'failed_count'   => $freshCampaign->failed_count,
-                'total_contacts' => $freshCampaign->total_contacts,
+                'total_contacts' => $totalContacts,
                 'completed_at'   => $freshCampaign->completed_at,
             ],
             'stats'  => [

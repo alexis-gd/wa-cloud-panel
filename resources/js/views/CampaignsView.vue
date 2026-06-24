@@ -160,6 +160,14 @@
                     </div>
                 </div>
 
+                <!-- Aviso alcance estimado (campaña aún no ejecutada) -->
+                <div v-if="selectedCampaign.status === 'draft'" class="estimate-note">
+                    <i class="pi pi-info-circle"></i>
+                    Alcance estimado: <strong>{{ selectedCampaign.total_contacts }}</strong>
+                    contacto{{ selectedCampaign.total_contacts === 1 ? '' : 's' }} activo{{ selectedCampaign.total_contacts === 1 ? '' : 's' }}.
+                    Se confirma al ejecutar.
+                </div>
+
                 <!-- Stats -->
                 <div v-if="detailStats" class="stats-row">
                     <div class="stat-box">
@@ -718,4 +726,17 @@ onUnmounted(() => stopDetailPolling());
     margin-bottom: 12px;
 }
 .resumes-notice .pi { font-size: .9rem; flex-shrink: 0; }
+
+.estimate-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--p-surface-100);
+    border-left: 3px solid var(--p-primary-400);
+    border-radius: 4px;
+    font-size: .82rem;
+    color: var(--p-text-muted-color);
+}
+.estimate-note .pi { font-size: .9rem; flex-shrink: 0; }
 </style>

@@ -102,8 +102,8 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 
 ### Features E2 (pendientes)
 
-- [ ] **Total contactos en modal campaña** — mostrar "0/N contactos" en modal de detalle aunque la campaña no haya corrido. Actualmente muestra "Sin registros" si no hay logs.
-- [ ] **Asignación masiva de tags** — seleccionar varios contactos en la tabla y asignar un tag a todos de una vez, sin ir 1 por 1.
+- [x] **Total contactos en modal campaña** — muestra "0/N contactos" antes de ejecutar (snapshot al crear + recálculo en vivo para draft). Rama `feat/campaign-total-contacts`.
+- [x] **Asignación masiva de tags** — selección múltiple + barra de acción: asignar, quitar y crear tag al vuelo. Rama `feat/contacts-bulk-tags`.
 - [ ] **Alta individual de contacto** — formulario para agregar un contacto manualmente sin necesidad de Excel.
 - [ ] **Eliminar contactos** — soft delete (marcar como inactivo, no borrar físicamente — ver nota abajo).
 - [ ] **Borrar plantillas jaspers del panel** — limpiar plantillas de demo/prueba antes de mostrar al cliente.

@@ -84,7 +84,48 @@
                     <Button icon="pi pi-search" severity="secondary" @click="loadContacts(1)" />
                 </div>
 
-                <DataTable :value="contacts" :loading="loading" size="small" stripedRows class="mt-3">
+                <!-- Barra de acción masiva (aparece al seleccionar contactos) -->
+                <div v-if="selected.length" class="bulk-bar">
+                    <span class="bulk-count">{{ selected.length }} seleccionado{{ selected.length === 1 ? '' : 's' }}</span>
+                    <Select
+                        v-model="bulkTagId"
+                        :options="allTags"
+                        option-label="name"
+                        option-value="id"
+                        placeholder="Elegir tag..."
+                        style="min-width: 180px"
+                    />
+                    <template v-if="!showBulkNewTag">
+                        <Button label="Nuevo tag" icon="pi pi-plus" size="small" severity="secondary" text @click="showBulkNewTag = true" />
+                    </template>
+                    <template v-else>
+                        <InputText v-model="bulkNewTagName" placeholder="Nombre del tag..." @keyup.enter="createBulkTag" style="width: 160px" autofocus />
+                        <Button label="Crear" size="small" severity="secondary" :loading="creatingBulkTag" @click="createBulkTag" />
+                        <Button icon="pi pi-times" text size="small" severity="secondary" @click="showBulkNewTag = false; bulkNewTagName = ''" />
+                    </template>
+                    <Button
+                        label="Asignar tag"
+                        icon="pi pi-tag"
+                        size="small"
+                        :disabled="!bulkTagId || bulkBusy"
+                        :loading="bulkAction === 'attach'"
+                        @click="bulkTagAction('attach')"
+                    />
+                    <Button
+                        label="Quitar tag"
+                        icon="pi pi-minus-circle"
+                        size="small"
+                        severity="danger"
+                        text
+                        :disabled="!bulkTagId || bulkBusy"
+                        :loading="bulkAction === 'detach'"
+                        @click="bulkTagAction('detach')"
+                    />
+                    <Button label="Limpiar" text size="small" severity="secondary" @click="selected = []" />
+                </div>
+
+                <DataTable v-model:selection="selected" data-key="id" :value="contacts" :loading="loading" size="small" stripedRows class="mt-3">
+                    <Column selection-mode="multiple" header-style="width: 3rem" />
                     <Column field="id" header="#" style="width: 60px" />
                     <Column field="phone" header="Teléfono">
                         <template #body="{ data }">
@@ -171,6 +212,7 @@
             option-value="id"
             placeholder="Seleccionar tags..."
             display="chip"
+            :show-toggle-all="false"
             fluid
         />
         <div class="tags-manage-row">
@@ -211,6 +253,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useConfirm } from 'primevue/useconfirm';
+import { useToast }   from 'primevue/usetoast';
 import { useAuth }    from '../auth.js';
 import Card          from 'primevue/card';
 import Button        from 'primevue/button';
@@ -225,8 +268,19 @@ import Dialog        from 'primevue/dialog';
 import { api }       from '../api.js';
 
 const confirm = useConfirm();
+const toast   = useToast();
 const { user: authState } = useAuth();
 const isAdmin = computed(() => authState.user?.role === 'admin');
+
+// Selección masiva de tags
+const selected       = ref([]);
+const bulkTagId      = ref(null);
+const bulkAction     = ref(null); // 'attach' | 'detach' | null — controla el spinner por botón
+const showBulkNewTag = ref(false);
+const bulkNewTagName = ref('');
+const creatingBulkTag = ref(false);
+
+const bulkBusy = computed(() => bulkAction.value !== null);
 
 const contacts     = ref([]);
 const meta         = ref(null);
@@ -373,6 +427,51 @@ async function saveTags() {
     savingTags.value = false;
 }
 
+async function createBulkTag() {
+    if (!bulkNewTagName.value.trim()) return;
+    creatingBulkTag.value = true;
+    const res = await api.createTag(bulkNewTagName.value.trim());
+    creatingBulkTag.value = false;
+
+    if (res.status === 'ok') {
+        allTags.value.push(res.data);
+        bulkTagId.value      = res.data.id; // auto-selecciona el tag recién creado
+        showBulkNewTag.value = false;
+        bulkNewTagName.value = '';
+    } else {
+        toast.add({ severity: 'error', summary: 'Error', detail: res.message ?? 'No se pudo crear el tag.', life: 4000 });
+    }
+}
+
+async function bulkTagAction(action) {
+    if (!bulkTagId.value || !selected.value.length || bulkBusy.value) return;
+    bulkAction.value = action;
+    const ids     = selected.value.map(c => c.id);
+    const res     = action === 'attach'
+        ? await api.bulkAttachTag(ids, bulkTagId.value)
+        : await api.bulkDetachTag(ids, bulkTagId.value);
+    bulkAction.value = null;
+
+    if (res.status === 'ok') {
+        const tagName = allTags.value.find(t => t.id === bulkTagId.value)?.name ?? '';
+        const count   = action === 'attach' ? res.data.attached : res.data.detached;
+        toast.add({
+            severity: 'success',
+            summary : action === 'attach' ? 'Tag asignado' : 'Tag quitado',
+            detail  : `"${tagName}" ${action === 'attach' ? 'asignado a' : 'quitado de'} ${count} contacto(s).`,
+            life    : 3000,
+        });
+        selected.value       = [];
+        bulkTagId.value      = null;
+        showBulkNewTag.value = false;
+        bulkNewTagName.value = '';
+        await loadContacts(meta.value?.current_page ?? 1);
+        await loadTags();
+    } else {
+        toast.add({ severity: 'error', summary: 'Error', detail: res.message, life: 5000 });
+    }
+}
+
 async function createTag() {
     if (!newTagName.value.trim()) return;
     creatingTag.value = true;
@@ -424,6 +523,17 @@ onMounted(() => { loadContacts(); loadTags(); });
 .error-list    { margin-top: 8px; padding-left: 16px; font-size: .8rem; }
 
 .filter-row    { display: flex; gap: 8px; }
+
+.bulk-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 8px 14px;
+    background: var(--p-primary-50);
+    border-radius: 8px;
+}
+.bulk-count { font-size: .85rem; font-weight: 600; color: var(--p-primary-700); }
 .mt-3          { margin-top: 12px; }
 .mb-4          { margin-bottom: 20px; }
 .date-cell     { color: var(--p-text-muted-color); font-size: .82rem; }

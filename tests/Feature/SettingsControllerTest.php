@@ -178,4 +178,27 @@ class SettingsControllerTest extends TestCase
              ->getJson('/api/settings/monthly-goal')
              ->assertStatus(403);
     }
+
+    // ── POST /api/settings/demo-reset ────────────────────────────────────────
+
+    public function test_demo_reset_quita_paused_until_y_retrocede_cooldown(): void
+    {
+        $phone = PhoneNumber::factory()->create(['is_active' => true, 'paused_until' => now()->addHour()]);
+        MessageLog::factory()->create(['to_number' => '529231311146', 'status' => 'sent', 'sent_at' => now()->subDay()]);
+
+        $response = $this->actingAsSuperAdmin()
+                         ->postJson('/api/settings/demo-reset');
+
+        $response->assertStatus(200)->assertJsonPath('status', 'ok');
+
+        $this->assertNull($phone->fresh()->paused_until);
+        $this->assertTrue(MessageLog::first()->sent_at->lt(now()->subMonths(11)));
+    }
+
+    public function test_demo_reset_requiere_superadmin(): void
+    {
+        $this->actingAsOperator()
+             ->postJson('/api/settings/demo-reset')
+             ->assertStatus(403);
+    }
 }

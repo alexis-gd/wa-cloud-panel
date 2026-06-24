@@ -132,6 +132,7 @@
             :header="selectedCampaign?.name"
             modal
             :style="{ width: '700px' }"
+            @hide="stopDetailPolling"
         >
             <div v-if="selectedCampaign" class="detail-body">
 
@@ -271,7 +272,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast }   from 'primevue/usetoast';
 import Card          from 'primevue/card';
@@ -464,6 +465,26 @@ function confirmExecute(campaign) {
     });
 }
 
+let detailPollInterval = null;
+
+function startDetailPolling(campaignId) {
+    stopDetailPolling();
+    detailPollInterval = setInterval(async () => {
+        if (selectedCampaign.value?.status === 'running') {
+            await loadDetailLogs(campaignId, detailCurrentPage.value);
+        } else {
+            stopDetailPolling();
+        }
+    }, 5000);
+}
+
+function stopDetailPolling() {
+    if (detailPollInterval) {
+        clearInterval(detailPollInterval);
+        detailPollInterval = null;
+    }
+}
+
 async function openDetail(campaign) {
     selectedCampaign.value  = campaign;
     detailLogs.value        = [];
@@ -474,6 +495,7 @@ async function openDetail(campaign) {
     detailPrevPage.value    = null;
     showDetail.value        = true;
     await loadDetailLogs(campaign.id, 1);
+    if (campaign.status === 'running') startDetailPolling(campaign.id);
 }
 
 async function loadDetailLogs(campaignId, page = 1) {
@@ -547,6 +569,7 @@ function confirmDelete(campaign) {
 }
 
 onMounted(() => loadCampaigns());
+onUnmounted(() => stopDetailPolling());
 </script>
 
 <style scoped>

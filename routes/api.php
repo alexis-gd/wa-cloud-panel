@@ -137,6 +137,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::put('/settings/assignment-mode',  [SettingsController::class, 'updateAssignmentMode']);
         Route::get('/settings/monthly-goal',     [SettingsController::class, 'getMonthlyGoal']);
         Route::put('/settings/monthly-goal',     [SettingsController::class, 'updateMonthlyGoal']);
+        Route::post('/settings/demo-reset',      [SettingsController::class, 'demoReset']);
     });
 
     // Operaciones admin (superadmin hereda vía bypass en RoleMiddleware)

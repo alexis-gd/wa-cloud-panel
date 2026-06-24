@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
@@ -260,6 +261,22 @@ class SettingsController extends Controller
         Setting::set('monthly_goal', $data['monthly_goal']);
 
         return response()->json(['status' => 'ok', 'data' => $data]);
+    }
+
+    public function demoReset(): JsonResponse
+    {
+        $phones = PhoneNumber::query()->update(['paused_until' => null]);
+
+        // Retrocede sent_at un año para que ningún contacto esté en cooldown
+        $logs = MessageLog::query()->update(['sent_at' => now()->subYear()]);
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => [
+                'phones_unpaused' => $phones,
+                'logs_reset'      => $logs,
+            ],
+        ]);
     }
 
     /**

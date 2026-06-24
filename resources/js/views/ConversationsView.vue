@@ -191,8 +191,8 @@ import Dialog    from 'primevue/dialog';
 
 const toast = useToast();
 const { user: authState } = useAuth();
-const isAdmin            = computed(() => authState.user?.role === 'admin');
-const isAdminOrOperator  = computed(() => ['admin', 'operator'].includes(authState.user?.role));
+const isAdmin            = computed(() => ['admin', 'superadmin'].includes(authState.user?.role));
+const isAdminOrOperator  = computed(() => ['admin', 'operator', 'superadmin'].includes(authState.user?.role));
 
 function isMyConversation(contact) {
   return contact.assigned_to?.id === authState.user?.id;

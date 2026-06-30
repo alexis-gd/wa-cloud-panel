@@ -97,6 +97,18 @@ Los tags permiten agrupar contactos para segmentar campañas.
 3. La columna **Tags** en la tabla de contactos muestra las etiquetas asignadas.
 4. Para **filtrar la lista por tag**: usar el selector "Todos los tags" en la barra de búsqueda de Contactos.
 
+### Asignar un tag a varios contactos a la vez
+
+1. Marcar la casilla de cada contacto en la tabla (o la casilla del encabezado para seleccionar todos los de la página).
+2. Aparecerá una barra arriba de la tabla con los contactos seleccionados.
+3. Elegir el tag en el selector y clic en **Asignar tag**.
+   - ¿No existe el tag? Clic en **Nuevo tag**, escribir el nombre y **Crear** — queda seleccionado listo para asignar.
+4. El tag se **agrega** a todos los seleccionados sin quitar sus tags actuales.
+
+Para **quitar** un tag de varios contactos: seleccionarlos, elegir el tag y clic en **Quitar tag**. Solo se quita ese tag; los demás se conservan.
+
+> La selección aplica a los contactos visibles en la página (máximo 50). Para más, repetir en cada página.
+
 > Los tags no afectan el comportamiento de opt-out ni snooze. Son solo para clasificar.
 
 ---
@@ -114,6 +126,10 @@ Los tags permiten agrupar contactos para segmentar campañas.
 3. Clic en **Guardar**.
 
 > ℹ️ La campaña queda en estado **borrador** hasta que se ejecute.
+
+> ℹ️ Al abrir una campaña en borrador verás su **alcance estimado**: cuántos contactos activos
+> recibirían la campaña según el tag elegido. Es un estimado que se actualiza solo si importas o
+> das de baja contactos; el número definitivo se confirma al ejecutar.
 
 ---
 

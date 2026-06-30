@@ -132,6 +132,16 @@ export const api = {
         body   : JSON.stringify({ tag_ids: tagIds }),
     }),
 
+    bulkAttachTag: (contactIds, tagId) => request('/contacts/tags/bulk-attach', {
+        method : 'POST',
+        body   : JSON.stringify({ contact_ids: contactIds, tag_id: tagId }),
+    }),
+
+    bulkDetachTag: (contactIds, tagId) => request('/contacts/tags/bulk-detach', {
+        method : 'POST',
+        body   : JSON.stringify({ contact_ids: contactIds, tag_id: tagId }),
+    }),
+
     // ── Campaigns ─────────────────────────────────────────────────────────────
     campaigns: (params = {}) => {
         const qs = new URLSearchParams(params).toString();

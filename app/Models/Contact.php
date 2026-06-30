@@ -18,6 +18,7 @@ class Contact extends Model
         'source',
         'notes',
         'opted_out_at',
+        'opted_out_source',
         'snoozed_until',
     ];
 
@@ -56,11 +57,12 @@ class Contact extends Model
     /**
      * Marca el contacto como opt-out (irreversible por el cliente).
      */
-    public function optOut(): void
+    public function optOut(string $source = 'manual'): void
     {
         $this->update([
-            'status'       => 'opted_out',
-            'opted_out_at' => now(),
+            'status'            => 'opted_out',
+            'opted_out_at'      => now(),
+            'opted_out_source'  => $source,
         ]);
     }
 

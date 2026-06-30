@@ -105,6 +105,80 @@ class CampaignTest extends TestCase
         ->assertJsonPath('code', 'NO_PHONE_NUMBER');
     }
 
+    public function test_crear_campana_guarda_total_contacts_del_tag(): void
+    {
+        $this->actingAsOperator();
+
+        PhoneNumber::factory()->create(['is_active' => true]);
+        WaTemplate::factory()->create([
+            'name'      => 'hello_world',
+            'status'    => 'approved',
+            'is_active' => true,
+        ]);
+
+        $tag = Tag::create(['name' => 'Promo', 'slug' => 'promo']);
+
+        // 2 activos con tag, 1 activo sin tag, 1 opted_out con tag
+        $a = Contact::factory()->create(['status' => 'active']);
+        $b = Contact::factory()->create(['status' => 'active']);
+        Contact::factory()->create(['status' => 'active']);
+        $out = Contact::factory()->create(['status' => 'opted_out']);
+        $a->tags()->attach($tag->id);
+        $b->tags()->attach($tag->id);
+        $out->tags()->attach($tag->id);
+
+        $this->postJson('/api/campaigns', [
+            'name'          => 'Con tag',
+            'template_name' => 'hello_world',
+            'language_code' => 'en_US',
+            'tag_id'        => $tag->id,
+        ])
+        ->assertStatus(201)
+        ->assertJsonPath('data.total_contacts', 2);
+    }
+
+    public function test_crear_campana_sin_tag_cuenta_todos_los_activos(): void
+    {
+        $this->actingAsOperator();
+
+        PhoneNumber::factory()->create(['is_active' => true]);
+        WaTemplate::factory()->create([
+            'name'      => 'hello_world',
+            'status'    => 'approved',
+            'is_active' => true,
+        ]);
+
+        Contact::factory()->count(3)->create(['status' => 'active']);
+        Contact::factory()->create(['status' => 'opted_out']);
+
+        $this->postJson('/api/campaigns', [
+            'name'          => 'Sin tag',
+            'template_name' => 'hello_world',
+            'language_code' => 'en_US',
+        ])
+        ->assertStatus(201)
+        ->assertJsonPath('data.total_contacts', 3);
+    }
+
+    public function test_logs_draft_recalcula_total_contacts_en_vivo(): void
+    {
+        $this->actingAsOperator();
+
+        $phone    = PhoneNumber::factory()->create(['is_active' => true]);
+        $campaign = Campaign::factory()->create([
+            'phone_number_id' => $phone->id,
+            'status'          => 'draft',
+            'total_contacts'  => 1, // snapshot viejo
+        ]);
+
+        // Después de crear se importan 4 activos más → el modal debe mostrar el conteo fresco
+        Contact::factory()->count(4)->create(['status' => 'active']);
+
+        $this->getJson("/api/campaigns/{$campaign->id}/logs")
+             ->assertStatus(200)
+             ->assertJsonPath('campaign.total_contacts', 4);
+    }
+
     // ── Ver campaña ──────────────────────────────────────────────────────────
 
     public function test_show_campana_existente(): void

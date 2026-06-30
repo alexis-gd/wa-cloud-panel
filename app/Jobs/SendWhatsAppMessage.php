@@ -67,6 +67,19 @@ class SendWhatsAppMessage implements ShouldQueue
             return;
         }
 
+        // ── Verificar inalcanzable (marcado por wa:mark-unreachable) ──
+        // scopeActive ya lo excluye de campañas nuevas; esto protege jobs encolados
+        // antes de que el contacto fuera marcado.
+        if ($contact->status === 'unreachable') {
+            Log::info('SendWhatsAppMessage: contacto inalcanzable, descartando', [
+                'contact_id' => $this->contactId,
+            ]);
+            MessageLog::logDiscard($this->phoneNumberId, $this->campaignId, $contact->phone, $this->templateName, $this->languageCode, 'unreachable');
+            $campaign->increment('failed_count');
+            $this->checkAutoComplete($campaign);
+            return;
+        }
+
         // ── Verificar opt-out ANTES de enviar (regla inquebrantable) ──
         if ($contact->status === 'opted_out' || $contact->status === 'invalid') {
             Log::info('SendWhatsAppMessage: contacto con opt-out/inválido, descartando', [

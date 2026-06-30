@@ -65,4 +65,49 @@ class TagController extends Controller
             'data'   => $contact->tags()->get(['id', 'name', 'slug']),
         ]);
     }
+
+    // POST /api/contacts/tags/bulk-attach
+    // Agrega un tag a varios contactos a la vez sin quitar sus tags existentes.
+    public function bulkAttach(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'contact_ids'   => 'required|array|min:1',
+            'contact_ids.*' => 'integer|exists:contacts,id',
+            'tag_id'        => 'required|integer|exists:tags,id',
+        ]);
+
+        $contacts = Contact::whereIn('id', $data['contact_ids'])->get();
+
+        foreach ($contacts as $contact) {
+            // syncWithoutDetaching: agrega el tag sin duplicar ni borrar los demás
+            $contact->tags()->syncWithoutDetaching([$data['tag_id']]);
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => ['attached' => $contacts->count()],
+        ]);
+    }
+
+    // POST /api/contacts/tags/bulk-detach
+    // Quita un tag de varios contactos a la vez sin tocar sus demás tags.
+    public function bulkDetach(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'contact_ids'   => 'required|array|min:1',
+            'contact_ids.*' => 'integer|exists:contacts,id',
+            'tag_id'        => 'required|integer|exists:tags,id',
+        ]);
+
+        $contacts = Contact::whereIn('id', $data['contact_ids'])->get();
+
+        foreach ($contacts as $contact) {
+            $contact->tags()->detach($data['tag_id']);
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => ['detached' => $contacts->count()],
+        ]);
+    }
 }

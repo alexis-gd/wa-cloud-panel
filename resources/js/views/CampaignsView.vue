@@ -378,6 +378,7 @@ const discardLabel = (r) => ({
     snooze     : 'En snooze',
     opted_out  : 'Opt-out',
     dedup_today: 'Ya enviado hoy',
+    unreachable: 'Inalcanzable',
 }[r] ?? r);
 
 function progressPct(count, total) {

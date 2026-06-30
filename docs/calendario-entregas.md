@@ -84,7 +84,7 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] Multi-número con balanceo inteligente — PhoneNumberSelector distribuye en round-robin por capacidad restante
 - [x] Tags y segmentación de contactos
 - [x] Multi-agente de atención — auto-asignación, claim, assign, modos least_chats/first_available, chip Sin asignar, resaltado propias
-- [ ] Deploy script automatizado
+- [x] Deploy script automatizado — `deploy.sh` en la raíz (1 comando: mantenimiento + pull + deps + build + migrate + cache + restart queue + health check)
 - [ ] Monitoreo + alertas
 - [ ] Tests regresión automatizados (CI GitHub Actions)
 - [ ] ⚠️ Warm-up número producción (3-4 semanas paralelas)

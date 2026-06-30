@@ -21,11 +21,11 @@ class WebhookController extends Controller
     private const OPT_OUT_WORDS = ['STOP', 'BAJA', 'CANCELAR', 'NO'];
 
     private const DELIVERY_ERROR_MESSAGES = [
-        131049 => 'Meta pausó temporalmente las entregas por calidad del número.',
-        131048 => 'Meta detectó actividad inusual. Envíos pausados automáticamente.',
-        131026 => 'El número no tiene WhatsApp activo.',
-        368    => 'La cuenta fue bloqueada temporalmente por Meta.',
-        470    => 'La plantilla usada no está aprobada.',
+        131049 => 'Entrega pausada por límite de calidad. Se reanudará automáticamente.',
+        131048 => 'Entrega pausada por límite de envíos. Se reanudará automáticamente.',
+        131026 => 'El mensaje no pudo ser entregado al destinatario.',
+        368    => 'Cuenta temporalmente restringida por Meta.',
+        470    => 'La plantilla no está aprobada en Meta.',
     ];
 
     public function __construct(private readonly AssignmentService $assignmentService) {}
@@ -96,6 +96,12 @@ class WebhookController extends Controller
                     $this->createFailedDeliveryNotification($log, $errorCode);
                 } else {
                     $log?->updateStatus($status);
+
+                    if (in_array($status, ['delivered', 'read']) && $log) {
+                        AppNotification::where('type', 'delivery_failed')
+                            ->where('body', 'like', "%{$log->to_number}%")
+                            ->delete();
+                    }
                 }
 
                 // Sincronizar status en conversations (mensajes salientes)
@@ -203,7 +209,7 @@ class WebhookController extends Controller
         $normalized = strtoupper(trim($body));
 
         if (in_array($normalized, self::OPT_OUT_WORDS, true)) {
-            $contact->optOut();
+            $contact->optOut('auto');
             Log::info("Opt-out por texto '{$body}' — contacto {$contact->id}");
         }
     }

@@ -100,6 +100,15 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [ ] **Detección de contactos inalcanzables (`unreachable`)** — ver plan completo en [`docs/plan-unreachable.md`](plan-unreachable.md). Comando `wa:mark-unreachable` corre diario a las 6AM CST (antes de la ventana de envíos). Marca contactos `active` con 2+ mensajes en `sent` de 30+ días sin ningún `delivered`/`read` histórico. Protege el ratio `delivered/sent` y la calidad del número en Meta.
 - [ ] **Auto-sincronizar `daily_limit` cuando Meta sube el tier** — actualmente el `daily_limit` en BD se actualiza solo manualmente (botón Salud del número en Settings). Cuando Meta promueve el tier automáticamente, el PhoneNumberSelector sigue usando el límite viejo hasta que alguien presione el botón. Solución: el job de envío o un comando `wa:sync-limits` debería llamar al endpoint de Meta y actualizar `phone_numbers.daily_limit` si cambió.
 
+### Features E2 (pendientes)
+
+- [x] **Total contactos en modal campaña** — muestra "0/N contactos" antes de ejecutar (snapshot al crear + recálculo en vivo para draft). Rama `feat/campaign-total-contacts`.
+- [x] **Asignación masiva de tags** — selección múltiple + barra de acción: asignar, quitar y crear tag al vuelo. Rama `feat/contacts-bulk-tags`.
+- [ ] **Alta individual de contacto** — formulario para agregar un contacto manualmente sin necesidad de Excel.
+- [ ] **Eliminar contactos** — soft delete (marcar como inactivo, no borrar físicamente — ver nota abajo).
+- [ ] **Borrar plantillas jaspers del panel** — limpiar plantillas de demo/prueba antes de mostrar al cliente.
+- [ ] **Tooltip en "Lista de contactos"** — ícono ? junto al título de la tabla que explique estados (activo/opted_out/inválido/snooze), fuente del contacto (excel/manual), y origen de baja (auto/manual).
+
 ### Bugs y mejoras UI (pendientes)
 
 - [ ] **Homologar botones** — hay inconsistencias entre vistas (ej. Contactos usa estilos distintos al editar y las pills/badges de tags varían). Crear componente base o definir uso estricto de PrimeVue Button según la tabla del estilo-codigo.md.

@@ -96,7 +96,12 @@
                     </Column>
                     <Column header="Estado">
                         <template #body="{ data }">
-                            <Tag :value="data.status" :severity="statusSeverity(data.status)" />
+                            <Tag
+                                :value="statusLabel(data.status)"
+                                :severity="statusSeverity(data.status)"
+                                v-tooltip.top="data.status === 'opted_out' ? optOutTooltip(data) : null"
+                                :style="data.status === 'opted_out' ? 'cursor:help' : ''"
+                            />
                         </template>
                     </Column>
                     <Column header="Tags" style="min-width: 140px">
@@ -264,11 +269,29 @@ const filterOptions = [
     { label: 'Inválidos', value: 'invalid' },
 ];
 
+const statusLabel = (status) => ({
+    active    : 'Activo',
+    opted_out : 'Opt-out',
+    invalid   : 'Inválido',
+}[status] ?? status);
+
 const statusSeverity = (status) => ({
     active    : 'success',
     opted_out : 'danger',
     invalid   : 'warn',
 }[status] ?? 'secondary');
+
+const optOutTooltip = (contact) => {
+    const source = contact.opted_out_source === 'auto'
+        ? 'Automático — el contacto respondió para darse de baja'
+        : contact.opted_out_source === 'manual'
+            ? 'Manual — marcado por un operador'
+            : 'Origen desconocido';
+    const date = contact.opted_out_at
+        ? new Date(contact.opted_out_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
+        : '—';
+    return `Baja el: ${date}\nOrigen: ${source}`;
+};
 
 async function loadContacts(page = 1) {
     loading.value = true;

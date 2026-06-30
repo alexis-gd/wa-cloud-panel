@@ -115,6 +115,10 @@ Los tags permiten agrupar contactos para segmentar campañas.
 
 > ℹ️ La campaña queda en estado **borrador** hasta que se ejecute.
 
+> ℹ️ Al abrir una campaña en borrador verás su **alcance estimado**: cuántos contactos activos
+> recibirían la campaña según el tag elegido. Es un estimado que se actualiza solo si importas o
+> das de baja contactos; el número definitivo se confirma al ejecutar.
+
 ---
 
 ## 5.1. Ejecutar una campaña

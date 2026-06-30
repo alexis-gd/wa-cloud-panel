@@ -26,6 +26,14 @@ class Kernel extends ConsoleKernel
         // Limpiar tokens Sanctum expirados de la BD (los marca expirados en memoria,
         // pero no los borra automáticamente sin este comando).
         $schedule->command('sanctum:prune-expired --hours=8')->daily();
+
+        // Marcar contactos inalcanzables a las 6AM CST, antes de que abra la ventana
+        // de envíos (9AM). La query es pesada (agregados sobre message_log) y aquí
+        // corre con la BD ociosa, sin competir con las campañas.
+        $schedule->command('wa:mark-unreachable')
+            ->dailyAt('06:00')
+            ->timezone('America/Mexico_City')
+            ->withoutOverlapping();
     }
 
     /**

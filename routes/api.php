@@ -57,6 +57,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::post('/contacts/upload',      [ContactController::class, 'upload']);
         Route::delete('/contacts/{id}',      [ContactController::class, 'optOut']);
         Route::put('/contacts/{id}/tags',    [TagController::class, 'syncContact']);
+        Route::post('/contacts/tags/bulk-attach', [TagController::class, 'bulkAttach']);
+        Route::post('/contacts/tags/bulk-detach', [TagController::class, 'bulkDetach']);
 
         // Tags
         Route::get('/tags',         [TagController::class, 'index']);

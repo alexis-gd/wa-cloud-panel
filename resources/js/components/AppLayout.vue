@@ -272,7 +272,7 @@ const helpContent = {
             { icon: 'pi-phone',         label: 'Formato',    text: 'Teléfonos en formato mexicano con código de país: 529231311146.' },
             { icon: 'pi-check-circle',  label: 'Resultado',  text: 'Al importar verás: aceptados / duplicados / formato inválido.' },
             { icon: 'pi-ban',           label: 'Eliminar',   text: 'Borrar un contacto lo marca como opt-out permanente, no se elimina de la BD.' },
-            { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora: Disponible, En cooldown, Enviado hoy o No recibe (bloqueado). Distinta del Estado.' },
+            { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora: Disponible, En snooze, En cooldown, Enviado hoy o No recibe (bloqueado). Distinta del Estado.' },
             { icon: 'pi-tag',           label: 'Tags masivos', text: 'Marca varios contactos con las casillas y usa la barra superior para asignar un tag a todos a la vez.' },
             { icon: 'pi-download',      label: 'Exportar',   text: 'Descarga la lista actual de contactos en Excel.' },
         ],

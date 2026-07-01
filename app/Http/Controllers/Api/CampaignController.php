@@ -8,6 +8,7 @@ use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
+use App\Models\Setting;
 use App\Models\Tag;
 use App\Models\WaTemplate;
 use App\Services\PhoneNumberSelector;
@@ -133,11 +134,15 @@ class CampaignController extends Controller
         }
 
         // ── Verificar ventana horaria 9AM-10PM CST (L-V) ──
+        // "Modo demo" (Setting schedule_bypass=1) permite ejecutar fuera de horario
+        // para pruebas/demos. Default apagado — en operación real NUNCA se enciende
+        // (enviar fuera de horario a números reales puede generar reportes de spam).
+        $scheduleBypass = Setting::get('schedule_bypass', '0') === '1';
         $now     = now('America/Mexico_City');
         $hour    = (int) $now->format('G');
         $weekday = (int) $now->format('N'); // 1=Lunes, 7=Domingo
 
-        if ($weekday > 5 || $hour < 9 || $hour >= 22) {
+        if (! $scheduleBypass && ($weekday > 5 || $hour < 9 || $hour >= 22)) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Los envíos solo están permitidos de lunes a viernes entre 9:00 AM y 10:00 PM (hora México).',

@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
+use App\Models\MessageLog;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -57,6 +60,133 @@ class ContactController extends Controller
             'opted_out' => (int) ($counts['opted_out'] ?? 0),
             'invalid'   => (int) ($counts['invalid']   ?? 0),
         ]);
+    }
+
+    /**
+     * Alta individual de un contacto (manual, sin Excel).
+     * POST /api/contacts
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'phone' => 'required|string|max:20',
+            'name'  => 'nullable|string|max:255',
+        ]);
+
+        $normalized = Contact::normalizePhone($data['phone']);
+
+        if ($normalized === null) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'El teléfono no tiene un formato válido (México: 52 + 10 dígitos).',
+                'code'    => 'INVALID_PHONE',
+            ], 422);
+        }
+
+        // Rechazar duplicados — incluye opt-out/inválidos/unreachable (no se reincorporan,
+        // se conservan para auditoría). El estado se devuelve para que el front lo explique.
+        if (Contact::where('phone', $normalized)->exists()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Este número ya existe en el sistema.',
+                'code'    => 'DUPLICATE',
+                'data'    => $this->deliverabilitySnapshot($normalized),
+            ], 422);
+        }
+
+        $contact = Contact::create([
+            'phone'  => $normalized,
+            'name'   => $data['name'] ?: null,
+            'status' => 'active',
+            'source' => 'manual',
+        ]);
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => $contact->load('tags:id,name,slug'),
+        ], 201);
+    }
+
+    /**
+     * Chequeo de entregabilidad de un número antes de darlo de alta.
+     * GET /api/contacts/check?phone=X
+     */
+    public function check(Request $request): JsonResponse
+    {
+        $normalized = Contact::normalizePhone((string) $request->query('phone', ''));
+
+        if ($normalized === null) {
+            return response()->json([
+                'status' => 'ok',
+                'data'   => [
+                    'phone'           => null,
+                    'valid_format'    => false,
+                    'exists'          => false,
+                    'contact_status'  => null,
+                    'name'            => null,
+                    'blocked'         => false,
+                    'cooldown_active' => false,
+                    'cooldown_until'  => null,
+                    'sent_today'      => false,
+                    'deliverable'     => false,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => $this->deliverabilitySnapshot($normalized),
+        ]);
+    }
+
+    /**
+     * Calcula el estado de entregabilidad de un número (ya normalizado):
+     * si existe, si está bloqueado, en cooldown o ya recibió hoy.
+     * Reutiliza la misma lógica que el job de envío.
+     */
+    private function deliverabilitySnapshot(string $phone): array
+    {
+        $contact = Contact::where('phone', $phone)->first();
+        $status  = $contact?->status;
+        $blocked = in_array($status, ['opted_out', 'invalid', 'unreachable'], true);
+
+        // Dedup: ¿ya recibió un mensaje hoy? (hora México)
+        $startOfDay = now('America/Mexico_City')->startOfDay()->utc();
+        $endOfDay   = now('America/Mexico_City')->endOfDay()->utc();
+        $sentToday  = MessageLog::where('to_number', $phone)
+            ->whereBetween('sent_at', [$startOfDay, $endOfDay])
+            ->whereIn('status', ['sent', 'delivered', 'read'])
+            ->exists();
+
+        // Cooldown: último 'sent' dentro de la ventana (mínimo 7, default 30 días)
+        $cooldownDays   = max(7, (int) Setting::get('cooldown_days', 30));
+        $lastSent       = MessageLog::where('to_number', $phone)
+            ->where('status', 'sent')
+            ->latest('sent_at')
+            ->value('sent_at');
+        $cooldownActive = false;
+        $cooldownUntil  = null;
+
+        if ($lastSent && now()->diffInDays($lastSent) < $cooldownDays) {
+            $cooldownActive = true;
+            $cooldownUntil  = Carbon::parse($lastSent)
+                ->addDays($cooldownDays)
+                ->setTimezone('America/Mexico_City')
+                ->format('Y-m-d');
+        }
+
+        return [
+            'phone'           => $phone,
+            'valid_format'    => true,
+            'exists'          => (bool) $contact,
+            'contact_status'  => $status,
+            'name'            => $contact?->name,
+            'blocked'         => $blocked,
+            'cooldown_active' => $cooldownActive,
+            'cooldown_until'  => $cooldownUntil,
+            'sent_today'      => $sentToday,
+            'deliverable'     => ! $blocked && ! $sentToday && ! $cooldownActive,
+        ];
     }
 
     /**

@@ -13,10 +13,12 @@ class MessageLog extends Model
     protected $fillable = [
         'phone_number_id',
         'campaign_id',
+        'channel',
         'to_number',
         'template_name',
         'language_code',
         'body_vars',
+        'sms_body',
         'wa_message_id',
         'status',
         'error_message',
@@ -53,6 +55,51 @@ class MessageLog extends Model
             'body_vars'       => $vars,
             'status'          => 'pending',
         ]);
+    }
+
+    // Crea el registro de un SMS ANTES de llamar al gateway (misma regla que logSend WA).
+    // SMS no tiene phone_number_id (número WA) ni plantilla: guarda el texto en sms_body.
+    public static function logSmsSend(string $to, string $body, ?int $campaignId = null): self
+    {
+        return self::create([
+            'campaign_id' => $campaignId,
+            'channel'     => 'sms',
+            'to_number'   => $to,
+            'sms_body'    => $body,
+            'status'      => 'pending',
+        ]);
+    }
+
+    // Registra un SMS descartado (opt-out / cooldown / dedup / etc.). Espejo de logDiscard WA.
+    public static function logSmsDiscard(?int $campaignId, string $to, string $body, string $reason): self
+    {
+        return self::create([
+            'campaign_id'    => $campaignId,
+            'channel'        => 'sms',
+            'to_number'      => $to,
+            'sms_body'       => $body,
+            'status'         => 'discarded',
+            'discard_reason' => $reason,
+            'sent_at'        => now(),
+        ]);
+    }
+
+    // Actualiza con la respuesta del gateway SMS. El MessageSid del proveedor se guarda
+    // en wa_message_id (columna genérica de id del proveedor, reutilizada para SMS).
+    public function updateFromSmsResponse(array $response): void
+    {
+        if ($response['ok'] && ! empty($response['message_id'])) {
+            $this->update([
+                'wa_message_id' => $response['message_id'],
+                'status'        => 'sent',
+                'sent_at'       => now(),
+            ]);
+        } else {
+            $this->update([
+                'status'        => 'failed',
+                'error_message' => json_encode($response['error'] ?? $response),
+            ]);
+        }
     }
 
     // Registra un contacto descartado (cooldown / snooze / opted_out / dedup_today)

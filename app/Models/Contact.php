@@ -21,12 +21,49 @@ class Contact extends Model
         'opted_out_at',
         'opted_out_source',
         'snoozed_until',
+        'sms_opt_out',
+        'sms_blocked',
+        'sms_invalid',
+        'sms_bounce_count',
     ];
 
     protected $casts = [
         'opted_out_at'  => 'datetime',
         'snoozed_until' => 'datetime',
+        'sms_opt_out'   => 'boolean',
+        'sms_blocked'   => 'boolean',
+        'sms_invalid'   => 'boolean',
     ];
+
+    /**
+     * Marca opt-out de SMS (irreversible por el cliente). Independiente del opt-out WA:
+     * el contacto puede seguir activo para WhatsApp aunque pida baja de SMS y viceversa.
+     */
+    public function smsOptOut(): void
+    {
+        $this->update(['sms_opt_out' => true]);
+    }
+
+    /**
+     * True si el contacto NO puede recibir SMS (opt-out, bloqueado o número inválido).
+     */
+    public function isSmsBlocked(): bool
+    {
+        return $this->sms_opt_out || $this->sms_blocked || $this->sms_invalid;
+    }
+
+    /**
+     * Registra un rebote SMS. A los 3 consecutivos se auto-bloquea el canal SMS
+     * (regla contexto-twilio-sms). No afecta el canal WhatsApp.
+     */
+    public function registerSmsBounce(): void
+    {
+        $count = $this->sms_bounce_count + 1;
+        $this->update([
+            'sms_bounce_count' => $count,
+            'sms_blocked'      => $count >= 3 ? true : $this->sms_blocked,
+        ]);
+    }
 
     /**
      * Normaliza un número de teléfono al formato mexicano: 52XXXXXXXXXX (12 dígitos).

@@ -91,6 +91,11 @@ export const api = {
         body   : JSON.stringify(payload),
     }),
 
+    sendSmsTest: (payload) => request('/sms/send-test', {
+        method : 'POST',
+        body   : JSON.stringify(payload),
+    }),
+
     // ── Contacts ─────────────────────────────────────────────────────────────
     contacts: (params = {}) => {
         const qs = new URLSearchParams(params).toString();

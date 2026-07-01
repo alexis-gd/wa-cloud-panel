@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\SmsController;
 use App\Http\Controllers\Api\SmsWebhookController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TemplateController;
@@ -107,6 +108,11 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::post('/quick-replies',        [ConversationController::class, 'storeQuickReply']);
         Route::delete('/quick-replies/{id}', [ConversationController::class, 'destroyQuickReply']);
+    });
+
+    // SMS — envío de prueba solo admin (probar el gateway sin crear campaña)
+    Route::middleware('role:admin')->group(function () {
+        Route::post('/sms/send-test', [SmsController::class, 'sendTest']);
     });
 
     // Plantillas — escritura solo admin

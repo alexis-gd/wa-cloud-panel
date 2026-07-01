@@ -96,6 +96,23 @@ Para cuando consigues un prospecto suelto (referido, llamada, walk-in):
 
 > El botón Guardar solo se activa si el número es válido y no existe. Un número dado de baja (opt-out) no se puede reincorporar por esta vía.
 
+### Columnas de la tabla de contactos
+
+La tabla tiene dos columnas de estado (el ícono **?** junto al título las explica):
+
+- **Estado** — identidad del contacto:
+  - **Activo** — normal.
+  - **Opt-out** — pidió baja (tooltip muestra fecha y origen).
+  - **Inválido** — número no existe en WhatsApp.
+  - **Inalcanzable** — rebotó repetido, marcado automáticamente.
+- **Entregabilidad** — si le llega **ahora mismo**:
+  - 🟢 **Disponible** — se le puede enviar.
+  - 🟠 **En cooldown** — recibió hace poco; no se le envía hasta que pase (tooltip con la fecha).
+  - 🔵 **Enviado hoy** — ya recibió hoy, no se reenvía el mismo día.
+  - 🔴 **No recibe** — bloqueado (opt-out / inválido / inalcanzable).
+
+> Un contacto puede estar **Activo** pero **En cooldown** o **Enviado hoy** — es normal, solo significa que ahorita no se le envía para no saturarlo.
+
 ---
 
 ## 4. Tags — etiquetar contactos

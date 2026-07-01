@@ -40,7 +40,69 @@ class ContactController extends Controller
 
         $contacts = $query->paginate(50);
 
+        // Agregar estado de entregabilidad (cooldown / enviado hoy) a cada contacto.
+        // Batch: 2 queries por página, no una por fila (seguro a escala de 200k).
+        $this->attachDeliverability($contacts->getCollection());
+
         return response()->json($contacts);
+    }
+
+    /**
+     * Anexa a cada contacto de la página su estado de entregabilidad:
+     * sent_today, cooldown_active, cooldown_until, deliverable.
+     * Hace 2 queries agregadas sobre message_log para toda la página (sin N+1).
+     */
+    private function attachDeliverability($contacts): void
+    {
+        if ($contacts->isEmpty()) {
+            return;
+        }
+
+        $phones = $contacts->pluck('phone')->all();
+
+        $startOfDay = now('America/Mexico_City')->startOfDay()->utc();
+        $endOfDay   = now('America/Mexico_City')->endOfDay()->utc();
+
+        // Números que ya recibieron un mensaje hoy (dedup)
+        $sentTodaySet = array_flip(
+            MessageLog::whereIn('to_number', $phones)
+                ->whereBetween('sent_at', [$startOfDay, $endOfDay])
+                ->whereIn('status', ['sent', 'delivered', 'read'])
+                ->distinct()
+                ->pluck('to_number')
+                ->all()
+        );
+
+        // Último 'sent' por número (para cooldown)
+        $lastSentMap = MessageLog::whereIn('to_number', $phones)
+            ->where('status', 'sent')
+            ->groupBy('to_number')
+            ->select('to_number', DB::raw('MAX(sent_at) as last_sent'))
+            ->pluck('last_sent', 'to_number')
+            ->all();
+
+        $cooldownDays = max(7, (int) Setting::get('cooldown_days', 30));
+
+        foreach ($contacts as $contact) {
+            $blocked        = in_array($contact->status, ['opted_out', 'invalid', 'unreachable'], true);
+            $sentToday      = isset($sentTodaySet[$contact->phone]);
+            $cooldownActive = false;
+            $cooldownUntil  = null;
+
+            $lastSent = $lastSentMap[$contact->phone] ?? null;
+            if ($lastSent && now()->diffInDays($lastSent) < $cooldownDays) {
+                $cooldownActive = true;
+                $cooldownUntil  = Carbon::parse($lastSent)
+                    ->addDays($cooldownDays)
+                    ->setTimezone('America/Mexico_City')
+                    ->format('Y-m-d');
+            }
+
+            $contact->setAttribute('sent_today', $sentToday);
+            $contact->setAttribute('cooldown_active', $cooldownActive);
+            $contact->setAttribute('cooldown_until', $cooldownUntil);
+            $contact->setAttribute('deliverable', ! $blocked && ! $sentToday && ! $cooldownActive);
+        }
     }
 
     /**

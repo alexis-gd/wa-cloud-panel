@@ -76,7 +76,12 @@
 
         <!-- Tabla -->
         <Card>
-            <template #title>Lista de contactos</template>
+            <template #title>
+                <span class="table-title">
+                    Lista de contactos
+                    <i class="pi pi-question-circle title-help" v-tooltip.top="tableHelp"></i>
+                </span>
+            </template>
             <template #content>
                 <div class="filter-row">
                     <InputText v-model="search" placeholder="Buscar teléfono o nombre..." @keyup.enter="loadContacts(1)" fluid />
@@ -143,6 +148,16 @@
                                 :severity="statusSeverity(data.status)"
                                 v-tooltip.top="data.status === 'opted_out' ? optOutTooltip(data) : null"
                                 :style="data.status === 'opted_out' ? 'cursor:help' : ''"
+                            />
+                        </template>
+                    </Column>
+                    <Column header="Entregabilidad" style="min-width: 150px">
+                        <template #body="{ data }">
+                            <Tag
+                                :value="deliverLabel(data)"
+                                :severity="deliverSeverity(data)"
+                                v-tooltip.top="deliverTooltip(data)"
+                                :style="deliverTooltip(data) ? 'cursor:help' : ''"
                             />
                         </template>
                     </Column>
@@ -383,10 +398,40 @@ const statusLabel = (status) => ({
 }[status] ?? status);
 
 const statusSeverity = (status) => ({
-    active    : 'success',
-    opted_out : 'danger',
-    invalid   : 'warn',
+    active      : 'success',
+    opted_out   : 'danger',
+    invalid     : 'warn',
+    unreachable : 'contrast',
 }[status] ?? 'secondary');
+
+// Entregabilidad (¿le llega ahora?) — eje distinto al estado de identidad
+const isBlockedStatus = (s) => ['opted_out', 'invalid', 'unreachable'].includes(s);
+
+const deliverLabel = (c) => {
+    if (isBlockedStatus(c.status)) return 'No recibe';
+    if (c.sent_today)     return 'Enviado hoy';
+    if (c.cooldown_active) return 'En cooldown';
+    return 'Disponible';
+};
+
+const deliverSeverity = (c) => {
+    if (isBlockedStatus(c.status)) return 'danger';
+    if (c.sent_today)     return 'info';
+    if (c.cooldown_active) return 'warn';
+    return 'success';
+};
+
+const deliverTooltip = (c) => {
+    if (isBlockedStatus(c.status)) return 'Bloqueado — no se le envía por ningún medio';
+    if (c.sent_today)     return 'Ya recibió un mensaje hoy (no se le reenvía el mismo día)';
+    if (c.cooldown_active) return `En cooldown${c.cooldown_until ? ` hasta ${c.cooldown_until}` : ''} — no se le envía hasta que pase`;
+    return null;
+};
+
+const tableHelp =
+    'Estado: identidad del contacto (Activo / Opt-out / Inválido / Inalcanzable). '
+    + 'Entregabilidad: si le llega ahora — Disponible, En cooldown (recibió hace poco), '
+    + 'Enviado hoy (ya recibió hoy) o No recibe (bloqueado).';
 
 const optOutTooltip = (contact) => {
     const source = contact.opted_out_source === 'auto'
@@ -641,6 +686,9 @@ onMounted(() => { loadContacts(); loadTags(); });
 .upload-result.has-errors { background: var(--p-orange-50); }
 .upload-error  { color: var(--p-red-600); margin-top: 4px; }
 .error-list    { margin-top: 8px; padding-left: 16px; font-size: .8rem; }
+
+.table-title   { display: inline-flex; align-items: center; gap: 8px; }
+.title-help    { font-size: .95rem; color: var(--p-text-muted-color); cursor: help; }
 
 .filter-row    { display: flex; gap: 8px; }
 

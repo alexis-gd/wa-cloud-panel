@@ -99,6 +99,13 @@ export const api = {
 
     contactStats: () => request('/contacts/stats'),
 
+    checkContact: (phone) => request(`/contacts/check?phone=${encodeURIComponent(phone)}`),
+
+    createContact: (payload) => request('/contacts', {
+        method : 'POST',
+        body   : JSON.stringify(payload),
+    }),
+
     uploadContacts: (file) => {
         const formData = new FormData();
         formData.append('file', file);

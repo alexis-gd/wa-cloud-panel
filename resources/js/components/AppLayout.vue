@@ -268,6 +268,7 @@ const helpContent = {
         title: 'Contactos',
         items: [
             { icon: 'pi-upload',        label: 'Importar',   text: 'Sube un Excel (.xlsx). Columna A: teléfono, Columna B: nombre (opcional).' },
+            { icon: 'pi-plus',          label: 'Agregar uno', text: 'Botón "Agregar contacto" para alta manual. Al teclear el número te avisa si ya existe, está bloqueado o en cooldown.' },
             { icon: 'pi-phone',         label: 'Formato',    text: 'Teléfonos en formato mexicano con código de país: 529231311146.' },
             { icon: 'pi-check-circle',  label: 'Resultado',  text: 'Al importar verás: aceptados / duplicados / formato inválido.' },
             { icon: 'pi-ban',           label: 'Eliminar',   text: 'Borrar un contacto lo marca como opt-out permanente, no se elimina de la BD.' },

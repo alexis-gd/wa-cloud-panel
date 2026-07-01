@@ -107,11 +107,17 @@ La tabla tiene dos columnas de estado (el ícono **?** junto al título las expl
   - **Inalcanzable** — rebotó repetido, marcado automáticamente.
 - **Entregabilidad** — si le llega **ahora mismo**:
   - 🟢 **Disponible** — se le puede enviar.
+  - ⚪ **En snooze** — el contacto pidió "No por ahora"; no se le envía hasta que pase (tooltip con la fecha).
   - 🟠 **En cooldown** — recibió hace poco; no se le envía hasta que pase (tooltip con la fecha).
   - 🔵 **Enviado hoy** — ya recibió hoy, no se reenvía el mismo día.
   - 🔴 **No recibe** — bloqueado (opt-out / inválido / inalcanzable).
 
-> Un contacto puede estar **Activo** pero **En cooldown** o **Enviado hoy** — es normal, solo significa que ahorita no se le envía para no saturarlo.
+> Un contacto puede estar **Activo** pero **En snooze**, **En cooldown** o **Enviado hoy** — es normal, solo significa que ahorita no se le envía para no saturarlo.
+
+### Opt-out vs Eliminar — no son lo mismo
+
+- **Opt-out** (botón rojo, cualquier operador) — el contacto **pidió baja**. Es cumplimiento: se marca `opted_out` y **nunca más** se le envía. Queda en la base para auditoría.
+- **Eliminar** (🗑, solo administradores) — **limpieza** de basura o números de prueba. Lo quita de listas y campañas. Es recuperable y **no** ensucia las estadísticas de opt-out. Úsalo para datos erróneos, no para bajas reales.
 
 ---
 

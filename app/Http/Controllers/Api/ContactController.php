@@ -85,6 +85,10 @@ class ContactController extends Controller
 
         foreach ($contacts as $contact) {
             $blocked        = in_array($contact->status, ['opted_out', 'invalid', 'unreachable'], true);
+            $snoozeActive   = $contact->isSnoozeActive();
+            $snoozeUntil    = $snoozeActive
+                ? $contact->snoozed_until->setTimezone('America/Mexico_City')->format('Y-m-d')
+                : null;
             $sentToday      = isset($sentTodaySet[$contact->phone]);
             $cooldownActive = false;
             $cooldownUntil  = null;
@@ -98,10 +102,12 @@ class ContactController extends Controller
                     ->format('Y-m-d');
             }
 
+            $contact->setAttribute('snooze_active', $snoozeActive);
+            $contact->setAttribute('snooze_until', $snoozeUntil);
             $contact->setAttribute('sent_today', $sentToday);
             $contact->setAttribute('cooldown_active', $cooldownActive);
             $contact->setAttribute('cooldown_until', $cooldownUntil);
-            $contact->setAttribute('deliverable', ! $blocked && ! $sentToday && ! $cooldownActive);
+            $contact->setAttribute('deliverable', ! $blocked && ! $snoozeActive && ! $sentToday && ! $cooldownActive);
         }
     }
 
@@ -187,6 +193,8 @@ class ContactController extends Controller
                     'contact_status'  => null,
                     'name'            => null,
                     'blocked'         => false,
+                    'snooze_active'   => false,
+                    'snooze_until'    => null,
                     'cooldown_active' => false,
                     'cooldown_until'  => null,
                     'sent_today'      => false,
@@ -211,6 +219,12 @@ class ContactController extends Controller
         $contact = Contact::where('phone', $phone)->first();
         $status  = $contact?->status;
         $blocked = in_array($status, ['opted_out', 'invalid', 'unreachable'], true);
+
+        // Snooze: el contacto pidió "No por ahora"
+        $snoozeActive = (bool) $contact?->isSnoozeActive();
+        $snoozeUntil  = $snoozeActive
+            ? $contact->snoozed_until->setTimezone('America/Mexico_City')->format('Y-m-d')
+            : null;
 
         // Dedup: ¿ya recibió un mensaje hoy? (hora México)
         $startOfDay = now('America/Mexico_City')->startOfDay()->utc();
@@ -244,10 +258,12 @@ class ContactController extends Controller
             'contact_status'  => $status,
             'name'            => $contact?->name,
             'blocked'         => $blocked,
+            'snooze_active'   => $snoozeActive,
+            'snooze_until'    => $snoozeUntil,
             'cooldown_active' => $cooldownActive,
             'cooldown_until'  => $cooldownUntil,
             'sent_today'      => $sentToday,
-            'deliverable'     => ! $blocked && ! $sentToday && ! $cooldownActive,
+            'deliverable'     => ! $blocked && ! $snoozeActive && ! $sentToday && ! $cooldownActive,
         ];
     }
 
@@ -383,8 +399,8 @@ class ContactController extends Controller
     }
 
     /**
-     * Opt-out manual de un contacto.
-     * DELETE /api/contacts/{id}
+     * Opt-out manual de un contacto (cumplimiento — nunca más se le envía).
+     * POST /api/contacts/{id}/opt-out
      */
     public function optOut(int $id): JsonResponse
     {
@@ -392,5 +408,19 @@ class ContactController extends Controller
         $contact->optOut();
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Soft delete de un contacto — para limpiar basura/pruebas (solo admin/superadmin).
+     * El registro se conserva con deleted_at y queda fuera de listas y campañas.
+     * Distinto del opt-out: esto es limpieza operativa, no cumplimiento.
+     * DELETE /api/contacts/{id}
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $contact = Contact::findOrFail($id);
+        $contact->delete(); // SoftDeletes: marca deleted_at
+
+        return response()->json(['status' => 'ok', 'data' => null]);
     }
 }

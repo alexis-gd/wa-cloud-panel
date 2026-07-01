@@ -202,6 +202,15 @@
                                     text
                                     @click="confirmOptOut(data)"
                                 />
+                                <Button
+                                    v-if="canDelete"
+                                    icon="pi pi-trash"
+                                    severity="danger"
+                                    size="small"
+                                    text
+                                    @click="confirmDelete(data)"
+                                    title="Eliminar contacto"
+                                />
                             </div>
                         </template>
                     </Column>
@@ -331,6 +340,7 @@ const confirm = useConfirm();
 const toast   = useToast();
 const { user: authState } = useAuth();
 const isAdmin = computed(() => authState.user?.role === 'admin');
+const canDelete = computed(() => ['admin', 'superadmin'].includes(authState.user?.role));
 
 // Selección masiva de tags
 const selected       = ref([]);
@@ -407,31 +417,35 @@ const statusSeverity = (status) => ({
 // Entregabilidad (¿le llega ahora?) — eje distinto al estado de identidad
 const isBlockedStatus = (s) => ['opted_out', 'invalid', 'unreachable'].includes(s);
 
+// Precedencia igual que el job de envío: bloqueado → snooze → enviado hoy → cooldown → disponible
 const deliverLabel = (c) => {
     if (isBlockedStatus(c.status)) return 'No recibe';
-    if (c.sent_today)     return 'Enviado hoy';
+    if (c.snooze_active)   return 'En snooze';
+    if (c.sent_today)      return 'Enviado hoy';
     if (c.cooldown_active) return 'En cooldown';
     return 'Disponible';
 };
 
 const deliverSeverity = (c) => {
     if (isBlockedStatus(c.status)) return 'danger';
-    if (c.sent_today)     return 'info';
+    if (c.snooze_active)   return 'secondary';
+    if (c.sent_today)      return 'info';
     if (c.cooldown_active) return 'warn';
     return 'success';
 };
 
 const deliverTooltip = (c) => {
     if (isBlockedStatus(c.status)) return 'Bloqueado — no se le envía por ningún medio';
-    if (c.sent_today)     return 'Ya recibió un mensaje hoy (no se le reenvía el mismo día)';
+    if (c.snooze_active)   return `En snooze${c.snooze_until ? ` hasta ${c.snooze_until}` : ''} — el contacto pidió "No por ahora"`;
+    if (c.sent_today)      return 'Ya recibió un mensaje hoy (no se le reenvía el mismo día)';
     if (c.cooldown_active) return `En cooldown${c.cooldown_until ? ` hasta ${c.cooldown_until}` : ''} — no se le envía hasta que pase`;
     return null;
 };
 
 const tableHelp =
     'Estado: identidad del contacto (Activo / Opt-out / Inválido / Inalcanzable). '
-    + 'Entregabilidad: si le llega ahora — Disponible, En cooldown (recibió hace poco), '
-    + 'Enviado hoy (ya recibió hoy) o No recibe (bloqueado).';
+    + 'Entregabilidad: si le llega ahora — Disponible, En snooze (pidió "No por ahora"), '
+    + 'En cooldown (recibió hace poco), Enviado hoy (ya recibió hoy) o No recibe (bloqueado).';
 
 const optOutTooltip = (contact) => {
     const source = contact.opted_out_source === 'auto'
@@ -549,6 +563,26 @@ function confirmOptOut(contact) {
         accept: async () => {
             await api.optOutContact(contact.id);
             await loadContacts(meta.value?.current_page ?? 1);
+        },
+    });
+}
+
+function confirmDelete(contact) {
+    confirm.require({
+        message : `¿Eliminar ${contact.phone}? Se quita de listas y campañas (para limpiar pruebas/basura). No afecta las estadísticas de opt-out.`,
+        header  : 'Eliminar contacto',
+        icon    : 'pi pi-trash',
+        acceptLabel: 'Sí, eliminar',
+        rejectLabel: 'Cancelar',
+        acceptClass: 'p-button-danger',
+        accept: async () => {
+            const res = await api.deleteContact(contact.id);
+            if (res.status === 'ok') {
+                toast.add({ severity: 'success', summary: 'Contacto eliminado', detail: contact.phone, life: 3000 });
+                await loadContacts(meta.value?.current_page ?? 1);
+            } else {
+                toast.add({ severity: 'error', summary: 'Error', detail: res.message, life: 5000 });
+            }
         },
     });
 }

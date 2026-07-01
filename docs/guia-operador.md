@@ -192,8 +192,9 @@ Para **quitar** un tag de varios contactos: seleccionarlos, elegir el tag y clic
 - No envía a contactos con opt-out o marcados como inválidos.
 - Una baja cuenta para **los dos canales**: si alguien pidió baja por WhatsApp, tampoco recibe SMS.
 - No envía a contactos en snooze (que respondieron "No por ahora" recientemente).
-- No impacta al mismo contacto dos veces el mismo día ni dentro del período de cooldown,
-  **sin importar el canal** (si ya recibió WhatsApp hoy, no recibe SMS hoy).
+- **Dedup y cooldown son por canal, separados**: WhatsApp lleva su propio conteo y SMS el suyo.
+  Un contacto que recibió WhatsApp hoy **sí** puede recibir un SMS hoy (y viceversa). Cada canal
+  no reenvía al mismo contacto el mismo día ni dentro de su propio cooldown, pero no se cruzan.
 - WhatsApp respeta el límite diario del número según el tier de Meta y el horario permitido.
 
 > ⚠️ No ejecutar la misma campaña dos veces. Si necesitas reenviar, crear una nueva campaña.

@@ -129,20 +129,27 @@ Es advertencia, no bloqueo. El cliente decide.
 
 ---
 
-## Protección anti-duplicado entre canales
+## Protección anti-duplicado
 
-### Ventana de exclusión por contacto (cooldown cross-channel)
-Antes de enviar a un contacto, verificar:
+> **DECISIÓN DEL CLIENTE (implementada):** dedup diario y cooldown son **POR CANAL**, no
+> cross-channel. WhatsApp lleva su propio conteo y SMS el suyo — un contacto que recibió
+> WhatsApp hoy **sí** puede recibir un SMS hoy (y viceversa). El diseño original era
+> cross-channel; el cliente pidió separarlos para poder impactar por ambos canales.
+> Implementado con filtro `->where('channel', ...)` en los dedup/cooldown de ambos jobs
+> (`SendWhatsAppMessage`, `SendSmsMessage`).
+>
+> **Lo que SIGUE siendo cross-channel** (no se tocó): el **opt-out** y el **blacklist**.
+> Una baja (STOP/BAJA) o un `status = opted_out` bloquea AMBOS canales — es regla legal/seguridad.
+
+### Dedup por canal
+Antes de enviar por un canal, verificar solo ese canal:
 ```
-¿Este contacto recibió CUALQUIER mensaje (WA o SMS) en las últimas X horas?
-Si sí → NO enviar. El contacto ya fue impactado.
+SMS:      ¿recibió un SMS hoy / dentro del cooldown SMS? → si sí, NO enviar SMS
+WhatsApp: ¿recibió un WA hoy / dentro del cooldown WA?   → si sí, NO enviar WA
 ```
 
-**Config recomendada**: ventana de 24 horas por defecto, configurable (12h, 24h, 48h, 72h).
-
-### Al crear campaña — filtro automático
-El sistema excluye automáticamente contactos impactados en la ventana de exclusión.
-El cliente ve: "245 contactos seleccionados, 12 excluidos (recibieron WhatsApp ayer)"
+**Cooldown**: `Setting::get('cooldown_days', 30)`, mínimo 7. Aplica igual a ambos canales
+pero cada uno cuenta el suyo por separado.
 
 ### Advertencia de duplicado
 Si una campaña WA y una SMS apuntan al mismo segmento en el mismo día:

@@ -284,7 +284,7 @@ const helpContent = {
         items: [
             { icon: 'pi-plus-circle',   label: 'Crear',      text: 'Dale un nombre y elige el canal. WhatsApp usa una plantilla aprobada; SMS usa mensaje libre (incluye "STOP para baja").' },
             { icon: 'pi-play-circle',   label: 'Ejecutar',   text: 'Abre la campaña y da clic en Ejecutar. Los mensajes se encolan en segundo plano.' },
-            { icon: 'pi-shield',        label: 'Protección', text: 'Omite automáticamente: opt-out, inválidos, snooze y cooldown — cross-channel (una baja en WhatsApp también frena SMS).' },
+            { icon: 'pi-shield',        label: 'Protección', text: 'Omite automáticamente: opt-out (una baja en WhatsApp también frena SMS), inválidos y snooze. El dedup diario y el cooldown son por canal, separados.' },
             { icon: 'pi-clock',         label: 'Horario',    text: 'WhatsApp solo L-V 9AM–10PM (fuera de eso bloquea). SMS no tiene horario forzado: tú decides (aviso si es de madrugada).' },
         ],
         warning: 'No ejecutar la misma campaña dos veces. Si necesitas reenviar, crea una nueva.',

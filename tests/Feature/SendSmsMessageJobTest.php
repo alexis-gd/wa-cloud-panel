@@ -92,14 +92,33 @@ class SendSmsMessageJobTest extends TestCase
         ]);
     }
 
-    public function test_dedup_cross_channel_descarta_si_recibio_wa_hoy(): void
+    public function test_dedup_por_canal_un_whatsapp_hoy_no_frena_el_sms(): void
     {
-        // Un mensaje WhatsApp enviado hoy al mismo número debe frenar el SMS.
+        $this->mockOkClient();
+
+        // Un WhatsApp enviado hoy NO debe bloquear el SMS (canales independientes).
         MessageLog::create([
-            'channel'     => 'whatsapp',
-            'to_number'   => '529991234567',
-            'status'      => 'sent',
-            'sent_at'     => now(),
+            'channel'   => 'whatsapp',
+            'to_number' => '529991234567',
+            'status'    => 'sent',
+            'sent_at'   => now(),
+        ]);
+
+        $this->makeJob()->handle(app(SmsGatewayClient::class));
+
+        $this->assertDatabaseHas('message_log', [
+            'channel' => 'sms',
+            'status'  => 'sent',
+        ]);
+    }
+
+    public function test_dedup_por_canal_un_sms_hoy_si_frena_otro_sms(): void
+    {
+        MessageLog::create([
+            'channel'   => 'sms',
+            'to_number' => '529991234567',
+            'status'    => 'sent',
+            'sent_at'   => now(),
         ]);
 
         $this->makeJob()->handle(app(SmsGatewayClient::class));
@@ -111,12 +130,32 @@ class SendSmsMessageJobTest extends TestCase
         ]);
     }
 
-    public function test_cooldown_cross_channel_descarta(): void
+    public function test_cooldown_por_canal_un_whatsapp_reciente_no_frena_el_sms(): void
     {
         Setting::set('cooldown_days', 30);
 
         MessageLog::create([
             'channel'   => 'whatsapp',
+            'to_number' => '529991234567',
+            'status'    => 'sent',
+            'sent_at'   => now()->subDays(5),
+        ]);
+
+        $this->mockOkClient();
+        $this->makeJob()->handle(app(SmsGatewayClient::class));
+
+        $this->assertDatabaseHas('message_log', [
+            'channel' => 'sms',
+            'status'  => 'sent',
+        ]);
+    }
+
+    public function test_cooldown_por_canal_un_sms_reciente_si_frena_otro_sms(): void
+    {
+        Setting::set('cooldown_days', 30);
+
+        MessageLog::create([
+            'channel'   => 'sms',
             'to_number' => '529991234567',
             'status'    => 'sent',
             'sent_at'   => now()->subDays(5),

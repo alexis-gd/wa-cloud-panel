@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\Log;
  *
  * Diferencias clave con el job WA:
  *  - SMS NO tiene horario forzado (el cliente elige cuándo; ver contexto-twilio-sms).
- *  - Opt-out, dedup y cooldown son CROSS-CHANNEL (comparten con WhatsApp).
+ *  - Opt-out es CROSS-CHANNEL (una baja en WhatsApp también bloquea SMS — legal/seguridad).
+ *  - Dedup y cooldown son POR CANAL (WA y SMS independientes: un WA hoy no frena el SMS).
  *  - El pool de chips lo resuelve el gateway, no el panel: no hay phone_number_id.
  */
 class SendSmsMessage implements ShouldQueue
@@ -74,11 +75,13 @@ class SendSmsMessage implements ShouldQueue
             return;
         }
 
-        // ── Dedup CROSS-CHANNEL: ya recibió CUALQUIER mensaje (WA o SMS) hoy ──
+        // ── Dedup POR CANAL: no reenviar SMS si ya recibió un SMS hoy ──
+        // (WhatsApp y SMS son independientes: un WA hoy no frena el SMS.)
         $startOfDay = now('America/Mexico_City')->startOfDay()->utc();
         $endOfDay   = now('America/Mexico_City')->endOfDay()->utc();
 
         $alreadySentToday = MessageLog::where('to_number', $contact->phone)
+            ->where('channel', 'sms')
             ->whereBetween('sent_at', [$startOfDay, $endOfDay])
             ->whereIn('status', ['sent', 'delivered', 'read'])
             ->exists();
@@ -88,9 +91,10 @@ class SendSmsMessage implements ShouldQueue
             return;
         }
 
-        // ── Cooldown CROSS-CHANNEL: no reimpactar en N días por ningún canal ──
+        // ── Cooldown POR CANAL: no reimpactar por SMS en N días (solo mira SMS) ──
         $cooldownDays = max(7, (int) Setting::get('cooldown_days', 30));
         $lastSent     = MessageLog::where('to_number', $contact->phone)
+            ->where('channel', 'sms')
             ->where('status', 'sent')
             ->latest('sent_at')
             ->value('sent_at');

@@ -36,8 +36,9 @@
             </Card>
         </div>
 
-        <!-- Exportar -->
+        <!-- Acciones -->
         <div class="export-row mb-4">
+            <Button label="Agregar contacto" icon="pi pi-plus" @click="openAdd" />
             <Button label="Exportar contactos (.xlsx)" icon="pi pi-download" severity="secondary" @click="downloadExport('contacts')" />
         </div>
 
@@ -253,6 +254,45 @@
             <Button label="Guardar" :loading="saving" @click="saveEdit" />
         </template>
     </Dialog>
+
+    <!-- Dialog agregar contacto manual -->
+    <Dialog v-model:visible="addDialog" header="Agregar contacto" modal style="width: 400px">
+        <div class="edit-field">
+            <label>Teléfono</label>
+            <InputText
+                v-model="addForm.phone"
+                placeholder="529231311146"
+                @input="onAddPhoneInput"
+                fluid
+                autofocus
+            />
+        </div>
+
+        <!-- Aviso de estado del número (chequeo en vivo) -->
+        <div v-if="checkLoading" class="check-note check-muted">
+            <i class="pi pi-spin pi-spinner"></i> Verificando número...
+        </div>
+        <div v-else-if="checkResult && !checkResult.valid_format && addForm.phone" class="check-note check-bad">
+            <i class="pi pi-times-circle"></i> Formato inválido (México: 52 + 10 dígitos).
+        </div>
+        <div v-else-if="checkResult?.exists" class="check-note check-bad">
+            <i class="pi pi-exclamation-triangle"></i>
+            Ya existe — <strong>{{ statusLabel(checkResult.contact_status) }}</strong>. No se puede agregar.
+        </div>
+        <div v-else-if="checkResult?.valid_format" class="check-note check-good">
+            <i class="pi pi-check-circle"></i> Número disponible para agregar.
+        </div>
+
+        <div class="edit-field">
+            <label>Nombre <span class="optional">(opcional)</span></label>
+            <InputText v-model="addForm.name" placeholder="Nombre del contacto" fluid />
+        </div>
+
+        <template #footer>
+            <Button label="Cancelar" text @click="addDialog = false" />
+            <Button label="Guardar" :loading="savingAdd" :disabled="!canAdd" @click="saveAdd" />
+        </template>
+    </Dialog>
 </template>
 
 <script setup>
@@ -302,6 +342,18 @@ const editDialog   = ref(false);
 const editContact  = ref({ id: null, phone: '', name: '' });
 const saving       = ref(false);
 
+// Alta individual de contacto
+const addDialog    = ref(false);
+const addForm      = ref({ phone: '', name: '' });
+const savingAdd    = ref(false);
+const checkResult  = ref(null);
+const checkLoading = ref(false);
+let   checkTimer   = null;
+
+const canAdd = computed(() =>
+    !!checkResult.value && checkResult.value.valid_format && !checkResult.value.exists && !savingAdd.value
+);
+
 const tagFilterOptions = computed(() => [
     { label: 'Todos los tags', value: null },
     ...allTags.value.map(t => ({ label: t.name, value: t.id })),
@@ -324,9 +376,10 @@ const filterOptions = [
 ];
 
 const statusLabel = (status) => ({
-    active    : 'Activo',
-    opted_out : 'Opt-out',
-    invalid   : 'Inválido',
+    active      : 'Activo',
+    opted_out   : 'Opt-out',
+    invalid     : 'Inválido',
+    unreachable : 'Inalcanzable',
 }[status] ?? status);
 
 const statusSeverity = (status) => ({
@@ -363,6 +416,50 @@ async function loadContacts(page = 1) {
 
 async function loadStats() {
     contactStats.value = await api.contactStats();
+}
+
+function openAdd() {
+    addForm.value     = { phone: '', name: '' };
+    checkResult.value = null;
+    checkLoading.value = false;
+    addDialog.value   = true;
+}
+
+// Chequeo de entregabilidad con debounce mientras el operador teclea el número.
+function onAddPhoneInput() {
+    clearTimeout(checkTimer);
+    checkResult.value = null;
+    const phone = addForm.value.phone.trim();
+    if (!phone) { checkLoading.value = false; return; }
+
+    checkLoading.value = true;
+    checkTimer = setTimeout(async () => {
+        const res = await api.checkContact(phone);
+        // Evitar carrera: ignorar si el input cambió mientras llegaba la respuesta
+        if (addForm.value.phone.trim() !== phone) return;
+        checkResult.value  = res.status === 'ok' ? res.data : null;
+        checkLoading.value = false;
+    }, 400);
+}
+
+async function saveAdd() {
+    if (!canAdd.value) return;
+    savingAdd.value = true;
+    const res = await api.createContact({
+        phone: addForm.value.phone.trim(),
+        name : addForm.value.name.trim() || null,
+    });
+    savingAdd.value = false;
+
+    if (res.status === 'ok') {
+        toast.add({ severity: 'success', summary: 'Contacto agregado', detail: res.data.phone, life: 3000 });
+        addDialog.value = false;
+        await loadContacts(1);
+    } else {
+        toast.add({ severity: 'error', summary: 'No se pudo agregar', detail: res.message, life: 5000 });
+        // Si el backend devolvió el estado del duplicado, reflejarlo en el aviso
+        if (res.data) checkResult.value = res.data;
+    }
 }
 
 function onFileChange(e) {
@@ -575,6 +672,21 @@ onMounted(() => { loadContacts(); loadTags(); });
 
 .edit-field        { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
 .edit-field label  { font-size: .85rem; font-weight: 600; }
+.optional          { font-weight: 400; color: var(--p-text-muted-color); }
+
+.check-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: .82rem;
+    margin-bottom: 14px;
+}
+.check-note .pi  { flex-shrink: 0; }
+.check-good  { background: var(--p-green-50);  color: var(--p-green-700); }
+.check-bad   { background: var(--p-red-50);    color: var(--p-red-700); }
+.check-muted { background: var(--p-surface-100); color: var(--p-text-muted-color); }
 
 /* Tags */
 .tag-chips  { display: flex; flex-wrap: wrap; gap: 4px; }

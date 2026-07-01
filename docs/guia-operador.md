@@ -83,6 +83,19 @@ En la esquina superior derecha del panel hay un ícono de campana 🔔. Cuando h
 
 > 💡 Para exportar los contactos actuales a Excel, usar el botón **Exportar** en la pantalla de Contactos.
 
+### Agregar un contacto manualmente (sin Excel)
+
+Para cuando consigues un prospecto suelto (referido, llamada, walk-in):
+
+1. En **Contactos**, clic en **Agregar contacto**.
+2. Escribir el teléfono. Al teclearlo, el sistema **verifica el número al instante** y muestra un aviso:
+   - ✅ **Disponible** — se puede agregar.
+   - ⚠️ **Ya existe** — muestra su estado (activo, opt-out, inválido, inalcanzable). No se puede volver a agregar (se conserva el registro original).
+   - ❌ **Formato inválido** — debe ser México: 52 + 10 dígitos.
+3. Escribir el nombre (opcional) y clic en **Guardar**.
+
+> El botón Guardar solo se activa si el número es válido y no existe. Un número dado de baja (opt-out) no se puede reincorporar por esta vía.
+
 ---
 
 ## 4. Tags — etiquetar contactos

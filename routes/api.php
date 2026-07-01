@@ -54,6 +54,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         // Contactos
         Route::get('/contacts',              [ContactController::class, 'index']);
         Route::get('/contacts/stats',        [ContactController::class, 'stats']);
+        Route::get('/contacts/check',        [ContactController::class, 'check']);
+        Route::post('/contacts',             [ContactController::class, 'store']);
         Route::post('/contacts/upload',      [ContactController::class, 'upload']);
         Route::delete('/contacts/{id}',      [ContactController::class, 'optOut']);
         Route::put('/contacts/{id}/tags',    [TagController::class, 'syncContact']);

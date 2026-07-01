@@ -104,7 +104,7 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 
 - [x] **Total contactos en modal campaña** — muestra "0/N contactos" antes de ejecutar (snapshot al crear + recálculo en vivo para draft). Rama `feat/campaign-total-contacts`.
 - [x] **Asignación masiva de tags** — selección múltiple + barra de acción: asignar, quitar y crear tag al vuelo. Rama `feat/contacts-bulk-tags`.
-- [ ] **Eliminar contactos** — soft delete (marcar como inactivo, no borrar físicamente — ver nota abajo).
+- [x] **Eliminar contactos** — soft delete (`deleted_at`), solo admin/superadmin, separado del opt-out. Para limpiar basura/pruebas. Rama `feat/contacts-soft-delete`.
 - [ ] **Borrar plantillas jaspers del panel** — limpiar plantillas de demo/prueba antes de mostrar al cliente.
 - [x] **Tooltip en "Lista de contactos"** — ícono ? explica Estado vs Entregabilidad. + columna **Entregabilidad** (Disponible / En cooldown / Enviado hoy / No recibe). Rama `feat/contacts-deliverability`.
 - [x] **Alta individual de contacto** — formulario manual + chequeo de estado en vivo. Rama `feat/contact-manual-add`.

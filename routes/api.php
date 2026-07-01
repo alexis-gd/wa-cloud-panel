@@ -57,7 +57,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/contacts/check',        [ContactController::class, 'check']);
         Route::post('/contacts',             [ContactController::class, 'store']);
         Route::post('/contacts/upload',      [ContactController::class, 'upload']);
-        Route::delete('/contacts/{id}',      [ContactController::class, 'optOut']);
+        Route::post('/contacts/{id}/opt-out', [ContactController::class, 'optOut']);
         Route::put('/contacts/{id}/tags',    [TagController::class, 'syncContact']);
         Route::post('/contacts/tags/bulk-attach', [TagController::class, 'bulkAttach']);
         Route::post('/contacts/tags/bulk-detach', [TagController::class, 'bulkDetach']);
@@ -147,6 +147,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // Operaciones admin (superadmin hereda vía bypass en RoleMiddleware)
     Route::middleware('role:admin')->group(function () {
         Route::put('/contacts/{id}',        [ContactController::class, 'update']);
+        Route::delete('/contacts/{id}',     [ContactController::class, 'destroy']); // soft delete — solo admin/superadmin
 
         // Gestión de usuarios
         Route::get('/users',        [UserController::class, 'index']);

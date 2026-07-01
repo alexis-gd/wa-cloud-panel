@@ -93,4 +93,33 @@ class ContactDeliverabilityTest extends TestCase
         $row = $this->fetch($c->id);
         $this->assertFalse($row['deliverable']);
     }
+
+    public function test_snooze_activo_no_es_deliverable(): void
+    {
+        $this->actingAsOperator();
+        $c = Contact::factory()->create([
+            'status'        => 'active',
+            'phone'         => '521230000004',
+            'snoozed_until' => now()->addDays(3),
+        ]);
+
+        $row = $this->fetch($c->id);
+        $this->assertTrue($row['snooze_active']);
+        $this->assertNotNull($row['snooze_until']);
+        $this->assertFalse($row['deliverable']);
+    }
+
+    public function test_snooze_vencido_no_afecta(): void
+    {
+        $this->actingAsOperator();
+        $c = Contact::factory()->create([
+            'status'        => 'active',
+            'phone'         => '521230000005',
+            'snoozed_until' => now()->subDay(), // ya venció
+        ]);
+
+        $row = $this->fetch($c->id);
+        $this->assertFalse($row['snooze_active']);
+        $this->assertTrue($row['deliverable']);
+    }
 }

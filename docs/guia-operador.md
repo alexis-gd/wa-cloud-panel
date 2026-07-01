@@ -107,11 +107,12 @@ La tabla tiene dos columnas de estado (el ícono **?** junto al título las expl
   - **Inalcanzable** — rebotó repetido, marcado automáticamente.
 - **Entregabilidad** — si le llega **ahora mismo**:
   - 🟢 **Disponible** — se le puede enviar.
+  - ⚪ **En snooze** — el contacto pidió "No por ahora"; no se le envía hasta que pase (tooltip con la fecha).
   - 🟠 **En cooldown** — recibió hace poco; no se le envía hasta que pase (tooltip con la fecha).
   - 🔵 **Enviado hoy** — ya recibió hoy, no se reenvía el mismo día.
   - 🔴 **No recibe** — bloqueado (opt-out / inválido / inalcanzable).
 
-> Un contacto puede estar **Activo** pero **En cooldown** o **Enviado hoy** — es normal, solo significa que ahorita no se le envía para no saturarlo.
+> Un contacto puede estar **Activo** pero **En snooze**, **En cooldown** o **Enviado hoy** — es normal, solo significa que ahorita no se le envía para no saturarlo.
 
 ---
 

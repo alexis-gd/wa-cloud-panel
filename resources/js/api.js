@@ -117,7 +117,9 @@ export const api = {
         }).then(r => r.json());
     },
 
-    optOutContact: (id) => request(`/contacts/${id}`, { method: 'DELETE' }),
+    optOutContact: (id) => request(`/contacts/${id}/opt-out`, { method: 'POST' }),
+
+    deleteContact: (id) => request(`/contacts/${id}`, { method: 'DELETE' }),
 
     updateContact: (id, payload) => request(`/contacts/${id}`, {
         method : 'PUT',

@@ -383,8 +383,8 @@ class ContactController extends Controller
     }
 
     /**
-     * Opt-out manual de un contacto.
-     * DELETE /api/contacts/{id}
+     * Opt-out manual de un contacto (cumplimiento — nunca más se le envía).
+     * POST /api/contacts/{id}/opt-out
      */
     public function optOut(int $id): JsonResponse
     {
@@ -392,5 +392,19 @@ class ContactController extends Controller
         $contact->optOut();
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Soft delete de un contacto — para limpiar basura/pruebas (solo admin/superadmin).
+     * El registro se conserva con deleted_at y queda fuera de listas y campañas.
+     * Distinto del opt-out: esto es limpieza operativa, no cumplimiento.
+     * DELETE /api/contacts/{id}
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $contact = Contact::findOrFail($id);
+        $contact->delete(); // SoftDeletes: marca deleted_at
+
+        return response()->json(['status' => 'ok', 'data' => null]);
     }
 }

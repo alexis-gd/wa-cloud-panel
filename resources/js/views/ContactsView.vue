@@ -202,6 +202,15 @@
                                     text
                                     @click="confirmOptOut(data)"
                                 />
+                                <Button
+                                    v-if="canDelete"
+                                    icon="pi pi-trash"
+                                    severity="danger"
+                                    size="small"
+                                    text
+                                    @click="confirmDelete(data)"
+                                    title="Eliminar contacto"
+                                />
                             </div>
                         </template>
                     </Column>
@@ -331,6 +340,7 @@ const confirm = useConfirm();
 const toast   = useToast();
 const { user: authState } = useAuth();
 const isAdmin = computed(() => authState.user?.role === 'admin');
+const canDelete = computed(() => ['admin', 'superadmin'].includes(authState.user?.role));
 
 // Selección masiva de tags
 const selected       = ref([]);
@@ -549,6 +559,26 @@ function confirmOptOut(contact) {
         accept: async () => {
             await api.optOutContact(contact.id);
             await loadContacts(meta.value?.current_page ?? 1);
+        },
+    });
+}
+
+function confirmDelete(contact) {
+    confirm.require({
+        message : `¿Eliminar ${contact.phone}? Se quita de listas y campañas (para limpiar pruebas/basura). No afecta las estadísticas de opt-out.`,
+        header  : 'Eliminar contacto',
+        icon    : 'pi pi-trash',
+        acceptLabel: 'Sí, eliminar',
+        rejectLabel: 'Cancelar',
+        acceptClass: 'p-button-danger',
+        accept: async () => {
+            const res = await api.deleteContact(contact.id);
+            if (res.status === 'ok') {
+                toast.add({ severity: 'success', summary: 'Contacto eliminado', detail: contact.phone, life: 3000 });
+                await loadContacts(meta.value?.current_page ?? 1);
+            } else {
+                toast.add({ severity: 'error', summary: 'Error', detail: res.message, life: 5000 });
+            }
         },
     });
 }

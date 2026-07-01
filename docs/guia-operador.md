@@ -113,6 +113,11 @@ La tabla tiene dos columnas de estado (el ícono **?** junto al título las expl
 
 > Un contacto puede estar **Activo** pero **En cooldown** o **Enviado hoy** — es normal, solo significa que ahorita no se le envía para no saturarlo.
 
+### Opt-out vs Eliminar — no son lo mismo
+
+- **Opt-out** (botón rojo, cualquier operador) — el contacto **pidió baja**. Es cumplimiento: se marca `opted_out` y **nunca más** se le envía. Queda en la base para auditoría.
+- **Eliminar** (🗑, solo administradores) — **limpieza** de basura o números de prueba. Lo quita de listas y campañas. Es recuperable y **no** ensucia las estadísticas de opt-out. Úsalo para datos erróneos, no para bajas reales.
+
 ---
 
 ## 4. Tags — etiquetar contactos

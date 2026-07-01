@@ -290,6 +290,27 @@ class CampaignTest extends TestCase
         Queue::assertCount(2);
     }
 
+    public function test_execute_permite_fuera_de_horario_con_modo_demo(): void
+    {
+        $this->actingAsOperator();
+        \Illuminate\Support\Facades\Queue::fake();
+        \App\Models\Setting::set('schedule_bypass', '1');
+
+        $phone    = PhoneNumber::factory()->create(['is_active' => true]);
+        $campaign = Campaign::factory()->create([
+            'phone_number_id' => $phone->id,
+            'status'          => 'draft',
+        ]);
+        Contact::factory()->count(2)->create(['status' => 'active']);
+
+        // Domingo 3AM — fuera de ventana; con bypass debe ejecutar igual
+        $this->travelTo(now('America/Mexico_City')->startOfWeek()->subDay()->setHour(3));
+
+        $this->postJson("/api/campaigns/{$campaign->id}/execute")
+             ->assertStatus(200)
+             ->assertJsonPath('data.jobs_dispatched', 2);
+    }
+
     public function test_execute_rechaza_fuera_de_horario(): void
     {
         $this->actingAsOperator();

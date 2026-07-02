@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Services\Sms;
+
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+/**
+ * Único punto de salida HTTP hacia el gateway SMS (SMS Gateway for Android™, capcom6).
+ * Espejo de WhatsAppClient: todos los envíos SMS deben pasar por aquí (regla seguridad #1
+ * extendida al canal SMS — nunca Http:: suelto en jobs/controllers).
+ */
+class SmsGatewayClient
+{
+    private string $baseUrl;
+    private ?string $login;
+    private ?string $password;
+    private int $timeout;
+
+    public function __construct()
+    {
+        $this->baseUrl  = rtrim((string) config('sms.gateway.url'), '/');
+        $this->login    = config('sms.gateway.login');
+        $this->password = config('sms.gateway.password');
+        $this->timeout  = (int) config('sms.gateway.timeout', 15);
+    }
+
+    /**
+     * Envía un SMS a un número (E.164). El pool de chips lo resuelve el gateway.
+     *
+     * @return array{ok: bool, status: int, message_id: ?string, error: mixed}
+     */
+    public function send(string $to, string $body): array
+    {
+        $response = Http::withBasicAuth((string) $this->login, (string) $this->password)
+            ->timeout($this->timeout)
+            ->post("{$this->baseUrl}/message", [
+                'message'      => $body,
+                'phoneNumbers' => [$to],
+            ]);
+
+        $json = $response->json() ?? [];
+
+        if ($response->failed()) {
+            Log::error('SMS gateway error', [
+                'status' => $response->status(),
+                'body'   => $json,
+                'to'     => substr($to, -4), // nunca loguear el número completo
+            ]);
+
+            return [
+                'ok'         => false,
+                'status'     => $response->status(),
+                'message_id' => null,
+                'error'      => $json ?: ['message' => 'gateway request failed'],
+            ];
+        }
+
+        return [
+            'ok'         => true,
+            'status'     => $response->status(),
+            'message_id' => $json['id'] ?? null,
+            'error'      => null,
+        ];
+    }
+}

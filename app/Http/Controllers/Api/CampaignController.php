@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendSmsMessage;
 use App\Jobs\SendWhatsAppMessage;
 use App\Models\Campaign;
 use App\Models\Contact;
@@ -55,15 +56,28 @@ class CampaignController extends Controller
     // POST /api/campaigns
     public function store(Request $request): JsonResponse
     {
+        // channel default whatsapp para compatibilidad con campañas ya existentes.
+        $channel = $request->input('channel', 'whatsapp');
+
         $data = $request->validate([
             'name'          => 'required|string|max:255',
-            'template_name' => 'required|string|max:255',
-            'language_code' => 'required|string|max:10',
+            'channel'       => 'nullable|in:whatsapp,sms',
+            'template_name' => 'required_if:channel,whatsapp|nullable|string|max:255',
+            'language_code' => 'required_if:channel,whatsapp|nullable|string|max:10',
             'body_vars'     => 'array',
             'body_vars.*'   => 'string',
+            'sms_body'      => 'required_if:channel,sms|nullable|string|max:1000',
             'tag_id'        => 'nullable|integer|exists:tags,id',
         ]);
 
+        return $channel === 'sms'
+            ? $this->storeSms($data)
+            : $this->storeWhatsApp($data);
+    }
+
+    // Crea una campaña WhatsApp: exige plantilla aprobada + número WA activo.
+    private function storeWhatsApp(array $data): JsonResponse
+    {
         // Solo plantillas aprobadas (regla seguridad inquebrantable)
         $template = WaTemplate::where('name', $data['template_name'])
             ->where('status', 'approved')
@@ -89,11 +103,31 @@ class CampaignController extends Controller
 
         $campaign = Campaign::create([
             'name'            => $data['name'],
+            'channel'         => 'whatsapp',
             'template_name'   => $data['template_name'],
             'language_code'   => $data['language_code'],
             'body_vars'       => $data['body_vars'] ?? [],
             'tag_id'          => $data['tag_id'] ?? null,
             'phone_number_id' => $phone->id,
+            'status'          => 'draft',
+            'total_contacts'  => $this->countTargetContacts($data['tag_id'] ?? null),
+            'sent_count'      => 0,
+            'delivered_count' => 0,
+            'failed_count'    => 0,
+        ]);
+
+        return response()->json(['status' => 'ok', 'data' => $campaign], 201);
+    }
+
+    // Crea una campaña SMS: sin plantilla ni número WA (el gateway resuelve el pool de chips).
+    private function storeSms(array $data): JsonResponse
+    {
+        $campaign = Campaign::create([
+            'name'            => $data['name'],
+            'channel'         => 'sms',
+            'sms_body'        => $data['sms_body'],
+            'tag_id'          => $data['tag_id'] ?? null,
+            'phone_number_id' => null,
             'status'          => 'draft',
             'total_contacts'  => $this->countTargetContacts($data['tag_id'] ?? null),
             'sent_count'      => 0,
@@ -133,21 +167,24 @@ class CampaignController extends Controller
             ], 422);
         }
 
-        // ── Verificar ventana horaria 9AM-10PM CST (L-V) ──
+        // ── Verificar ventana horaria 9AM-10PM CST (L-V) — SOLO WhatsApp ──
+        // SMS no tiene horario forzado: el cliente elige cuándo (ver contexto-twilio-sms).
         // "Modo demo" (Setting schedule_bypass=1) permite ejecutar fuera de horario
         // para pruebas/demos. Default apagado — en operación real NUNCA se enciende
         // (enviar fuera de horario a números reales puede generar reportes de spam).
-        $scheduleBypass = Setting::get('schedule_bypass', '0') === '1';
-        $now     = now('America/Mexico_City');
-        $hour    = (int) $now->format('G');
-        $weekday = (int) $now->format('N'); // 1=Lunes, 7=Domingo
+        if ($campaign->channel === 'whatsapp') {
+            $scheduleBypass = Setting::get('schedule_bypass', '0') === '1';
+            $now     = now('America/Mexico_City');
+            $hour    = (int) $now->format('G');
+            $weekday = (int) $now->format('N'); // 1=Lunes, 7=Domingo
 
-        if (! $scheduleBypass && ($weekday > 5 || $hour < 9 || $hour >= 22)) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Los envíos solo están permitidos de lunes a viernes entre 9:00 AM y 10:00 PM (hora México).',
-                'code'    => 'OUTSIDE_SCHEDULE',
-            ], 422);
+            if (! $scheduleBypass && ($weekday > 5 || $hour < 9 || $hour >= 22)) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Los envíos solo están permitidos de lunes a viernes entre 9:00 AM y 10:00 PM (hora México).',
+                    'code'    => 'OUTSIDE_SCHEDULE',
+                ], 422);
+            }
         }
 
         $contactsQuery = Contact::active();
@@ -164,6 +201,34 @@ class CampaignController extends Controller
                 'message' => 'No hay contactos activos para enviar.',
                 'code'    => 'NO_CONTACTS',
             ], 422);
+        }
+
+        // ── Campaña SMS: el gateway resuelve el pool de chips, no hay selector de número ──
+        if ($campaign->channel === 'sms') {
+            $campaign->update([
+                'status'         => 'running',
+                'total_contacts' => $contacts->count(),
+                'started_at'     => now(),
+            ]);
+
+            Log::info("Campaña SMS #{$campaign->id} iniciada", [
+                'campaign' => $campaign->name,
+                'contacts' => $contacts->count(),
+            ]);
+
+            foreach ($contacts as $contact) {
+                SendSmsMessage::dispatch($contact->id, $campaign->id, $campaign->sms_body);
+            }
+
+            return response()->json([
+                'status' => 'ok',
+                'data'   => [
+                    'campaign_id'     => $campaign->id,
+                    'jobs_dispatched' => $contacts->count(),
+                    'channel'         => 'sms',
+                    'message'         => "Se encolaron {$contacts->count()} SMS.",
+                ],
+            ]);
         }
 
         // ── Balanceo multi-número: seleccionar números disponibles ──
@@ -374,29 +439,35 @@ class CampaignController extends Controller
             ], 422);
         }
 
-        $phoneNumbers = $this->selector->available();
+        if ($campaign->channel === 'sms') {
+            foreach ($contacts as $contact) {
+                SendSmsMessage::dispatch($contact->id, $campaign->id, $campaign->sms_body);
+            }
+        } else {
+            $phoneNumbers = $this->selector->available();
 
-        if ($phoneNumbers->isEmpty()) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'No hay números de teléfono disponibles (todos pausados o sin capacidad).',
-                'code'    => 'NO_PHONE_AVAILABLE',
-            ], 422);
-        }
+            if ($phoneNumbers->isEmpty()) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'No hay números de teléfono disponibles (todos pausados o sin capacidad).',
+                    'code'    => 'NO_PHONE_AVAILABLE',
+                ], 422);
+            }
 
-        $phoneCount = $phoneNumbers->count();
+            $phoneCount = $phoneNumbers->count();
 
-        foreach ($contacts as $index => $contact) {
-            $phone = $phoneNumbers[$index % $phoneCount];
+            foreach ($contacts as $index => $contact) {
+                $phone = $phoneNumbers[$index % $phoneCount];
 
-            SendWhatsAppMessage::dispatch(
-                $contact->id,
-                $campaign->id,
-                $phone->id,
-                $campaign->template_name,
-                $campaign->language_code,
-                $campaign->body_vars ?? [],
-            );
+                SendWhatsAppMessage::dispatch(
+                    $contact->id,
+                    $campaign->id,
+                    $phone->id,
+                    $campaign->template_name,
+                    $campaign->language_code,
+                    $campaign->body_vars ?? [],
+                );
+            }
         }
 
         // Ajustar total_contacts para que checkAutoComplete funcione correctamente

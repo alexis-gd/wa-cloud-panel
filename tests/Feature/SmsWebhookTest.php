@@ -1,0 +1,122 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Contact;
+use App\Models\MessageLog;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class SmsWebhookTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function smsLog(string $messageId, string $to = '529991234567'): MessageLog
+    {
+        return MessageLog::create([
+            'channel'       => 'sms',
+            'to_number'     => $to,
+            'sms_body'      => 'texto',
+            'wa_message_id' => $messageId,
+            'status'        => 'sent',
+            'sent_at'       => now(),
+        ]);
+    }
+
+    public function test_evento_delivered_actualiza_status(): void
+    {
+        $log = $this->smsLog('SM-1');
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:delivered',
+            'payload' => ['messageId' => 'SM-1'],
+        ])->assertStatus(200);
+
+        $this->assertSame('delivered', $log->fresh()->status);
+    }
+
+    public function test_evento_failed_registra_rebote(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
+        $this->smsLog('SM-2');
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:failed',
+            'payload' => ['messageId' => 'SM-2', 'reason' => 'no network'],
+        ])->assertStatus(200);
+
+        $this->assertSame(1, $contact->fresh()->sms_bounce_count);
+    }
+
+    public function test_tres_rebotes_bloquean_sms(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
+
+        foreach (['SM-a', 'SM-b', 'SM-c'] as $id) {
+            $this->smsLog($id);
+            $this->postJson('/api/sms/webhook', [
+                'event'   => 'sms:failed',
+                'payload' => ['messageId' => $id],
+            ])->assertStatus(200);
+        }
+
+        $contact->refresh();
+        $this->assertSame(3, $contact->sms_bounce_count);
+        $this->assertTrue($contact->sms_blocked);
+    }
+
+    public function test_inbound_stop_marca_sms_opt_out_sin_tocar_whatsapp(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:received',
+            'payload' => ['phoneNumber' => '529991234567', 'message' => 'STOP'],
+        ])->assertStatus(200);
+
+        $contact->refresh();
+        $this->assertTrue($contact->sms_opt_out);
+        $this->assertSame('active', $contact->status); // WhatsApp intacto
+    }
+
+    public function test_inbound_texto_normal_no_hace_opt_out(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:received',
+            'payload' => ['phoneNumber' => '529991234567', 'message' => 'no me interesa gracias'],
+        ])->assertStatus(200);
+
+        $this->assertFalse($contact->fresh()->sms_opt_out);
+    }
+
+    public function test_firma_invalida_es_rechazada(): void
+    {
+        config(['sms.webhook_secret' => 'shh']);
+        $this->smsLog('SM-9');
+
+        // Sin header X-Signature válido → 403
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:delivered',
+            'payload' => ['messageId' => 'SM-9'],
+        ])->assertStatus(403);
+    }
+
+    public function test_firma_valida_es_aceptada(): void
+    {
+        config(['sms.webhook_secret' => 'shh']);
+        $log = $this->smsLog('SM-10');
+
+        $body      = json_encode(['event' => 'sms:delivered', 'payload' => ['messageId' => 'SM-10']]);
+        $signature = hash_hmac('sha256', $body, 'shh');
+
+        $this->call('POST', '/api/sms/webhook', [], [], [], [
+            'CONTENT_TYPE'     => 'application/json',
+            'HTTP_ACCEPT'      => 'application/json',
+            'HTTP_X_SIGNATURE' => $signature,
+        ], $body)->assertStatus(200);
+
+        $this->assertSame('delivered', $log->fresh()->status);
+    }
+}

@@ -11,9 +11,11 @@ class Campaign extends Model
 
     protected $fillable = [
         'name',
+        'channel',
         'template_name',
         'language_code',
         'body_vars',
+        'sms_body',
         'tag_id',
         'phone_number_id',
         'status',

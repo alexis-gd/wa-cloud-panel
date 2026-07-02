@@ -10,7 +10,7 @@ Estamos agregando **SMS como segundo canal** al sistema wa-cloud-panel que ya ti
 
 **Lee primero estos archivos para tener contexto completo:**
 1. `CLAUDE.md` — overview del proyecto y referencias
-2. `.claude/rules/contexto-twilio-sms.md` — reglas de Twilio, errores, opt-out, legal, cooldown
+2. `.claude/rules/contexto-sms.md` — reglas de Twilio, errores, opt-out, legal, cooldown
 3. `docs/sms-referencia.md` — arquitectura multicanal, flujos, anti-duplicado
 4. `.claude/rules/seguridad.md` — reglas de seguridad inquebrantables
 5. `docs/calendario-entregas.md` — estado actual del proyecto

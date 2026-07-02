@@ -114,6 +114,12 @@ La tabla tiene dos columnas de estado (el ícono **?** junto al título las expl
 
 > Un contacto puede estar **Activo** pero **En snooze**, **En cooldown** o **Enviado hoy** — es normal, solo significa que ahorita no se le envía para no saturarlo.
 
+**Chip rojo "Baja SMS"** (debajo del Estado): aparece cuando el contacto **no recibe SMS**
+(pidió baja por SMS con STOP/BAJA, quedó bloqueado o el número no recibe SMS). Es un eje
+**independiente** del Estado: un contacto puede estar **Activo** (le llega WhatsApp) y a la vez
+tener **Baja SMS** (no le llega SMS). El tooltip explica el motivo. Para ver solo estos, usa el
+filtro **"Solo bajas SMS"** arriba de la tabla.
+
 ### Opt-out vs Eliminar — no son lo mismo
 
 - **Opt-out** (botón rojo, cualquier operador) — el contacto **pidió baja**. Es cumplimiento: se marca `opted_out` y **nunca más** se le envía. Queda en la base para auditoría.

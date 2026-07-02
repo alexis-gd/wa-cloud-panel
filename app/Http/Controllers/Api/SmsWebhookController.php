@@ -50,6 +50,8 @@ class SmsWebhookController extends Controller
     }
 
     // Valida el HMAC del gateway. Si no hay secreto configurado (dev/local), no se exige.
+    // capcom6 firma HMAC-SHA256 sobre (raw body + X-Timestamp) y manda ambos headers.
+    // Además rechazamos timestamps fuera de ±5 min para evitar replays.
     private function signatureValid(Request $request): bool
     {
         $secret = config('sms.webhook_secret');
@@ -59,7 +61,13 @@ class SmsWebhookController extends Controller
         }
 
         $signature = $request->header('X-Signature', '');
-        $expected  = hash_hmac('sha256', $request->getContent(), $secret);
+        $timestamp = $request->header('X-Timestamp', '');
+
+        if (! $timestamp || abs(time() - (int) $timestamp) > 300) {
+            return false;
+        }
+
+        $expected = hash_hmac('sha256', $request->getContent() . $timestamp, $secret);
 
         return hash_equals($expected, $signature);
     }
@@ -107,7 +115,8 @@ class SmsWebhookController extends Controller
 
     private function handleInbound(array $payload): void
     {
-        $from    = $payload['phoneNumber'] ?? null;
+        // En sms:received el número del remitente viene en `sender` (no `phoneNumber`).
+        $from    = $payload['sender'] ?? null;
         $message = $payload['message'] ?? '';
 
         if (! $from) {

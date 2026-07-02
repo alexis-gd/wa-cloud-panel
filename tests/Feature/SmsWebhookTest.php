@@ -71,7 +71,7 @@ class SmsWebhookTest extends TestCase
 
         $this->postJson('/api/sms/webhook', [
             'event'   => 'sms:received',
-            'payload' => ['phoneNumber' => '529991234567', 'message' => 'STOP'],
+            'payload' => ['sender' => '529991234567', 'message' => 'STOP'],
         ])->assertStatus(200);
 
         $contact->refresh();
@@ -85,7 +85,7 @@ class SmsWebhookTest extends TestCase
 
         $this->postJson('/api/sms/webhook', [
             'event'   => 'sms:received',
-            'payload' => ['phoneNumber' => '529991234567', 'message' => 'no me interesa gracias'],
+            'payload' => ['sender' => '529991234567', 'message' => 'no me interesa gracias'],
         ])->assertStatus(200);
 
         $this->assertFalse($contact->fresh()->sms_opt_out);
@@ -109,12 +109,15 @@ class SmsWebhookTest extends TestCase
         $log = $this->smsLog('SM-10');
 
         $body      = json_encode(['event' => 'sms:delivered', 'payload' => ['messageId' => 'SM-10']]);
-        $signature = hash_hmac('sha256', $body, 'shh');
+        $timestamp = (string) time();
+        // capcom6 firma HMAC-SHA256 sobre (body + timestamp).
+        $signature = hash_hmac('sha256', $body . $timestamp, 'shh');
 
         $this->call('POST', '/api/sms/webhook', [], [], [], [
             'CONTENT_TYPE'     => 'application/json',
             'HTTP_ACCEPT'      => 'application/json',
             'HTTP_X_SIGNATURE' => $signature,
+            'HTTP_X_TIMESTAMP' => $timestamp,
         ], $body)->assertStatus(200);
 
         $this->assertSame('delivered', $log->fresh()->status);

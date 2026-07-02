@@ -36,7 +36,7 @@ class SmsGatewayClient
             ->timeout($this->timeout)
             ->post("{$this->baseUrl}/messages", [
                 'message'      => $body,
-                'phoneNumbers' => [$to],
+                'phoneNumbers' => [$this->toE164($to)],
             ]);
 
         $json = $response->json() ?? [];
@@ -62,5 +62,16 @@ class SmsGatewayClient
             'message_id' => $json['id'] ?? null,
             'error'      => null,
         ];
+    }
+
+    /**
+     * El gateway exige el número en E.164 CON prefijo '+' (ej. +529231311146).
+     * En BD los guardamos como 52XXXXXXXXXX (sin '+'), así que lo anteponemos aquí,
+     * en el único punto de salida — el operador nunca escribe el '+' ni el código de país.
+     * Sin esto el gateway rechaza el envío ("invalid phone number").
+     */
+    private function toE164(string $phone): string
+    {
+        return '+' . ltrim($phone, '+');
     }
 }

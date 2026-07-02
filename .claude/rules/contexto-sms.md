@@ -137,12 +137,30 @@ Es advertencia, no bloqueo. El cliente decide.
 
 ## Cumplimiento legal SMS en México
 
+> **Actualización legal (verificado 2026):** la **nueva LFPDPPP** se publicó el **20-mar-2025** y
+> entró en vigor el **21-mar-2025**. La supervisión y sanciones pasaron a la **Secretaría
+> Anticorrupción y Buen Gobierno** (desapareció el INAI). Exige consentimiento para marketing y que
+> el titular pueda **revocar su consentimiento en cualquier momento** (el responsable DEBE dar el
+> medio para revocar). **Conclusión:** el **opt-out (STOP/BAJA) es obligatorio y NO se quita**,
+> aunque el cliente sea blando con SMS — la multa la carga el cliente (responsable de los datos), y
+> es el propósito del sistema (a prueba de errores del cliente). No somos abogados; el cliente debe
+> confirmarlo con su asesor legal.
+
 ### Obligatorio
 1. **Consentimiento previo** del receptor (LFPDPPP 2025) — el cliente debe demostrar que obtuvo autorización
 2. **REPEP** (Registro Público para Evitar Publicidad) — si un número está en el REPEP, tienes 30 días para dejar de enviarle. Verificar periódicamente
 3. **Opción de baja en cada mensaje** — incluir al final: "Responde STOP para no recibir más"
 4. **Aviso de privacidad** — el aviso de privacidad del cliente debe mencionar que se enviarán SMS comerciales
 5. **Contenido prohibido** — no enviar contenido político, religioso, engañoso o que promueva actividades ilegales
+
+### Manejo de números SMS diferenciado (decisión del cliente, aprobado — pendiente de implementar)
+El cliente es **blando con SMS**: usa SIM propia barata, NO le interesa cuidar la reputación del número.
+Por eso el manejo de números SMS se separa del de WhatsApp:
+- **Opt-out (STOP) → bloqueo permanente de SMS**: se queda (legal, ver arriba). No negociable.
+- **Auto-blacklist por rebotes → configurable, apagado por default** (`Setting sms_auto_blacklist_bounces = 0`).
+  El contador de rebotes sigue (para reporte) pero NO bloquea salvo umbral > 0. "No suma fallas."
+- WhatsApp mantiene su bloqueo estricto por rebotes (protege el tier de Meta — ahí sí importa).
+- Los rebotes/fallos SMS **nunca** afectan el canal WhatsApp (ya es por canal).
 
 ### No obligatorio pero recomendado
 - Enviar en horarios laborales (mayor tasa de lectura)

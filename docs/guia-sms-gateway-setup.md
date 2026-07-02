@@ -21,7 +21,15 @@ Lo que la guía de abajo describe en general; así quedó en el VPS `sender.pres
    Registro con SIGN UP → Continue. Las credenciales 3rdparty (usuario/pass) se autogeneran y salen en la app.
 4. **Panel `.env`**: `SMS_GATEWAY_URL=http://127.0.0.1:3000/api/3rdparty/v1` + LOGIN/PASSWORD autogenerados + `config:cache`.
 5. **Número E.164 con `+`**: el gateway lo exige; el panel lo antepone solo (`SmsGatewayClient::toE164()`). El operador escribe solo el número.
-6. **Pendiente**: Paso 9 (webhook de estados delivered/failed + opt-out STOP) — ver más abajo.
+6. **Webhook (✅ funcionando)**: registrados los 4 eventos vía 3rdparty API apuntando a
+   `https://sender.prestamaz.site/api/sms/webhook`. `sms:sent`/`sms:delivered` actualizan el status
+   (→ "Entregado"), `sms:received` con STOP marca opt-out. Payload real: estados usan `messageId`;
+   entrantes usan `sender` (no `phoneNumber`). Firma HMAC opcional (`SMS_WEBHOOK_SECRET`, ver §Webhook).
+   - ⚠️ **GOTCHA CLAVE**: al registrar/cambiar webhooks, el **teléfono NO los usa hasta re-sincronizar
+     su lista**. Los entrega el teléfono, y sincroniza la lista del servidor solo al **reiniciar la app /
+     reconectar Cloud server**. Si registras webhooks y no llegan, **reinicia la app del teléfono**.
+     (Verificar re-sync: `docker logs sms-gateway | grep "mobile/v1/webhooks"` → debe haber un GET
+     con hora POSTERIOR al registro.)
 
 ---
 

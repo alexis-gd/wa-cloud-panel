@@ -38,6 +38,9 @@ class SmsWebhookController extends Controller
         $event   = $request->input('event');
         $payload = $request->input('payload', []);
 
+        // Log de diagnóstico: qué eventos manda el gateway y con qué payload.
+        Log::info('SMS webhook recibido', ['event' => $event, 'payload' => $payload]);
+
         match ($event) {
             'sms:sent'      => $this->updateStatus($payload, 'sent'),
             'sms:delivered' => $this->updateStatus($payload, 'delivered'),

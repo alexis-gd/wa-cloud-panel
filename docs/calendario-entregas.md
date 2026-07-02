@@ -132,8 +132,8 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] **Campaña por canal** — selector WhatsApp/SMS en el modal; el pool de chips lo resuelve el gateway (sin selector de número).
 - [x] **Botón "Enviar prueba"** (admin) — dispara 1 SMS al gateway sin crear campaña ni cooldown.
 - [x] **Gateway desplegado en prod** — Docker en el VPS, expuesto por **Cloudflare Tunnel** (`gw.prestamaz.site`), 1 teléfono (SIM Telcel) registrado. **Primer SMS OK vía botón + campaña.**
-- [x] **Código del webhook** `POST /api/sms/webhook` — eventos capcom6 (`sms:sent|delivered|failed|received`); `failed`→rebote (3⇒`sms_blocked`), `received` STOP⇒`sms_opt_out`.
-- [ ] **Paso 9: conectar el webhook en el gateway** — registrar `https://sender.prestamaz.site/api/sms/webhook` en capcom6 + opcional `SMS_WEBHOOK_SECRET`. (Pendiente para ver estados delivered/failed y opt-out por SMS.)
+- [x] **Webhook `POST /api/sms/webhook`** (✅ validado 2026-07-02) — 4 eventos registrados en el gateway; `sms:delivered` actualiza a "Entregado", `sms:received` STOP marca opt-out; `failed`→rebote (3⇒`sms_blocked`). Payload real: estados usan `messageId`, entrantes `sender`. **Gotcha**: el teléfono debe reiniciarse para re-sincronizar la lista de webhooks tras registrarlos.
+- [ ] **Firma del webhook (`SMS_WEBHOOK_SECRET`)** — opcional, endurecimiento: HMAC-SHA256(body+X-Timestamp). Hoy vacío (sin verificación de firma).
 - [ ] **Warm-up / rate limit por SIM** — el gateway limita a ~8 SMS/min por chip; configurar en el servidor gateway (fuera del panel).
 - [ ] **Feature flag `sms_campaigns`** — gatear el canal SMS por etapa/preset (follow-up: hoy visible para admin/superadmin).
 - [ ] **Setup físico prod** — escalar de 1 a 5–8 celulares + SIMs multi-operador (hoy 1 teléfono de prueba).

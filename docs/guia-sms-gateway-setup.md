@@ -94,10 +94,12 @@ Proxy `gw.prestamaz.site` → `http://127.0.0.1:3000`, con Certbot para SSL (igu
 
 ### 5. Registrar el/los teléfono(s)
 En cada teléfono, en la app SMS Gateway for Android:
-- Modo **Private Server**.
-- **Server URL**: `https://gw.prestamaz.site`
+- **Settings → Cloud Server** (o "Private Server").
+- **Server URL / API URL**: `https://gw.prestamaz.site`
 - **Private token**: el `private_token` del `config.yml`
-- Registrar. El teléfono aparece en el pool del servidor.
+- Activar la conexión. El teléfono aparece en el pool del servidor.
+- **⚠️ Las credenciales del 3rdparty API (usuario/contraseña) se AUTOGENERAN** y aparecen en la
+  app tras conectar — NO se crean a mano. Esas son las que van en `SMS_GATEWAY_LOGIN/PASSWORD`.
 - Repetir en cada teléfono del pool (comparten el mismo token; el server hace round-robin).
 
 ---
@@ -106,12 +108,13 @@ En cada teléfono, en la app SMS Gateway for Android:
 
 En `.env` del proyecto (ya existen las llaves, solo llénalas):
 ```
-SMS_GATEWAY_URL=http://127.0.0.1:3000/3rdparty/v1   # ⚠️ ver §Verificar contrato
-SMS_GATEWAY_LOGIN=<usuario del gateway>
-SMS_GATEWAY_PASSWORD=<password del gateway>
+SMS_GATEWAY_URL=http://127.0.0.1:3000/api/3rdparty/v1   # self-host lleva /api
+SMS_GATEWAY_LOGIN=<usuario autogenerado al conectar el teléfono>
+SMS_GATEWAY_PASSWORD=<password autogenerado al conectar el teléfono>
 SMS_WEBHOOK_SECRET=<secreto compartido para el webhook>
 ```
-Luego: `php artisan config:clear` (o `config:cache` en prod).
+El cliente le agrega `/messages` → llama `POST {url}/messages` con Basic auth.
+Luego: `php artisan config:cache` (en prod) o `config:clear` (en local).
 
 ### ⚠️ Verificar contrato (paso obligatorio la primera vez)
 El endpoint exacto y el auth de capcom6 varían entre versiones. Con el server arriba, abre su

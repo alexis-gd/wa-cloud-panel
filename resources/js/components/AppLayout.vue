@@ -72,7 +72,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.8.0 - Stage 3</span>
+                <span class="version">v0.9.0 - Stage 3</span>
             </div>
         </aside>
 
@@ -279,6 +279,7 @@ const helpContent = {
             { icon: 'pi-ban',           label: 'Opt-out',    text: 'El botón Opt-out marca al contacto como baja permanente (cumplimiento). Nunca más se le envía.' },
             { icon: 'pi-trash',         label: 'Eliminar',   text: 'El bote de basura (solo admin) quita el contacto de listas y campañas — para limpiar pruebas/basura. Es recuperable y no afecta las stats de opt-out.' },
             { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora: Disponible, En snooze, En cooldown, Enviado hoy o No recibe (bloqueado). Distinta del Estado.' },
+            { icon: 'pi-mobile',        label: 'Baja SMS',   text: 'Chip rojo bajo el Estado cuando el contacto NO recibe SMS (pidió baja por SMS, bloqueado o número inválido). Es independiente del Estado de WhatsApp: puede estar Activo para WhatsApp y con Baja SMS. Filtra con "Solo bajas SMS".' },
             { icon: 'pi-tag',           label: 'Tags masivos', text: 'Marca varios contactos con las casillas y usa la barra superior para asignar un tag a todos a la vez.' },
             { icon: 'pi-download',      label: 'Exportar',   text: 'Descarga la lista actual de contactos en Excel.' },
         ],

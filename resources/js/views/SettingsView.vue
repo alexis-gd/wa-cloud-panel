@@ -131,6 +131,41 @@
                 </Message>
             </template>
         </Card>
+        <Card style="max-width: 560px; margin-top: 24px">
+            <template #title>Auto-baja de SMS por rebotes</template>
+            <template #content>
+                <div class="form-group">
+                    <label>Rebotes seguidos antes de bloquear un número para SMS</label>
+                    <div class="cooldown-row">
+                        <InputNumber
+                            v-model="smsBounces"
+                            :min="0"
+                            :max="20"
+                            show-buttons
+                            button-layout="horizontal"
+                            :step="1"
+                            style="width: 180px"
+                        />
+                        <Button
+                            label="Guardar"
+                            icon="pi pi-save"
+                            :loading="savingBounces"
+                            :disabled="smsBounces === null"
+                            @click="saveSmsBounces"
+                        />
+                    </div>
+                    <small>
+                        <b>0 = desactivado</b> (default): los rebotes se cuentan para reporte pero nunca
+                        bloquean el número. Un valor mayor bloquea el SMS tras esa cantidad de fallos seguidos.
+                        No afecta WhatsApp ni el opt-out (STOP siempre bloquea).
+                    </small>
+                </div>
+
+                <Message v-if="bouncesResult" :severity="bouncesResult.error ? 'error' : 'success'" class="mt-3">
+                    {{ bouncesResult.error ?? 'Umbral de auto-baja SMS actualizado.' }}
+                </Message>
+            </template>
+        </Card>
         <Card style="max-width: 560px; margin-top: 24px" class="demo-card">
             <template #title>Modo demo</template>
             <template #content>
@@ -181,6 +216,10 @@ const saveResult  = ref(null);
 const cooldownDays   = ref(null);
 const savingCooldown = ref(false);
 const cooldownResult = ref(null);
+
+const smsBounces    = ref(0);
+const savingBounces = ref(false);
+const bouncesResult = ref(null);
 
 const assignmentMode  = ref('least_chats');
 const savingMode      = ref(false);
@@ -315,11 +354,25 @@ async function saveCooldown() {
     savingCooldown.value = false;
 }
 
+async function loadSmsBounces() {
+    const res = await api.getSmsAutoBlacklist();
+    if (res.status === 'ok') smsBounces.value = res.data.sms_auto_blacklist_bounces;
+}
+
+async function saveSmsBounces() {
+    savingBounces.value = true;
+    bouncesResult.value = null;
+    const res = await api.updateSmsAutoBlacklist(smsBounces.value);
+    bouncesResult.value = res.status === 'ok' ? { ok: true } : { error: res.message };
+    savingBounces.value = false;
+}
+
 onMounted(() => {
     loadStatus();
     loadCooldown();
     loadAssignmentMode();
     loadFlags();
+    loadSmsBounces();
 });
 </script>
 

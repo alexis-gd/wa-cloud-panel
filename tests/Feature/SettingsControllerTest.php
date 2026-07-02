@@ -179,6 +179,49 @@ class SettingsControllerTest extends TestCase
              ->assertStatus(403);
     }
 
+    // ── GET/PUT /api/settings/sms-auto-blacklist ─────────────────────────────
+
+    public function test_get_sms_auto_blacklist_devuelve_default_cero(): void
+    {
+        $this->actingAsSuperAdmin()
+             ->getJson('/api/settings/sms-auto-blacklist')
+             ->assertStatus(200)
+             ->assertJsonPath('status', 'ok')
+             ->assertJsonPath('data.sms_auto_blacklist_bounces', 0);
+    }
+
+    public function test_put_sms_auto_blacklist_actualiza_valor(): void
+    {
+        $this->actingAsSuperAdmin()
+             ->putJson('/api/settings/sms-auto-blacklist', ['sms_auto_blacklist_bounces' => 3])
+             ->assertStatus(200)
+             ->assertJsonPath('data.sms_auto_blacklist_bounces', 3);
+
+        $this->assertEquals('3', \App\Models\Setting::get('sms_auto_blacklist_bounces'));
+    }
+
+    public function test_put_sms_auto_blacklist_acepta_cero_para_desactivar(): void
+    {
+        $this->actingAsSuperAdmin()
+             ->putJson('/api/settings/sms-auto-blacklist', ['sms_auto_blacklist_bounces' => 0])
+             ->assertStatus(200)
+             ->assertJsonPath('data.sms_auto_blacklist_bounces', 0);
+    }
+
+    public function test_put_sms_auto_blacklist_rechaza_negativo(): void
+    {
+        $this->actingAsSuperAdmin()
+             ->putJson('/api/settings/sms-auto-blacklist', ['sms_auto_blacklist_bounces' => -1])
+             ->assertStatus(422);
+    }
+
+    public function test_sms_auto_blacklist_requiere_superadmin(): void
+    {
+        $this->actingAsOperator()
+             ->getJson('/api/settings/sms-auto-blacklist')
+             ->assertStatus(403);
+    }
+
     // ── POST /api/settings/demo-reset ────────────────────────────────────────
 
     public function test_demo_reset_quita_paused_until_y_retrocede_cooldown(): void

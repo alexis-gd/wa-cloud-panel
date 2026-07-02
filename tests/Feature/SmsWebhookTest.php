@@ -48,8 +48,27 @@ class SmsWebhookTest extends TestCase
         $this->assertSame(1, $contact->fresh()->sms_bounce_count);
     }
 
-    public function test_tres_rebotes_bloquean_sms(): void
+    public function test_rebotes_no_bloquean_con_umbral_default_cero(): void
     {
+        // Default: Setting sms_auto_blacklist_bounces = 0 → nunca bloquea (cliente blando con SMS).
+        $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
+
+        foreach (['SM-a', 'SM-b', 'SM-c'] as $id) {
+            $this->smsLog($id);
+            $this->postJson('/api/sms/webhook', [
+                'event'   => 'sms:failed',
+                'payload' => ['messageId' => $id],
+            ])->assertStatus(200);
+        }
+
+        $contact->refresh();
+        $this->assertSame(3, $contact->sms_bounce_count); // el contador SIEMPRE sube (reporte)
+        $this->assertFalse($contact->sms_blocked);        // pero no bloquea con umbral 0
+    }
+
+    public function test_rebotes_bloquean_sms_cuando_umbral_configurado(): void
+    {
+        \App\Models\Setting::set('sms_auto_blacklist_bounces', 3);
         $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
 
         foreach (['SM-a', 'SM-b', 'SM-c'] as $id) {

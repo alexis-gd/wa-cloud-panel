@@ -67,6 +67,13 @@ export const api = {
         body   : JSON.stringify({ cooldown_days: days }),
     }),
 
+    getSmsAutoBlacklist: () => request('/settings/sms-auto-blacklist'),
+
+    updateSmsAutoBlacklist: (bounces) => request('/settings/sms-auto-blacklist', {
+        method : 'PUT',
+        body   : JSON.stringify({ sms_auto_blacklist_bounces: bounces }),
+    }),
+
     demoReset: () => request('/settings/demo-reset', { method: 'POST' }),
 
     // ── Templates ─────────────────────────────────────────────────────────────

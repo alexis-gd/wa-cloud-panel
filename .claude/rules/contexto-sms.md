@@ -153,12 +153,14 @@ Es advertencia, no bloqueo. El cliente decide.
 4. **Aviso de privacidad** — el aviso de privacidad del cliente debe mencionar que se enviarán SMS comerciales
 5. **Contenido prohibido** — no enviar contenido político, religioso, engañoso o que promueva actividades ilegales
 
-### Manejo de números SMS diferenciado (decisión del cliente, aprobado — pendiente de implementar)
+### Manejo de números SMS diferenciado (decisión del cliente, aprobado — IMPLEMENTADO)
 El cliente es **blando con SMS**: usa SIM propia barata, NO le interesa cuidar la reputación del número.
 Por eso el manejo de números SMS se separa del de WhatsApp:
 - **Opt-out (STOP) → bloqueo permanente de SMS**: se queda (legal, ver arriba). No negociable.
 - **Auto-blacklist por rebotes → configurable, apagado por default** (`Setting sms_auto_blacklist_bounces = 0`).
   El contador de rebotes sigue (para reporte) pero NO bloquea salvo umbral > 0. "No suma fallas."
+  Editable en Configuración (solo superadmin) vía `GET/PUT /api/settings/sms-auto-blacklist`.
+  La lógica vive en `Contact::registerSmsBounce()`.
 - WhatsApp mantiene su bloqueo estricto por rebotes (protege el tier de Meta — ahí sí importa).
 - Los rebotes/fallos SMS **nunca** afectan el canal WhatsApp (ya es por canal).
 

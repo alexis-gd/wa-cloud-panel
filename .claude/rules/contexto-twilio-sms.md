@@ -54,6 +54,16 @@ Mismo flujo de estados: pending → sent → delivered → failed/undelivered.
 
 ---
 
+## ⚠️ Formato de número — E.164 CON `+` (bug encontrado en prod)
+
+El gateway (SMS Gateway for Android / capcom6) **rechaza el envío si el número no lleva `+`**.
+- En BD los contactos viven como `52XXXXXXXXXX` (12 dígitos, **sin** `+`) — así los normaliza `Contact::normalizePhone()`.
+- El gateway exige **E.164 con prefijo**: `+52XXXXXXXXXX`. Sin el `+` responde "invalid phone number" y el panel muestra *"El gateway rechazó el envío"*.
+- **Fix aplicado**: `SmsGatewayClient::toE164()` antepone el `+` en el único punto de salida HTTP. El operador **nunca** escribe el `+` ni el código de país — el sistema lo agrega (`normalizePhone` pone el `52`, el cliente pone el `+`).
+- **Regla para nuevo código**: cualquier envío al gateway pasa por `SmsGatewayClient::send()`, que ya normaliza. Nunca mandar `phoneNumbers` crudos desde otro lado. Si algún día se agrega otro proveedor SMS, revisar si también exige `+` (WhatsApp/Meta NO lo exige — ahí el `wa_id` va sin `+`).
+
+---
+
 ## Manejo de errores Twilio — reglas de auto-protección
 
 ### Opt-out automático (error 21610)

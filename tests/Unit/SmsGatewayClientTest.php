@@ -28,9 +28,10 @@ class SmsGatewayClientTest extends TestCase
         (new SmsGatewayClient())->send('529991234567', 'contenido');
 
         Http::assertSent(function ($request) {
+            // El gateway exige E.164 con '+': el cliente lo antepone aunque en BD viva sin él.
             return str_ends_with($request->url(), '/messages')
                 && $request['message'] === 'contenido'
-                && $request['phoneNumbers'] === ['529991234567'];
+                && $request['phoneNumbers'] === ['+529991234567'];
         });
     }
 

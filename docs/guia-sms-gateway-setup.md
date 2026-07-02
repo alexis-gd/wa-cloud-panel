@@ -1,9 +1,27 @@
 # Guía — Montar el gateway SMS (SMS Gateway for Android™ / capcom6)
 
-> Cómo dejar operativo el canal SMS por SIM propia. El **código del panel ya está listo**
-> (`SmsGatewayClient`, job `SendSmsMessage`, webhook, botón de prueba). Falta la parte física:
-> el servidor gateway + el/los teléfono(s). Ver contexto y decisión en
+> ✅ **EN USO — probado en producción 2026-07-02.** Este es el camino real del canal SMS (no Twilio).
+> Cómo dejar operativo el canal SMS por SIM propia. Ver contexto y decisión en
 > [`docs/sms-sim-propia-analisis.md`](sms-sim-propia-analisis.md).
+
+---
+
+## ⚙️ Cómo quedó montado en prod (resumen del deploy real 2026-07-02)
+
+Lo que la guía de abajo describe en general; así quedó en el VPS `sender.prestamaz.site`:
+
+1. **Server**: contenedor `sms-gateway` (`ghcr.io/android-sms-gateway/server:latest`) en Docker,
+   `--network host`, `listen 127.0.0.1:3000`, BD `sms_gateway` en el MySQL del VPS. Config en `/opt/sms-gateway/config.yml`.
+2. **Exposición**: NO fue por reenvío de puertos ni certbot. El VPS ya tenía un **Cloudflare Tunnel**
+   (`cloudflared.service`) para el panel. Se agregó el gateway como **Public Hostname** en ese túnel:
+   `gw.prestamaz.site` → `http://127.0.0.1:3000` (SSL lo pone Cloudflare). Lo hizo el admin de Cloudflare.
+   - ⚠️ El service del Public Hostname debe ser `http://127.0.0.1:3000` (NO `localhost` ni una IP LAN — si no, 502).
+3. **App del teléfono**: Settings → Cloud server → **API URL = `https://gw.prestamaz.site/api/mobile/v1`**
+   (¡lleva `/api/mobile/v1`! si pones solo la raíz, el registro POST a `/device` da 404) + Private Token.
+   Registro con SIGN UP → Continue. Las credenciales 3rdparty (usuario/pass) se autogeneran y salen en la app.
+4. **Panel `.env`**: `SMS_GATEWAY_URL=http://127.0.0.1:3000/api/3rdparty/v1` + LOGIN/PASSWORD autogenerados + `config:cache`.
+5. **Número E.164 con `+`**: el gateway lo exige; el panel lo antepone solo (`SmsGatewayClient::toE164()`). El operador escribe solo el número.
+6. **Pendiente**: Paso 9 (webhook de estados delivered/failed + opt-out STOP) — ver más abajo.
 
 ---
 

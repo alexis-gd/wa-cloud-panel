@@ -28,9 +28,9 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 |---|---|
 | [docs/arquitectura-referencia.md](docs/arquitectura-referencia.md) | Estructura Laravel, flujo de peticiones, archivos clave, decisiones tecnológicas |
 | [docs/sms-referencia.md](docs/sms-referencia.md) | Arquitectura multicanal SMS, flujo de campaña, anti-duplicado, delivery reports |
-| [docs/guia-twilio-setup.md](docs/guia-twilio-setup.md) | Paso a paso: crear cuenta Twilio, credenciales, verificar números, probar |
+| [docs/guia-sms-gateway-setup.md](docs/guia-sms-gateway-setup.md) | ✅ **EN USO** — montar el gateway capcom6 (Docker + Cloudflare Tunnel + teléfono) y conectarlo al panel |
 | [docs/sms-sim-propia-analisis.md](docs/sms-sim-propia-analisis.md) | Análisis SMS por SIM propia (Android gateway) vs proveedor: legal, económico, riesgos |
-| [docs/guia-sms-gateway-setup.md](docs/guia-sms-gateway-setup.md) | Paso a paso: montar el gateway capcom6 (Docker + pool de teléfonos) y conectarlo al panel |
+| [docs/guia-twilio-setup.md](docs/guia-twilio-setup.md) | ⚠️ Referencia (NO elegido): setup Twilio. Evaluado pero se optó por SIM propia |
 | [docs/calendario-entregas.md](docs/calendario-entregas.md) | Entregas al cliente + checklist de desarrollo por etapa + backlog técnico |
 | [docs/testing.md](docs/testing.md) | Guía PHPUnit, tipos de tests, mocks, convenciones |
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |
@@ -46,7 +46,7 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | Convenciones API REST | [.claude/rules/convenciones-api.md](.claude/rules/convenciones-api.md) |
 | **Protección cuenta Meta (PRIORIDAD MÁXIMA)** | [.claude/rules/proteccion-cuenta-meta.md](.claude/rules/proteccion-cuenta-meta.md) |
 | Contexto Meta/WhatsApp — decisiones, políticas y lecciones | [.claude/rules/contexto-meta-whatsapp.md](.claude/rules/contexto-meta-whatsapp.md) |
-| Contexto Twilio/SMS — reglas, errores, cooldown, legal | [.claude/rules/contexto-twilio-sms.md](.claude/rules/contexto-twilio-sms.md) |
+| Contexto SMS — proveedor elegido (SIM propia/capcom6), reglas, cooldown, legal | [.claude/rules/contexto-twilio-sms.md](.claude/rules/contexto-twilio-sms.md) |
 
 ## Regla: Mantener la guía de operador actualizada
 
@@ -88,12 +88,12 @@ Esto incluye sin excepción:
 - **Token**: en `.env` → `WA_TOKEN` (referencia), pero los envíos leen de `phone_numbers.token` en BD
 - **Token actual**: System User Token **sin expiración** — System User `waclouddev`, app `wa-api-test`, permisos `whatsapp_business_messaging` + `whatsapp_business_management`
 
-## Credenciales SMS (Twilio)
+## Credenciales SMS (SIM propia — gateway capcom6)
 
-- **Credenciales**: en `.env` → `TWILIO_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
-- **Setup**: ver [docs/guia-twilio-setup.md](docs/guia-twilio-setup.md) para crear cuenta y obtener credenciales
-- **Trial**: cuenta gratuita para desarrollo, 50 msgs/día a números verificados
-- **Producción**: cuenta pagada, ~$0.01 USD/msg a México
+- **Proveedor elegido**: SIM propia con **SMS Gateway for Android** (capcom6) self-host. Twilio se evaluó pero **no** se eligió.
+- **Credenciales**: en `.env` → `SMS_GATEWAY_URL`, `SMS_GATEWAY_LOGIN`, `SMS_GATEWAY_PASSWORD`, `SMS_WEBHOOK_SECRET`. Los envíos pasan por `SmsGatewayClient::send()` (`POST {url}/messages`, Basic auth).
+- **Setup**: ver [docs/guia-sms-gateway-setup.md](docs/guia-sms-gateway-setup.md) (Docker + Cloudflare Tunnel + teléfono). En prod desde 2026-07-02: `gw.prestamaz.site`, 1 teléfono (SIM Telcel).
+- **Twilio (referencia, no usado)**: [docs/guia-twilio-setup.md](docs/guia-twilio-setup.md).
 
 ## Estrategia de ramas
 

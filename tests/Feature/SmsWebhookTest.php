@@ -96,6 +96,12 @@ class SmsWebhookTest extends TestCase
         $contact->refresh();
         $this->assertTrue($contact->sms_opt_out);
         $this->assertSame('active', $contact->status); // WhatsApp intacto
+
+        // También queda registrado en la bandeja con acción opt_out.
+        $this->assertDatabaseHas('sms_inbound_messages', [
+            'contact_id' => $contact->id,
+            'action'     => 'opt_out',
+        ]);
     }
 
     public function test_inbound_texto_normal_no_hace_opt_out(): void
@@ -108,6 +114,27 @@ class SmsWebhookTest extends TestCase
         ])->assertStatus(200);
 
         $this->assertFalse($contact->fresh()->sms_opt_out);
+
+        // Se registra en la bandeja sin acción.
+        $this->assertDatabaseHas('sms_inbound_messages', [
+            'contact_id' => $contact->id,
+            'body'       => 'no me interesa gracias',
+            'action'     => null,
+        ]);
+    }
+
+    public function test_inbound_de_numero_desconocido_se_registra_sin_contacto(): void
+    {
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:received',
+            'payload' => ['sender' => '528881112233', 'message' => 'hola'],
+        ])->assertStatus(200);
+
+        $this->assertDatabaseHas('sms_inbound_messages', [
+            'contact_id'  => null,
+            'from_number' => '528881112233',
+            'body'        => 'hola',
+        ]);
     }
 
     public function test_firma_invalida_es_rechazada(): void

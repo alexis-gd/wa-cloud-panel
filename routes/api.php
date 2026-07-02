@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SmsController;
+use App\Http\Controllers\Api\SmsInboundController;
 use App\Http\Controllers\Api\SmsWebhookController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TemplateController;
@@ -113,6 +114,11 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // SMS — envío de prueba solo admin (probar el gateway sin crear campaña)
     Route::middleware('role:admin')->group(function () {
         Route::post('/sms/send-test', [SmsController::class, 'sendTest']);
+    });
+
+    // Respuestas SMS entrantes — lista plana (admin y operator)
+    Route::middleware('role:admin,operator')->group(function () {
+        Route::get('/sms/inbound', [SmsInboundController::class, 'index']);
     });
 
     // Plantillas — escritura solo admin

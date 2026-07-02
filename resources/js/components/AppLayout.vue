@@ -32,6 +32,10 @@
                     <i class="pi pi-send" />
                     <span>Campañas</span>
                 </RouterLink>
+                <RouterLink v-if="isEnabled('feature_campaigns')" to="/sms-replies" class="nav-item" :class="{ active: route.path === '/sms-replies' }" @click="sidebarOpen = false">
+                    <i class="pi pi-inbox" />
+                    <span>Respuestas SMS</span>
+                </RouterLink>
                 <RouterLink v-if="isEnabled('feature_conversations')" to="/conversations" class="nav-item" :class="{ active: route.path === '/conversations' }" @click="sidebarOpen = false">
                     <i class="pi pi-comments" />
                     <span>Conversaciones</span>
@@ -68,7 +72,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.7.0 - Stage 3</span>
+                <span class="version">v0.8.0 - Stage 3</span>
             </div>
         </aside>
 
@@ -242,6 +246,7 @@ const pageTitles = {
     '/'               : 'Dashboard',
     '/contacts'       : 'Contactos',
     '/campaigns'      : 'Campañas',
+    '/sms-replies'    : 'Respuestas SMS',
     '/conversations'  : 'Conversaciones',
     '/templates'      : 'Plantillas',
     '/users'          : 'Usuarios',
@@ -288,6 +293,16 @@ const helpContent = {
             { icon: 'pi-clock',         label: 'Horario',    text: 'WhatsApp solo L-V 9AM–10PM (fuera de eso bloquea). SMS no tiene horario forzado: tú decides (aviso si es de madrugada).' },
         ],
         warning: 'No ejecutar la misma campaña dos veces. Si necesitas reenviar, crea una nueva.',
+    },
+    '/sms-replies': {
+        title: 'Respuestas SMS',
+        items: [
+            { icon: 'pi-inbox',   label: 'Qué es',   text: 'Lista de los SMS que tus contactos respondieron. Es de solo lectura: no se contesta desde aquí (a diferencia de Conversaciones de WhatsApp).' },
+            { icon: 'pi-ban',     label: 'Baja automática', text: 'Si alguien responde STOP o BAJA, el sistema lo da de baja de SMS solo y lo marca con la etiqueta roja "Baja automática".' },
+            { icon: 'pi-search',  label: 'Buscar',   text: 'Filtra por número o por texto del mensaje. El botón "Solo bajas" deja ver únicamente las bajas.' },
+            { icon: 'pi-refresh', label: 'Actualizar', text: 'Usa ↻ para traer las respuestas más recientes.' },
+        ],
+        tip: 'Aunque el número no esté en tus contactos, su respuesta aparece igual aquí.',
     },
     '/conversations': {
         title: 'Conversaciones',

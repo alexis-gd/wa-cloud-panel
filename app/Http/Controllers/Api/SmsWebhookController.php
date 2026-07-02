@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
 use App\Models\Contact;
 use App\Models\MessageLog;
+use App\Models\SmsInboundMessage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
@@ -126,15 +127,21 @@ class SmsWebhookController extends Controller
         $phone   = Contact::normalizePhone($from);
         $contact = $phone ? Contact::where('phone', $phone)->first() : null;
 
-        if (! $contact) {
-            Log::info('SMS webhook inbound: contacto no encontrado', ['from' => substr($from, -4)]);
-            return;
-        }
-
         // Opt-out SMS por texto exacto (evita falsos positivos: "no me interesa" no dispara, "NO" sí).
-        if (in_array(strtoupper(trim($message)), self::OPT_OUT_WORDS, true)) {
+        $isOptOut = in_array(strtoupper(trim($message)), self::OPT_OUT_WORDS, true);
+
+        if ($isOptOut && $contact) {
             $contact->smsOptOut();
             Log::info("SMS opt-out por texto '{$message}' — contacto {$contact->id}");
         }
+
+        // Registrar SIEMPRE en la bandeja plana de respuestas (aunque el número no esté en contactos).
+        SmsInboundMessage::create([
+            'contact_id'  => $contact?->id,
+            'from_number' => $phone ?? $from,
+            'body'        => $message,
+            'action'      => $isOptOut ? 'opt_out' : null,
+            'received_at' => now(),
+        ]);
     }
 }

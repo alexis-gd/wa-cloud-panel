@@ -31,6 +31,7 @@ import LoginView           from './views/LoginView.vue';
 import DashboardView       from './views/DashboardView.vue';
 import ContactsView        from './views/ContactsView.vue';
 import CampaignsView       from './views/CampaignsView.vue';
+import SmsRepliesView      from './views/SmsRepliesView.vue';
 import ConversationsView   from './views/ConversationsView.vue';
 import TemplatesView       from './views/TemplatesView.vue';
 import UsersView           from './views/UsersView.vue';
@@ -45,6 +46,7 @@ const router = createRouter({
         { path: '/',          component: DashboardView  },
         { path: '/contacts',       component: ContactsView      },
         { path: '/campaigns',      component: CampaignsView     },
+        { path: '/sms-replies',    component: SmsRepliesView    },
         { path: '/conversations',  component: ConversationsView  },
         { path: '/templates',     component: TemplatesView, meta: { role: 'admin' } },
         { path: '/users',     component: UsersView,  meta: { role: 'admin' } },
@@ -92,6 +94,7 @@ router.beforeEach(async (to) => {
         const featureForRoute = {
             '/contacts':      'feature_contacts',
             '/campaigns':     'feature_campaigns',
+            '/sms-replies':   'feature_campaigns',
             '/templates':     'feature_templates',
             '/users':         'feature_users',
             '/conversations': 'feature_conversations',

@@ -281,6 +281,31 @@ Clic en uno para cargar el texto automáticamente; luego clic en enviar.
 
 ---
 
+## 7.1. Respuestas SMS
+
+Los SMS que responden tus contactos aparecen en **Respuestas SMS** (menú lateral).
+
+A diferencia de **Conversaciones** (WhatsApp), esto es una **lista de solo lectura**: se ven
+las respuestas pero **no se contesta desde aquí** (el SMS es un canal de una sola vía en el panel).
+
+Cada fila muestra:
+
+- **Fecha** — cuándo llegó la respuesta (hora de México).
+- **Número** — el celular que respondió, y su nombre si está en tus contactos.
+- **Mensaje** — el texto que envió.
+- **Acción** — si respondió **STOP** o **BAJA**, el sistema lo dio de baja de SMS automáticamente
+  y lo verás marcado con la etiqueta roja **"Baja automática"**.
+
+Herramientas:
+
+- **Buscar** por número o por texto del mensaje.
+- Botón **"Solo bajas"** para ver únicamente los que pidieron baja.
+- Botón **↻** para traer las respuestas más recientes.
+
+> ℹ️ Aunque el número no esté en tu lista de contactos, su respuesta aparece igual aquí.
+
+---
+
 ## 8. Opt-out — contactos que piden baja
 
 Cuando un contacto responde con cualquiera de estas palabras exactas:

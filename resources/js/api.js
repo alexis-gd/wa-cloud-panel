@@ -103,6 +103,11 @@ export const api = {
         body   : JSON.stringify(payload),
     }),
 
+    smsInbound: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return request(`/sms/inbound?${qs}`);
+    },
+
     // ── Contacts ─────────────────────────────────────────────────────────────
     contacts: (params = {}) => {
         const qs = new URLSearchParams(params).toString();

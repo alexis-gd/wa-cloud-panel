@@ -134,8 +134,8 @@ class SendSmsMessage implements ShouldQueue
         }
 
         // Error del gateway: contar como fallido y reintentar (hasta $tries).
-        // Los errores de entrega (21610 opt-out, 30004 bloqueado, etc.) llegan por webhook,
-        // no en la respuesta del envío — se manejan en SmsWebhookController.
+        // Los estados de entrega (delivered/failed) y el opt-out (STOP entrante) llegan por
+        // webhook, no en la respuesta del envío — se manejan en SmsWebhookController.
         $campaign->increment('failed_count');
         $this->checkAutoComplete($campaign);
 

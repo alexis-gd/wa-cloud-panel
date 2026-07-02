@@ -151,6 +151,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::put('/settings/assignment-mode',  [SettingsController::class, 'updateAssignmentMode']);
         Route::get('/settings/monthly-goal',     [SettingsController::class, 'getMonthlyGoal']);
         Route::put('/settings/monthly-goal',     [SettingsController::class, 'updateMonthlyGoal']);
+        Route::get('/settings/sms-auto-blacklist', [SettingsController::class, 'getSmsAutoBlacklist']);
+        Route::put('/settings/sms-auto-blacklist', [SettingsController::class, 'updateSmsAutoBlacklist']);
         Route::post('/settings/demo-reset',      [SettingsController::class, 'demoReset']);
     });
 

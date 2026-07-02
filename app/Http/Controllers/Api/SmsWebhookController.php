@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
  *
  * A diferencia de Twilio, el gateway Android NO expone códigos de carrier (21610, 30004…).
  * Sus eventos son sms:sent | sms:delivered | sms:failed | sms:received. El mapeo a la lógica
- * de auto-protección (contexto-twilio-sms) es:
+ * de auto-protección (contexto-sms) es:
  *   - sms:failed   → rebote SMS (3 consecutivos ⇒ sms_blocked)
  *   - sms:received → si el texto es STOP/BAJA/CANCELAR/NO ⇒ opt-out SMS
  *

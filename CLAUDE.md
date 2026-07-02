@@ -46,7 +46,7 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | Convenciones API REST | [.claude/rules/convenciones-api.md](.claude/rules/convenciones-api.md) |
 | **Protección cuenta Meta (PRIORIDAD MÁXIMA)** | [.claude/rules/proteccion-cuenta-meta.md](.claude/rules/proteccion-cuenta-meta.md) |
 | Contexto Meta/WhatsApp — decisiones, políticas y lecciones | [.claude/rules/contexto-meta-whatsapp.md](.claude/rules/contexto-meta-whatsapp.md) |
-| Contexto SMS — proveedor elegido (SIM propia/capcom6), reglas, cooldown, legal | [.claude/rules/contexto-twilio-sms.md](.claude/rules/contexto-twilio-sms.md) |
+| Contexto SMS — proveedor elegido (SIM propia/capcom6), reglas, cooldown, legal | [.claude/rules/contexto-sms.md](.claude/rules/contexto-sms.md) |
 
 ## Regla: Mantener la guía de operador actualizada
 

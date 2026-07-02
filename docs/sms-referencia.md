@@ -1,7 +1,7 @@
 # SMS — Arquitectura multicanal y guía de integración
 
 > Documento técnico de referencia para el canal SMS dentro de wa-cloud-panel.
-> Para reglas y políticas de SMS, ver `.claude/rules/contexto-twilio-sms.md`
+> Para reglas y políticas de SMS, ver `.claude/rules/contexto-sms.md`
 > Para políticas de WhatsApp/Meta, ver `.claude/rules/contexto-meta-whatsapp.md`
 >
 > ⚠️ **Proveedor real: SIM propia con gateway self-host** (SMS Gateway for Android / capcom6),

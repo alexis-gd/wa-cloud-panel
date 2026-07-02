@@ -168,7 +168,7 @@ class CampaignController extends Controller
         }
 
         // ── Verificar ventana horaria 9AM-10PM CST (L-V) — SOLO WhatsApp ──
-        // SMS no tiene horario forzado: el cliente elige cuándo (ver contexto-twilio-sms).
+        // SMS no tiene horario forzado: el cliente elige cuándo (ver contexto-sms).
         // "Modo demo" (Setting schedule_bypass=1) permite ejecutar fuera de horario
         // para pruebas/demos. Default apagado — en operación real NUNCA se enciende
         // (enviar fuera de horario a números reales puede generar reportes de spam).

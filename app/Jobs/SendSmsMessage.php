@@ -15,11 +15,11 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Envío SMS por gateway. Job SEPARADO de SendWhatsAppMessage (regla contexto-twilio-sms):
+ * Envío SMS por gateway. Job SEPARADO de SendWhatsAppMessage (regla contexto-sms):
  * si el gateway SMS se atora, WhatsApp sigue y viceversa.
  *
  * Diferencias clave con el job WA:
- *  - SMS NO tiene horario forzado (el cliente elige cuándo; ver contexto-twilio-sms).
+ *  - SMS NO tiene horario forzado (el cliente elige cuándo; ver contexto-sms).
  *  - Opt-out es CROSS-CHANNEL (una baja en WhatsApp también bloquea SMS — legal/seguridad).
  *  - Dedup y cooldown son POR CANAL (WA y SMS independientes: un WA hoy no frena el SMS).
  *  - El pool de chips lo resuelve el gateway, no el panel: no hay phone_number_id.

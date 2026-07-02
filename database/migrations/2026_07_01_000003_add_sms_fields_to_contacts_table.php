@@ -15,7 +15,7 @@ return new class extends Migration
             $table->boolean('sms_blocked')->default(false)->after('sms_opt_out');
             $table->boolean('sms_invalid')->default(false)->after('sms_blocked');
 
-            // Contador de rebotes SMS consecutivos → auto-blacklist a los 3 (regla contexto-twilio-sms).
+            // Contador de rebotes SMS consecutivos → auto-blacklist a los 3 (regla contexto-sms).
             $table->unsignedSmallInteger('sms_bounce_count')->default(0)->after('sms_invalid');
         });
     }

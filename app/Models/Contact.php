@@ -54,7 +54,7 @@ class Contact extends Model
 
     /**
      * Registra un rebote SMS. A los 3 consecutivos se auto-bloquea el canal SMS
-     * (regla contexto-twilio-sms). No afecta el canal WhatsApp.
+     * (regla contexto-sms). No afecta el canal WhatsApp.
      */
     public function registerSmsBounce(): void
     {

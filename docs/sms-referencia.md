@@ -1,8 +1,14 @@
 # SMS — Arquitectura multicanal y guía de integración
 
 > Documento técnico de referencia para el canal SMS dentro de wa-cloud-panel.
-> Para reglas y políticas de Twilio, ver `.claude/rules/contexto-twilio-sms.md`
+> Para reglas y políticas de SMS, ver `.claude/rules/contexto-twilio-sms.md`
 > Para políticas de WhatsApp/Meta, ver `.claude/rules/contexto-meta-whatsapp.md`
+>
+> ⚠️ **Proveedor real: SIM propia con gateway self-host** (SMS Gateway for Android / capcom6),
+> NO Twilio. Twilio se evaluó pero no se eligió. La arquitectura multicanal de este doc (canales
+> independientes, contactos/campañas compartidos, `channel` en `message_log`) **sí aplica** — solo
+> cambia el "cómo se envía": en vez de la API de Twilio, el job `SendSmsMessage` llama a
+> `SmsGatewayClient` (gateway capcom6). Setup real: [`guia-sms-gateway-setup.md`](guia-sms-gateway-setup.md).
 
 ---
 

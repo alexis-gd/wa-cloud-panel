@@ -1,5 +1,13 @@
 # Guía: Crear cuenta Twilio y obtener credenciales SMS
 
+> ⚠️ **NO ELEGIDO — solo referencia.** Twilio se evaluó como opción de proveedor SMS, pero el
+> proyecto **NO se fue por este camino**: el cliente rechazó pagar una API de proveedor y se optó
+> por **SIM propia con gateway self-host** (SMS Gateway for Android / capcom6). El canal SMS que
+> corre en producción usa ese gateway, no Twilio. Ver el camino real en
+> [`guia-sms-gateway-setup.md`](guia-sms-gateway-setup.md) y el análisis en
+> [`sms-sim-propia-analisis.md`](sms-sim-propia-analisis.md).
+> Este documento se conserva por si en el futuro se quisiera un proveedor con CFDI/API dedicada.
+
 > Guía paso a paso. Tiempo estimado: 10-15 minutos.
 > No necesitas tarjeta de crédito para el trial.
 

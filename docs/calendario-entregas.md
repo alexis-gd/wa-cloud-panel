@@ -118,18 +118,22 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [ ] **Mejorar pantalla de login** — rediseñar al estilo Doters Admin (más visual, con branding, fondo con gradiente o imagen, card centrada con sombra más pronunciada).
 - [ ] **Consola limpia** — suprimir el warning de i18next que aparece en consola del navegador. Agregar mensaje de firma de NodosMX (ej. `console.log` estilizado con CSS) como branding de desarrollo.
 
-### Canal SMS — SIM propia vía Android Gateway (en desarrollo)
+### Canal SMS — SIM propia vía Android Gateway (✅ EN PRODUCCIÓN, probado 2026-07-02)
 
 > El cliente rechazó pagar una API de proveedor (Twilio). Decisión: enviar SMS por **SIM propia**
 > usando **SMS Gateway for Android™** (capcom6) en modo self-host. El cliente asume los riesgos
 > (bloqueo de SIM por operador, entrega no auditable, mantenimiento). Ver
-> [`docs/sms-sim-propia-analisis.md`](sms-sim-propia-analisis.md). Rama `feature/sms-android-gateway`.
+> [`docs/sms-sim-propia-analisis.md`](sms-sim-propia-analisis.md) y el setup real en
+> [`docs/guia-sms-gateway-setup.md`](guia-sms-gateway-setup.md). Mergeado a `main`.
 
 - [x] **Migraciones multicanal** — `channel` en `message_log` y `campaigns`; columnas WA (`template_name`, `language_code`, `phone_number_id`) ahora nullable; campos `sms_opt_out`, `sms_blocked`, `sms_invalid`, `sms_bounce_count` en `contacts`.
-- [x] **`SmsGatewayClient`** — único punto de salida HTTP al gateway (espejo de `WhatsAppClient`, config en `config/sms.php`).
-- [x] **Job `SendSmsMessage`** — separado del job WA; opt-out/dedup/cooldown **cross-channel**; SMS **sin horario forzado** (el cliente elige cuándo).
+- [x] **`SmsGatewayClient`** — único punto de salida HTTP al gateway (espejo de `WhatsAppClient`, config en `config/sms.php`). Antepone `+` (E.164) que el gateway exige.
+- [x] **Job `SendSmsMessage`** — separado del job WA; opt-out **cross-channel**; dedup/cooldown **por canal**; SMS **sin horario forzado** (el cliente elige cuándo).
 - [x] **Campaña por canal** — selector WhatsApp/SMS en el modal; el pool de chips lo resuelve el gateway (sin selector de número).
-- [x] **Webhook `POST /api/sms/webhook`** — eventos capcom6 (`sms:sent|delivered|failed|received`); `failed`→rebote (3⇒`sms_blocked`), `received` STOP⇒`sms_opt_out`.
+- [x] **Botón "Enviar prueba"** (admin) — dispara 1 SMS al gateway sin crear campaña ni cooldown.
+- [x] **Gateway desplegado en prod** — Docker en el VPS, expuesto por **Cloudflare Tunnel** (`gw.prestamaz.site`), 1 teléfono (SIM Telcel) registrado. **Primer SMS OK vía botón + campaña.**
+- [x] **Código del webhook** `POST /api/sms/webhook` — eventos capcom6 (`sms:sent|delivered|failed|received`); `failed`→rebote (3⇒`sms_blocked`), `received` STOP⇒`sms_opt_out`.
+- [ ] **Paso 9: conectar el webhook en el gateway** — registrar `https://sender.prestamaz.site/api/sms/webhook` en capcom6 + opcional `SMS_WEBHOOK_SECRET`. (Pendiente para ver estados delivered/failed y opt-out por SMS.)
 - [ ] **Warm-up / rate limit por SIM** — el gateway limita a ~8 SMS/min por chip; configurar en el servidor gateway (fuera del panel).
 - [ ] **Feature flag `sms_campaigns`** — gatear el canal SMS por etapa/preset (follow-up: hoy visible para admin/superadmin).
-- [ ] **Setup físico prod** — 5–8 celulares + SIMs multi-operador + servidor Docker del gateway.
+- [ ] **Setup físico prod** — escalar de 1 a 5–8 celulares + SIMs multi-operador (hoy 1 teléfono de prueba).

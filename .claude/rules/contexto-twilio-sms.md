@@ -1,18 +1,30 @@
-# Contexto Twilio SMS — Reglas, políticas y decisiones
+# Contexto SMS — Reglas, políticas y decisiones
 
 > Canal complementario a WhatsApp. La prioridad #1 sigue siendo proteger la cuenta WABA.
 > SMS es un canal independiente: si SMS tiene problemas, WhatsApp no se entera y viceversa.
+>
+> **PROVEEDOR ELEGIDO: SIM propia con gateway self-host (SMS Gateway for Android / capcom6).**
+> Twilio y SMS Masivos se evaluaron pero NO se eligieron (el cliente rechazó pagar API de proveedor).
+> Las reglas de cumplimiento (opt-out, REPEP, horario, cross-channel) aplican **igual** sin importar
+> el proveedor. Las secciones de errores/pricing de Twilio abajo son **referencia histórica**.
 
 ---
 
-## Proveedor elegido: Twilio
+## Proveedor ELEGIDO: SIM propia — gateway capcom6 (self-host)
 
-- **API**: REST API + PHP SDK oficial (`twilio/sdk`)
-- **Pricing México**: ~$0.0075 USD/msg + ~$0.002-0.005 USD carrier fees = ~$0.01 USD/msg (~$0.20 MXN)
-- **Trial gratuito**: Sí. Crédito inicial, 50 msgs/día, solo a números verificados, prefijo "Sent from Twilio Trial"
-- **Facturación**: USD, sin CFDI mexicano. Nosotros absorbemos costo y facturamos al cliente como "servicio de mensajería"
-- **Alternativa mexicana**: SMS Masivos (smsmasivos.com.mx) — CFDI 4.0, $0.47 MXN/msg público (cotización especial 200K+)
-- **Decisión**: Twilio para desarrollo e integración (mejor API, mejor docs, webhooks de status). Evaluar SMS Masivos solo si el cliente exige CFDI específico por SMS
+- **Cómo funciona**: teléfonos Android con chip + servidor gateway (Docker) → el panel llama a
+  `SmsGatewayClient::send()` → `POST {url}/api/3rdparty/v1/messages` (Basic auth). El pool de chips
+  lo resuelve el gateway (round-robin). Ver [`docs/guia-sms-gateway-setup.md`](../../docs/guia-sms-gateway-setup.md).
+- **En producción (desde 2026-07-02)**: gateway corriendo en el VPS, expuesto por Cloudflare Tunnel
+  (`gw.prestamaz.site`), 1 teléfono registrado, primer SMS enviado OK (botón de prueba + campaña).
+- **Número E.164 con `+`**: el gateway lo exige; `SmsGatewayClient::toE164()` lo antepone.
+- **Costo**: hardware (celulares + SIMs) en vez de $/msg. Sin CFDI por SMS. Riesgos asumidos por el
+  cliente (bloqueo de SIM, entrega no auditable) — ver [`docs/sms-sim-propia-analisis.md`](../../docs/sms-sim-propia-analisis.md).
+
+## Proveedores evaluados y NO elegidos (referencia)
+
+- **Twilio**: ~$0.01 USD/msg, mejor API/docs/webhooks, pero USD sin CFDI y costo por mensaje. Descartado por costo.
+- **SMS Masivos** (smsmasivos.com.mx): CFDI 4.0, ~$0.47 MXN/msg. Reconsiderar solo si el cliente exige CFDI específico por SMS.
 
 ---
 

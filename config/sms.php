@@ -11,6 +11,11 @@ return [
     |
     | En modo privado self-host `url` apunta a tu servidor Docker; en modo local
     | (un solo teléfono en desarrollo) apunta a la IP del dispositivo.
+    |
+    | OJO con el prefijo de la ruta (difiere entre cloud y self-host):
+    |   - Cloud:      https://api.sms-gate.app/3rdparty/v1
+    |   - Self-host:  http://127.0.0.1:3000/api/3rdparty/v1   (lleva /api)
+    | El cliente le agrega /messages. Endpoint final: {url}/messages (Basic auth).
     */
     'gateway' => [
         'url'      => env('SMS_GATEWAY_URL', 'https://api.sms-gate.app/3rdparty/v1'),

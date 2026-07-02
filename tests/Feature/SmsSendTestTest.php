@@ -12,7 +12,7 @@ class SmsSendTestTest extends TestCase
 
     public function test_admin_envia_sms_de_prueba(): void
     {
-        Http::fake(['*/message' => Http::response(['id' => 'SM-test'], 202)]);
+        Http::fake(['*/messages' => Http::response(['id' => 'SM-test'], 202)]);
         $this->actingAsAdmin();
 
         $this->postJson('/api/sms/send-test', [

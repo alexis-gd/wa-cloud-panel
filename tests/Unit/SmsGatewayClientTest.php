@@ -11,7 +11,7 @@ class SmsGatewayClientTest extends TestCase
     public function test_send_devuelve_ok_y_message_id(): void
     {
         Http::fake([
-            '*/message' => Http::response(['id' => 'SM-abc123', 'state' => 'Pending'], 202),
+            '*/messages' => Http::response(['id' => 'SM-abc123', 'state' => 'Pending'], 202),
         ]);
 
         $result = (new SmsGatewayClient())->send('529991234567', 'Hola, soy Prestamaz. STOP para baja');
@@ -23,12 +23,12 @@ class SmsGatewayClientTest extends TestCase
 
     public function test_send_envia_texto_y_numero_al_gateway(): void
     {
-        Http::fake(['*/message' => Http::response(['id' => 'SM-1'], 202)]);
+        Http::fake(['*/messages' => Http::response(['id' => 'SM-1'], 202)]);
 
         (new SmsGatewayClient())->send('529991234567', 'contenido');
 
         Http::assertSent(function ($request) {
-            return str_ends_with($request->url(), '/message')
+            return str_ends_with($request->url(), '/messages')
                 && $request['message'] === 'contenido'
                 && $request['phoneNumbers'] === ['529991234567'];
         });
@@ -37,7 +37,7 @@ class SmsGatewayClientTest extends TestCase
     public function test_send_marca_error_si_el_gateway_falla(): void
     {
         Http::fake([
-            '*/message' => Http::response(['message' => 'unauthorized'], 401),
+            '*/messages' => Http::response(['message' => 'unauthorized'], 401),
         ]);
 
         $result = (new SmsGatewayClient())->send('529991234567', 'x');

@@ -34,7 +34,7 @@ class SmsGatewayClient
     {
         $response = Http::withBasicAuth((string) $this->login, (string) $this->password)
             ->timeout($this->timeout)
-            ->post("{$this->baseUrl}/message", [
+            ->post("{$this->baseUrl}/messages", [
                 'message'      => $body,
                 'phoneNumbers' => [$to],
             ]);

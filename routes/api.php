@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\SmsController;
+use App\Http\Controllers\Api\SmsWebhookController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\UserController;
@@ -29,6 +31,9 @@ Route::get('/health', function () {
 // ── Webhook Meta — sin API key, valida X-Hub-Signature-256 ──────────────────
 Route::get('/webhook',  [WebhookController::class, 'verify']);
 Route::post('/webhook', [WebhookController::class, 'handle']);
+
+// ── Webhook gateway SMS — sin API key, valida HMAC X-Signature ──────────────
+Route::post('/sms/webhook', [SmsWebhookController::class, 'handle']);
 
 // ── Auth — público, con rate limit anti-brute-force ─────────────────────────
 // 5 intentos por minuto por IP — bloquea ataques de fuerza bruta sin molestar
@@ -103,6 +108,11 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::post('/quick-replies',        [ConversationController::class, 'storeQuickReply']);
         Route::delete('/quick-replies/{id}', [ConversationController::class, 'destroyQuickReply']);
+    });
+
+    // SMS — envío de prueba solo admin (probar el gateway sin crear campaña)
+    Route::middleware('role:admin')->group(function () {
+        Route::post('/sms/send-test', [SmsController::class, 'sendTest']);
     });
 
     // Plantillas — escritura solo admin

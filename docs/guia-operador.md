@@ -154,14 +154,21 @@ Para **quitar** un tag de varios contactos: seleccionarlos, elegir el tag y clic
 1. Ir a **Campañas** → clic en **Nueva campaña**.
 2. Llenar el formulario:
    - **Nombre**: identificador interno (ej. "Promo mayo semana 1").
-   - **Plantilla**: solo aparecen las plantillas aprobadas por Meta. No se puede escribir una a mano.
+   - **Canal**: elige **WhatsApp** o **SMS**. El formulario cambia según el canal:
+     - **WhatsApp** → eliges una **plantilla** aprobada (no se escribe a mano) y sus variables.
+     - **SMS** → escribes el **mensaje** libre. Muestra el conteo de caracteres y segmentos
+       (160 caracteres = 1 segmento; cada segmento extra se cobra aparte). Incluye siempre
+       una opción de baja al final, ej. *"Responde STOP para baja"*.
    - **Destinatarios**: elige "Todos los contactos activos" o filtra por un tag específico.
      Si seleccionas un tag, solo los contactos con esa etiqueta recibirán la campaña.
-   - **Variables de la plantilla**: si la plantilla tiene `{{Nombre}}` u otras variables, aparecerán
-     campos para capturar los valores que se enviarán a todos los contactos.
 3. Clic en **Guardar**.
 
 > ℹ️ La campaña queda en estado **borrador** hasta que se ejecute.
+
+> ℹ️ **SMS y horario**: a diferencia de WhatsApp, el SMS **no tiene horario forzado** — tú
+> decides cuándo ejecutarlo. Si lo haces entre 11PM y 7AM, el sistema muestra una advertencia
+> (no un bloqueo): enviar de madrugada suele generar más bajas y que las operadoras filtren
+> los mensajes. Es solo un aviso, tú decides.
 
 > ℹ️ Al abrir una campaña en borrador verás su **alcance estimado**: cuántos contactos activos
 > recibirían la campaña según el tag elegido. Es un estimado que se actualiza solo si importas o
@@ -174,17 +181,21 @@ Para **quitar** un tag de varios contactos: seleccionarlos, elegir el tag y clic
 1. En la lista de **Campañas**, abrir la campaña deseada.
 2. Clic en **Ejecutar**.
 3. El sistema verifica:
-   - Que la plantilla siga aprobada.
-   - Que haya un número activo.
-   - Que el horario sea válido (lunes a viernes, 9AM–10PM hora México).
+   - **WhatsApp**: que la plantilla siga aprobada, que haya un número activo y que el horario
+     sea válido (lunes a viernes, 9AM–10PM hora México).
+   - **SMS**: no valida horario (tú decides cuándo). El envío lo reparte automáticamente el
+     gateway entre los teléfonos disponibles.
 4. Si alguna condición falla, mostrará el motivo y no enviará nada.
 5. Si todo está bien, los mensajes se encolan y se empiezan a procesar en segundo plano.
 
-**El sistema protege automáticamente:**
+**El sistema protege automáticamente (en ambos canales):**
 - No envía a contactos con opt-out o marcados como inválidos.
+- Una baja cuenta para **los dos canales**: si alguien pidió baja por WhatsApp, tampoco recibe SMS.
 - No envía a contactos en snooze (que respondieron "No por ahora" recientemente).
-- Respeta el límite diario del número WhatsApp según el tier de Meta.
-- Solo envía dentro del horario permitido (9AM–10PM, L-V).
+- **Dedup y cooldown son por canal, separados**: WhatsApp lleva su propio conteo y SMS el suyo.
+  Un contacto que recibió WhatsApp hoy **sí** puede recibir un SMS hoy (y viceversa). Cada canal
+  no reenvía al mismo contacto el mismo día ni dentro de su propio cooldown, pero no se cruzan.
+- WhatsApp respeta el límite diario del número según el tier de Meta y el horario permitido.
 
 > ⚠️ No ejecutar la misma campaña dos veces. Si necesitas reenviar, crear una nueva campaña.
 

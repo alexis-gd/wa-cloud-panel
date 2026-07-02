@@ -108,6 +108,7 @@ class SendWhatsAppMessage implements ShouldQueue
         $endOfDay   = now('America/Mexico_City')->endOfDay()->utc();
 
         $alreadySentToday = MessageLog::where('to_number', $contact->phone)
+            ->where('channel', 'whatsapp')
             ->whereBetween('sent_at', [$startOfDay, $endOfDay])
             ->whereIn('status', ['sent', 'delivered', 'read'])
             ->exists();
@@ -126,6 +127,7 @@ class SendWhatsAppMessage implements ShouldQueue
         // ── Cooldown: no enviar al mismo contacto en N días (mínimo 7, default 30) ──
         $cooldownDays = max(7, (int) Setting::get('cooldown_days', 30));
         $lastSent     = MessageLog::where('to_number', $contact->phone)
+            ->where('channel', 'whatsapp')
             ->where('status', 'sent')
             ->latest('sent_at')
             ->value('sent_at');

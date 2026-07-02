@@ -29,6 +29,8 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | [docs/arquitectura-referencia.md](docs/arquitectura-referencia.md) | Estructura Laravel, flujo de peticiones, archivos clave, decisiones tecnológicas |
 | [docs/sms-referencia.md](docs/sms-referencia.md) | Arquitectura multicanal SMS, flujo de campaña, anti-duplicado, delivery reports |
 | [docs/guia-twilio-setup.md](docs/guia-twilio-setup.md) | Paso a paso: crear cuenta Twilio, credenciales, verificar números, probar |
+| [docs/sms-sim-propia-analisis.md](docs/sms-sim-propia-analisis.md) | Análisis SMS por SIM propia (Android gateway) vs proveedor: legal, económico, riesgos |
+| [docs/guia-sms-gateway-setup.md](docs/guia-sms-gateway-setup.md) | Paso a paso: montar el gateway capcom6 (Docker + pool de teléfonos) y conectarlo al panel |
 | [docs/calendario-entregas.md](docs/calendario-entregas.md) | Entregas al cliente + checklist de desarrollo por etapa + backlog técnico |
 | [docs/testing.md](docs/testing.md) | Guía PHPUnit, tipos de tests, mocks, convenciones |
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |

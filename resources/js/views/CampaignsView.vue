@@ -17,9 +17,10 @@
                             <span class="campaign-name-link" @click="openDetail(data)">{{ data.name }}</span>
                         </template>
                     </Column>
-                    <Column field="template_name" header="Plantilla">
+                    <Column header="Canal / Plantilla">
                         <template #body="{ data }">
-                            <code>{{ data.template_name }}</code>
+                            <Tag v-if="data.channel === 'sms'" value="SMS" severity="contrast" />
+                            <code v-else>{{ data.template_name }}</code>
                         </template>
                     </Column>
                     <Column header="Estado">
@@ -83,18 +84,30 @@
                 <label class="field-label">Nombre de la campaña</label>
                 <InputText v-model="form.name" placeholder="Ej: Promo mayo — préstamos personales" fluid />
 
-                <label class="field-label mt">Plantilla</label>
-                <Select
-                    v-model="form.template"
-                    :options="approvedTemplates"
-                    option-label="display"
-                    placeholder="Selecciona plantilla aprobada"
-                    :loading="loadingTemplates"
-                    fluid
+                <label class="field-label mt">Canal</label>
+                <SelectButton
+                    v-model="form.channel"
+                    :options="channelOptions"
+                    option-label="label"
+                    option-value="value"
+                    :allow-empty="false"
                 />
-                <small v-if="approvedTemplates.length === 0 && !loadingTemplates" class="no-templates">
-                    No hay plantillas aprobadas. Sube plantillas desde Meta Business Manager.
-                </small>
+
+                <!-- ── Campos WhatsApp ─────────────────── -->
+                <template v-if="form.channel === 'whatsapp'">
+                    <label class="field-label mt">Plantilla</label>
+                    <Select
+                        v-model="form.template"
+                        :options="approvedTemplates"
+                        option-label="display"
+                        placeholder="Selecciona plantilla aprobada"
+                        :loading="loadingTemplates"
+                        fluid
+                    />
+                    <small v-if="approvedTemplates.length === 0 && !loadingTemplates" class="no-templates">
+                        No hay plantillas aprobadas. Sube plantillas desde Meta Business Manager.
+                    </small>
+                </template>
 
                 <label class="field-label mt">Destinatarios</label>
                 <Select
@@ -106,16 +119,60 @@
                     fluid
                 />
 
-                <template v-if="form.template && varCount > 0">
+                <!-- ── Variables (solo WhatsApp) ────────── -->
+                <template v-if="form.channel === 'whatsapp' && form.template && varCount > 0">
                     <label class="field-label mt">Variables del mensaje ({{ varCount }} variable{{ varCount > 1 ? 's' : '' }})</label>
                     <div v-for="(varName, i) in templateVarLabels" :key="i" class="var-row">
                         <span class="var-label">{{ varName }}</span>
                         <InputText v-model="form.bodyVars[i]" :placeholder="varName" fluid />
                     </div>
                 </template>
-                <div v-else-if="form.template && varCount === 0" class="field-label mt">
+                <div v-else-if="form.channel === 'whatsapp' && form.template && varCount === 0" class="field-label mt">
                     <small class="no-templates">Esta plantilla no tiene variables.</small>
                 </div>
+
+                <!-- ── Cuerpo del SMS (solo SMS) ────────── -->
+                <template v-if="form.channel === 'sms'">
+                    <label class="field-label mt">Mensaje SMS</label>
+                    <Textarea
+                        v-model="form.smsBody"
+                        rows="4"
+                        placeholder="Prestamaz: préstamo desde $10,000. Responde STOP para baja."
+                        fluid
+                        auto-resize
+                    />
+                    <small class="sms-counter">
+                        {{ smsCharCount }} caracteres · {{ smsSegments }} segmento{{ smsSegments === 1 ? '' : 's' }}
+                    </small>
+                    <div v-if="smsNightWarning" class="sms-warning">
+                        <i class="pi pi-exclamation-triangle"></i>
+                        Enviar entre 11PM–7AM puede generar más bajas y filtrado por operadoras.
+                    </div>
+
+                    <!-- ── Enviar prueba (solo admin) ─────── -->
+                    <template v-if="isAdmin()">
+                        <label class="field-label mt">Enviar prueba</label>
+                        <div class="sms-test-row">
+                            <InputText
+                                v-model="smsTestNumber"
+                                placeholder="Número de prueba (ej. 5299...)"
+                                fluid
+                            />
+                            <Button
+                                label="Enviar"
+                                icon="pi pi-send"
+                                severity="secondary"
+                                size="small"
+                                :loading="sendingSmsTest"
+                                :disabled="form.smsBody.trim() === '' || smsTestNumber.trim() === ''"
+                                @click="sendSmsTest"
+                            />
+                        </div>
+                        <small class="sms-test-hint">
+                            Manda este mensaje a un solo número, sin crear campaña ni aplicar cooldown. Para probar el gateway.
+                        </small>
+                    </template>
+                </template>
 
                 <div v-if="formError" class="form-error">{{ formError }}</div>
             </div>
@@ -290,12 +347,16 @@ import Column        from 'primevue/column';
 import Tag           from 'primevue/tag';
 import Dialog        from 'primevue/dialog';
 import InputText     from 'primevue/inputtext';
+import Textarea      from 'primevue/textarea';
 import Select        from 'primevue/select';
+import SelectButton  from 'primevue/selectbutton';
 import ConfirmDialog from 'primevue/confirmdialog';
 import { api }       from '../api.js';
+import { useAuth }   from '../auth.js';
 
 const confirm = useConfirm();
 const toast   = useToast();
+const { isAdmin } = useAuth();
 
 const campaigns        = ref([]);
 const meta             = ref(null);
@@ -320,12 +381,51 @@ const detailLoading     = ref(false);
 const pausing           = ref(false);
 const retrying          = ref(false);
 
-const form = ref({ name: '', template: null, bodyVars: [], tagId: null });
+const form = ref({ name: '', channel: 'whatsapp', template: null, bodyVars: [], smsBody: '', tagId: null });
+
+// ── Envío de prueba SMS (solo admin) ──────────────────────────
+const smsTestNumber  = ref('');
+const sendingSmsTest = ref(false);
+
+async function sendSmsTest() {
+    if (form.value.smsBody.trim() === '' || smsTestNumber.value.trim() === '') return;
+    sendingSmsTest.value = true;
+    const res = await api.sendSmsTest({
+        to   : smsTestNumber.value.trim(),
+        body : form.value.smsBody.trim(),
+    });
+    sendingSmsTest.value = false;
+
+    res.status === 'ok'
+        ? toast.add({ severity: 'success', summary: 'SMS de prueba enviado', detail: res.message, life: 4000 })
+        : toast.add({ severity: 'error', summary: 'Error', detail: res.message, life: 5000 });
+}
+
+const channelOptions = [
+    { label: 'WhatsApp', value: 'whatsapp' },
+    { label: 'SMS',      value: 'sms' },
+];
 
 const tagOptions = computed(() => [
     { label: 'Todos los contactos activos', value: null },
     ...availableTags.value.map(t => ({ label: `Tag: ${t.name}`, value: t.id })),
 ]);
+
+// ── Contador de segmentos SMS (160 chars = 1 segmento, luego 153 c/u por overhead UDH) ──
+const smsCharCount = computed(() => form.value.smsBody.length);
+const smsSegments = computed(() => {
+    const len = smsCharCount.value;
+    if (len === 0) return 0;
+    return len <= 160 ? 1 : Math.ceil(len / 153);
+});
+
+// Advertencia si el operador crea un SMS en horario nocturno (11PM–7AM hora local).
+// SMS no tiene horario forzado (el cliente decide), es solo aviso.
+const smsNightWarning = computed(() => {
+    if (form.value.channel !== 'sms') return false;
+    const h = new Date().getHours();
+    return h >= 23 || h < 7;
+});
 
 function extractVarLabels(bodyText) {
     if (!bodyText) return [];
@@ -339,9 +439,12 @@ function extractVarLabels(bodyText) {
 const templateVarLabels = computed(() => extractVarLabels(form.value.template?.body_text ?? ''));
 const varCount = computed(() => templateVarLabels.value.length);
 
-const canSave = computed(() =>
-    form.value.name.trim() !== '' && form.value.template !== null
-);
+const canSave = computed(() => {
+    if (form.value.name.trim() === '') return false;
+    return form.value.channel === 'sms'
+        ? form.value.smsBody.trim() !== ''
+        : form.value.template !== null;
+});
 
 watch(() => form.value.template, () => {
     form.value.bodyVars = Array(varCount.value).fill('');
@@ -387,6 +490,7 @@ const discardLabel = (r) => ({
     opted_out  : 'Opt-out',
     dedup_today: 'Ya enviado hoy',
     unreachable: 'Inalcanzable',
+    sms_blocked: 'SMS bloqueado',
 }[r] ?? r);
 
 function progressPct(count, total) {
@@ -403,7 +507,7 @@ async function loadCampaigns(page = 1) {
 }
 
 async function openNewModal() {
-    form.value    = { name: '', template: null, bodyVars: [], tagId: null };
+    form.value    = { name: '', channel: 'whatsapp', template: null, bodyVars: [], smsBody: '', tagId: null };
     formError.value = '';
     showModal.value = true;
 
@@ -430,13 +534,21 @@ async function saveCampaign() {
     saving.value    = true;
     formError.value = '';
 
-    const payload = {
-        name          : form.value.name.trim(),
-        template_name : form.value.template.name,
-        language_code : form.value.template.language_code,
-        body_vars     : form.value.bodyVars.filter(v => v !== ''),
-        tag_id        : form.value.tagId ?? undefined,
-    };
+    const payload = form.value.channel === 'sms'
+        ? {
+            name     : form.value.name.trim(),
+            channel  : 'sms',
+            sms_body : form.value.smsBody.trim(),
+            tag_id   : form.value.tagId ?? undefined,
+        }
+        : {
+            name          : form.value.name.trim(),
+            channel       : 'whatsapp',
+            template_name : form.value.template.name,
+            language_code : form.value.template.language_code,
+            body_vars     : form.value.bodyVars.filter(v => v !== ''),
+            tag_id        : form.value.tagId ?? undefined,
+        };
 
     const res = await api.createCampaign(payload);
     saving.value = false;
@@ -632,6 +744,39 @@ onUnmounted(() => stopDetailPolling());
 .no-templates {
     color: var(--p-orange-600);
     font-size: .8rem;
+    margin-top: 4px;
+}
+
+.sms-counter {
+    color: var(--p-text-muted-color);
+    font-size: .78rem;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+.sms-warning {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px 14px;
+    background: var(--p-orange-50);
+    border-left: 3px solid var(--p-orange-400);
+    border-radius: 4px;
+    font-size: .8rem;
+    color: var(--p-orange-700);
+}
+.sms-warning .pi { font-size: .9rem; flex-shrink: 0; }
+
+.sms-test-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+}
+.sms-test-hint {
+    color: var(--p-text-muted-color);
+    font-size: .76rem;
     margin-top: 4px;
 }
 

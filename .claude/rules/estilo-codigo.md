@@ -60,8 +60,15 @@ Mantener consistencia entre todas las vistas. No variar estilos de componentes s
   ])
   ```
 
+## Guion largo prohibido (regla dura)
+
+- **Nunca usar el guion largo `—` (em dash).** En su lugar usar guion normal `-`.
+- Aplica a TODO: copys de UI, textos visibles al operador, comentarios de código, docs, mensajes de commit, descripciones de PR, tooltips, help popovers.
+- Vale igual para el guion medio `–` (en dash): usar `-`.
+- Al tocar un archivo con `—` existente, reemplazarlo por `-` de paso.
+
 ## General
 
 - Commits en español, imperativos: "Agrega job de envío", "Corrige validación de webhook".
-- No dejar código comentado — si no se usa, se borra.
+- No dejar código comentado - si no se usa, se borra.
 - Máximo 200 líneas por archivo. Si se pasa, refactorizar en clases/componentes.

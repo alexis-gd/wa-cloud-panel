@@ -14,7 +14,7 @@
         <!-- Sidebar -->
         <aside class="sidebar" :class="{ 'sidebar--open': sidebarOpen }">
             <div class="sidebar-brand">
-                <i class="pi pi-whatsapp" />
+                <img :src="'/img/prestamaz-icon.png'" alt="Prestamaz" class="brand-logo" />
                 <span>Prestamaz Panel</span>
             </div>
 
@@ -72,7 +72,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.9.0 - Stage 3</span>
+                <span class="version">v0.12.0 - Stage 3</span>
             </div>
         </aside>
 
@@ -413,6 +413,7 @@ async function logout() {
 }
 
 .sidebar-brand .pi { font-size: 1.4rem; }
+.sidebar-brand .brand-logo { width: 28px; height: 28px; object-fit: contain; }
 
 .sidebar-nav {
     flex: 1;

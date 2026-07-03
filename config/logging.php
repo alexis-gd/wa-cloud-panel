@@ -54,7 +54,8 @@ return [
     'channels' => [
         'stack' => [
             'driver' => 'stack',
-            'channels' => ['single'],
+            // Un archivo por día (laravel-YYYY-MM-DD.log) en vez de un solo laravel.log gigante.
+            'channels' => ['daily'],
             'ignore_exceptions' => false,
         ],
 
@@ -69,7 +70,8 @@ return [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
+            // Retención: conserva 30 días de logs diarios, luego borra los viejos.
+            'days' => env('LOG_DAILY_DAYS', 30),
             'replace_placeholders' => true,
         ],
 

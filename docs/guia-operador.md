@@ -36,8 +36,9 @@ Al entrar verás el dashboard con:
 - **Salud del número**: muestra la calidad del número WhatsApp en semáforo verde/amarillo/rojo,
   cuántos mensajes se han enviado hoy vs. el límite diario, y si el circuito está pausado.
 - **Enviar mensaje de prueba** *(solo administradores)*: para probar una plantilla con un contacto específico antes de lanzar campaña. Los operadores no ven este botón.
-- **Últimos mensajes**: tabla de envíos recientes con su estado. Puedes filtrar por estado
-  (enviados / entregados / leídos / fallidos) y navegar entre páginas con los controles de paginación.
+- **Últimos mensajes**: tabla de envíos recientes con su estado. Incluye WhatsApp y SMS mezclados;
+  la columna **Canal** los distingue con un ícono (verde de WhatsApp o sobre azul de SMS). Puedes
+  filtrar por estado (enviados / entregados / leídos / fallidos) y navegar entre páginas.
 
 > ⚠️ Si el semáforo está en **ROJO** o aparece **PAUSADO**, no ejecutar campañas hasta que
 > el administrador lo revise. El sistema se pausó automáticamente para proteger la cuenta.
@@ -88,10 +89,12 @@ En la esquina superior derecha del panel hay un ícono de campana 🔔. Cuando h
 Para cuando consigues un prospecto suelto (referido, llamada, walk-in):
 
 1. En **Contactos**, clic en **Agregar contacto**.
-2. Escribir el teléfono. Al teclearlo, el sistema **verifica el número al instante** y muestra un aviso:
-   - ✅ **Disponible** — se puede agregar.
-   - ⚠️ **Ya existe** — muestra su estado (activo, opt-out, inválido, inalcanzable). No se puede volver a agregar (se conserva el registro original).
-   - ❌ **Formato inválido** — debe ser México: 52 + 10 dígitos.
+2. Escribir **solo los 10 dígitos** del celular (sin 52 ni +). El sistema agrega el +52 (México)
+   automáticamente. El campo solo acepta números y un máximo de 10 dígitos. Al completarlos, el
+   sistema **verifica el número al instante** y muestra un aviso:
+   - ✅ **Disponible** - se puede agregar.
+   - ⚠️ **Ya existe** - muestra su estado (activo, opt-out, inválido, inalcanzable). No se puede volver a agregar (se conserva el registro original).
+   - ❌ **Deben ser 10 dígitos** - faltan o sobran dígitos.
 3. Escribir el nombre (opcional) y clic en **Guardar**.
 
 > El botón Guardar solo se activa si el número es válido y no existe. Un número dado de baja (opt-out) no se puede reincorporar por esta vía.
@@ -171,7 +174,10 @@ Para **quitar** un tag de varios contactos: seleccionarlos, elegir el tag y clic
 
 > ℹ️ La campaña queda en estado **borrador** hasta que se ejecute.
 
-> ℹ️ **SMS y horario**: a diferencia de WhatsApp, el SMS **no tiene horario forzado** — tú
+> ℹ️ En la lista de campañas, la columna **Canal / Plantilla** muestra un ícono según el canal
+> (verde de WhatsApp o sobre azul de SMS). En WhatsApp además ves el nombre de la plantilla.
+
+> ℹ️ **SMS y horario**: a diferencia de WhatsApp, el SMS **no tiene horario forzado**: tú
 > decides cuándo ejecutarlo. Si lo haces entre 11PM y 7AM, el sistema muestra una advertencia
 > (no un bloqueo): enviar de madrugada suele generar más bajas y que las operadoras filtren
 > los mensajes. Es solo un aviso, tú decides.

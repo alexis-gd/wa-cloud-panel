@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SmsController;
 use App\Http\Controllers\Api\SmsInboundController;
+use App\Http\Controllers\Api\SmsTemplateController;
 use App\Http\Controllers\Api\SmsWebhookController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TemplateController;
@@ -52,6 +53,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // Dashboard, templates, configuración — admin y operator
     Route::middleware('role:admin,operator')->group(function () {
         Route::get('/templates',             [TemplateController::class, 'index']);
+        Route::get('/sms-templates',         [SmsTemplateController::class, 'index']);
         Route::get('/dashboard/stats',           [DashboardController::class, 'stats']);
         Route::get('/dashboard/messages',        [DashboardController::class, 'messages']);
         Route::get('/dashboard/daily-stats',     [DashboardController::class, 'dailyStats']);
@@ -128,6 +130,9 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::post('/templates/sync',       [TemplateController::class, 'sync']);
         Route::put('/templates/{id}',        [TemplateController::class, 'update']);
         Route::delete('/templates/{id}',     [TemplateController::class, 'destroy']);
+        Route::post('/sms-templates',        [SmsTemplateController::class, 'store']);
+        Route::put('/sms-templates/{id}',    [SmsTemplateController::class, 'update']);
+        Route::delete('/sms-templates/{id}', [SmsTemplateController::class, 'destroy']);
     });
 
     // Exports (admin y operator pueden descargar)

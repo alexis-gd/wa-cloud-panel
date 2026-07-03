@@ -98,6 +98,21 @@ export const api = {
         body   : JSON.stringify(payload),
     }),
 
+    // ── SMS templates (locales, no Meta) ───────────────────────────────────────
+    smsTemplates: () => request('/sms-templates'),
+
+    createSmsTemplate: (payload) => request('/sms-templates', {
+        method : 'POST',
+        body   : JSON.stringify(payload),
+    }),
+
+    updateSmsTemplate: (id, payload) => request(`/sms-templates/${id}`, {
+        method : 'PUT',
+        body   : JSON.stringify(payload),
+    }),
+
+    deleteSmsTemplate: (id) => request(`/sms-templates/${id}`, { method: 'DELETE' }),
+
     sendSmsTest: (payload) => request('/sms/send-test', {
         method : 'POST',
         body   : JSON.stringify(payload),

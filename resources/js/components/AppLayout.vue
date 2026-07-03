@@ -72,7 +72,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.12.0 - Stage 3</span>
+                <span class="version">v0.13.0 - Stage 3</span>
             </div>
         </aside>
 
@@ -288,7 +288,7 @@ const helpContent = {
     '/campaigns': {
         title: 'Campañas',
         items: [
-            { icon: 'pi-plus-circle',   label: 'Crear',      text: 'Dale un nombre y elige el canal. WhatsApp usa una plantilla aprobada; SMS usa mensaje libre (incluye "STOP para baja").' },
+            { icon: 'pi-plus-circle',   label: 'Crear',      text: 'Dale un nombre y elige el canal. WhatsApp usa una plantilla aprobada; SMS usa mensaje libre (incluye "STOP para baja") y puedes cargar una plantilla SMS guardada con el selector opcional.' },
             { icon: 'pi-play-circle',   label: 'Ejecutar',   text: 'Abre la campaña y da clic en Ejecutar. Los mensajes se encolan en segundo plano.' },
             { icon: 'pi-shield',        label: 'Protección', text: 'Omite automáticamente: opt-out (una baja en WhatsApp también frena SMS), inválidos y snooze. El dedup diario y el cooldown son por canal, separados.' },
             { icon: 'pi-clock',         label: 'Horario',    text: 'WhatsApp solo L-V 9AM–10PM (fuera de eso bloquea). SMS no tiene horario forzado: tú decides (aviso si es de madrugada).' },
@@ -318,11 +318,11 @@ const helpContent = {
     '/templates': {
         title: 'Plantillas',
         items: [
-            { icon: 'pi-sync',          label: 'Sincronizar', text: 'Trae el estado actualizado de todas las plantillas desde Meta. Úsalo si ves estados desactualizados.' },
-            { icon: 'pi-check-circle',  label: 'Aprobadas',   text: 'Solo las plantillas con estado "Aprobada" aparecen al crear campañas.' },
-            { icon: 'pi-clock',         label: 'Revisión',    text: 'Meta tarda entre 1 minuto y 48 horas en aprobar. Sincroniza para ver el estado actual.' },
-            { icon: 'pi-image',         label: 'Header',      text: 'Las plantillas pueden tener imagen de encabezado. Se configura al crearlas.' },
-            { icon: 'pi-send',          label: 'Enviar prueba', text: 'Selecciona una plantilla aprobada y usa el botón "Enviar prueba" para mandar un mensaje de prueba a un contacto activo.' },
+            { icon: 'pi-comments',      label: 'WhatsApp / SMS', text: 'El selector de arriba cambia entre plantillas de WhatsApp (aprobadas por Meta) y de SMS (locales, las creas tú y se usan de inmediato).' },
+            { icon: 'pi-sync',          label: 'Sincronizar', text: 'Solo WhatsApp: trae el estado actualizado de las plantillas desde Meta. Úsalo si ves estados desactualizados.' },
+            { icon: 'pi-check-circle',  label: 'Aprobadas',   text: 'WhatsApp: solo las plantillas "Aprobada" aparecen al crear campañas. SMS: todas las activas se pueden usar.' },
+            { icon: 'pi-plus',          label: 'Crear SMS',   text: 'En la pestaña SMS, "Nueva plantilla SMS": ponle un nombre interno y el mensaje (incluye "STOP para baja"). No pasa por Meta.' },
+            { icon: 'pi-send',          label: 'Enviar prueba', text: 'Selecciona una plantilla y usa "Enviar prueba": WhatsApp va a un contacto activo; SMS a un número de 10 dígitos.' },
         ],
         warning: 'Solo el administrador puede crear, editar o eliminar plantillas.',
     },

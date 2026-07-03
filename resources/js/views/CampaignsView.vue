@@ -139,6 +139,17 @@
 
                 <!-- ── Cuerpo del SMS (solo SMS) ────────── -->
                 <template v-if="form.channel === 'sms'">
+                    <label v-if="smsTemplateOptions.length" class="field-label mt">Plantilla SMS (opcional)</label>
+                    <Select
+                        v-if="smsTemplateOptions.length"
+                        :modelValue="null"
+                        :options="smsTemplateOptions"
+                        option-label="label"
+                        option-value="value"
+                        placeholder="Cargar una plantilla guardada"
+                        fluid
+                        @update:modelValue="applySmsTemplate"
+                    />
                     <label class="field-label mt">Mensaje SMS</label>
                     <Textarea
                         v-model="form.smsBody"
@@ -392,6 +403,15 @@ const retrying          = ref(false);
 
 const form = ref({ name: '', channel: 'whatsapp', template: null, bodyVars: [], smsBody: '', tagId: null });
 
+// ── Plantillas SMS (opcional al crear campaña) ────────────────
+const smsTemplates = ref([]);
+const smsTemplateOptions = computed(() =>
+    smsTemplates.value.map(t => ({ label: t.name, value: t.body })),
+);
+function applySmsTemplate(body) {
+    if (body) form.value.smsBody = body;
+}
+
 // ── Envío de prueba SMS (solo admin) ──────────────────────────
 const smsTestNumber  = ref('');
 const sendingSmsTest = ref(false);
@@ -536,6 +556,11 @@ async function openNewModal() {
     ]);
 
     if (tagsRes.status === 'ok') availableTags.value = tagsRes.data;
+
+    if (smsTemplates.value.length === 0) {
+        const res = await api.smsTemplates();
+        if (res.status === 'ok') smsTemplates.value = res.data.filter(t => t.is_active);
+    }
 }
 
 async function saveCampaign() {

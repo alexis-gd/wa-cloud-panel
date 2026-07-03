@@ -244,4 +244,25 @@ class SettingsControllerTest extends TestCase
              ->postJson('/api/settings/demo-reset')
              ->assertStatus(403);
     }
+
+    public function test_demo_reset_limpia_bajas_sms(): void
+    {
+        $contact = \App\Models\Contact::factory()->create([
+            'sms_opt_out'      => true,
+            'sms_blocked'      => true,
+            'sms_invalid'      => true,
+            'sms_bounce_count' => 3,
+        ]);
+
+        $this->actingAsSuperAdmin()
+             ->postJson('/api/settings/demo-reset')
+             ->assertStatus(200)
+             ->assertJsonPath('status', 'ok');
+
+        $contact->refresh();
+        $this->assertFalse($contact->sms_opt_out);
+        $this->assertFalse($contact->sms_blocked);
+        $this->assertFalse($contact->sms_invalid);
+        $this->assertSame(0, $contact->sms_bounce_count);
+    }
 }

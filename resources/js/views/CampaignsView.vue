@@ -19,8 +19,14 @@
                     </Column>
                     <Column header="Canal / Plantilla">
                         <template #body="{ data }">
-                            <Tag v-if="data.channel === 'sms'" value="SMS" severity="contrast" />
-                            <code v-else>{{ data.template_name }}</code>
+                            <span class="channel-cell">
+                                <i
+                                    :class="['pi', data.channel === 'sms' ? 'pi-envelope ch-sms' : 'pi-whatsapp ch-wa']"
+                                    v-tooltip.top="data.channel === 'sms' ? 'SMS' : 'WhatsApp'"
+                                ></i>
+                                <code v-if="data.channel !== 'sms'">{{ data.template_name }}</code>
+                                <span v-else class="muted-cell">SMS</span>
+                            </span>
                         </template>
                     </Column>
                     <Column header="Estado">
@@ -38,7 +44,7 @@
                     <Column header="Fallidos">
                         <template #body="{ data }">
                             <span v-if="data.failed_count > 0" class="failed-cell">{{ data.failed_count }}</span>
-                            <span v-else class="muted-cell">—</span>
+                            <span v-else class="muted-cell">-</span>
                         </template>
                     </Column>
                     <Column header="Fecha">
@@ -277,7 +283,7 @@
                         <template #body="{ data }">
                             <span v-if="data.discard_reason" class="discard-reason">{{ discardLabel(data.discard_reason) }}</span>
                             <span v-else-if="data.error_message" class="error-msg" :title="data.error_message">error Meta</span>
-                            <span v-else class="muted-cell">—</span>
+                            <span v-else class="muted-cell">-</span>
                         </template>
                     </Column>
                     <Column header="Procesado (CST)">
@@ -712,6 +718,9 @@ onUnmounted(() => stopDetailPolling());
 .date-cell     { color: var(--p-text-muted-color); font-size: .82rem; }
 .empty-msg     { color: var(--p-text-muted-color); font-size: .85rem; }
 .muted-cell    { color: var(--p-text-muted-color); font-size: .82rem; }
+.channel-cell  { display: inline-flex; align-items: center; gap: 8px; }
+.channel-cell .ch-wa  { color: #25d366; font-size: 1.05rem; }
+.channel-cell .ch-sms { color: var(--p-blue-500); font-size: 1.05rem; }
 
 .pagination {
     display: flex;

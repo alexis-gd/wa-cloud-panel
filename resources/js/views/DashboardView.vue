@@ -201,8 +201,21 @@
                 </div>
                 <DataTable :value="logs" size="small" stripedRows :loading="loadingLogs" class="mt-2">
                     <Column field="id" header="ID" style="width: 60px" />
+                    <Column header="Canal" style="width: 70px">
+                        <template #body="{ data }">
+                            <i
+                                :class="['pi', data.channel === 'sms' ? 'pi-envelope ch-sms' : 'pi-whatsapp ch-wa']"
+                                v-tooltip.top="data.channel === 'sms' ? 'SMS' : 'WhatsApp'"
+                            ></i>
+                        </template>
+                    </Column>
                     <Column field="to_number" header="Destino" />
-                    <Column field="template_name" header="Plantilla" />
+                    <Column header="Plantilla">
+                        <template #body="{ data }">
+                            <code v-if="data.template_name">{{ data.template_name }}</code>
+                            <span v-else class="muted-cell">-</span>
+                        </template>
+                    </Column>
                     <Column header="Estado">
                         <template #body="{ data }">
                             <Tag :value="data.status" :severity="statusSeverity(data.status)" />
@@ -555,6 +568,9 @@ onMounted(() => {
 .card-title-row   { display: flex; justify-content: space-between; align-items: center; width: 100%; }
 .title-actions    { display: flex; gap: 2px; }
 .empty-msg { color: var(--p-text-muted-color); font-size: .85rem; }
+.muted-cell { color: var(--p-text-muted-color); font-size: .82rem; }
+.ch-wa  { color: #25d366; font-size: 1.05rem; }
+.ch-sms { color: var(--p-blue-500); font-size: 1.05rem; }
 .mt-2      { margin-top: 8px; }
 
 .logs-filter-row { display: flex; gap: 8px; margin-bottom: 8px; }

@@ -36,8 +36,9 @@ Al entrar verás el dashboard con:
 - **Salud del número**: muestra la calidad del número WhatsApp en semáforo verde/amarillo/rojo,
   cuántos mensajes se han enviado hoy vs. el límite diario, y si el circuito está pausado.
 - **Enviar mensaje de prueba** *(solo administradores)*: para probar una plantilla con un contacto específico antes de lanzar campaña. Los operadores no ven este botón.
-- **Últimos mensajes**: tabla de envíos recientes con su estado. Puedes filtrar por estado
-  (enviados / entregados / leídos / fallidos) y navegar entre páginas con los controles de paginación.
+- **Últimos mensajes**: tabla de envíos recientes con su estado. Incluye WhatsApp y SMS mezclados;
+  la columna **Canal** los distingue con un ícono (verde de WhatsApp o sobre azul de SMS). Puedes
+  filtrar por estado (enviados / entregados / leídos / fallidos) y navegar entre páginas.
 
 > ⚠️ Si el semáforo está en **ROJO** o aparece **PAUSADO**, no ejecutar campañas hasta que
 > el administrador lo revise. El sistema se pausó automáticamente para proteger la cuenta.
@@ -171,7 +172,10 @@ Para **quitar** un tag de varios contactos: seleccionarlos, elegir el tag y clic
 
 > ℹ️ La campaña queda en estado **borrador** hasta que se ejecute.
 
-> ℹ️ **SMS y horario**: a diferencia de WhatsApp, el SMS **no tiene horario forzado** — tú
+> ℹ️ En la lista de campañas, la columna **Canal / Plantilla** muestra un ícono según el canal
+> (verde de WhatsApp o sobre azul de SMS). En WhatsApp además ves el nombre de la plantilla.
+
+> ℹ️ **SMS y horario**: a diferencia de WhatsApp, el SMS **no tiene horario forzado**: tú
 > decides cuándo ejecutarlo. Si lo haces entre 11PM y 7AM, el sistema muestra una advertencia
 > (no un bloqueo): enviar de madrugada suele generar más bajas y que las operadoras filtren
 > los mensajes. Es solo un aviso, tú decides.

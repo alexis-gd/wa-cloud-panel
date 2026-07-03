@@ -73,6 +73,20 @@ class DashboardMessagesTest extends TestCase
         $this->getJson('/api/dashboard/messages')->assertOk();
     }
 
+    public function test_messages_endpoint_expone_channel_para_iconos(): void
+    {
+        // El icono de canal (WhatsApp/SMS) en "Últimos mensajes" depende de este campo.
+        $this->actingAsAdmin();
+        MessageLog::factory()->create(['phone_number_id' => $this->phone->id, 'status' => 'sent', 'channel' => 'whatsapp']);
+        MessageLog::create(['channel' => 'sms', 'to_number' => '529991234567', 'sms_body' => 'hola', 'status' => 'sent', 'sent_at' => now()]);
+
+        $channels = collect($this->getJson('/api/dashboard/messages')->assertOk()->json('data'))
+            ->pluck('channel')->all();
+
+        $this->assertContains('whatsapp', $channels);
+        $this->assertContains('sms', $channels);
+    }
+
     public function test_stats_endpoint_no_longer_returns_recent_messages(): void
     {
         $this->actingAsAdmin();

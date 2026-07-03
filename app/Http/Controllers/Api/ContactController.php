@@ -38,6 +38,16 @@ class ContactController extends Controller
             $query->whereHas('tags', fn ($q) => $q->where('tags.id', (int) $request->input('tag_id')));
         }
 
+        // Filtro "Solo bajas SMS": contactos que no reciben SMS (opt-out / bloqueado / inválido).
+        // Eje independiente del status de WhatsApp.
+        if ($request->boolean('sms_blocked')) {
+            $query->where(function ($q) {
+                $q->where('sms_opt_out', true)
+                  ->orWhere('sms_blocked', true)
+                  ->orWhere('sms_invalid', true);
+            });
+        }
+
         $contacts = $query->paginate(50);
 
         // Agregar estado de entregabilidad (cooldown / enviado hoy) a cada contacto.

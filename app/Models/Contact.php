@@ -53,15 +53,20 @@ class Contact extends Model
     }
 
     /**
-     * Registra un rebote SMS. A los 3 consecutivos se auto-bloquea el canal SMS
-     * (regla contexto-sms). No afecta el canal WhatsApp.
+     * Registra un rebote SMS. El contador SIEMPRE sube (sirve para reporte), pero el
+     * auto-bloqueo del canal es configurable: solo bloquea si el umbral > 0 y el contador
+     * lo alcanza (Setting `sms_auto_blacklist_bounces`, default 0 = nunca bloquea — el
+     * cliente es blando con SMS). Nunca afecta el canal WhatsApp. Ver contexto-sms.
      */
     public function registerSmsBounce(): void
     {
-        $count = $this->sms_bounce_count + 1;
+        $count     = $this->sms_bounce_count + 1;
+        $threshold = (int) Setting::get('sms_auto_blacklist_bounces', 0);
+        $block     = $threshold > 0 && $count >= $threshold;
+
         $this->update([
             'sms_bounce_count' => $count,
-            'sms_blocked'      => $count >= 3 ? true : $this->sms_blocked,
+            'sms_blocked'      => $block ? true : $this->sms_blocked,
         ]);
     }
 

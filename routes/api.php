@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SmsController;
+use App\Http\Controllers\Api\SmsInboundController;
 use App\Http\Controllers\Api\SmsWebhookController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TemplateController;
@@ -115,6 +116,11 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::post('/sms/send-test', [SmsController::class, 'sendTest']);
     });
 
+    // Respuestas SMS entrantes — lista plana (admin y operator)
+    Route::middleware('role:admin,operator')->group(function () {
+        Route::get('/sms/inbound', [SmsInboundController::class, 'index']);
+    });
+
     // Plantillas — escritura solo admin
     Route::middleware('role:admin')->group(function () {
         Route::post('/templates/send-test',  [TemplateController::class, 'sendTest']);
@@ -151,6 +157,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::put('/settings/assignment-mode',  [SettingsController::class, 'updateAssignmentMode']);
         Route::get('/settings/monthly-goal',     [SettingsController::class, 'getMonthlyGoal']);
         Route::put('/settings/monthly-goal',     [SettingsController::class, 'updateMonthlyGoal']);
+        Route::get('/settings/sms-auto-blacklist', [SettingsController::class, 'getSmsAutoBlacklist']);
+        Route::put('/settings/sms-auto-blacklist', [SettingsController::class, 'updateSmsAutoBlacklist']);
         Route::post('/settings/demo-reset',      [SettingsController::class, 'demoReset']);
     });
 

@@ -48,8 +48,27 @@ class SmsWebhookTest extends TestCase
         $this->assertSame(1, $contact->fresh()->sms_bounce_count);
     }
 
-    public function test_tres_rebotes_bloquean_sms(): void
+    public function test_rebotes_no_bloquean_con_umbral_default_cero(): void
     {
+        // Default: Setting sms_auto_blacklist_bounces = 0 → nunca bloquea (cliente blando con SMS).
+        $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
+
+        foreach (['SM-a', 'SM-b', 'SM-c'] as $id) {
+            $this->smsLog($id);
+            $this->postJson('/api/sms/webhook', [
+                'event'   => 'sms:failed',
+                'payload' => ['messageId' => $id],
+            ])->assertStatus(200);
+        }
+
+        $contact->refresh();
+        $this->assertSame(3, $contact->sms_bounce_count); // el contador SIEMPRE sube (reporte)
+        $this->assertFalse($contact->sms_blocked);        // pero no bloquea con umbral 0
+    }
+
+    public function test_rebotes_bloquean_sms_cuando_umbral_configurado(): void
+    {
+        \App\Models\Setting::set('sms_auto_blacklist_bounces', 3);
         $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
 
         foreach (['SM-a', 'SM-b', 'SM-c'] as $id) {
@@ -77,6 +96,12 @@ class SmsWebhookTest extends TestCase
         $contact->refresh();
         $this->assertTrue($contact->sms_opt_out);
         $this->assertSame('active', $contact->status); // WhatsApp intacto
+
+        // También queda registrado en la bandeja con acción opt_out.
+        $this->assertDatabaseHas('sms_inbound_messages', [
+            'contact_id' => $contact->id,
+            'action'     => 'opt_out',
+        ]);
     }
 
     public function test_inbound_texto_normal_no_hace_opt_out(): void
@@ -89,6 +114,27 @@ class SmsWebhookTest extends TestCase
         ])->assertStatus(200);
 
         $this->assertFalse($contact->fresh()->sms_opt_out);
+
+        // Se registra en la bandeja sin acción.
+        $this->assertDatabaseHas('sms_inbound_messages', [
+            'contact_id' => $contact->id,
+            'body'       => 'no me interesa gracias',
+            'action'     => null,
+        ]);
+    }
+
+    public function test_inbound_de_numero_desconocido_se_registra_sin_contacto(): void
+    {
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:received',
+            'payload' => ['sender' => '528881112233', 'message' => 'hola'],
+        ])->assertStatus(200);
+
+        $this->assertDatabaseHas('sms_inbound_messages', [
+            'contact_id'  => null,
+            'from_number' => '528881112233',
+            'body'        => 'hola',
+        ]);
     }
 
     public function test_firma_invalida_es_rechazada(): void

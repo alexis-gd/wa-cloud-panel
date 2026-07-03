@@ -114,6 +114,12 @@ La tabla tiene dos columnas de estado (el ícono **?** junto al título las expl
 
 > Un contacto puede estar **Activo** pero **En snooze**, **En cooldown** o **Enviado hoy** — es normal, solo significa que ahorita no se le envía para no saturarlo.
 
+**Chip rojo "Baja SMS"** (debajo del Estado): aparece cuando el contacto **no recibe SMS**
+(pidió baja por SMS con STOP/BAJA, quedó bloqueado o el número no recibe SMS). Es un eje
+**independiente** del Estado: un contacto puede estar **Activo** (le llega WhatsApp) y a la vez
+tener **Baja SMS** (no le llega SMS). El tooltip explica el motivo. Para ver solo estos, usa el
+filtro **"Solo bajas SMS"** arriba de la tabla.
+
 ### Opt-out vs Eliminar — no son lo mismo
 
 - **Opt-out** (botón rojo, cualquier operador) — el contacto **pidió baja**. Es cumplimiento: se marca `opted_out` y **nunca más** se le envía. Queda en la base para auditoría.
@@ -278,6 +284,31 @@ Cuando un contacto responde al WhatsApp, el mensaje aparece en **Conversaciones*
 Clic en uno para cargar el texto automáticamente; luego clic en enviar.
 
 > ℹ️ Los administradores pueden crear y eliminar respuestas rápidas desde el panel derecho.
+
+---
+
+## 7.1. Respuestas SMS
+
+Los SMS que responden tus contactos aparecen en **Respuestas SMS** (menú lateral).
+
+A diferencia de **Conversaciones** (WhatsApp), esto es una **lista de solo lectura**: se ven
+las respuestas pero **no se contesta desde aquí** (el SMS es un canal de una sola vía en el panel).
+
+Cada fila muestra:
+
+- **Fecha** — cuándo llegó la respuesta (hora de México).
+- **Número** — el celular que respondió, y su nombre si está en tus contactos.
+- **Mensaje** — el texto que envió.
+- **Acción** — si respondió **STOP** o **BAJA**, el sistema lo dio de baja de SMS automáticamente
+  y lo verás marcado con la etiqueta roja **"Baja automática"**.
+
+Herramientas:
+
+- **Buscar** por número o por texto del mensaje.
+- Botón **"Solo bajas"** para ver únicamente los que pidieron baja.
+- Botón **↻** para traer las respuestas más recientes.
+
+> ℹ️ Aunque el número no esté en tu lista de contactos, su respuesta aparece igual aquí.
 
 ---
 

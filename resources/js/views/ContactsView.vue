@@ -87,6 +87,7 @@
                     <InputText v-model="search" placeholder="Buscar teléfono o nombre..." @keyup.enter="loadContacts(1)" fluid />
                     <Select v-model="filter" :options="filterOptions" option-label="label" option-value="value" placeholder="Todos" @change="loadContacts(1)" />
                     <Select v-model="tagFilter" :options="tagFilterOptions" option-label="label" option-value="value" placeholder="Todos los tags" @change="loadContacts(1)" style="min-width: 160px" />
+                    <Select v-model="smsFilter" :options="smsFilterOptions" option-label="label" option-value="value" placeholder="SMS: todos" @change="loadContacts(1)" style="min-width: 150px" />
                     <Button icon="pi pi-search" severity="secondary" @click="loadContacts(1)" />
                 </div>
 
@@ -143,12 +144,22 @@
                     </Column>
                     <Column header="Estado">
                         <template #body="{ data }">
-                            <Tag
-                                :value="statusLabel(data.status)"
-                                :severity="statusSeverity(data.status)"
-                                v-tooltip.top="data.status === 'opted_out' ? optOutTooltip(data) : null"
-                                :style="data.status === 'opted_out' ? 'cursor:help' : ''"
-                            />
+                            <div class="status-cell">
+                                <Tag
+                                    :value="statusLabel(data.status)"
+                                    :severity="statusSeverity(data.status)"
+                                    v-tooltip.top="data.status === 'opted_out' ? optOutTooltip(data) : null"
+                                    :style="data.status === 'opted_out' ? 'cursor:help' : ''"
+                                />
+                                <Tag
+                                    v-if="smsBadgeLabel(data)"
+                                    :value="smsBadgeLabel(data)"
+                                    severity="danger"
+                                    icon="pi pi-mobile"
+                                    v-tooltip.top="smsBadgeTooltip(data)"
+                                    style="cursor:help"
+                                />
+                            </div>
                         </template>
                     </Column>
                     <Column header="Entregabilidad" style="min-width: 150px">
@@ -358,6 +369,7 @@ const contactStats = ref(null);
 const search       = ref('');
 const filter       = ref('');
 const tagFilter    = ref(null);
+const smsFilter    = ref('');
 const loading      = ref(false);
 const uploadFile   = ref(null);
 const uploading    = ref(false);
@@ -398,6 +410,11 @@ const filterOptions = [
     { label: 'Activos',   value: 'active' },
     { label: 'Opt-out',   value: 'opted_out' },
     { label: 'Inválidos', value: 'invalid' },
+];
+
+const smsFilterOptions = [
+    { label: 'SMS: todos',     value: '' },
+    { label: 'Solo bajas SMS', value: 'blocked' },
 ];
 
 const statusLabel = (status) => ({
@@ -443,9 +460,26 @@ const deliverTooltip = (c) => {
 };
 
 const tableHelp =
-    'Estado: identidad del contacto (Activo / Opt-out / Inválido / Inalcanzable). '
+    'Estado: identidad del contacto (Activo / Opt-out / Inválido / Inalcanzable) — eje WhatsApp. '
+    + 'Chip rojo "Baja SMS" (si aparece): el contacto no recibe SMS aunque sí reciba WhatsApp. '
     + 'Entregabilidad: si le llega ahora — Disponible, En snooze (pidió "No por ahora"), '
     + 'En cooldown (recibió hace poco), Enviado hoy (ya recibió hoy) o No recibe (bloqueado).';
+
+// Baja de SMS — eje SEPARADO del Estado (que es WhatsApp). Un contacto puede estar
+// Activo para WhatsApp y a la vez bloqueado para SMS. Precedencia: opt-out → bloqueado → inválido.
+const smsBadgeLabel = (c) => {
+    if (c.sms_opt_out) return 'Baja SMS';
+    if (c.sms_blocked) return 'SMS bloqueado';
+    if (c.sms_invalid) return 'SMS inválido';
+    return null;
+};
+
+const smsBadgeTooltip = (c) => {
+    if (c.sms_opt_out) return 'Pidió baja por SMS (respondió STOP/BAJA). No se le envían más SMS. No afecta WhatsApp.';
+    if (c.sms_blocked) return 'Bloqueado para SMS por rebotes consecutivos. No afecta WhatsApp.';
+    if (c.sms_invalid) return 'El número no recibe SMS (línea fija o inexistente). No afecta WhatsApp.';
+    return null;
+};
 
 const optOutTooltip = (contact) => {
     const source = contact.opted_out_source === 'auto'
@@ -465,6 +499,7 @@ async function loadContacts(page = 1) {
     if (filter.value)    params.status = filter.value;
     if (search.value)    params.q      = search.value;
     if (tagFilter.value) params.tag_id = tagFilter.value;
+    if (smsFilter.value === 'blocked') params.sms_blocked = 1;
 
     const data      = await api.contacts(params);
     contacts.value  = data.data ?? [];
@@ -739,6 +774,7 @@ onMounted(() => { loadContacts(); loadTags(); });
 .mt-3          { margin-top: 12px; }
 .mb-4          { margin-bottom: 20px; }
 .date-cell     { color: var(--p-text-muted-color); font-size: .82rem; }
+.status-cell   { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .empty-msg     { color: var(--p-text-muted-color); font-size: .85rem; }
 
 .pagination {

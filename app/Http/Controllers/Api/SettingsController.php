@@ -263,6 +263,35 @@ class SettingsController extends Controller
         return response()->json(['status' => 'ok', 'data' => $data]);
     }
 
+    // ── Auto-blacklist SMS por rebotes ───────────────────────────────────────────
+
+    /**
+     * GET /api/settings/sms-auto-blacklist
+     * Devuelve el umbral de rebotes SMS antes de auto-bloquear (0 = nunca bloquea).
+     */
+    public function getSmsAutoBlacklist(): JsonResponse
+    {
+        $bounces = (int) Setting::get('sms_auto_blacklist_bounces', 0);
+
+        return response()->json(['status' => 'ok', 'data' => ['sms_auto_blacklist_bounces' => $bounces]]);
+    }
+
+    /**
+     * PUT /api/settings/sms-auto-blacklist
+     * Actualiza el umbral. 0 = desactivado (el cliente es blando con SMS).
+     * Body: { "sms_auto_blacklist_bounces": 3 }
+     */
+    public function updateSmsAutoBlacklist(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'sms_auto_blacklist_bounces' => 'required|integer|min:0|max:20',
+        ]);
+
+        Setting::set('sms_auto_blacklist_bounces', $data['sms_auto_blacklist_bounces']);
+
+        return response()->json(['status' => 'ok', 'data' => $data]);
+    }
+
     public function demoReset(): JsonResponse
     {
         $phones = PhoneNumber::query()->update(['paused_until' => null]);

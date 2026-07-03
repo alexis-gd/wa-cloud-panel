@@ -299,11 +299,21 @@ class SettingsController extends Controller
         // Retrocede sent_at un año para que ningún contacto esté en cooldown
         $logs = MessageLog::query()->update(['sent_at' => now()->subYear()]);
 
+        // Limpia las bajas de SMS (opt-out/bloqueo/inválido) para que el número de demo
+        // pueda volver a recibir SMS. Solo aplica al modo demo (herramienta de superadmin).
+        $smsCleared = Contact::query()->update([
+            'sms_opt_out'      => false,
+            'sms_blocked'      => false,
+            'sms_invalid'      => false,
+            'sms_bounce_count' => 0,
+        ]);
+
         return response()->json([
             'status' => 'ok',
             'data'   => [
                 'phones_unpaused' => $phones,
                 'logs_reset'      => $logs,
+                'sms_cleared'     => $smsCleared,
             ],
         ]);
     }

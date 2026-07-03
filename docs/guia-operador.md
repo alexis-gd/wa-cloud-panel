@@ -167,7 +167,8 @@ Para **quitar** un tag de varios contactos: seleccionarlos, elegir el tag y clic
      - **WhatsApp** → eliges una **plantilla** aprobada (no se escribe a mano) y sus variables.
      - **SMS** → escribes el **mensaje** libre. Muestra el conteo de caracteres y segmentos
        (160 caracteres = 1 segmento; cada segmento extra se cobra aparte). Incluye siempre
-       una opción de baja al final, ej. *"Responde STOP para baja"*.
+       una opción de baja al final, ej. *"Responde STOP para baja"*. Si el administrador guardó
+       **plantillas de SMS**, puedes cargar una con el selector "Plantilla SMS (opcional)" y editarla.
    - **Destinatarios**: elige "Todos los contactos activos" o filtra por un tag específico.
      Si seleccionas un tag, solo los contactos con esa etiqueta recibirán la campaña.
 3. Clic en **Guardar**.

@@ -5,13 +5,32 @@
     <div class="page-header">
       <div>
         <h2 class="page-title">Plantillas de mensaje</h2>
-        <p class="page-subtitle">Solo se usan plantillas aprobadas por Meta para los envíos.</p>
+        <p class="page-subtitle">
+          {{ channel === 'whatsapp'
+            ? 'Solo se usan plantillas aprobadas por Meta para los envíos de WhatsApp.'
+            : 'Plantillas de SMS locales: las creas aquí y se usan de inmediato.' }}
+        </p>
       </div>
       <div class="header-actions">
-        <Button label="Sincronizar con Meta" icon="pi pi-refresh" severity="secondary" raised :loading="syncing" @click="syncTemplates" />
+        <Button v-if="channel === 'whatsapp'" label="Sincronizar con Meta" icon="pi pi-refresh" severity="secondary" raised :loading="syncing" @click="syncTemplates" />
       </div>
     </div>
 
+    <!-- Selector de canal -->
+    <SelectButton
+      v-model="channel"
+      :options="channelOptions"
+      option-label="label"
+      option-value="value"
+      :allow-empty="false"
+      class="channel-switch"
+    />
+
+    <!-- Panel SMS -->
+    <SmsTemplatesPanel v-if="channel === 'sms'" />
+
+    <!-- ── WhatsApp ── -->
+    <template v-else>
     <!-- Alertas de calidad -->
     <div v-for="t in alertTemplates" :key="`alert-${t.id}`" class="alert-banner"
       :class="t.status === 'rejected' || t.quality_score === 'RED' ? 'alert-danger' : 'alert-warn'">
@@ -169,6 +188,7 @@
         />
       </template>
     </Dialog>
+    </template>
   </div>
 </template>
 
@@ -184,13 +204,21 @@ import ToggleSwitch  from 'primevue/toggleswitch';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Dialog        from 'primevue/dialog';
 import Select        from 'primevue/select';
+import SelectButton  from 'primevue/selectbutton';
 import InputText     from 'primevue/inputtext';
 import Message       from 'primevue/message';
+import SmsTemplatesPanel from '../components/SmsTemplatesPanel.vue';
 
 const toast   = useToast();
 const confirm = useConfirm();
 const { user: authState } = useAuth();
 const isAdmin = computed(() => ['admin', 'superadmin'].includes(authState.user?.role));
+
+const channel = ref('whatsapp');
+const channelOptions = [
+  { label: 'WhatsApp', value: 'whatsapp' },
+  { label: 'SMS',      value: 'sms' },
+];
 
 const templates = ref([]);
 const selected  = ref(null);
@@ -324,6 +352,7 @@ function statusSeverity(s) {
 .page-title     { font-size: 1.25rem; font-weight: 700; color: var(--p-text-color); margin: 0; }
 .page-subtitle  { font-size: .82rem; color: var(--p-text-muted-color); margin: 4px 0 0; }
 .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.channel-switch { align-self: flex-start; }
 
 /* Alertas */
 .alert-banner {

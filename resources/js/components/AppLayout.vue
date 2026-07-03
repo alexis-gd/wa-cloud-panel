@@ -72,7 +72,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.14.0 - Stage 3</span>
+                <span class="version">v0.15.0 - Stage 3</span>
             </div>
         </aside>
 

@@ -65,6 +65,35 @@ class SmsGatewayClient
     }
 
     /**
+     * Consulta el estado de un mensaje ya enviado (server-a-server, sin depender del webhook).
+     * GET {baseUrl}/messages/{id}. Sirve para reconciliar entregas cuando el webhook del
+     * teléfono no llega. capcom6 devuelve un `state` de mensaje y por destinatario:
+     * Pending | Processed | Sent | Delivered | Failed.
+     *
+     * @return array{ok: bool, state: ?string, error: mixed}
+     */
+    public function getState(string $messageId): array
+    {
+        $response = Http::withBasicAuth((string) $this->login, (string) $this->password)
+            ->timeout($this->timeout)
+            ->get("{$this->baseUrl}/messages/{$messageId}");
+
+        if ($response->failed()) {
+            return ['ok' => false, 'state' => null, 'error' => $response->json() ?: 'gateway request failed'];
+        }
+
+        $json  = $response->json() ?? [];
+        // Estado a nivel mensaje; si no viene, el del primer destinatario.
+        $state = $json['state'] ?? ($json['recipients'][0]['state'] ?? null);
+
+        return [
+            'ok'    => true,
+            'state' => $state,
+            'error' => $json['recipients'][0]['error'] ?? null,
+        ];
+    }
+
+    /**
      * El gateway exige el número en E.164 CON prefijo '+' (ej. +529231311146).
      * En BD los guardamos como 52XXXXXXXXXX (sin '+'), así que lo anteponemos aquí,
      * en el único punto de salida — el operador nunca escribe el '+' ni el código de país.

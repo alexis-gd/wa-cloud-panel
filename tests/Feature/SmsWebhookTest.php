@@ -137,6 +137,19 @@ class SmsWebhookTest extends TestCase
         ]);
     }
 
+    public function test_webhook_registra_ultimo_evento_para_health(): void
+    {
+        $this->smsLog('SM-h');
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:delivered',
+            'payload' => ['messageId' => 'SM-h'],
+        ])->assertStatus(200);
+
+        $this->assertSame('sms:delivered', \App\Models\Setting::get('sms_webhook_last_event'));
+        $this->assertNotNull(\App\Models\Setting::get('sms_webhook_last_at'));
+    }
+
     public function test_firma_invalida_es_rechazada(): void
     {
         config(['sms.webhook_secret' => 'shh']);

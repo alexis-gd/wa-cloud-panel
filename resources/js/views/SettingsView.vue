@@ -166,6 +166,32 @@
                 </Message>
             </template>
         </Card>
+        <Card style="max-width: 560px; margin-top: 24px">
+            <template #title>
+                <span class="wh-title">
+                    Salud del webhook SMS
+                    <Button icon="pi pi-refresh" text rounded size="small" :loading="loadingWh" @click="loadWebhookHealth" />
+                </span>
+            </template>
+            <template #content>
+                <p class="stage-desc">
+                    Confirma si el gateway le está entregando eventos de vuelta al panel (entregas y
+                    respuestas SMS). Distingue entre "el gateway no manda nada" y "manda pero se
+                    rechaza por firma".
+                </p>
+
+                <div v-if="webhookHealth" class="wh-row">
+                    <Tag :value="whDiag.label" :severity="whDiag.severity" :icon="whDiag.icon" />
+                </div>
+                <p v-if="webhookHealth" class="wh-msg">{{ whDiag.msg }}</p>
+
+                <div v-if="webhookHealth" class="wh-stats">
+                    <div><span class="wh-muted">Última llegada:</span> {{ webhookHealth.last_hit_at ? `${webhookHealth.last_hit_at} (${agoLabel(webhookHealth.last_hit_ago)})` : 'nunca' }}</div>
+                    <div><span class="wh-muted">Último OK:</span> {{ webhookHealth.last_at ? `${webhookHealth.last_event} · ${webhookHealth.last_at} (${agoLabel(webhookHealth.last_at_ago)})` : 'nunca' }}</div>
+                    <div v-if="webhookHealth.last_rejected_at"><span class="wh-muted">Último rechazo (firma):</span> {{ webhookHealth.last_rejected_at }} ({{ agoLabel(webhookHealth.last_rejected_ago) }})</div>
+                </div>
+            </template>
+        </Card>
         <Card style="max-width: 560px; margin-top: 24px" class="demo-card">
             <template #title>Modo demo</template>
             <template #content>
@@ -191,7 +217,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import Card          from 'primevue/card';
 import Button        from 'primevue/button';
 import Password      from 'primevue/password';
@@ -217,6 +243,9 @@ const saveResult  = ref(null);
 const cooldownDays   = ref(null);
 const savingCooldown = ref(false);
 const cooldownResult = ref(null);
+
+const webhookHealth = ref(null);
+const loadingWh     = ref(false);
 
 const smsBounces    = ref(0);
 const savingBounces = ref(false);
@@ -360,6 +389,44 @@ async function loadSmsBounces() {
     if (res.status === 'ok') smsBounces.value = res.data.sms_auto_blacklist_bounces;
 }
 
+async function loadWebhookHealth() {
+    loadingWh.value = true;
+    const res = await api.smsWebhookHealth();
+    if (res.status === 'ok') webhookHealth.value = res.data;
+    loadingWh.value = false;
+}
+
+const whDiag = computed(() => {
+    const d = webhookHealth.value?.diagnosis;
+    return {
+        ok: {
+            label: 'Recibiendo eventos', severity: 'success', icon: 'pi pi-check-circle',
+            msg: 'El gateway está entregando eventos y el panel los procesa. Todo bien.',
+        },
+        signature: {
+            label: 'Rechazando por firma', severity: 'danger', icon: 'pi pi-times-circle',
+            msg: 'Llegan eventos pero se rechazan por firma: el SMS_WEBHOOK_SECRET del panel no coincide con la Signing Key del teléfono. Iguala ambos (o deja el secret vacío en el panel para no validar) y reinicia la app del teléfono una vez.',
+        },
+        no_hits: {
+            label: 'Sin llegadas', severity: 'danger', icon: 'pi pi-times-circle',
+            msg: 'El gateway no está mandando ningún evento al panel. Verifica que el webhook esté registrado en el gateway, que la URL apunte al panel y que el teléfono esté conectado.',
+        },
+        stale: {
+            label: 'Sin eventos recientes', severity: 'warn', icon: 'pi pi-exclamation-triangle',
+            msg: 'Hubo eventos antes pero hace mucho que no llega uno válido. El gateway o el teléfono pudieron dejar de mandar.',
+        },
+    }[d] ?? { label: 'Sin datos', severity: 'secondary', icon: 'pi pi-question-circle', msg: 'Aún no hay información del webhook.' };
+});
+
+function agoLabel(min) {
+    if (min === null || min === undefined) return '';
+    if (min < 1)   return 'hace segundos';
+    if (min < 60)  return `hace ${min} min`;
+    const h = Math.floor(min / 60);
+    if (h < 24)    return `hace ${h} h`;
+    return `hace ${Math.floor(h / 24)} d`;
+}
+
 async function saveSmsBounces() {
     savingBounces.value = true;
     bouncesResult.value = null;
@@ -374,6 +441,7 @@ onMounted(() => {
     loadAssignmentMode();
     loadFlags();
     loadSmsBounces();
+    loadWebhookHealth();
 });
 </script>
 
@@ -393,4 +461,9 @@ onMounted(() => {
 .flag-label       { font-size: .88rem; }
 .flag-label--sub  { font-size: .82rem; color: var(--p-text-muted-color); }
 .demo-card :deep(.p-card-title) { color: var(--p-red-600); }
+.wh-title  { display: flex; align-items: center; gap: 8px; }
+.wh-row    { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.wh-msg    { font-size: .82rem; color: var(--p-text-color); margin: 10px 0 0; line-height: 1.5; }
+.wh-stats  { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; font-size: .8rem; }
+.wh-muted  { color: var(--p-text-muted-color); font-size: .78rem; }
 </style>

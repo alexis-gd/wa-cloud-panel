@@ -222,6 +222,45 @@ class SettingsControllerTest extends TestCase
              ->assertStatus(403);
     }
 
+    // ── GET /api/settings/sms-webhook-health ─────────────────────────────────
+
+    public function test_webhook_health_sin_eventos_reporta_never(): void
+    {
+        $this->actingAsAdmin()
+             ->getJson('/api/settings/sms-webhook-health')
+             ->assertOk()
+             ->assertJsonPath('data.ever', false)
+             ->assertJsonPath('data.healthy', false);
+    }
+
+    public function test_webhook_health_con_evento_reciente_es_sano(): void
+    {
+        \App\Models\Setting::set('sms_webhook_last_hit_at', now()->toDateTimeString());
+        \App\Models\Setting::set('sms_webhook_last_at', now()->toDateTimeString());
+        \App\Models\Setting::set('sms_webhook_last_event', 'sms:delivered');
+
+        $this->actingAsAdmin()
+             ->getJson('/api/settings/sms-webhook-health')
+             ->assertOk()
+             ->assertJsonPath('data.ever', true)
+             ->assertJsonPath('data.healthy', true)
+             ->assertJsonPath('data.diagnosis', 'ok')
+             ->assertJsonPath('data.last_event', 'sms:delivered');
+    }
+
+    public function test_webhook_health_detecta_rechazo_por_firma(): void
+    {
+        // Llegan eventos pero se rechazan por firma (hit + rejected, sin OK reciente).
+        \App\Models\Setting::set('sms_webhook_last_hit_at', now()->toDateTimeString());
+        \App\Models\Setting::set('sms_webhook_last_rejected_at', now()->toDateTimeString());
+
+        $this->actingAsAdmin()
+             ->getJson('/api/settings/sms-webhook-health')
+             ->assertOk()
+             ->assertJsonPath('data.diagnosis', 'signature')
+             ->assertJsonPath('data.healthy', false);
+    }
+
     // ── POST /api/settings/demo-reset ────────────────────────────────────────
 
     public function test_demo_reset_quita_paused_until_y_retrocede_cooldown(): void

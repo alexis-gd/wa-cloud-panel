@@ -292,6 +292,50 @@ class SettingsController extends Controller
         return response()->json(['status' => 'ok', 'data' => $data]);
     }
 
+    /**
+     * GET /api/settings/sms-webhook-health
+     * Muestra cuándo llegó el último evento del webhook SMS (delivered/received/etc).
+     * Si no llega hace rato, el gateway dejó de entregar eventos (revisar teléfono/gateway).
+     */
+    public function smsWebhookHealth(): JsonResponse
+    {
+        $parse = fn (?string $v) => $v ? \Carbon\Carbon::parse($v) : null;
+        $fmt   = fn (?\Carbon\Carbon $c) => $c?->setTimezone('America/Mexico_City')->format('Y-m-d H:i');
+        $ago   = fn (?\Carbon\Carbon $c) => $c ? (int) $c->diffInMinutes(now()) : null;
+
+        $lastAt       = $parse(Setting::get('sms_webhook_last_at'));        // procesado OK
+        $lastHit      = $parse(Setting::get('sms_webhook_last_hit_at'));    // cualquier llegada
+        $lastRejected = $parse(Setting::get('sms_webhook_last_rejected_at')); // rechazado por firma
+        $lastEvent    = Setting::get('sms_webhook_last_event');
+
+        // Diagnóstico directo del estado del canal de vuelta.
+        if (! $lastHit) {
+            $diagnosis = 'no_hits';   // el gateway no está mandando NADA al panel
+        } elseif ($lastRejected && (! $lastAt || $lastRejected->gte($lastAt))) {
+            $diagnosis = 'signature'; // llegan eventos pero se rechazan por firma
+        } elseif ($lastAt && $ago($lastAt) <= 1440) {
+            $diagnosis = 'ok';        // procesando eventos con firma válida
+        } else {
+            $diagnosis = 'stale';     // procesó antes, pero hace mucho que no llega uno bueno
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => [
+                'diagnosis'         => $diagnosis,
+                'healthy'           => $diagnosis === 'ok',
+                'last_event'        => $lastEvent,
+                'last_at'           => $fmt($lastAt),
+                'last_at_ago'       => $ago($lastAt),
+                'last_hit_at'       => $fmt($lastHit),
+                'last_hit_ago'      => $ago($lastHit),
+                'last_rejected_at'  => $fmt($lastRejected),
+                'last_rejected_ago' => $ago($lastRejected),
+                'ever'              => $lastHit !== null,
+            ],
+        ]);
+    }
+
     public function demoReset(): JsonResponse
     {
         $phones = PhoneNumber::query()->update(['paused_until' => null]);

@@ -34,6 +34,11 @@ class Kernel extends ConsoleKernel
             ->dailyAt('06:00')
             ->timezone('America/Mexico_City')
             ->withoutOverlapping();
+
+        // Vigila que el webhook SMS siga devolviendo eventos; alerta en la campana si no.
+        $schedule->command('sms:monitor-webhook')
+            ->everyFifteenMinutes()
+            ->withoutOverlapping();
     }
 
     /**

@@ -67,6 +67,8 @@ export const api = {
         body   : JSON.stringify({ cooldown_days: days }),
     }),
 
+    smsWebhookHealth: () => request('/settings/sms-webhook-health'),
+
     getSmsAutoBlacklist: () => request('/settings/sms-auto-blacklist'),
 
     updateSmsAutoBlacklist: (bounces) => request('/settings/sms-auto-blacklist', {

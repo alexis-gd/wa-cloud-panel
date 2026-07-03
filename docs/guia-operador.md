@@ -58,6 +58,10 @@ En la esquina superior derecha del panel hay un ícono de campana 🔔. Cuando h
 - **Entrega fallida** — un mensaje no llegó al destinatario. El motivo se describe en lenguaje claro.
   - Ejemplo: "El mensaje a Juan García (529231311146) no fue entregado. Meta pausó temporalmente las entregas por calidad del número."
   - Si ves muchas alertas de este tipo, revisa la **Salud del número** en el Dashboard.
+- **Webhook SMS sin respuesta** — el sistema está enviando SMS pero no recibe de vuelta las
+  confirmaciones de entrega ni las respuestas. Avisa al administrador: hay que revisar el gateway
+  o el teléfono. El detalle está en **Configuración → Salud del webhook SMS**. La alerta se limpia
+  sola cuando el webhook vuelve a recibir eventos.
 
 > No es necesario actuar en cada alerta. Son informativas. Si el mensaje falló por un bloqueo temporal, el sistema lo retomará automáticamente al levantarse el bloqueo.
 

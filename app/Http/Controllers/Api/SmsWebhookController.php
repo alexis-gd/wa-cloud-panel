@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
 use App\Models\Contact;
 use App\Models\MessageLog;
+use App\Models\Setting;
 use App\Models\SmsInboundMessage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -31,13 +32,27 @@ class SmsWebhookController extends Controller
     // POST /api/sms/webhook — eventos del gateway (status + inbound)
     public function handle(Request $request): Response
     {
+        // Health: registra CUALQUIER llegada al endpoint, ANTES de validar firma.
+        // Distingue "el gateway no manda nada" de "manda pero lo rechazamos por firma".
+        Setting::set('sms_webhook_last_hit_at', now()->toDateTimeString());
+
         if (! $this->signatureValid($request)) {
+            Setting::set('sms_webhook_last_rejected_at', now()->toDateTimeString());
             Log::warning('SMS webhook signature mismatch');
             return response('Forbidden', 403);
         }
 
         $event   = $request->input('event');
         $payload = $request->input('payload', []);
+
+        // Último evento procesado con éxito (firma OK).
+        Setting::set('sms_webhook_last_at', now()->toDateTimeString());
+        Setting::set('sms_webhook_last_event', (string) $event);
+
+        // Se recuperó: marca leídas las alertas de "webhook caído" pendientes.
+        AppNotification::where('type', 'sms_webhook_down')
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
 
         match ($event) {
             'sms:sent'      => $this->updateStatus($payload, 'sent'),

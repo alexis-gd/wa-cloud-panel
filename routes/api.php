@@ -149,6 +149,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // Info operativa — admin y operator pueden leer (dato del dashboard)
     Route::middleware('role:admin,operator')->group(function () {
         Route::get('/settings/phone-health', [SettingsController::class, 'phoneHealth']);
+        Route::get('/settings/sms-webhook-health', [SettingsController::class, 'smsWebhookHealth']);
     });
 
     // Configuración — solo superadmin (superadmin bypasa el check en RoleMiddleware)

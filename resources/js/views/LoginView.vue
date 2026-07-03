@@ -12,9 +12,7 @@
                 <span class="bubble b5"><i class="pi pi-send" /></span>
 
                 <div class="aside-brand">
-                    <div class="word">
-                        <span class="word-text"><span class="wa">Prestamaz</span> <span class="rest">Panel</span></span>
-                    </div>
+                    <img :src="'/img/prestamaz-logo.png'" alt="Prestamaz" class="brand-img" />
                     <div class="chan-pill"><span>WhatsApp</span><span class="sep" /><span>SMS</span></div>
                 </div>
 
@@ -60,7 +58,7 @@
                     </div>
 
                     <div class="form-foot">
-                        Prestamaz Panel v0.5.3 <span class="dot">·</span> © {{ year }} Prestamaz
+                        Prestamaz Panel <span class="dot">·</span> © {{ year }} Prestamaz
                     </div>
                 </div>
             </div>
@@ -145,34 +143,16 @@ async function submit() {
     z-index: 3;
 }
 
-/* Wordmark */
-.word {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-}
-
-.word-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: #10b981;
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, .18);
-}
-
-.word-text {
-    font-weight: 800;
-    font-size: 1.32rem;
-    letter-spacing: -.02em;
-    line-height: 1;
-}
-
-.word-text .wa {
-    color: #34d399;
-}
-
-.word-text .rest {
-    color: #fff;
+/* Logo Prestamaz sobre fondo blanco para contraste en el panel navy */
+.brand-img {
+    display: block;
+    width: auto;
+    max-width: 260px;
+    height: auto;
+    background: #fff;
+    padding: 12px 16px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
 }
 
 .chan-pill {

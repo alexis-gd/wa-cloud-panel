@@ -38,7 +38,7 @@
                     <Column header="Fallidos">
                         <template #body="{ data }">
                             <span v-if="data.failed_count > 0" class="failed-cell">{{ data.failed_count }}</span>
-                            <span v-else class="muted-cell">—</span>
+                            <span v-else class="muted-cell">-</span>
                         </template>
                     </Column>
                     <Column header="Fecha">
@@ -82,7 +82,7 @@
         <Dialog v-model:visible="showModal" header="Nueva campaña" modal :style="{ width: '480px' }">
             <div class="modal-form">
                 <label class="field-label">Nombre de la campaña</label>
-                <InputText v-model="form.name" placeholder="Ej: Promo mayo — préstamos personales" fluid />
+                <InputText v-model="form.name" placeholder="Ej: Promo mayo - préstamos personales" fluid />
 
                 <label class="field-label mt">Canal</label>
                 <SelectButton
@@ -146,7 +146,7 @@
                     </small>
                     <div v-if="smsNightWarning" class="sms-warning">
                         <i class="pi pi-exclamation-triangle"></i>
-                        Enviar entre 11PM–7AM puede generar más bajas y filtrado por operadoras.
+                        Enviar entre 11PM-7AM puede generar más bajas y filtrado por operadoras.
                     </div>
 
                     <!-- ── Enviar prueba (solo admin) ─────── -->
@@ -155,7 +155,10 @@
                         <div class="sms-test-row">
                             <InputText
                                 v-model="smsTestNumber"
-                                placeholder="Número de prueba (ej. 5299...)"
+                                placeholder="10 dígitos, ej. 9231234567"
+                                inputmode="numeric"
+                                maxlength="10"
+                                @input="smsTestNumber = smsTestNumber.replace(/\D/g, '').slice(0, 10)"
                                 fluid
                             />
                             <Button
@@ -164,12 +167,12 @@
                                 severity="secondary"
                                 size="small"
                                 :loading="sendingSmsTest"
-                                :disabled="form.smsBody.trim() === '' || smsTestNumber.trim() === ''"
+                                :disabled="form.smsBody.trim() === '' || smsTestNumber.length !== 10"
                                 @click="sendSmsTest"
                             />
                         </div>
                         <small class="sms-test-hint">
-                            Manda este mensaje a un solo número, sin crear campaña ni aplicar cooldown. Para probar el gateway.
+                            Manda este mensaje a un solo número (10 dígitos, el sistema agrega el +52), sin crear campaña ni aplicar cooldown. Para probar el gateway.
                         </small>
                     </template>
                 </template>
@@ -251,7 +254,7 @@
                     class="resumes-notice"
                 >
                     <i class="pi pi-clock"></i>
-                    {{ detailStats.pending }} mensaje{{ detailStats.pending > 1 ? 's' : '' }} pendiente{{ detailStats.pending > 1 ? 's' : '' }} —
+                    {{ detailStats.pending }} mensaje{{ detailStats.pending > 1 ? 's' : '' }} pendiente{{ detailStats.pending > 1 ? 's' : '' }} -
                     reanudarán el <strong>{{ detailStats.resumes_at }}</strong>
                 </div>
 
@@ -277,7 +280,7 @@
                         <template #body="{ data }">
                             <span v-if="data.discard_reason" class="discard-reason">{{ discardLabel(data.discard_reason) }}</span>
                             <span v-else-if="data.error_message" class="error-msg" :title="data.error_message">error Meta</span>
-                            <span v-else class="muted-cell">—</span>
+                            <span v-else class="muted-cell">-</span>
                         </template>
                     </Column>
                     <Column header="Procesado (CST)">
@@ -290,7 +293,7 @@
                     </template>
                 </DataTable>
 
-                <!-- Paginación de logs (prev/next — sin COUNT(*) para no colgar con 200k filas) -->
+                <!-- Paginación de logs (prev/next - sin COUNT(*) para no colgar con 200k filas) -->
                 <div class="pagination" v-if="detailPrevPage || detailHasMore">
                     <Button icon="pi pi-chevron-left" text severity="secondary"
                         :disabled="!detailPrevPage"
@@ -388,7 +391,7 @@ const smsTestNumber  = ref('');
 const sendingSmsTest = ref(false);
 
 async function sendSmsTest() {
-    if (form.value.smsBody.trim() === '' || smsTestNumber.value.trim() === '') return;
+    if (form.value.smsBody.trim() === '' || smsTestNumber.value.length !== 10) return;
     sendingSmsTest.value = true;
     const res = await api.sendSmsTest({
         to   : smsTestNumber.value.trim(),
@@ -419,7 +422,7 @@ const smsSegments = computed(() => {
     return len <= 160 ? 1 : Math.ceil(len / 153);
 });
 
-// Advertencia si el operador crea un SMS en horario nocturno (11PM–7AM hora local).
+// Advertencia si el operador crea un SMS en horario nocturno (11PM-7AM hora local).
 // SMS no tiene horario forzado (el cliente decide), es solo aviso.
 const smsNightWarning = computed(() => {
     if (form.value.channel !== 'sms') return false;

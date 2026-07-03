@@ -48,7 +48,7 @@
             <template #content>
                 <p class="upload-hint">
                     <strong>Columna A</strong> = teléfono &nbsp;·&nbsp; <strong>Columna B</strong> = nombre (opcional)<br>
-                    Formatos: .xlsx, .xls, .csv — máx. 10 MB. Los números se normalizan al formato mexicano (52 + 10 dígitos).
+                    Formatos: .xlsx, .xls, .csv - máx. 10 MB. Los números se normalizan al formato mexicano (52 + 10 dígitos).
                 </p>
                 <div class="upload-row">
                     <input type="file" ref="fileInput" accept=".xlsx,.xls,.csv" @change="onFileChange" class="file-input" />
@@ -140,7 +140,7 @@
                         </template>
                     </Column>
                     <Column field="name" header="Nombre">
-                        <template #body="{ data }">{{ data.name ?? '—' }}</template>
+                        <template #body="{ data }">{{ data.name ?? '-' }}</template>
                     </Column>
                     <Column header="Estado">
                         <template #body="{ data }">
@@ -176,7 +176,7 @@
                         <template #body="{ data }">
                             <div class="tag-chips">
                                 <span v-for="t in data.tags" :key="t.id" class="tag-chip">{{ t.name }}</span>
-                                <span v-if="!data.tags?.length" class="tag-empty">—</span>
+                                <span v-if="!data.tags?.length" class="tag-empty">-</span>
                             </div>
                         </template>
                     </Column>
@@ -293,14 +293,17 @@
     <!-- Dialog agregar contacto manual -->
     <Dialog v-model:visible="addDialog" header="Agregar contacto" modal style="width: 400px">
         <div class="edit-field">
-            <label>Teléfono</label>
+            <label>Teléfono <span class="optional">(10 dígitos)</span></label>
             <InputText
                 v-model="addForm.phone"
-                placeholder="529231311146"
+                placeholder="Ej. 9231234567"
+                inputmode="numeric"
+                maxlength="10"
                 @input="onAddPhoneInput"
                 fluid
                 autofocus
             />
+            <small class="field-hint">Solo los 10 dígitos del celular. El sistema agrega el +52 (México).</small>
         </div>
 
         <!-- Aviso de estado del número (chequeo en vivo) -->
@@ -308,11 +311,11 @@
             <i class="pi pi-spin pi-spinner"></i> Verificando número...
         </div>
         <div v-else-if="checkResult && !checkResult.valid_format && addForm.phone" class="check-note check-bad">
-            <i class="pi pi-times-circle"></i> Formato inválido (México: 52 + 10 dígitos).
+            <i class="pi pi-times-circle"></i> Deben ser 10 dígitos (sin 52 ni +).
         </div>
         <div v-else-if="checkResult?.exists" class="check-note check-bad">
             <i class="pi pi-exclamation-triangle"></i>
-            Ya existe — <strong>{{ statusLabel(checkResult.contact_status) }}</strong>. No se puede agregar.
+            Ya existe - <strong>{{ statusLabel(checkResult.contact_status) }}</strong>. No se puede agregar.
         </div>
         <div v-else-if="checkResult?.valid_format" class="check-note check-good">
             <i class="pi pi-check-circle"></i> Número disponible para agregar.
@@ -356,7 +359,7 @@ const canDelete = computed(() => ['admin', 'superadmin'].includes(authState.user
 // Selección masiva de tags
 const selected       = ref([]);
 const bulkTagId      = ref(null);
-const bulkAction     = ref(null); // 'attach' | 'detach' | null — controla el spinner por botón
+const bulkAction     = ref(null); // 'attach' | 'detach' | null - controla el spinner por botón
 const showBulkNewTag = ref(false);
 const bulkNewTagName = ref('');
 const creatingBulkTag = ref(false);
@@ -431,7 +434,7 @@ const statusSeverity = (status) => ({
     unreachable : 'contrast',
 }[status] ?? 'secondary');
 
-// Entregabilidad (¿le llega ahora?) — eje distinto al estado de identidad
+// Entregabilidad (¿le llega ahora?) - eje distinto al estado de identidad
 const isBlockedStatus = (s) => ['opted_out', 'invalid', 'unreachable'].includes(s);
 
 // Precedencia igual que el job de envío: bloqueado → snooze → enviado hoy → cooldown → disponible
@@ -452,20 +455,20 @@ const deliverSeverity = (c) => {
 };
 
 const deliverTooltip = (c) => {
-    if (isBlockedStatus(c.status)) return 'Bloqueado — no se le envía por ningún medio';
-    if (c.snooze_active)   return `En snooze${c.snooze_until ? ` hasta ${c.snooze_until}` : ''} — el contacto pidió "No por ahora"`;
+    if (isBlockedStatus(c.status)) return 'Bloqueado - no se le envía por ningún medio';
+    if (c.snooze_active)   return `En snooze${c.snooze_until ? ` hasta ${c.snooze_until}` : ''} - el contacto pidió "No por ahora"`;
     if (c.sent_today)      return 'Ya recibió un mensaje hoy (no se le reenvía el mismo día)';
-    if (c.cooldown_active) return `En cooldown${c.cooldown_until ? ` hasta ${c.cooldown_until}` : ''} — no se le envía hasta que pase`;
+    if (c.cooldown_active) return `En cooldown${c.cooldown_until ? ` hasta ${c.cooldown_until}` : ''} - no se le envía hasta que pase`;
     return null;
 };
 
 const tableHelp =
-    'Estado: identidad del contacto (Activo / Opt-out / Inválido / Inalcanzable) — eje WhatsApp. '
+    'Estado: identidad del contacto (Activo / Opt-out / Inválido / Inalcanzable) - eje WhatsApp. '
     + 'Chip rojo "Baja SMS" (si aparece): el contacto no recibe SMS aunque sí reciba WhatsApp. '
-    + 'Entregabilidad: si le llega ahora — Disponible, En snooze (pidió "No por ahora"), '
+    + 'Entregabilidad: si le llega ahora - Disponible, En snooze (pidió "No por ahora"), '
     + 'En cooldown (recibió hace poco), Enviado hoy (ya recibió hoy) o No recibe (bloqueado).';
 
-// Baja de SMS — eje SEPARADO del Estado (que es WhatsApp). Un contacto puede estar
+// Baja de SMS - eje SEPARADO del Estado (que es WhatsApp). Un contacto puede estar
 // Activo para WhatsApp y a la vez bloqueado para SMS. Precedencia: opt-out → bloqueado → inválido.
 const smsBadgeLabel = (c) => {
     if (c.sms_opt_out) return 'Baja SMS';
@@ -483,13 +486,13 @@ const smsBadgeTooltip = (c) => {
 
 const optOutTooltip = (contact) => {
     const source = contact.opted_out_source === 'auto'
-        ? 'Automático — el contacto respondió para darse de baja'
+        ? 'Automático - el contacto respondió para darse de baja'
         : contact.opted_out_source === 'manual'
-            ? 'Manual — marcado por un operador'
+            ? 'Manual - marcado por un operador'
             : 'Origen desconocido';
     const date = contact.opted_out_at
         ? new Date(contact.opted_out_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
-        : '—';
+        : '-';
     return `Baja el: ${date}\nOrigen: ${source}`;
 };
 
@@ -521,10 +524,12 @@ function openAdd() {
 
 // Chequeo de entregabilidad con debounce mientras el operador teclea el número.
 function onAddPhoneInput() {
+    // Solo 10 dígitos numéricos; el sistema antepone el 52 (México) al guardar.
+    addForm.value.phone = addForm.value.phone.replace(/\D/g, '').slice(0, 10);
     clearTimeout(checkTimer);
     checkResult.value = null;
     const phone = addForm.value.phone.trim();
-    if (!phone) { checkLoading.value = false; return; }
+    if (phone.length < 10) { checkLoading.value = false; return; }
 
     checkLoading.value = true;
     checkTimer = setTimeout(async () => {
@@ -791,6 +796,7 @@ onMounted(() => { loadContacts(); loadTags(); });
 .edit-field        { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
 .edit-field label  { font-size: .85rem; font-weight: 600; }
 .optional          { font-weight: 400; color: var(--p-text-muted-color); }
+.field-hint        { display: block; margin-top: 6px; font-size: .76rem; color: var(--p-text-muted-color); }
 
 .check-note {
     display: flex;

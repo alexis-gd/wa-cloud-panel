@@ -39,6 +39,12 @@ class Kernel extends ConsoleKernel
         $schedule->command('sms:monitor-webhook')
             ->everyFifteenMinutes()
             ->withoutOverlapping();
+
+        // Red de seguridad: reconcilia el estado de entrega SMS por polling al gateway,
+        // por si el webhook del teléfono no llega. Server-a-server, no depende del teléfono.
+        $schedule->command('sms:reconcile-status')
+            ->everyTenMinutes()
+            ->withoutOverlapping();
     }
 
     /**

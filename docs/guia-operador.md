@@ -167,12 +167,12 @@ Para **quitar** un tag de varios contactos: seleccionarlos, elegir el tag y clic
 1. Ir a **Campañas** → clic en **Nueva campaña**.
 2. Llenar el formulario:
    - **Nombre**: identificador interno (ej. "Promo mayo semana 1").
-   - **Canal**: elige **WhatsApp** o **SMS**. El formulario cambia según el canal:
-     - **WhatsApp** → eliges una **plantilla** aprobada (no se escribe a mano) y sus variables.
-     - **SMS** → escribes el **mensaje** libre. Muestra el conteo de caracteres y segmentos
-       (160 caracteres = 1 segmento; cada segmento extra se cobra aparte). Incluye siempre
-       una opción de baja al final, ej. *"Responde STOP para baja"*. Si el administrador guardó
-       **plantillas de SMS**, puedes cargar una con el selector "Plantilla SMS (opcional)" y editarla.
+   - **Canal**: elige **WhatsApp** o **SMS**. Ambos usan **plantilla** (no se escribe a mano):
+     - **WhatsApp** → eliges una **plantilla aprobada** por Meta y llenas sus variables.
+     - **SMS** → eliges una **plantilla SMS** (de las que creó el administrador en Plantillas →
+       pestaña SMS). Verás la **vista previa** con el conteo de caracteres y segmentos
+       (160 caracteres = 1 segmento). El texto ya no se escribe libre: así se garantiza que la
+       campaña salga con una plantilla revisada (con su "STOP para baja").
    - **Destinatarios**: elige "Todos los contactos activos" o filtra por un tag específico.
      Si seleccionas un tag, solo los contactos con esa etiqueta recibirán la campaña.
 3. Clic en **Guardar**.

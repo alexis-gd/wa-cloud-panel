@@ -16,6 +16,7 @@ class Campaign extends Model
         'language_code',
         'body_vars',
         'sms_body',
+        'sms_template_id',
         'tag_id',
         'phone_number_id',
         'status',
@@ -43,6 +44,11 @@ class Campaign extends Model
     public function phoneNumber()
     {
         return $this->belongsTo(PhoneNumber::class);
+    }
+
+    public function smsTemplate()
+    {
+        return $this->belongsTo(SmsTemplate::class);
     }
 
     public function getProgressPercentageAttribute(): int

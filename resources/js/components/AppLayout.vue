@@ -72,7 +72,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.15.0 - Stage 3</span>
+                <span class="version">v0.16.0 - Stage 3</span>
             </div>
         </aside>
 
@@ -288,7 +288,7 @@ const helpContent = {
     '/campaigns': {
         title: 'Campañas',
         items: [
-            { icon: 'pi-plus-circle',   label: 'Crear',      text: 'Dale un nombre y elige el canal. WhatsApp usa una plantilla aprobada; SMS usa mensaje libre (incluye "STOP para baja") y puedes cargar una plantilla SMS guardada con el selector opcional.' },
+            { icon: 'pi-plus-circle',   label: 'Crear',      text: 'Dale un nombre y elige el canal. Ambos usan plantilla (nada de texto libre): WhatsApp una plantilla aprobada por Meta; SMS una plantilla SMS guardada. Verás la vista previa antes de crear.' },
             { icon: 'pi-play-circle',   label: 'Ejecutar',   text: 'Abre la campaña y da clic en Ejecutar. Los mensajes se encolan en segundo plano.' },
             { icon: 'pi-shield',        label: 'Protección', text: 'Omite automáticamente: opt-out (una baja en WhatsApp también frena SMS), inválidos y snooze. El dedup diario y el cooldown son por canal, separados.' },
             { icon: 'pi-clock',         label: 'Horario',    text: 'WhatsApp solo L-V 9AM–10PM (fuera de eso bloquea). SMS no tiene horario forzado: tú decides (aviso si es de madrugada).' },

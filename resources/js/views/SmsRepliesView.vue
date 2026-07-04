@@ -63,7 +63,7 @@
                                 severity="danger"
                                 icon="pi pi-ban"
                             />
-                            <span v-else class="muted">—</span>
+                            <span v-else class="muted">-</span>
                         </template>
                     </Column>
                 </DataTable>

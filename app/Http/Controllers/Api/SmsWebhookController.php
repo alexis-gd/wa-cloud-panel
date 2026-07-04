@@ -147,7 +147,7 @@ class SmsWebhookController extends Controller
 
         if ($isOptOut && $contact) {
             $contact->smsOptOut();
-            Log::info("SMS opt-out por texto '{$message}' — contacto {$contact->id}");
+            Log::info("SMS opt-out por texto '{$message}' - contacto {$contact->id}");
         }
 
         // Registrar SIEMPRE en la bandeja plana de respuestas (aunque el número no esté en contactos).

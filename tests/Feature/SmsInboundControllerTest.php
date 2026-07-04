@@ -13,6 +13,16 @@ class SmsInboundControllerTest extends TestCase
 
     private function inbound(array $attrs = []): SmsInboundMessage
     {
+        // Por default el entrante es de un contacto (así se muestra en la vista).
+        // Los tests que prueban el ruido de operadora pasan contact_id null explícito.
+        if (! array_key_exists('contact_id', $attrs)) {
+            $phone = $attrs['from_number'] ?? '529991234567';
+            $attrs['contact_id'] = Contact::firstOrCreate(
+                ['phone' => $phone],
+                Contact::factory()->make(['phone' => $phone])->getAttributes(),
+            )->id;
+        }
+
         return SmsInboundMessage::create(array_merge([
             'from_number' => '529991234567',
             'body'        => 'hola',
@@ -68,6 +78,20 @@ class SmsInboundControllerTest extends TestCase
         $res = $this->actingAsOperator()->getJson('/api/sms/inbound?q=informacion');
 
         $res->assertStatus(200)->assertJsonPath('meta.total', 1);
+    }
+
+    public function test_index_excluye_ruido_sin_contacto(): void
+    {
+        // Respuesta real de un contacto.
+        $this->inbound(['body' => 'quiero informacion']);
+        // Ruido de operadora (UNOTV, TELCEL, 2FA ajeno): remitente sin contacto.
+        $this->inbound(['contact_id' => null, 'from_number' => 'UNOTV', 'body' => 'promo']);
+
+        $res = $this->actingAsOperator()->getJson('/api/sms/inbound');
+
+        $res->assertStatus(200)
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.body', 'quiero informacion');
     }
 
     public function test_index_requiere_al_menos_operator(): void

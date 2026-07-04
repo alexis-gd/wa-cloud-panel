@@ -8,7 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Respuestas SMS entrantes — lista plana de solo lectura (no chat).
+ * Respuestas SMS entrantes - lista plana de solo lectura (no chat).
  * Muestra fecha · número · mensaje · acción automática (ej. opt-out por STOP).
  */
 class SmsInboundController extends Controller
@@ -16,10 +16,18 @@ class SmsInboundController extends Controller
     /**
      * GET /api/sms/inbound
      * Lista paginada de SMS entrantes, más recientes primero.
+     *
+     * Solo respuestas de CONTACTOS (contact_id != null). El chip del gateway recibe
+     * todo el SMS entrante del celular (promos/2FA/alertas de operadora tipo UNOTV,
+     * TELCEL) que NO son prospectos: esos entrantes vienen de remitentes alfanuméricos
+     * que no normalizan a un contacto, así que se guardan en BD (auditoría) pero nunca
+     * se muestran aquí. El operador solo ve lo que respondió un contacto real.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = SmsInboundMessage::with('contact:id,name')->orderByDesc('received_at');
+        $query = SmsInboundMessage::with('contact:id,name')
+            ->whereNotNull('contact_id')
+            ->orderByDesc('received_at');
 
         if ($request->filled('q')) {
             $term = $request->input('q');

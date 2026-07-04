@@ -165,33 +165,6 @@
                         <i class="pi pi-exclamation-triangle"></i>
                         Enviar entre 11PM-7AM puede generar más bajas y filtrado por operadoras.
                     </div>
-
-                    <!-- ── Enviar prueba (solo admin) ─────── -->
-                    <template v-if="isAdmin()">
-                        <label class="field-label mt">Enviar prueba</label>
-                        <div class="sms-test-row">
-                            <InputText
-                                v-model="smsTestNumber"
-                                placeholder="10 dígitos, ej. 9231234567"
-                                inputmode="numeric"
-                                maxlength="10"
-                                @input="smsTestNumber = smsTestNumber.replace(/\D/g, '').slice(0, 10)"
-                                fluid
-                            />
-                            <Button
-                                label="Enviar"
-                                icon="pi pi-send"
-                                severity="secondary"
-                                size="small"
-                                :loading="sendingSmsTest"
-                                :disabled="!selectedSmsBody || smsTestNumber.length !== 10"
-                                @click="sendSmsTest"
-                            />
-                        </div>
-                        <small class="sms-test-hint">
-                            Manda este mensaje a un solo número (10 dígitos, el sistema agrega el +52), sin crear campaña ni aplicar cooldown. Para probar el gateway.
-                        </small>
-                    </template>
                 </template>
 
                 <div v-if="formError" class="form-error">{{ formError }}</div>
@@ -371,11 +344,9 @@ import Select        from 'primevue/select';
 import SelectButton  from 'primevue/selectbutton';
 import ConfirmDialog from 'primevue/confirmdialog';
 import { api }       from '../api.js';
-import { useAuth }   from '../auth.js';
 
 const confirm = useConfirm();
 const toast   = useToast();
-const { isAdmin } = useAuth();
 
 const campaigns        = ref([]);
 const meta             = ref(null);
@@ -407,28 +378,10 @@ const smsTemplates = ref([]);
 const smsTemplateOptions = computed(() =>
     smsTemplates.value.map(t => ({ label: t.name, value: t.id })),
 );
-// Cuerpo de la plantilla elegida (para vista previa, contador y prueba). Read-only.
+// Cuerpo de la plantilla elegida (para vista previa y contador). Read-only.
 const selectedSmsBody = computed(() =>
     smsTemplates.value.find(t => t.id === form.value.smsTemplateId)?.body ?? '',
 );
-
-// ── Envío de prueba SMS (solo admin) ──────────────────────────
-const smsTestNumber  = ref('');
-const sendingSmsTest = ref(false);
-
-async function sendSmsTest() {
-    if (! selectedSmsBody.value || smsTestNumber.value.length !== 10) return;
-    sendingSmsTest.value = true;
-    const res = await api.sendSmsTest({
-        to   : smsTestNumber.value.trim(),
-        body : selectedSmsBody.value,
-    });
-    sendingSmsTest.value = false;
-
-    res.status === 'ok'
-        ? toast.add({ severity: 'success', summary: 'SMS de prueba enviado', detail: res.message, life: 4000 })
-        : toast.add({ severity: 'error', summary: 'Error', detail: res.message, life: 5000 });
-}
 
 const channelOptions = [
     { label: 'WhatsApp', value: 'whatsapp' },
@@ -824,18 +777,6 @@ onUnmounted(() => stopDetailPolling());
     color: var(--p-orange-700);
 }
 .sms-warning .pi { font-size: .9rem; flex-shrink: 0; }
-
-.sms-test-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-top: 4px;
-}
-.sms-test-hint {
-    color: var(--p-text-muted-color);
-    font-size: .76rem;
-    margin-top: 4px;
-}
 
 .form-error {
     margin-top: 10px;

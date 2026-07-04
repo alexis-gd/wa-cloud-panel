@@ -122,7 +122,7 @@
                     :options="tagOptions"
                     option-label="label"
                     option-value="value"
-                    placeholder="Todos los contactos activos"
+                    placeholder="Selecciona destinatarios"
                     fluid
                 />
 
@@ -435,8 +435,11 @@ const channelOptions = [
     { label: 'SMS',      value: 'sms' },
 ];
 
+// "Todos los contactos activos" usa el centinela 'all' (no null): asi NO queda
+// preseleccionado cuando form.tagId arranca en null (evita mandar a todos por error).
+// Sigue siendo una opcion elegible, pero el operador debe elegirla a proposito.
 const tagOptions = computed(() => [
-    { label: 'Todos los contactos activos', value: null },
+    { label: 'Todos los contactos activos', value: 'all' },
     ...availableTags.value.map(t => ({ label: `Tag: ${t.name}`, value: t.id })),
 ]);
 
@@ -470,6 +473,8 @@ const varCount = computed(() => templateVarLabels.value.length);
 
 const canSave = computed(() => {
     if (form.value.name.trim() === '') return false;
+    // Destinatarios obligatorio: null = nada elegido. 'all' o un tag id son validos.
+    if (form.value.tagId === null) return false;
     return form.value.channel === 'sms'
         ? form.value.smsTemplateId !== null
         : form.value.template !== null;
@@ -568,12 +573,15 @@ async function saveCampaign() {
     saving.value    = true;
     formError.value = '';
 
+    // 'all' = todos los contactos activos (sin tag_id). Un id = ese tag.
+    const tagId = form.value.tagId === 'all' ? undefined : form.value.tagId;
+
     const payload = form.value.channel === 'sms'
         ? {
             name            : form.value.name.trim(),
             channel         : 'sms',
             sms_template_id : form.value.smsTemplateId,
-            tag_id          : form.value.tagId ?? undefined,
+            tag_id          : tagId,
         }
         : {
             name          : form.value.name.trim(),
@@ -581,7 +589,7 @@ async function saveCampaign() {
             template_name : form.value.template.name,
             language_code : form.value.template.language_code,
             body_vars     : form.value.bodyVars.filter(v => v !== ''),
-            tag_id        : form.value.tagId ?? undefined,
+            tag_id        : tagId,
         };
 
     const res = await api.createCampaign(payload);

@@ -173,9 +173,11 @@ Para **quitar** un tag de varios contactos: seleccionarlos, elegir el tag y clic
        pestaña SMS). Verás la **vista previa** con el conteo de caracteres y segmentos
        (160 caracteres = 1 segmento). El texto ya no se escribe libre: así se garantiza que la
        campaña salga con una plantilla revisada (con su "STOP para baja").
-   - **Destinatarios**: elige "Todos los contactos activos" o filtra por un tag específico.
-     Si seleccionas un tag, solo los contactos con esa etiqueta recibirán la campaña.
-3. Clic en **Guardar**.
+   - **Destinatarios**: campo **obligatorio** y **no viene preseleccionado** (para evitar
+     mandar a todos por error). Debes elegir a propósito: "Todos los contactos activos"
+     (todos) o un **tag específico** (solo los contactos con esa etiqueta). Mientras no elijas
+     destinatarios, el botón **Crear campaña** queda deshabilitado.
+3. Clic en **Crear campaña**.
 
 > ℹ️ La campaña queda en estado **borrador** hasta que se ejecute.
 

@@ -25,6 +25,7 @@
                                     v-tooltip.top="data.channel === 'sms' ? 'SMS' : 'WhatsApp'"
                                 ></i>
                                 <code v-if="data.channel !== 'sms'">{{ data.template_name }}</code>
+                                <code v-else-if="data.sms_template">{{ data.sms_template.name }}</code>
                                 <span v-else class="muted-cell">SMS</span>
                             </span>
                         </template>
@@ -137,30 +138,29 @@
                     <small class="no-templates">Esta plantilla no tiene variables.</small>
                 </div>
 
-                <!-- ── Cuerpo del SMS (solo SMS) ────────── -->
+                <!-- ── Plantilla SMS (requerida, sin texto libre) ────────── -->
                 <template v-if="form.channel === 'sms'">
-                    <label v-if="smsTemplateOptions.length" class="field-label mt">Plantilla SMS (opcional)</label>
+                    <label class="field-label mt">Plantilla SMS</label>
                     <Select
-                        v-if="smsTemplateOptions.length"
-                        :modelValue="null"
+                        v-model="form.smsTemplateId"
                         :options="smsTemplateOptions"
                         option-label="label"
                         option-value="value"
-                        placeholder="Cargar una plantilla guardada"
+                        placeholder="Selecciona una plantilla SMS"
                         fluid
-                        @update:modelValue="applySmsTemplate"
                     />
-                    <label class="field-label mt">Mensaje SMS</label>
-                    <Textarea
-                        v-model="form.smsBody"
-                        rows="4"
-                        placeholder="Prestamaz: préstamo desde $10,000. Responde STOP para baja."
-                        fluid
-                        auto-resize
-                    />
-                    <small class="sms-counter">
-                        {{ smsCharCount }} caracteres · {{ smsSegments }} segmento{{ smsSegments === 1 ? '' : 's' }}
+                    <small v-if="smsTemplateOptions.length === 0" class="no-templates">
+                        No hay plantillas SMS activas. Créalas en Plantillas → pestaña SMS.
                     </small>
+
+                    <template v-if="selectedSmsBody">
+                        <label class="field-label mt">Vista previa</label>
+                        <div class="sms-preview-box">{{ selectedSmsBody }}</div>
+                        <small class="sms-counter">
+                            {{ smsCharCount }} caracteres · {{ smsSegments }} segmento{{ smsSegments === 1 ? '' : 's' }}
+                        </small>
+                    </template>
+
                     <div v-if="smsNightWarning" class="sms-warning">
                         <i class="pi pi-exclamation-triangle"></i>
                         Enviar entre 11PM-7AM puede generar más bajas y filtrado por operadoras.
@@ -184,7 +184,7 @@
                                 severity="secondary"
                                 size="small"
                                 :loading="sendingSmsTest"
-                                :disabled="form.smsBody.trim() === '' || smsTestNumber.length !== 10"
+                                :disabled="!selectedSmsBody || smsTestNumber.length !== 10"
                                 @click="sendSmsTest"
                             />
                         </div>
@@ -367,7 +367,6 @@ import Column        from 'primevue/column';
 import Tag           from 'primevue/tag';
 import Dialog        from 'primevue/dialog';
 import InputText     from 'primevue/inputtext';
-import Textarea      from 'primevue/textarea';
 import Select        from 'primevue/select';
 import SelectButton  from 'primevue/selectbutton';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -401,27 +400,28 @@ const detailLoading     = ref(false);
 const pausing           = ref(false);
 const retrying          = ref(false);
 
-const form = ref({ name: '', channel: 'whatsapp', template: null, bodyVars: [], smsBody: '', tagId: null });
+const form = ref({ name: '', channel: 'whatsapp', template: null, bodyVars: [], smsTemplateId: null, tagId: null });
 
-// ── Plantillas SMS (opcional al crear campaña) ────────────────
+// ── Plantillas SMS (requeridas al crear campaña SMS, sin texto libre) ──
 const smsTemplates = ref([]);
 const smsTemplateOptions = computed(() =>
-    smsTemplates.value.map(t => ({ label: t.name, value: t.body })),
+    smsTemplates.value.map(t => ({ label: t.name, value: t.id })),
 );
-function applySmsTemplate(body) {
-    if (body) form.value.smsBody = body;
-}
+// Cuerpo de la plantilla elegida (para vista previa, contador y prueba). Read-only.
+const selectedSmsBody = computed(() =>
+    smsTemplates.value.find(t => t.id === form.value.smsTemplateId)?.body ?? '',
+);
 
 // ── Envío de prueba SMS (solo admin) ──────────────────────────
 const smsTestNumber  = ref('');
 const sendingSmsTest = ref(false);
 
 async function sendSmsTest() {
-    if (form.value.smsBody.trim() === '' || smsTestNumber.value.length !== 10) return;
+    if (! selectedSmsBody.value || smsTestNumber.value.length !== 10) return;
     sendingSmsTest.value = true;
     const res = await api.sendSmsTest({
         to   : smsTestNumber.value.trim(),
-        body : form.value.smsBody.trim(),
+        body : selectedSmsBody.value,
     });
     sendingSmsTest.value = false;
 
@@ -441,7 +441,7 @@ const tagOptions = computed(() => [
 ]);
 
 // ── Contador de segmentos SMS (160 chars = 1 segmento, luego 153 c/u por overhead UDH) ──
-const smsCharCount = computed(() => form.value.smsBody.length);
+const smsCharCount = computed(() => selectedSmsBody.value.length);
 const smsSegments = computed(() => {
     const len = smsCharCount.value;
     if (len === 0) return 0;
@@ -471,7 +471,7 @@ const varCount = computed(() => templateVarLabels.value.length);
 const canSave = computed(() => {
     if (form.value.name.trim() === '') return false;
     return form.value.channel === 'sms'
-        ? form.value.smsBody.trim() !== ''
+        ? form.value.smsTemplateId !== null
         : form.value.template !== null;
 });
 
@@ -536,7 +536,7 @@ async function loadCampaigns(page = 1) {
 }
 
 async function openNewModal() {
-    form.value    = { name: '', channel: 'whatsapp', template: null, bodyVars: [], smsBody: '', tagId: null };
+    form.value    = { name: '', channel: 'whatsapp', template: null, bodyVars: [], smsTemplateId: null, tagId: null };
     formError.value = '';
     showModal.value = true;
 
@@ -570,10 +570,10 @@ async function saveCampaign() {
 
     const payload = form.value.channel === 'sms'
         ? {
-            name     : form.value.name.trim(),
-            channel  : 'sms',
-            sms_body : form.value.smsBody.trim(),
-            tag_id   : form.value.tagId ?? undefined,
+            name            : form.value.name.trim(),
+            channel         : 'sms',
+            sms_template_id : form.value.smsTemplateId,
+            tag_id          : form.value.tagId ?? undefined,
         }
         : {
             name          : form.value.name.trim(),
@@ -782,6 +782,18 @@ onUnmounted(() => stopDetailPolling());
     color: var(--p-orange-600);
     font-size: .8rem;
     margin-top: 4px;
+}
+
+.sms-preview-box {
+    background: var(--p-surface-100);
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: .82rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--p-text-color);
 }
 
 .sms-counter {

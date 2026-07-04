@@ -10,6 +10,7 @@ use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
+use App\Models\SmsTemplate;
 use App\Models\Tag;
 use App\Models\WaTemplate;
 use App\Services\PhoneNumberSelector;
@@ -38,7 +39,7 @@ class CampaignController extends Controller
     // GET /api/campaigns
     public function index(): JsonResponse
     {
-        $campaigns = Campaign::with('phoneNumber')
+        $campaigns = Campaign::with(['phoneNumber', 'smsTemplate:id,name'])
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -66,7 +67,8 @@ class CampaignController extends Controller
             'language_code' => 'required_if:channel,whatsapp|nullable|string|max:10',
             'body_vars'     => 'array',
             'body_vars.*'   => 'string',
-            'sms_body'      => 'required_if:channel,sms|nullable|string|max:1000',
+            // SMS ahora exige plantilla (no texto libre): garantiza que se usó una plantilla.
+            'sms_template_id' => 'required_if:channel,sms|nullable|integer|exists:sms_templates,id',
             'tag_id'        => 'nullable|integer|exists:tags,id',
         ]);
 
@@ -119,13 +121,28 @@ class CampaignController extends Controller
         return response()->json(['status' => 'ok', 'data' => $campaign], 201);
     }
 
-    // Crea una campaña SMS: sin plantilla ni número WA (el gateway resuelve el pool de chips).
+    // Crea una campaña SMS: exige plantilla SMS activa (no texto libre). El cuerpo se toma de
+    // la plantilla y se guarda como snapshot en sms_body (para que el envío no cambie si la
+    // plantilla se edita/borra después). El gateway resuelve el pool de chips (sin número WA).
     private function storeSms(array $data): JsonResponse
     {
+        $template = SmsTemplate::where('id', $data['sms_template_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (! $template) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Plantilla SMS no encontrada o inactiva.',
+                'code'    => 'INVALID_SMS_TEMPLATE',
+            ], 422);
+        }
+
         $campaign = Campaign::create([
             'name'            => $data['name'],
             'channel'         => 'sms',
-            'sms_body'        => $data['sms_body'],
+            'sms_body'        => $template->body,   // snapshot del cuerpo
+            'sms_template_id' => $template->id,
             'tag_id'          => $data['tag_id'] ?? null,
             'phone_number_id' => null,
             'status'          => 'draft',
@@ -135,7 +152,7 @@ class CampaignController extends Controller
             'failed_count'    => 0,
         ]);
 
-        return response()->json(['status' => 'ok', 'data' => $campaign], 201);
+        return response()->json(['status' => 'ok', 'data' => $campaign->load('smsTemplate:id,name')], 201);
     }
 
     // GET /api/campaigns/{id}

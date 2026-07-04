@@ -307,10 +307,10 @@ las respuestas pero **no se contesta desde aquí** (el SMS es un canal de una so
 
 Cada fila muestra:
 
-- **Fecha** — cuándo llegó la respuesta (hora de México).
-- **Número** — el celular que respondió, y su nombre si está en tus contactos.
-- **Mensaje** — el texto que envió.
-- **Acción** — si respondió **STOP** o **BAJA**, el sistema lo dio de baja de SMS automáticamente
+- **Fecha** - cuándo llegó la respuesta (hora de México).
+- **Número** - el celular que respondió, y su nombre.
+- **Mensaje** - el texto que envió.
+- **Acción** - si respondió **STOP** o **BAJA**, el sistema lo dio de baja de SMS automáticamente
   y lo verás marcado con la etiqueta roja **"Baja automática"**.
 
 Herramientas:
@@ -319,7 +319,9 @@ Herramientas:
 - Botón **"Solo bajas"** para ver únicamente los que pidieron baja.
 - Botón **↻** para traer las respuestas más recientes.
 
-> ℹ️ Aunque el número no esté en tu lista de contactos, su respuesta aparece igual aquí.
+> ℹ️ Aquí solo aparecen respuestas de tus **contactos**. Los SMS que recibe el chip del gateway
+> que no son de un contacto (promociones o alertas de la operadora, códigos de otros servicios)
+> **no se muestran** para no ensuciar la bandeja.
 
 ---
 

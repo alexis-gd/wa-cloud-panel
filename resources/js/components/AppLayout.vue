@@ -72,7 +72,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.16.2 - Stage 3</span>
+                <span class="version">v0.16.3 - Stage 3</span>
             </div>
         </aside>
 
@@ -262,7 +262,7 @@ const helpContent = {
             { icon: 'pi-circle-fill',   label: 'Semáforo',    text: 'Calidad del número en Meta. Verde = ok. Amarillo = cuidado. Rojo = problema. Si está PAUSADO, el sistema activó el circuit breaker: detectó un error de calidad o spam y pausó los envíos automáticamente 60 minutos para proteger la cuenta. Se reanuda solo.' },
             { icon: 'pi-chart-bar',     label: 'Meta mensual', text: 'Progreso del mes: mensajes enviados vs. la capacidad real del sistema (días hábiles × límite diario). El color indica el avance.' },
             { icon: 'pi-send',          label: 'Mensajes',    text: 'Totales acumulados históricos de enviados (en tránsito), entregados, leídos y fallidos.' },
-            { icon: 'pi-users',         label: 'Contactos',   text: 'Estado actual de la base: total, activos (pueden recibir mensajes), opt-out e inválidos.' },
+            { icon: 'pi-users',         label: 'Contactos',   text: 'Estado actual de la base: total, activos (pueden recibir mensajes), dados de baja e inválidos.' },
             { icon: 'pi-chart-line',    label: 'Gráfica',     text: 'Envíos día a día del mes actual. Usa ↺ para refrescar.' },
             { icon: 'pi-history',       label: 'Histórico',   text: 'Enviados vs. capacidad de los últimos 6 meses. Útil para ver tendencia de crecimiento.' },
             { icon: 'pi-list',          label: 'Últimos',     text: 'Los 10 mensajes más recientes con su estado actual. Filtra por estado con el selector.' },
@@ -276,21 +276,21 @@ const helpContent = {
             { icon: 'pi-plus',          label: 'Agregar uno', text: 'Botón "Agregar contacto" para alta manual. Al teclear el número te avisa si ya existe, está bloqueado o en cooldown.' },
             { icon: 'pi-phone',         label: 'Formato',    text: 'Teléfonos en formato mexicano con código de país: 529231311146.' },
             { icon: 'pi-check-circle',  label: 'Resultado',  text: 'Al importar verás: aceptados / duplicados / formato inválido.' },
-            { icon: 'pi-ban',           label: 'Opt-out',    text: 'El botón Opt-out marca al contacto como baja permanente (cumplimiento). Nunca más se le envía.' },
-            { icon: 'pi-trash',         label: 'Eliminar',   text: 'El bote de basura (solo admin) quita el contacto de listas y campañas — para limpiar pruebas/basura. Es recuperable y no afecta las stats de opt-out.' },
-            { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora: Disponible, En snooze, En cooldown, Enviado hoy o No recibe (bloqueado). Distinta del Estado.' },
+            { icon: 'pi-ban',           label: 'Dar de baja', text: 'El botón Dar de baja marca al contacto como baja permanente (cumplimiento). Nunca más se le envía.' },
+            { icon: 'pi-trash',         label: 'Eliminar',   text: 'El bote de basura (solo admin) quita el contacto de listas y campañas - para limpiar pruebas/basura. Es recuperable y no afecta las stats de bajas.' },
+            { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora, POR CANAL: dos etiquetas, una de WhatsApp y otra de SMS (Disponible, En snooze, En cooldown, Enviado hoy o No recibe). Cada canal cuenta lo suyo, puede estar disponible en uno y en cooldown en el otro. Distinta del Estado.' },
             { icon: 'pi-mobile',        label: 'Baja SMS',   text: 'Chip rojo bajo el Estado cuando el contacto NO recibe SMS (pidió baja por SMS, bloqueado o número inválido). Es independiente del Estado de WhatsApp: puede estar Activo para WhatsApp y con Baja SMS. Filtra con "Solo bajas SMS".' },
             { icon: 'pi-tag',           label: 'Tags masivos', text: 'Marca varios contactos con las casillas y usa la barra superior para asignar un tag a todos a la vez.' },
             { icon: 'pi-download',      label: 'Exportar',   text: 'Descarga la lista actual de contactos en Excel.' },
         ],
-        tip: 'Los contactos con opt-out nunca reaparecen aunque se vuelvan a importar.',
+        tip: 'Los contactos dados de baja nunca reaparecen aunque se vuelvan a importar.',
     },
     '/campaigns': {
         title: 'Campañas',
         items: [
             { icon: 'pi-plus-circle',   label: 'Crear',      text: 'Dale un nombre y elige el canal. Ambos usan plantilla (nada de texto libre): WhatsApp una plantilla aprobada por Meta; SMS una plantilla SMS guardada. Verás la vista previa antes de crear.' },
             { icon: 'pi-play-circle',   label: 'Ejecutar',   text: 'Abre la campaña y da clic en Ejecutar. Los mensajes se encolan en segundo plano.' },
-            { icon: 'pi-shield',        label: 'Protección', text: 'Omite automáticamente: opt-out (una baja en WhatsApp también frena SMS), inválidos y snooze. El dedup diario y el cooldown son por canal, separados.' },
+            { icon: 'pi-shield',        label: 'Protección', text: 'Omite automáticamente: bajas (una baja en WhatsApp también frena SMS), inválidos y snooze. El dedup diario y el cooldown son por canal, separados.' },
             { icon: 'pi-clock',         label: 'Horario',    text: 'WhatsApp solo L-V 9AM–10PM (fuera de eso bloquea). SMS no tiene horario forzado: tú decides (aviso si es de madrugada).' },
         ],
         warning: 'No ejecutar la misma campaña dos veces. Si necesitas reenviar, crea una nueva.',
@@ -303,13 +303,13 @@ const helpContent = {
             { icon: 'pi-search',  label: 'Buscar',   text: 'Filtra por número o por texto del mensaje. El botón "Solo bajas" deja ver únicamente las bajas.' },
             { icon: 'pi-refresh', label: 'Actualizar', text: 'Usa ↻ para traer las respuestas más recientes.' },
         ],
-        tip: 'Aunque el número no esté en tus contactos, su respuesta aparece igual aquí.',
+        tip: 'Aquí solo aparecen respuestas de tus contactos. Los SMS de operadora o de números que no son contactos no se muestran.',
     },
     '/conversations': {
         title: 'Conversaciones',
         items: [
             { icon: 'pi-comments',      label: 'Ventana 24h', text: 'Solo puedes responder texto libre si el contacto te escribió en las últimas 24h.' },
-            { icon: 'pi-tag',           label: 'Tags',        text: 'Activa = puedes escribir. Cerrada = solo plantillas. Snooze = pausado. Baja = opt-out.' },
+            { icon: 'pi-tag',           label: 'Tags',        text: 'Activa = puedes escribir. Cerrada = solo plantillas. Snooze = pausado. Baja = dado de baja.' },
             { icon: 'pi-bolt',          label: 'Rápidas',     text: 'Los chips de respuestas rápidas cargan el texto automáticamente. Clic para usarlos.' },
             { icon: 'pi-lock',          label: 'Ventana cerrada', text: 'Cuando el campo está deshabilitado, crea una campaña con ese contacto para reabrirla.' },
         ],

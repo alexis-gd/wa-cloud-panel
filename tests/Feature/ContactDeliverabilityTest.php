@@ -21,16 +21,17 @@ class ContactDeliverabilityTest extends TestCase
         $this->phone = PhoneNumber::factory()->create();
     }
 
-    private function log(string $to, string $status, $sentAt): void
+    private function log(string $to, string $status, $sentAt, string $channel = 'whatsapp'): void
     {
         MessageLog::create([
-            'phone_number_id' => $this->phone->id,
+            'phone_number_id' => $channel === 'sms' ? null : $this->phone->id,
             'to_number'       => $to,
             'template_name'   => 'hello_world',
             'language_code'   => 'en_US',
             'body_vars'       => [],
             'status'          => $status,
             'sent_at'         => $sentAt,
+            'channel'         => $channel,
         ]);
     }
 
@@ -121,5 +122,60 @@ class ContactDeliverabilityTest extends TestCase
         $row = $this->fetch($c->id);
         $this->assertFalse($row['snooze_active']);
         $this->assertTrue($row['deliverable']);
+    }
+
+    public function test_sms_enviado_hoy_no_afecta_whatsapp(): void
+    {
+        $this->actingAsOperator();
+        $c = Contact::factory()->create(['status' => 'active', 'phone' => '521230000006']);
+        $this->log($c->phone, 'delivered', now(), 'sms');
+
+        $row = $this->fetch($c->id);
+        // SMS enviado hoy: bloquea SMS pero NO WhatsApp.
+        $this->assertTrue($row['sms_sent_today']);
+        $this->assertFalse($row['sms_deliverable']);
+        $this->assertFalse($row['sent_today']);   // eje WhatsApp intacto
+        $this->assertTrue($row['deliverable']);
+    }
+
+    public function test_whatsapp_enviado_hoy_no_afecta_sms(): void
+    {
+        $this->actingAsOperator();
+        $c = Contact::factory()->create(['status' => 'active', 'phone' => '521230000007']);
+        $this->log($c->phone, 'delivered', now(), 'whatsapp');
+
+        $row = $this->fetch($c->id);
+        $this->assertTrue($row['sent_today']);
+        $this->assertFalse($row['deliverable']);
+        $this->assertFalse($row['sms_sent_today']); // eje SMS intacto
+        $this->assertTrue($row['sms_deliverable']);
+    }
+
+    public function test_sms_cooldown_por_canal(): void
+    {
+        $this->actingAsOperator();
+        Setting::set('cooldown_days', '30');
+        $c = Contact::factory()->create(['status' => 'active', 'phone' => '521230000008']);
+        $this->log($c->phone, 'sent', now()->subDays(5), 'sms');
+
+        $row = $this->fetch($c->id);
+        $this->assertTrue($row['sms_cooldown_active']);
+        $this->assertNotNull($row['sms_cooldown_until']);
+        $this->assertFalse($row['sms_deliverable']);
+        // WhatsApp no tiene envío: sigue disponible.
+        $this->assertFalse($row['cooldown_active']);
+        $this->assertTrue($row['deliverable']);
+    }
+
+    public function test_baja_sms_bloquea_sms_no_whatsapp(): void
+    {
+        $this->actingAsOperator();
+        $c = Contact::factory()->create(['status' => 'active', 'phone' => '521230000009']);
+        $c->sms_opt_out = true;
+        $c->save();
+
+        $row = $this->fetch($c->id);
+        $this->assertFalse($row['sms_deliverable']);
+        $this->assertTrue($row['deliverable']); // WhatsApp intacto
     }
 }

@@ -90,12 +90,34 @@ autostart=true
 autorestart=true
 user=www-data
 redirect_stderr=true
-stdout_logfile=/var/log/soketi.log
+stdout_logfile=/var/log/soketi/soketi.log
+; Rotacion por tamano de Supervisor: nunca un solo archivo gigante.
+; Rota al llegar a 10MB y guarda 7 archivos viejos (~70MB tope total).
+stdout_logfile_maxbytes=10MB
+stdout_logfile_backups=7
 ```
 
 ```bash
+sudo mkdir -p /var/log/soketi && sudo chown www-data:www-data /var/log/soketi
 sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl start soketi
 ```
+
+**Rotacion por dia (opcional, ademas del tope de tamano).** Soketi no es chismoso (solo loguea
+conexiones), asi que el tope de tamano de arriba ya basta. Si ademas la quieres **por dia**, crea
+`/etc/logrotate.d/soketi`:
+
+```
+/var/log/soketi/*.log {
+    daily
+    rotate 14
+    compress
+    missingok
+    notifempty
+    copytruncate
+}
+```
+
+`copytruncate` evita reiniciar Soketi al rotar. `rotate 14` = guarda 14 dias.
 
 ### 3. Nginx: exponer el WebSocket bajo el dominio (wss)
 

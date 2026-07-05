@@ -178,10 +178,11 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useAuth }  from '../auth.js';
 import { api }      from '../api.js';
+import { initEcho } from '../echo.js';
 import Button    from 'primevue/button';
 import Textarea  from 'primevue/textarea';
 import InputText from 'primevue/inputtext';
@@ -219,11 +220,56 @@ const assignUserId     = ref(null);
 const assigning        = ref(false);
 const claiming         = ref(false);
 
+let echoChannel = null;
+
 onMounted(async () => {
   const promises = [loadContacts(), loadQuickReplies()];
   if (isAdminOrOperator.value) promises.push(loadUsers());
   await Promise.all(promises);
+  subscribeRealtime();
 });
+
+onUnmounted(() => {
+  if (echoChannel) {
+    echoChannel.stopListening('.inbound.message');
+    echoChannel = null;
+  }
+});
+
+// Tiempo real (Soketi): cuando entra una respuesta, se muestra sin recargar.
+// Si no hay servidor WS configurado, initEcho() devuelve null y no pasa nada
+// (las respuestas siguen apareciendo al reabrir la conversacion, como hoy).
+function subscribeRealtime() {
+  const echo = initEcho();
+  if (! echo) return;
+
+  echoChannel = echo.private('conversations');
+  echoChannel.listen('.inbound.message', (e) => {
+    // Si el chat abierto es de ese contacto, recargar sus mensajes.
+    if (selected.value && e.contact_id === selected.value.id) {
+      refreshOpenChat();
+    }
+    // Refrescar la lista para que la conversacion suba y se note la respuesta.
+    loadContacts();
+    toast.add({
+      severity: 'info',
+      summary : 'Nueva respuesta',
+      detail  : `${e.contact_name || 'Contacto'}: ${(e.body ?? '').slice(0, 40)}`,
+      life    : 4000,
+    });
+  });
+}
+
+async function refreshOpenChat() {
+  if (! selected.value) return;
+  const res = await api.conversation(selected.value.id);
+  if (res.status === 'ok') {
+    messages.value   = res.data.messages;
+    windowOpen.value = res.data.window_open;
+    await nextTick();
+    scrollToBottom();
+  }
+}
 
 async function loadUsers() {
   const res = await api.users();

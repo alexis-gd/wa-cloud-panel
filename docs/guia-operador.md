@@ -291,6 +291,10 @@ Solo el administrador puede modificarlo: **Configuración → Multi-agente → M
 
 Cuando un contacto responde al WhatsApp, el mensaje aparece en **Conversaciones**.
 
+> ⚡ **En vivo:** si estás en Conversaciones, las respuestas nuevas aparecen **solas**, sin recargar,
+> y sale un aviso "Nueva respuesta" arriba a la derecha. (Requiere el servidor de tiempo real activo;
+> si no lo está, la respuesta igual aparece al reabrir la conversación, como siempre.)
+
 1. Ir a **Conversaciones** en el menú lateral.
 2. En el panel izquierdo ver la lista de contactos con mensajes. Los tags indican el estado:
    - **Activa** (verde) — ventana de 24h abierta, puedes responder texto libre.

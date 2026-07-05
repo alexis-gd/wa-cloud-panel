@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\InboundMessageReceived;
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
 use App\Models\Contact;
@@ -157,7 +158,7 @@ class WebhookController extends Controller
                  ?? data_get($message, 'button.payload', '');
 
         // Guardar mensaje en tabla conversations (abre ventana 24h)
-        Conversation::create([
+        $conversation = Conversation::create([
             'contact_id'   => $contact->id,
             'direction'    => 'inbound',
             'message_type' => $messageType,
@@ -166,6 +167,15 @@ class WebhookController extends Controller
             'status'       => 'received',
             'window_open'  => true,
         ]);
+
+        // Tiempo real: avisar al panel que llego una respuesta (se muestra sin recargar).
+        InboundMessageReceived::dispatch(
+            $contact->id,
+            $contact->name,
+            $body,
+            'whatsapp',
+            $conversation->created_at->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
+        );
 
         // Auto-asignar si el contacto aún no tiene ninguna asignación
         if (! $contact->assignments()->exists()) {

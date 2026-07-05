@@ -13,8 +13,10 @@
     "dependencies": {
         "@primeuix/themes": "^2.0.3",
         "chart.js": "^4.5.1",
+        "laravel-echo": "^2.3.7",
         "primeicons": "^7.0.0",
         "primevue": "^4.0.0",
+        "pusher-js": "^8.5.0",
         "vue": "^3.4.0",
         "vue-router": "^4.3.0"
     }

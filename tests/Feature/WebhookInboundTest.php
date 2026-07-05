@@ -225,4 +225,30 @@ class WebhookInboundTest extends TestCase
             'status' => 'active',
         ]);
     }
+
+    // ── Tiempo real ────────────────────────────────────────────────────────────
+
+    public function test_mensaje_entrante_emite_evento_de_tiempo_real(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([\App\Events\InboundMessageReceived::class]);
+
+        $payload = $this->inboundPayload('529231311146', 'text', ['text' => ['body' => 'Hola, me interesa']]);
+        $this->postWebhook($payload)->assertStatus(200);
+
+        \Illuminate\Support\Facades\Event::assertDispatched(
+            \App\Events\InboundMessageReceived::class,
+            fn ($e) => $e->contactId === $this->contact->id
+                && $e->channel === 'whatsapp'
+                && str_contains($e->body, 'me interesa'),
+        );
+    }
+
+    public function test_evento_tiempo_real_va_al_canal_privado_conversations(): void
+    {
+        $event = new \App\Events\InboundMessageReceived(7, 'Juan', 'hola', 'whatsapp', '2026-07-04 10:00');
+
+        $this->assertSame('private-conversations', $event->broadcastOn()->name);
+        $this->assertSame('inbound.message', $event->broadcastAs());
+        $this->assertSame(7, $event->broadcastWith()['contact_id']);
+    }
 }

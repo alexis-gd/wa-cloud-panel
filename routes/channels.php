@@ -16,3 +16,9 @@ use Illuminate\Support\Facades\Broadcast;
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
+
+// Canal de conversaciones/mensajes entrantes: solo roles del panel que ven el chat.
+// Los eventos en vivo (respuestas SMS/WhatsApp) se emiten aqui.
+Broadcast::channel('conversations', function ($user) {
+    return in_array($user->role, ['admin', 'operator', 'agent'], true);
+});

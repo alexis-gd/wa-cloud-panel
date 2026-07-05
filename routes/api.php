@@ -166,6 +166,9 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/settings/sms-auto-blacklist', [SettingsController::class, 'getSmsAutoBlacklist']);
         Route::put('/settings/sms-auto-blacklist', [SettingsController::class, 'updateSmsAutoBlacklist']);
         Route::post('/settings/demo-reset',      [SettingsController::class, 'demoReset']);
+
+        // Visibilidad de plantillas — mostrar/ocultar (no borra)
+        Route::put('/templates/{id}/visibility', [TemplateController::class, 'setVisibility']);
     });
 
     // Operaciones admin (superadmin hereda vía bypass en RoleMiddleware)

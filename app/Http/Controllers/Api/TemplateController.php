@@ -21,10 +21,24 @@ class TemplateController extends Controller
     ) {}
 
     // GET /api/templates
-    public function index(): JsonResponse
+    // El superadmin ve todas (incluidas las ocultas, para poder mostrarlas de nuevo).
+    // Admin/operator solo ven las visibles: las ocultas se sacan de su dia a dia.
+    public function index(Request $request): JsonResponse
     {
-        $templates = WaTemplate::orderBy('created_at', 'desc')->get();
+        $templates = $this->visibleQuery($request)->orderBy('created_at', 'desc')->get();
         return response()->json(['status' => 'ok', 'data' => $templates]);
+    }
+
+    // Query base que aplica el filtro de visibilidad segun el rol.
+    private function visibleQuery(Request $request)
+    {
+        $query = WaTemplate::query();
+
+        if (optional($request->user())->role !== 'superadmin') {
+            $query->where('is_hidden', false);
+        }
+
+        return $query;
     }
 
     // POST /api/templates
@@ -69,7 +83,7 @@ class TemplateController extends Controller
     }
 
     // POST /api/templates/sync — sincroniza desde Meta API
-    public function sync(): JsonResponse
+    public function sync(Request $request): JsonResponse
     {
         $exitCode = Artisan::call('wa:sync-templates');
 
@@ -80,13 +94,25 @@ class TemplateController extends Controller
             ], 500);
         }
 
-        $templates = WaTemplate::orderBy('created_at', 'desc')->get();
+        $templates = $this->visibleQuery($request)->orderBy('created_at', 'desc')->get();
 
         return response()->json([
             'status' => 'ok',
             'data'   => $templates,
             'synced' => $templates->count(),
         ]);
+    }
+
+    // PUT /api/templates/{id}/visibility — mostrar u ocultar una plantilla (solo superadmin).
+    // Oculta = no aparece al operador ni en el selector de campañas. NO la borra de Meta ni de la BD.
+    public function setVisibility(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate(['is_hidden' => 'required|boolean']);
+
+        $template = WaTemplate::findOrFail($id);
+        $template->update(['is_hidden' => $data['is_hidden']]);
+
+        return response()->json(['status' => 'ok', 'data' => $template->fresh()]);
     }
 
     // POST /api/templates/send-test

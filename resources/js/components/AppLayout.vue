@@ -72,7 +72,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.16.4 - Stage 3</span>
+                <span class="version">v0.17.0 - Stage 3</span>
             </div>
         </aside>
 
@@ -323,6 +323,7 @@ const helpContent = {
             { icon: 'pi-check-circle',  label: 'Aprobadas',   text: 'WhatsApp: solo las plantillas "Aprobada" aparecen al crear campañas. SMS: todas las activas se pueden usar.' },
             { icon: 'pi-plus',          label: 'Crear SMS',   text: 'En la pestaña SMS, "Nueva plantilla SMS": ponle un nombre interno y el mensaje (incluye "STOP para baja"). No pasa por Meta.' },
             { icon: 'pi-send',          label: 'Enviar prueba', text: 'Selecciona una plantilla y usa "Enviar prueba": WhatsApp va a un contacto activo; SMS a un número de 10 dígitos.' },
+            { icon: 'pi-eye-slash',     label: 'Ocultar', text: 'Solo superadmin: el ojo junto a cada plantilla de WhatsApp la oculta o muestra. Una plantilla oculta no aparece al operador ni en el selector de campañas, pero NO se borra (sigue en Meta). Útil para quitar de la vista plantillas de prueba como hello_world.' },
         ],
         warning: 'Solo el administrador puede crear, editar o eliminar plantillas.',
     },

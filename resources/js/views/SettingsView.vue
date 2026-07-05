@@ -196,9 +196,10 @@
             <template #title>Modo demo</template>
             <template #content>
                 <p class="stage-desc">
-                    Quita el circuit breaker del número, resetea el cooldown de todos los contactos
-                    y limpia las bajas de SMS (baja por STOP, bloqueo, inválido) para que el número de
-                    prueba pueda volver a recibir. Úsalo antes de una demostración.
+                    Quita el circuit breaker del número, resetea el cooldown de todos los contactos,
+                    limpia las bajas de SMS (baja por STOP, bloqueo, inválido) y reactiva las bajas de
+                    WhatsApp (vuelve a Activo a los que se dieron de baja) para que el número de prueba
+                    pueda volver a recibir. Úsalo antes de una demostración.
                 </p>
                 <Button
                     label="Resetear para demo"
@@ -208,7 +209,7 @@
                     @click="confirmDemoReset"
                 />
                 <Message v-if="demoResetResult" :severity="demoResetResult.error ? 'error' : 'success'" class="mt-3">
-                    {{ demoResetResult.error ?? 'Listo - cooldown reseteado, circuit breaker quitado y bajas de SMS limpiadas.' }}
+                    {{ demoResetResult.error ?? 'Listo - cooldown reseteado, circuit breaker quitado, bajas de SMS limpiadas y bajas de WhatsApp reactivadas.' }}
                 </Message>
             </template>
         </Card>
@@ -361,7 +362,7 @@ async function saveToken() {
 
 function confirmDemoReset() {
     confirm.require({
-        message: '¿Quitar el circuit breaker, resetear el cooldown y limpiar las bajas de SMS de todos los contactos?',
+        message: '¿Quitar el circuit breaker, resetear el cooldown, limpiar las bajas de SMS y reactivar las bajas de WhatsApp de todos los contactos?',
         header:  'Resetear para demo',
         icon:    'pi pi-exclamation-triangle',
         acceptLabel: 'Sí, resetear',

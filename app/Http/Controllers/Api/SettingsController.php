@@ -352,12 +352,22 @@ class SettingsController extends Controller
             'sms_bounce_count' => 0,
         ]);
 
+        // Reactiva las bajas de WhatsApp (status opted_out -> active) para que un número de
+        // prueba que respondió STOP/BAJA vuelva a recibir. En operación real el opt-out es
+        // irreversible; esto SOLO existe en el modo demo (superadmin, con advertencia).
+        $waReactivated = Contact::where('status', 'opted_out')->update([
+            'status'           => 'active',
+            'opted_out_at'     => null,
+            'opted_out_source' => null,
+        ]);
+
         return response()->json([
             'status' => 'ok',
             'data'   => [
                 'phones_unpaused' => $phones,
                 'logs_reset'      => $logs,
                 'sms_cleared'     => $smsCleared,
+                'wa_reactivated'  => $waReactivated,
             ],
         ]);
     }

@@ -27,7 +27,7 @@ class DashboardTest extends TestCase
                  'status',
                  'data' => [
                      'stats'    => ['sent', 'delivered', 'read', 'failed'],
-                     'contacts' => ['total', 'active', 'opted_out', 'invalid'],
+                     'contacts' => ['total', 'active', 'opted_out', 'invalid', 'unreachable'],
                  ],
              ])
              ->assertJsonPath('status', 'ok');
@@ -38,13 +38,15 @@ class DashboardTest extends TestCase
         Contact::factory()->count(3)->create(['status' => 'active']);
         Contact::factory()->count(2)->create(['status' => 'opted_out']);
         Contact::factory()->count(1)->create(['status' => 'invalid']);
+        Contact::factory()->count(2)->create(['status' => 'unreachable']);
 
         $this->actingAsOperator()
              ->getJson('/api/dashboard/stats')
-             ->assertJsonPath('data.contacts.total', 6)
+             ->assertJsonPath('data.contacts.total', 8)
              ->assertJsonPath('data.contacts.active', 3)
              ->assertJsonPath('data.contacts.opted_out', 2)
-             ->assertJsonPath('data.contacts.invalid', 1);
+             ->assertJsonPath('data.contacts.invalid', 1)
+             ->assertJsonPath('data.contacts.unreachable', 2);
     }
 
     public function test_stats_cuenta_mensajes_por_status(): void

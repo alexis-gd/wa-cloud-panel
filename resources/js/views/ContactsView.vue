@@ -175,7 +175,7 @@
                                 <Tag
                                     :value="smsDeliverLabel(data)"
                                     :severity="smsDeliverSeverity(data)"
-                                    icon="pi pi-mobile"
+                                    icon="pi pi-envelope ch-sms"
                                     v-tooltip.top="smsDeliverTooltip(data)"
                                     style="cursor:help"
                                 />
@@ -830,6 +830,8 @@ onMounted(() => { loadContacts(); loadTags(); });
 .date-cell     { color: var(--p-text-muted-color); font-size: .82rem; }
 .status-cell   { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .deliver-cell  { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+/* Icono de canal SMS en la etiqueta de entregabilidad (mismo azul que en Campañas). */
+.deliver-cell :deep(.ch-sms) { color: var(--p-blue-500); }
 .empty-msg     { color: var(--p-text-muted-color); font-size: .85rem; }
 
 .pagination {

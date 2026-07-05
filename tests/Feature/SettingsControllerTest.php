@@ -304,4 +304,23 @@ class SettingsControllerTest extends TestCase
         $this->assertFalse($contact->sms_invalid);
         $this->assertSame(0, $contact->sms_bounce_count);
     }
+
+    public function test_demo_reset_reactiva_bajas_de_whatsapp(): void
+    {
+        $contact = \App\Models\Contact::factory()->create([
+            'status'           => 'opted_out',
+            'opted_out_at'     => now(),
+            'opted_out_source' => 'auto',
+        ]);
+
+        $this->actingAsSuperAdmin()
+             ->postJson('/api/settings/demo-reset')
+             ->assertStatus(200)
+             ->assertJsonPath('status', 'ok');
+
+        $contact->refresh();
+        $this->assertSame('active', $contact->status);
+        $this->assertNull($contact->opted_out_at);
+        $this->assertNull($contact->opted_out_source);
+    }
 }

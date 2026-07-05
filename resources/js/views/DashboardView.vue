@@ -304,11 +304,11 @@ const contactStats = [
     },
     {
         key: 'active', label: 'Activos', class: 'active',
-        tooltip: 'Contactos que pueden recibir mensajes de campaña. No tienen opt-out ni están marcados como inválidos.',
+        tooltip: 'Contactos que pueden recibir mensajes de campaña. No están dados de baja ni marcados como inválidos.',
     },
     {
-        key: 'opted_out', label: 'Opt-out', class: 'opted-out',
-        tooltip: 'Contactos que pidieron no recibir mensajes (respondieron STOP, NO, BAJA o CANCELAR). 0 opt-outs es una buena señal. Son irreversibles y nunca se eliminan de la BD.',
+        key: 'opted_out', label: 'Bajas', class: 'opted-out',
+        tooltip: 'Contactos que pidieron no recibir mensajes (respondieron STOP, NO, BAJA o CANCELAR). 0 bajas es una buena señal. Son irreversibles y nunca se eliminan de la BD.',
     },
     {
         key: 'invalid', label: 'Inválidos', class: 'failed',

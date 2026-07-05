@@ -26,7 +26,12 @@
                                 ></i>
                                 <code v-if="data.channel !== 'sms'">{{ data.template_name }}</code>
                                 <code v-else-if="data.sms_template">{{ data.sms_template.name }}</code>
-                                <span v-else class="muted-cell">SMS</span>
+                                <span
+                                    v-else-if="data.sms_body"
+                                    class="muted-cell sms-legacy"
+                                    v-tooltip.top="data.sms_body"
+                                >{{ smsBodyPreview(data.sms_body) }}</span>
+                                <span v-else class="muted-cell">(sin plantilla)</span>
                             </span>
                         </template>
                     </Column>
@@ -396,6 +401,13 @@ const tagOptions = computed(() => [
     ...availableTags.value.map(t => ({ label: `Tag: ${t.name}`, value: t.id })),
 ]);
 
+// Preview del texto SMS para campañas viejas sin plantilla vinculada (sms_template null):
+// en vez del redundante "SMS" (el icono ya indica el canal) se muestra un extracto del cuerpo.
+function smsBodyPreview(body) {
+    const t = (body ?? '').trim();
+    return t.length > 32 ? `${t.slice(0, 32)}…` : t;
+}
+
 // ── Contador de segmentos SMS (160 chars = 1 segmento, luego 153 c/u por overhead UDH) ──
 const smsCharCount = computed(() => selectedSmsBody.value.length);
 const smsSegments = computed(() => {
@@ -474,7 +486,7 @@ const logStatusSeverity = (s) => ({
 const discardLabel = (r) => ({
     cooldown   : 'En cooldown',
     snooze     : 'En snooze',
-    opted_out  : 'Opt-out',
+    opted_out  : 'Baja',
     dedup_today: 'Ya enviado hoy',
     unreachable: 'Inalcanzable',
     sms_blocked: 'SMS bloqueado',
@@ -707,6 +719,7 @@ onUnmounted(() => stopDetailPolling());
 .date-cell     { color: var(--p-text-muted-color); font-size: .82rem; }
 .empty-msg     { color: var(--p-text-muted-color); font-size: .85rem; }
 .muted-cell    { color: var(--p-text-muted-color); font-size: .82rem; }
+.sms-legacy    { font-style: italic; cursor: help; }
 .channel-cell  { display: inline-flex; align-items: center; gap: 8px; }
 .channel-cell .ch-wa  { color: #25d366; font-size: 1.05rem; }
 .channel-cell .ch-sms { color: var(--p-blue-500); font-size: 1.05rem; }

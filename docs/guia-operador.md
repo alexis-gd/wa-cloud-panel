@@ -23,6 +23,10 @@
 Al entrar verás el dashboard con:
 
 - **Métricas de mensajes**: enviados, entregados, leídos y fallidos (totales acumulados).
+- **Base de contactos**: total, activos, bajas, inválidos e **inalcanzables**. Un inalcanzable
+  es un contacto que recibió 2+ mensajes en los últimos 30 días sin que ninguno se entregara
+  (probablemente bloqueó el número); el sistema lo excluye de campañas para cuidar la calidad.
+  A diferencia de las bajas, un **admin sí puede reactivarlo** desde Contactos (ver sección 4).
 - **Meta mensual**: barra de progreso que muestra cuántos mensajes se han enviado este mes
   versus la meta configurada (por defecto 200,000). Los colores indican el ritmo de avance:
   - Azul — buen ritmo (≥60% de la meta)
@@ -111,7 +115,11 @@ La tabla tiene dos columnas de estado (el ícono **?** junto al título las expl
   - **Activo** - normal.
   - **Baja** - pidió baja (tooltip muestra fecha y origen).
   - **Inválido** - número no existe en WhatsApp.
-  - **Inalcanzable** - rebotó repetido, marcado automáticamente.
+  - **Inalcanzable** - recibió 2+ mensajes en 30 días sin que ninguno se entregara (probablemente
+    bloqueó el número). Se marca automáticamente y se excluye de campañas. **Es el único estado
+    reversible**: un admin puede reactivarlo (botón **Reactivar**) si hay evidencia de que el número
+    volvió a ser alcanzable (por ejemplo, si el contacto escribió). Filtra por **"Inalcanzables"**
+    arriba de la tabla para encontrarlos.
 - **Entregabilidad** - si le llega **ahora mismo**. Se muestra **por canal**, con dos etiquetas:
   una de **WhatsApp** (icono verde) y otra de **SMS** (icono de celular). Cada canal lleva su
   propio conteo, así que un contacto puede estar **Disponible en WhatsApp** y a la vez **En cooldown

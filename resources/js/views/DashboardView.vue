@@ -314,6 +314,10 @@ const contactStats = [
         key: 'invalid', label: 'Inválidos', class: 'failed',
         tooltip: 'Números que no tienen WhatsApp o que Meta rechazó. Se marcan automáticamente al primer fallo con código de error 131026. No se vuelven a intentar.',
     },
+    {
+        key: 'unreachable', label: 'Inalcanzables', class: 'unreachable',
+        tooltip: 'Contactos que recibieron 2+ mensajes en los últimos 30 días sin que ninguno se entregara (probablemente bloquearon el número). Se excluyen de campañas para proteger la calidad. A diferencia de las bajas, un admin puede reactivarlos desde Contactos si hay evidencia de que volvieron a ser alcanzables.',
+    },
 ];
 
 // ── Computed ──────────────────────────────────────────────────────────────────
@@ -526,6 +530,7 @@ onMounted(() => {
 .stat-num.read      { color: var(--p-primary-color); }
 .stat-num.failed    { color: var(--p-red-500); }
 .stat-num.opted-out { color: var(--p-orange-500); }
+.stat-num.unreachable { color: var(--p-purple-500); }
 
 /* ── Chart ──────────────────────────────────────────────────── */
 .chart-loading { text-align: center; padding: 48px; color: var(--p-text-muted-color); font-size: .85rem; }

@@ -18,7 +18,8 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 });
 
 // Canal de conversaciones/mensajes entrantes: solo roles del panel que ven el chat.
-// Los eventos en vivo (respuestas SMS/WhatsApp) se emiten aqui.
+// Los eventos en vivo (respuestas SMS/WhatsApp) se emiten aqui. superadmin incluido
+// (siempre pasa, igual que bypasa el role middleware en el resto del panel).
 Broadcast::channel('conversations', function ($user) {
-    return in_array($user->role, ['admin', 'operator', 'agent'], true);
+    return in_array($user->role, ['superadmin', 'admin', 'operator', 'agent'], true);
 });

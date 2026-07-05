@@ -112,14 +112,17 @@ La tabla tiene dos columnas de estado (el ícono **?** junto al título las expl
   - **Opt-out** — pidió baja (tooltip muestra fecha y origen).
   - **Inválido** — número no existe en WhatsApp.
   - **Inalcanzable** — rebotó repetido, marcado automáticamente.
-- **Entregabilidad** — si le llega **ahora mismo**:
-  - 🟢 **Disponible** — se le puede enviar.
-  - ⚪ **En snooze** — el contacto pidió "No por ahora"; no se le envía hasta que pase (tooltip con la fecha).
-  - 🟠 **En cooldown** — recibió hace poco; no se le envía hasta que pase (tooltip con la fecha).
-  - 🔵 **Enviado hoy** — ya recibió hoy, no se reenvía el mismo día.
-  - 🔴 **No recibe** — bloqueado (opt-out / inválido / inalcanzable).
+- **Entregabilidad** - si le llega **ahora mismo**. Se muestra **por canal**, con dos etiquetas:
+  una de **WhatsApp** (icono verde) y otra de **SMS** (icono de celular). Cada canal lleva su
+  propio conteo, así que un contacto puede estar **Disponible en WhatsApp** y a la vez **En cooldown
+  en SMS** (o al revés). Estados de cada etiqueta:
+  - 🟢 **Disponible** - se le puede enviar por ese canal.
+  - ⚪ **En snooze** - el contacto pidió "No por ahora"; no se le envía hasta que pase (tooltip con la fecha).
+  - 🟠 **En cooldown** - recibió hace poco **por ese canal**; no se le envía hasta que pase (tooltip con la fecha).
+  - 🔵 **Enviado hoy** - ya recibió hoy **por ese canal**, no se reenvía el mismo día.
+  - 🔴 **No recibe** - bloqueado en ese canal (opt-out / inválido / inalcanzable en WhatsApp; baja / bloqueo / inválido en SMS).
 
-> Un contacto puede estar **Activo** pero **En snooze**, **En cooldown** o **Enviado hoy** — es normal, solo significa que ahorita no se le envía para no saturarlo.
+> Un contacto puede estar **Activo** pero **En snooze**, **En cooldown** o **Enviado hoy** - es normal, solo significa que ahorita no se le envía para no saturarlo. Y como es por canal, puede seguir disponible por el otro canal.
 
 **Chip rojo "Baja SMS"** (debajo del Estado): aparece cuando el contacto **no recibe SMS**
 (pidió baja por SMS con STOP/BAJA, quedó bloqueado o el número no recibe SMS). Es un eje

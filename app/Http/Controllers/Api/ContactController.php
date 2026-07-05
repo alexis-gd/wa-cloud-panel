@@ -73,51 +73,82 @@ class ContactController extends Controller
         $startOfDay = now('America/Mexico_City')->startOfDay()->utc();
         $endOfDay   = now('America/Mexico_City')->endOfDay()->utc();
 
-        // Números que ya recibieron un mensaje hoy (dedup)
-        $sentTodaySet = array_flip(
-            MessageLog::whereIn('to_number', $phones)
-                ->whereBetween('sent_at', [$startOfDay, $endOfDay])
-                ->whereIn('status', ['sent', 'delivered', 'read'])
-                ->distinct()
-                ->pluck('to_number')
-                ->all()
-        );
+        // Dedup y cooldown son POR CANAL (igual que los jobs SendWhatsAppMessage/SendSmsMessage):
+        // un SMS enviado hoy no pone a WhatsApp "en cooldown" y viceversa. Por eso calculamos
+        // los sets de "enviado hoy" y "ultimo envio" filtrando por canal.
+        $sentTodaySetFor = function (string $channel) use ($phones, $startOfDay, $endOfDay): array {
+            return array_flip(
+                MessageLog::whereIn('to_number', $phones)
+                    ->where('channel', $channel)
+                    ->whereBetween('sent_at', [$startOfDay, $endOfDay])
+                    ->whereIn('status', ['sent', 'delivered', 'read'])
+                    ->distinct()
+                    ->pluck('to_number')
+                    ->all()
+            );
+        };
 
-        // Último 'sent' por número (para cooldown)
-        $lastSentMap = MessageLog::whereIn('to_number', $phones)
-            ->where('status', 'sent')
-            ->groupBy('to_number')
-            ->select('to_number', DB::raw('MAX(sent_at) as last_sent'))
-            ->pluck('last_sent', 'to_number')
-            ->all();
+        $lastSentMapFor = function (string $channel) use ($phones): array {
+            return MessageLog::whereIn('to_number', $phones)
+                ->where('channel', $channel)
+                ->where('status', 'sent')
+                ->groupBy('to_number')
+                ->select('to_number', DB::raw('MAX(sent_at) as last_sent'))
+                ->pluck('last_sent', 'to_number')
+                ->all();
+        };
+
+        $waSentTodaySet  = $sentTodaySetFor('whatsapp');
+        $waLastSentMap   = $lastSentMapFor('whatsapp');
+        $smsSentTodaySet = $sentTodaySetFor('sms');
+        $smsLastSentMap  = $lastSentMapFor('sms');
 
         $cooldownDays = max(7, (int) Setting::get('cooldown_days', 30));
 
-        foreach ($contacts as $contact) {
-            $blocked        = in_array($contact->status, ['opted_out', 'invalid', 'unreachable'], true);
-            $snoozeActive   = $contact->isSnoozeActive();
-            $snoozeUntil    = $snoozeActive
-                ? $contact->snoozed_until->setTimezone('America/Mexico_City')->format('Y-m-d')
-                : null;
-            $sentToday      = isset($sentTodaySet[$contact->phone]);
-            $cooldownActive = false;
-            $cooldownUntil  = null;
-
-            $lastSent = $lastSentMap[$contact->phone] ?? null;
+        // Devuelve [activo(bool), hasta(string|null)] segun el ultimo envio del canal.
+        $cooldownState = function (?string $lastSent) use ($cooldownDays): array {
             if ($lastSent && now()->diffInDays($lastSent) < $cooldownDays) {
-                $cooldownActive = true;
-                $cooldownUntil  = Carbon::parse($lastSent)
+                return [true, Carbon::parse($lastSent)
                     ->addDays($cooldownDays)
                     ->setTimezone('America/Mexico_City')
-                    ->format('Y-m-d');
+                    ->format('Y-m-d')];
             }
+            return [false, null];
+        };
+
+        foreach ($contacts as $contact) {
+            // Eje WhatsApp: la identidad del contacto (opted_out/invalid/unreachable) bloquea WA.
+            $waBlocked = in_array($contact->status, ['opted_out', 'invalid', 'unreachable'], true);
+            // Eje SMS: opt-out es cross-channel (una baja bloquea ambos), mas las banderas propias
+            // de SMS. Un "invalid/unreachable" de WhatsApp NO implica que el SMS falle.
+            $smsBlocked = $contact->status === 'opted_out'
+                || $contact->sms_opt_out || $contact->sms_blocked || $contact->sms_invalid;
+
+            $snoozeActive = $contact->isSnoozeActive();
+            $snoozeUntil  = $snoozeActive
+                ? $contact->snoozed_until->setTimezone('America/Mexico_City')->format('Y-m-d')
+                : null;
+
+            $waSentToday = isset($waSentTodaySet[$contact->phone]);
+            [$waCooldownActive, $waCooldownUntil] = $cooldownState($waLastSentMap[$contact->phone] ?? null);
+
+            $smsSentToday = isset($smsSentTodaySet[$contact->phone]);
+            [$smsCooldownActive, $smsCooldownUntil] = $cooldownState($smsLastSentMap[$contact->phone] ?? null);
 
             $contact->setAttribute('snooze_active', $snoozeActive);
             $contact->setAttribute('snooze_until', $snoozeUntil);
-            $contact->setAttribute('sent_today', $sentToday);
-            $contact->setAttribute('cooldown_active', $cooldownActive);
-            $contact->setAttribute('cooldown_until', $cooldownUntil);
-            $contact->setAttribute('deliverable', ! $blocked && ! $snoozeActive && ! $sentToday && ! $cooldownActive);
+
+            // Genericos = eje WhatsApp (retrocompatibles: el front viejo y /contacts/check los usaban).
+            $contact->setAttribute('sent_today', $waSentToday);
+            $contact->setAttribute('cooldown_active', $waCooldownActive);
+            $contact->setAttribute('cooldown_until', $waCooldownUntil);
+            $contact->setAttribute('deliverable', ! $waBlocked && ! $snoozeActive && ! $waSentToday && ! $waCooldownActive);
+
+            // Eje SMS (nuevos, para el segundo tag de Entregabilidad).
+            $contact->setAttribute('sms_sent_today', $smsSentToday);
+            $contact->setAttribute('sms_cooldown_active', $smsCooldownActive);
+            $contact->setAttribute('sms_cooldown_until', $smsCooldownUntil);
+            $contact->setAttribute('sms_deliverable', ! $smsBlocked && ! $snoozeActive && ! $smsSentToday && ! $smsCooldownActive);
         }
     }
 

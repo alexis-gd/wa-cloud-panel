@@ -37,9 +37,9 @@
       <i class="pi" :class="t.status === 'rejected' ? 'pi-times-circle' : 'pi-exclamation-triangle'"></i>
       <span>
         <strong>{{ t.name }}</strong>:
-        <span v-if="t.status === 'rejected'">Rechazada por Meta — {{ t.rejection_reason || 'sin motivo indicado' }}</span>
+        <span v-if="t.status === 'rejected'">Rechazada por Meta - {{ t.rejection_reason || 'sin motivo indicado' }}</span>
         <span v-else-if="t.status === 'paused'">Pausada por Meta</span>
-        <span v-else>Calidad {{ t.quality_score }} — puede afectar entregas</span>
+        <span v-else>Calidad {{ t.quality_score }} - puede afectar entregas</span>
       </span>
     </div>
 
@@ -70,8 +70,11 @@
           <tbody>
             <tr v-for="t in templates" :key="t.id"
               @click="selectTemplate(t)"
-              :class="['tpl-row', selected?.id === t.id ? 'tpl-row--selected' : '', !t.is_active ? 'tpl-row--inactive' : '']">
-              <td><code class="tpl-name">{{ t.name }}</code></td>
+              :class="['tpl-row', selected?.id === t.id ? 'tpl-row--selected' : '', !t.is_active ? 'tpl-row--inactive' : '', t.is_hidden ? 'tpl-row--hidden' : '']">
+              <td>
+                <code class="tpl-name">{{ t.name }}</code>
+                <Tag v-if="t.is_hidden" value="Oculta" severity="secondary" class="hidden-tag" />
+              </td>
               <td><Tag :value="statusLabel(t.status)" :severity="statusSeverity(t.status)" /></td>
               <td>
                 <span v-if="t.quality_score" class="quality-badge">
@@ -85,6 +88,13 @@
                 <ToggleSwitch :modelValue="t.is_active" @update:modelValue="toggleActive(t, $event)" @click.stop />
               </td>
               <td class="col-right">
+                <Button
+                  v-if="isSuperAdmin"
+                  :icon="t.is_hidden ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                  text severity="secondary" size="small"
+                  v-tooltip.top="t.is_hidden ? 'Oculta - clic para mostrarla' : 'Visible - clic para ocultarla'"
+                  @click.stop="toggleVisibility(t)"
+                />
                 <Button icon="pi pi-trash" text severity="danger" size="small" @click.stop="confirmDelete(t)" />
               </td>
             </tr>
@@ -213,6 +223,7 @@ const toast   = useToast();
 const confirm = useConfirm();
 const { user: authState } = useAuth();
 const isAdmin = computed(() => ['admin', 'superadmin'].includes(authState.user?.role));
+const isSuperAdmin = computed(() => authState.user?.role === 'superadmin');
 
 const channel = ref('whatsapp');
 const channelOptions = [
@@ -270,6 +281,24 @@ function selectTemplate(t) {
 async function toggleActive(template, value) {
   const res = await api.updateTemplate(template.id, { is_active: value });
   if (res.status === 'ok') template.is_active = value;
+}
+
+// Mostrar/ocultar (solo superadmin). Oculta = fuera de la vista del operador y del
+// selector de campanas. NO borra la plantilla.
+async function toggleVisibility(template) {
+  const next = !template.is_hidden;
+  const res = await api.setTemplateVisibility(template.id, next);
+  if (res.status === 'ok') {
+    template.is_hidden = next;
+    toast.add({
+      severity: 'success',
+      summary : next ? 'Plantilla oculta' : 'Plantilla visible',
+      detail  : next ? 'Ya no aparece al operador ni en campanas.' : 'Vuelve a estar disponible.',
+      life    : 3000,
+    });
+  } else {
+    toast.add({ severity: 'error', summary: 'Error', detail: res.message, life: 4000 });
+  }
 }
 
 function confirmDelete(template) {
@@ -394,7 +423,11 @@ function statusSeverity(s) {
 .tpl-row:hover        { background: var(--p-surface-50); }
 .tpl-row--selected    { background: var(--p-primary-50) !important; }
 .tpl-row--inactive    { opacity: .5; }
+.tpl-row--hidden      { background: var(--p-surface-50); }
+.tpl-row--hidden .tpl-name { opacity: .6; }
 .tpl-row td           { padding: 10px 16px; }
+
+.hidden-tag { margin-left: 6px; font-size: .68rem; vertical-align: middle; }
 
 .tpl-name   { background: var(--p-surface-100); padding: 2px 8px; border-radius: 4px; font-size: .75rem; font-family: monospace; }
 .col-center { text-align: center; }

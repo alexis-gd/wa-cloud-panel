@@ -93,6 +93,11 @@ export const api = {
 
     deleteTemplate: (id) => request(`/templates/${id}`, { method: 'DELETE' }),
 
+    setTemplateVisibility: (id, isHidden) => request(`/templates/${id}/visibility`, {
+        method : 'PUT',
+        body   : JSON.stringify({ is_hidden: isHidden }),
+    }),
+
     syncTemplates: () => request('/templates/sync', { method: 'POST' }),
 
     sendTest: (payload) => request('/templates/send-test', {

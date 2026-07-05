@@ -517,7 +517,7 @@ async function openNewModal() {
                 const raw = await api.templates();
                 const list = Array.isArray(raw) ? raw : (raw.data ?? []);
                 approvedTemplates.value = list
-                    .filter(t => t.status === 'approved' && t.is_active)
+                    .filter(t => t.status === 'approved' && t.is_active && !t.is_hidden)
                     .map(t => ({ ...t, display: `${t.name} (${t.language_code})`, body_text: t.body_text ?? '' }));
                 loadingTemplates.value = false;
             }

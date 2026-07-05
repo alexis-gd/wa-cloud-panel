@@ -98,4 +98,54 @@ class TemplateTest extends TestCase
              ])
              ->assertStatus(403);
     }
+
+    // ── Visibilidad de plantillas (solo superadmin) ──────────────────────────
+
+    public function test_superadmin_puede_ocultar_y_mostrar_template(): void
+    {
+        $tpl = WaTemplate::factory()->create(['is_hidden' => false]);
+
+        $this->actingAsSuperAdmin()
+             ->putJson("/api/templates/{$tpl->id}/visibility", ['is_hidden' => true])
+             ->assertStatus(200)
+             ->assertJsonPath('data.is_hidden', true);
+
+        $this->assertDatabaseHas('wa_templates', ['id' => $tpl->id, 'is_hidden' => true]);
+
+        $this->actingAsSuperAdmin()
+             ->putJson("/api/templates/{$tpl->id}/visibility", ['is_hidden' => false])
+             ->assertStatus(200)
+             ->assertJsonPath('data.is_hidden', false);
+    }
+
+    public function test_admin_no_puede_cambiar_visibilidad(): void
+    {
+        $tpl = WaTemplate::factory()->create();
+
+        $this->actingAsAdmin()
+             ->putJson("/api/templates/{$tpl->id}/visibility", ['is_hidden' => true])
+             ->assertStatus(403);
+    }
+
+    public function test_operator_no_ve_templates_ocultas(): void
+    {
+        WaTemplate::factory()->create(['name' => 'visible_tpl', 'is_hidden' => false]);
+        WaTemplate::factory()->create(['name' => 'oculta_tpl',  'is_hidden' => true]);
+
+        $res = $this->actingAsOperator()->getJson('/api/templates')->assertStatus(200);
+
+        $this->assertCount(1, $res->json('data'));
+        $this->assertSame('visible_tpl', $res->json('data.0.name'));
+    }
+
+    public function test_superadmin_si_ve_templates_ocultas(): void
+    {
+        WaTemplate::factory()->create(['name' => 'visible_tpl', 'is_hidden' => false]);
+        WaTemplate::factory()->create(['name' => 'oculta_tpl',  'is_hidden' => true]);
+
+        $this->actingAsSuperAdmin()
+             ->getJson('/api/templates')
+             ->assertStatus(200)
+             ->assertJsonCount(2, 'data');
+    }
 }

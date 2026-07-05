@@ -50,7 +50,7 @@
           <div class="chat-badges">
             <Tag v-if="!windowOpen"              value="Ventana cerrada — el cliente debe responder primero" severity="warn" />
             <Tag v-else-if="selected.snoozed_until" :value="`Snooze hasta ${formatDate(selected.snoozed_until)}`" severity="warn" />
-            <Tag v-else-if="selected.status==='opted_out'" value="Opt-out permanente" severity="danger" />
+            <Tag v-else-if="selected.status==='opted_out'" value="Baja permanente" severity="danger" />
           </div>
         </div>
 
@@ -73,7 +73,7 @@
         <!-- Input -->
         <div class="chat-input-area">
           <div v-if="selected.status==='opted_out'" class="chat-notice chat-notice--danger">
-            Este contacto tiene opt-out permanente — no se le puede enviar mensajes.
+            Este contacto está dado de baja - no se le puede enviar mensajes.
           </div>
           <template v-else>
             <div v-if="!windowOpen" class="chat-notice">

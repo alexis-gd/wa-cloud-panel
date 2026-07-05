@@ -22,7 +22,7 @@
                 <template #content>
                     <div class="stat">
                         <span class="stat-num opted">{{ contactStats.opted_out }}</span>
-                        <span class="stat-lbl">Opt-out</span>
+                        <span class="stat-lbl">Bajas</span>
                     </div>
                 </template>
             </Card>
@@ -217,7 +217,7 @@
                                 />
                                 <Button
                                     v-if="data.status === 'active'"
-                                    label="Opt-out"
+                                    label="Dar de baja"
                                     severity="danger"
                                     size="small"
                                     text
@@ -421,7 +421,7 @@ const creatingTag   = ref(false);
 const filterOptions = [
     { label: 'Todos',     value: '' },
     { label: 'Activos',   value: 'active' },
-    { label: 'Opt-out',   value: 'opted_out' },
+    { label: 'Baja',      value: 'opted_out' },
     { label: 'Inválidos', value: 'invalid' },
 ];
 
@@ -432,7 +432,7 @@ const smsFilterOptions = [
 
 const statusLabel = (status) => ({
     active      : 'Activo',
-    opted_out   : 'Opt-out',
+    opted_out   : 'Baja',
     invalid     : 'Inválido',
     unreachable : 'Inalcanzable',
 }[status] ?? status);
@@ -509,7 +509,7 @@ const smsDeliverTooltip = (c) => {
 };
 
 const tableHelp =
-    'Estado: identidad del contacto (Activo / Opt-out / Inválido / Inalcanzable) - eje WhatsApp. '
+    'Estado: identidad del contacto (Activo / Baja / Inválido / Inalcanzable) - eje WhatsApp. '
     + 'Chip rojo "Baja SMS" (si aparece): el contacto no recibe SMS aunque sí reciba WhatsApp. '
     + 'Entregabilidad: se muestra POR CANAL con dos etiquetas - una de WhatsApp (icono verde) y '
     + 'otra de SMS (icono de celular). Cada canal cuenta su propio cooldown y "enviado hoy", así '
@@ -643,8 +643,8 @@ async function saveEdit() {
 
 function confirmOptOut(contact) {
     confirm.require({
-        message : `¿Marcar ${contact.phone} como opt-out? Esta acción no se puede deshacer.`,
-        header  : 'Confirmar opt-out',
+        message : `¿Dar de baja a ${contact.phone}? Esta acción no se puede deshacer.`,
+        header  : 'Confirmar baja',
         icon    : 'pi pi-exclamation-triangle',
         acceptLabel: 'Sí, dar de baja',
         rejectLabel: 'Cancelar',
@@ -658,7 +658,7 @@ function confirmOptOut(contact) {
 
 function confirmDelete(contact) {
     confirm.require({
-        message : `¿Eliminar ${contact.phone}? Se quita de listas y campañas (para limpiar pruebas/basura). No afecta las estadísticas de opt-out.`,
+        message : `¿Eliminar ${contact.phone}? Se quita de listas y campañas (para limpiar pruebas/basura). No afecta las estadísticas de bajas.`,
         header  : 'Eliminar contacto',
         icon    : 'pi pi-trash',
         acceptLabel: 'Sí, eliminar',

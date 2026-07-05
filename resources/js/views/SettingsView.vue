@@ -157,7 +157,7 @@
                     <small>
                         <b>0 = desactivado</b> (default): los rebotes se cuentan para reporte pero nunca
                         bloquean el número. Un valor mayor bloquea el SMS tras esa cantidad de fallos seguidos.
-                        No afecta WhatsApp ni el opt-out (STOP siempre bloquea).
+                        No afecta WhatsApp ni la baja por STOP (STOP siempre bloquea).
                     </small>
                 </div>
 
@@ -197,7 +197,7 @@
             <template #content>
                 <p class="stage-desc">
                     Quita el circuit breaker del número, resetea el cooldown de todos los contactos
-                    y limpia las bajas de SMS (opt-out, bloqueo, inválido) para que el número de
+                    y limpia las bajas de SMS (baja por STOP, bloqueo, inválido) para que el número de
                     prueba pueda volver a recibir. Úsalo antes de una demostración.
                 </p>
                 <Button

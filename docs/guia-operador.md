@@ -84,7 +84,7 @@ En la esquina superior derecha del panel hay un ícono de campana 🔔. Cuando h
    - Duplicados: ya existen en la base de datos, no se agregan de nuevo.
    - Formato inválido: número fuera del rango esperado, se ignoran.
 
-5. Los contactos con **opt-out** (que pidieron baja anteriormente) nunca reaparecen aunque se vuelvan a importar.
+5. Los contactos dados de **baja** (que pidieron baja anteriormente) nunca reaparecen aunque se vuelvan a importar.
 
 > 💡 Para exportar los contactos actuales a Excel, usar el botón **Exportar** en la pantalla de Contactos.
 
@@ -97,21 +97,21 @@ Para cuando consigues un prospecto suelto (referido, llamada, walk-in):
    automáticamente. El campo solo acepta números y un máximo de 10 dígitos. Al completarlos, el
    sistema **verifica el número al instante** y muestra un aviso:
    - ✅ **Disponible** - se puede agregar.
-   - ⚠️ **Ya existe** - muestra su estado (activo, opt-out, inválido, inalcanzable). No se puede volver a agregar (se conserva el registro original).
+   - ⚠️ **Ya existe** - muestra su estado (activo, baja, inválido, inalcanzable). No se puede volver a agregar (se conserva el registro original).
    - ❌ **Deben ser 10 dígitos** - faltan o sobran dígitos.
 3. Escribir el nombre (opcional) y clic en **Guardar**.
 
-> El botón Guardar solo se activa si el número es válido y no existe. Un número dado de baja (opt-out) no se puede reincorporar por esta vía.
+> El botón Guardar solo se activa si el número es válido y no existe. Un número dado de baja no se puede reincorporar por esta vía.
 
 ### Columnas de la tabla de contactos
 
 La tabla tiene dos columnas de estado (el ícono **?** junto al título las explica):
 
-- **Estado** — identidad del contacto:
-  - **Activo** — normal.
-  - **Opt-out** — pidió baja (tooltip muestra fecha y origen).
-  - **Inválido** — número no existe en WhatsApp.
-  - **Inalcanzable** — rebotó repetido, marcado automáticamente.
+- **Estado** - identidad del contacto:
+  - **Activo** - normal.
+  - **Baja** - pidió baja (tooltip muestra fecha y origen).
+  - **Inválido** - número no existe en WhatsApp.
+  - **Inalcanzable** - rebotó repetido, marcado automáticamente.
 - **Entregabilidad** - si le llega **ahora mismo**. Se muestra **por canal**, con dos etiquetas:
   una de **WhatsApp** (icono verde) y otra de **SMS** (icono de celular). Cada canal lleva su
   propio conteo, así que un contacto puede estar **Disponible en WhatsApp** y a la vez **En cooldown
@@ -120,7 +120,7 @@ La tabla tiene dos columnas de estado (el ícono **?** junto al título las expl
   - ⚪ **En snooze** - el contacto pidió "No por ahora"; no se le envía hasta que pase (tooltip con la fecha).
   - 🟠 **En cooldown** - recibió hace poco **por ese canal**; no se le envía hasta que pase (tooltip con la fecha).
   - 🔵 **Enviado hoy** - ya recibió hoy **por ese canal**, no se reenvía el mismo día.
-  - 🔴 **No recibe** - bloqueado en ese canal (opt-out / inválido / inalcanzable en WhatsApp; baja / bloqueo / inválido en SMS).
+  - 🔴 **No recibe** - bloqueado en ese canal (baja / inválido / inalcanzable en WhatsApp; baja / bloqueo / inválido en SMS).
 
 > Un contacto puede estar **Activo** pero **En snooze**, **En cooldown** o **Enviado hoy** - es normal, solo significa que ahorita no se le envía para no saturarlo. Y como es por canal, puede seguir disponible por el otro canal.
 
@@ -130,10 +130,10 @@ La tabla tiene dos columnas de estado (el ícono **?** junto al título las expl
 tener **Baja SMS** (no le llega SMS). El tooltip explica el motivo. Para ver solo estos, usa el
 filtro **"Solo bajas SMS"** arriba de la tabla.
 
-### Opt-out vs Eliminar — no son lo mismo
+### Dar de baja vs Eliminar - no son lo mismo
 
-- **Opt-out** (botón rojo, cualquier operador) — el contacto **pidió baja**. Es cumplimiento: se marca `opted_out` y **nunca más** se le envía. Queda en la base para auditoría.
-- **Eliminar** (🗑, solo administradores) — **limpieza** de basura o números de prueba. Lo quita de listas y campañas. Es recuperable y **no** ensucia las estadísticas de opt-out. Úsalo para datos erróneos, no para bajas reales.
+- **Dar de baja** (botón rojo, cualquier operador) - el contacto **pidió baja**. Es cumplimiento: se marca como baja y **nunca más** se le envía. Queda en la base para auditoría.
+- **Eliminar** (🗑, solo administradores) - **limpieza** de basura o números de prueba. Lo quita de listas y campañas. Es recuperable y **no** ensucia las estadísticas de bajas. Úsalo para datos erróneos, no para bajas reales.
 
 ---
 
@@ -161,7 +161,7 @@ Para **quitar** un tag de varios contactos: seleccionarlos, elegir el tag y clic
 
 > La selección aplica a los contactos visibles en la página (máximo 50). Para más, repetir en cada página.
 
-> Los tags no afectan el comportamiento de opt-out ni snooze. Son solo para clasificar.
+> Los tags no afectan el comportamiento de baja ni snooze. Son solo para clasificar.
 
 ---
 
@@ -211,7 +211,7 @@ Para **quitar** un tag de varios contactos: seleccionarlos, elegir el tag y clic
 5. Si todo está bien, los mensajes se encolan y se empiezan a procesar en segundo plano.
 
 **El sistema protege automáticamente (en ambos canales):**
-- No envía a contactos con opt-out o marcados como inválidos.
+- No envía a contactos dados de baja o marcados como inválidos.
 - Una baja cuenta para **los dos canales**: si alguien pidió baja por WhatsApp, tampoco recibe SMS.
 - No envía a contactos en snooze (que respondieron "No por ahora" recientemente).
 - **Dedup y cooldown son por canal, separados**: WhatsApp lleva su propio conteo y SMS el suyo.
@@ -247,7 +247,7 @@ naranja **"Sin asignar"** en la lista. El admin u operador puede tomarla manualm
 - Chip **"Activa"** (verde) — ventana de 24h abierta, se puede responder.
 - Chip **"Cerrada"** (gris) — el contacto no ha respondido en las últimas 24h.
 - Chip **"Snooze"** (naranja) — el contacto pidió "No por ahora".
-- Chip **"Baja"** (rojo) — opt-out permanente.
+- Chip **"Baja"** (rojo) - contacto dado de baja permanentemente.
 
 ### Acciones de asignación manual
 
@@ -289,7 +289,7 @@ Cuando un contacto responde al WhatsApp, el mensaje aparece en **Conversaciones*
    - **Cerrada** (gris) — el contacto no ha respondido en las últimas 24h.
      Solo se puede reabrir enviando una plantilla desde Campañas.
    - **Snooze** (naranja) — el contacto pidió "No por ahora", se reactivará automáticamente.
-   - **Baja** (rojo) — opt-out permanente, no se puede contactar.
+   - **Baja** (rojo) - dado de baja permanentemente, no se puede contactar.
 
 3. Seleccionar un contacto para ver el historial de mensajes.
 4. Si la ventana está **abierta**, escribir en el campo de texto y presionar Enter (o el botón enviar).
@@ -330,16 +330,16 @@ Herramientas:
 
 ---
 
-## 8. Opt-out — contactos que piden baja
+## 8. Baja - contactos que piden no recibir más
 
 Cuando un contacto responde con cualquiera de estas palabras exactas:
 **STOP, BAJA, CANCELAR, NO**
 
-El sistema lo marca automáticamente como **opt-out** y nunca más le envía mensajes.
-Esto es irreversible — el cliente pidió explícitamente no recibir más mensajes.
+El sistema lo da de **baja** automáticamente y nunca más le envía mensajes.
+Esto es irreversible - el cliente pidió explícitamente no recibir más mensajes.
 
-- Los contactos con opt-out se pueden **ver** en la lista de Contactos (filtro "Opt-out") pero no se eliminan de la base de datos (auditoría).
-- El botón **Eliminar** en un contacto activo también lo marca como opt-out (baja manual).
+- Los contactos dados de baja se pueden **ver** en la lista de Contactos (filtro "Baja") pero no se eliminan de la base de datos (auditoría).
+- El botón **Dar de baja** marca al contacto manualmente (baja manual, mismo efecto).
 
 ---
 

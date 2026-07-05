@@ -52,10 +52,11 @@ class DashboardController extends Controller
                     'failed'    => (int) ($messageTotals['failed']    ?? 0),
                 ],
                 'contacts' => [
-                    'total'     => (int) Contact::count(),
-                    'active'    => (int) ($contactTotals['active']    ?? 0),
-                    'opted_out' => (int) ($contactTotals['opted_out'] ?? 0),
-                    'invalid'   => (int) ($contactTotals['invalid']   ?? 0),
+                    'total'       => (int) Contact::count(),
+                    'active'      => (int) ($contactTotals['active']      ?? 0),
+                    'opted_out'   => (int) ($contactTotals['opted_out']   ?? 0),
+                    'invalid'     => (int) ($contactTotals['invalid']     ?? 0),
+                    'unreachable' => (int) ($contactTotals['unreachable'] ?? 0),
                 ],
                 'monthly' => [
                     'sent'                  => $monthlySent,

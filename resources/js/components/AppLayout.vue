@@ -72,7 +72,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.17.0 - Stage 3</span>
+                <span class="version">v0.18.0 - Stage 3</span>
             </div>
         </aside>
 
@@ -262,7 +262,7 @@ const helpContent = {
             { icon: 'pi-circle-fill',   label: 'Semáforo',    text: 'Calidad del número en Meta. Verde = ok. Amarillo = cuidado. Rojo = problema. Si está PAUSADO, el sistema activó el circuit breaker: detectó un error de calidad o spam y pausó los envíos automáticamente 60 minutos para proteger la cuenta. Se reanuda solo.' },
             { icon: 'pi-chart-bar',     label: 'Meta mensual', text: 'Progreso del mes: mensajes enviados vs. la capacidad real del sistema (días hábiles × límite diario). El color indica el avance.' },
             { icon: 'pi-send',          label: 'Mensajes',    text: 'Totales acumulados históricos de enviados (en tránsito), entregados, leídos y fallidos.' },
-            { icon: 'pi-users',         label: 'Contactos',   text: 'Estado actual de la base: total, activos (pueden recibir mensajes), dados de baja e inválidos.' },
+            { icon: 'pi-users',         label: 'Contactos',   text: 'Estado actual de la base: total, activos (pueden recibir mensajes), dados de baja, inválidos e inalcanzables (recibieron varios mensajes sin entregarse; un admin los puede reactivar desde Contactos).' },
             { icon: 'pi-chart-line',    label: 'Gráfica',     text: 'Envíos día a día del mes actual. Usa ↺ para refrescar.' },
             { icon: 'pi-history',       label: 'Histórico',   text: 'Enviados vs. capacidad de los últimos 6 meses. Útil para ver tendencia de crecimiento.' },
             { icon: 'pi-list',          label: 'Últimos',     text: 'Los 10 mensajes más recientes con su estado actual. Filtra por estado con el selector.' },
@@ -277,6 +277,7 @@ const helpContent = {
             { icon: 'pi-phone',         label: 'Formato',    text: 'Teléfonos en formato mexicano con código de país: 529231311146.' },
             { icon: 'pi-check-circle',  label: 'Resultado',  text: 'Al importar verás: aceptados / duplicados / formato inválido.' },
             { icon: 'pi-ban',           label: 'Dar de baja', text: 'El botón Dar de baja marca al contacto como baja permanente (cumplimiento). Nunca más se le envía.' },
+            { icon: 'pi-refresh',       label: 'Reactivar',  text: 'Solo admin: el botón Reactivar aparece en contactos Inalcanzables (recibieron varios mensajes sin entregarse). Los vuelve a Activo si hay evidencia de que el número volvió a ser alcanzable. Filtra por "Inalcanzables" para encontrarlos. Las bajas e inválidos NO se reactivan.' },
             { icon: 'pi-trash',         label: 'Eliminar',   text: 'El bote de basura (solo admin) quita el contacto de listas y campañas - para limpiar pruebas/basura. Es recuperable y no afecta las stats de bajas.' },
             { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora, POR CANAL: dos etiquetas, una de WhatsApp y otra de SMS (Disponible, En snooze, En cooldown, Enviado hoy o No recibe). Cada canal cuenta lo suyo, puede estar disponible en uno y en cooldown en el otro. Distinta del Estado.' },
             { icon: 'pi-mobile',        label: 'Baja SMS',   text: 'Chip rojo bajo el Estado cuando el contacto NO recibe SMS (pidió baja por SMS, bloqueado o número inválido). Es independiente del Estado de WhatsApp: puede estar Activo para WhatsApp y con Baja SMS. Filtra con "Solo bajas SMS".' },

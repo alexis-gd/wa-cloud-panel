@@ -428,12 +428,30 @@ class ContactController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $request->validate([
-            'name' => 'nullable|string|max:255',
+        $data = $request->validate([
+            'name'   => 'sometimes|nullable|string|max:255',
+            // Solo se admite reactivar (-> active). unreachable es el unico status reversible;
+            // opt-out e invalid NO se reactivan por aqui (cumplimiento / numero sin WhatsApp).
+            'status' => 'sometimes|in:active',
         ]);
 
         $contact = Contact::findOrFail($id);
-        $contact->name = $request->input('name') ?: null;
+
+        if ($request->has('name')) {
+            $contact->name = $data['name'] ?: null;
+        }
+
+        if (($data['status'] ?? null) === 'active' && $contact->status !== 'active') {
+            if ($contact->status !== 'unreachable') {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Solo se puede reactivar un contacto inalcanzable.',
+                    'code'    => 'NOT_REACTIVABLE',
+                ], 422);
+            }
+            $contact->status = 'active';
+        }
+
         $contact->save();
 
         return response()->json(['status' => 'ok', 'data' => $contact]);

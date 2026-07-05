@@ -224,6 +224,15 @@
                                     @click="confirmOptOut(data)"
                                 />
                                 <Button
+                                    v-if="isAdmin && data.status === 'unreachable'"
+                                    label="Reactivar"
+                                    icon="pi pi-refresh"
+                                    severity="secondary"
+                                    size="small"
+                                    text
+                                    @click="confirmReactivate(data)"
+                                />
+                                <Button
                                     v-if="canDelete"
                                     icon="pi pi-trash"
                                     severity="danger"
@@ -419,10 +428,11 @@ const newTagName    = ref('');
 const creatingTag   = ref(false);
 
 const filterOptions = [
-    { label: 'Todos',     value: '' },
-    { label: 'Activos',   value: 'active' },
-    { label: 'Baja',      value: 'opted_out' },
-    { label: 'Inválidos', value: 'invalid' },
+    { label: 'Todos',        value: '' },
+    { label: 'Activos',      value: 'active' },
+    { label: 'Baja',         value: 'opted_out' },
+    { label: 'Inválidos',    value: 'invalid' },
+    { label: 'Inalcanzables', value: 'unreachable' },
 ];
 
 const smsFilterOptions = [
@@ -652,6 +662,25 @@ function confirmOptOut(contact) {
         accept: async () => {
             await api.optOutContact(contact.id);
             await loadContacts(meta.value?.current_page ?? 1);
+        },
+    });
+}
+
+function confirmReactivate(contact) {
+    confirm.require({
+        message : `¿Reactivar ${contact.phone}? Volverá a estar Activo y podrá recibir campañas de nuevo. Hazlo solo si hay evidencia de que el número volvió a ser alcanzable.`,
+        header  : 'Reactivar contacto',
+        icon    : 'pi pi-refresh',
+        acceptLabel: 'Sí, reactivar',
+        rejectLabel: 'Cancelar',
+        accept: async () => {
+            const res = await api.updateContact(contact.id, { status: 'active' });
+            if (res.status === 'ok') {
+                toast.add({ severity: 'success', summary: 'Contacto reactivado', detail: contact.phone, life: 3000 });
+                await loadContacts(meta.value?.current_page ?? 1);
+            } else {
+                toast.add({ severity: 'error', summary: 'Error', detail: res.message, life: 5000 });
+            }
         },
     });
 }

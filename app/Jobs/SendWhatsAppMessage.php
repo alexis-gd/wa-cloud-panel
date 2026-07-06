@@ -7,6 +7,7 @@ use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
+use App\Events\CampaignProgressUpdated;
 use App\Services\WhatsApp\TemplateBuilder;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Bus\Queueable;
@@ -14,6 +15,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class SendWhatsAppMessage implements ShouldQueue
@@ -255,13 +257,31 @@ class SendWhatsAppMessage implements ShouldQueue
     private function checkAutoComplete(Campaign $campaign): void
     {
         $fresh = $campaign->fresh();
+        if (! $fresh) {
+            return;
+        }
+
+        $justCompleted = false;
         if (
-            $fresh &&
             $fresh->status === 'running' &&
             $fresh->total_contacts > 0 &&
             ($fresh->sent_count + $fresh->failed_count) >= $fresh->total_contacts
         ) {
             $fresh->update(['status' => 'completed', 'completed_at' => now()]);
+            $justCompleted = true;
         }
+
+        $this->broadcastProgress($fresh, $justCompleted);
+    }
+
+    // Emite el progreso al panel por WebSocket (tiempo real, sin polling).
+    // El evento final (campaña completada) siempre sale; los intermedios van con
+    // throttle (máx 1 cada 3s por campaña) para no lanzar miles de broadcasts en un blast.
+    private function broadcastProgress(Campaign $campaign, bool $force = false): void
+    {
+        if (! $force && ! Cache::add("campaign_progress_{$campaign->id}", 1, 3)) {
+            return;
+        }
+        event(CampaignProgressUpdated::fromCampaign($campaign));
     }
 }

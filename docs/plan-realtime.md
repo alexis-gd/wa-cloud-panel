@@ -32,19 +32,29 @@ Objetivo del cliente/dev: **cero pollings**, todo lo que cambia "por fuera" se v
   lista, toast). Base: `resources/js/echo.js` (init guardado por `VITE_PUSHER_APP_KEY`),
   `BroadcastServiceProvider` (auth Sanctum en `/broadcasting/auth`), `routes/channels.php` canal
   `conversations` (incluye superadmin - el 403 inicial era por omitirlo).
+
+### HECHO (v0.20.0)
+- **Campanas en vivo.** Evento `App\Events\CampaignProgressUpdated` -> canal privado `campaigns`
+  -> `CampaignsView` escucha `.campaign.progress` (parchea la fila de la tabla + el modal abierto:
+  contadores, barras y estado suben solos; lista de mensajes del modal se refresca on-event debounced).
+  Lo dispara `checkAutoComplete()` en ambos jobs (`SendWhatsAppMessage`, `SendSmsMessage`) con throttle
+  via `Cache::add("campaign_progress_{id}", 1, 3)` (max 1 cada 3s por campana) + evento final siempre.
+  **Polling eliminado**: `CampaignsView` ya no usa `setInterval` de 5s.
 - **Infra Soketi**: Docker en el VPS (`quay.io/soketi/soketi:1.6-16-alpine`), `127.0.0.1:6001`,
   Nginx `location /app/` (Cloudflare termina TLS), `.env` con PUSHER_* (server->127.0.0.1:6001) y
   VITE_PUSHER_* (browser->sender.prestamaz.site:443 wss).
 
-### Pollings que quedan (verificado en codigo 2026-07-05)
-Solo **2** son polling real:
+### Pollings que quedan (actualizado 2026-07-06)
+Solo **1** es polling real:
 1. `AppLayout.vue:234` - campanita `setInterval(fetchNotifications, 30_000)`.
-2. `CampaignsView.vue:600` - progreso del modal `setInterval` 5s.
+
+~~`CampaignsView.vue:600` - progreso del modal `setInterval` 5s.~~ **ELIMINADO en v0.20.0** (ahora
+por evento `CampaignProgressUpdated`).
 
 `ContactsView.vue:594` es un **debounce** (400ms tras teclear el numero para chequearlo 1 vez), NO
 polling: **no se toca**.
 
-Con matar esos 2 -> **cero pollings**.
+Con matar ese 1 -> **cero pollings**.
 
 ---
 
@@ -55,7 +65,7 @@ Reusar el canal `conversations` o crear canal nuevo segun convenga. Recordar aut
 `routes/channels.php` **incluyendo superadmin**. Broadcast va por la cola (no frena ni rompe si Soketi
 cae). Tests: al menos que el evento se dispara y su canal/payload (ver `WebhookInboundTest` como molde).
 
-### 1. Campañas (MAS IMPACTO, hacer primero) - mata polling #2
+### 1. Campañas (MAS IMPACTO, hacer primero) - mata polling #2 [HECHO v0.20.0]
 - Evento `CampaignProgressUpdated` (campaign_id, sent_count, failed_count, total, status).
 - Dispararlo donde el worker incrementa contadores / marca completada (ver `SendWhatsAppMessage`,
   `SendSmsMessage`, y el `checkAutoComplete` de Campaign). Cuidado: no emitir 1 por mensaje sin freno

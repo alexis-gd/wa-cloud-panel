@@ -349,6 +349,7 @@ import Select        from 'primevue/select';
 import SelectButton  from 'primevue/selectbutton';
 import ConfirmDialog from 'primevue/confirmdialog';
 import { api }       from '../api.js';
+import { initEcho }  from '../echo.js';
 
 const confirm = useConfirm();
 const toast   = useToast();
@@ -593,24 +594,47 @@ function confirmExecute(campaign) {
     });
 }
 
-let detailPollInterval = null;
+// ── Tiempo real (Soketi): el worker emite CampaignProgressUpdated mientras envia.
+// La fila de la tabla y el modal abierto suben solos, sin polling. Si no hay servidor
+// WS configurado, initEcho() devuelve null y no pasa nada (se ve al reabrir, como antes).
+let echoChannel = null;
+let detailLogsDebounce = null;
 
-function startDetailPolling(campaignId) {
-    stopDetailPolling();
-    detailPollInterval = setInterval(async () => {
-        if (selectedCampaign.value?.status === 'running') {
-            await loadDetailLogs(campaignId, detailCurrentPage.value);
-        } else {
-            stopDetailPolling();
+function subscribeRealtime() {
+    const echo = initEcho();
+    if (! echo) return;
+
+    echoChannel = echo.private('campaigns');
+    echoChannel.listen('.campaign.progress', (e) => {
+        // Parchear la fila de la tabla (Progreso + Estado suben solos).
+        const row = campaigns.value.find(c => c.id === e.campaign_id);
+        if (row) {
+            row.sent_count     = e.sent_count;
+            row.failed_count   = e.failed_count;
+            row.total_contacts = e.total_contacts;
+            row.status         = e.status;
         }
-    }, 5000);
-}
 
-function stopDetailPolling() {
-    if (detailPollInterval) {
-        clearInterval(detailPollInterval);
-        detailPollInterval = null;
-    }
+        // Si el modal de esta campana esta abierto, subir contadores + barras.
+        if (showDetail.value && selectedCampaign.value?.id === e.campaign_id) {
+            selectedCampaign.value = {
+                ...selectedCampaign.value,
+                sent_count    : e.sent_count,
+                failed_count  : e.failed_count,
+                total_contacts: e.total_contacts,
+                status        : e.status,
+            };
+            // Refrescar tambien la lista de mensajes del modal (debounced, on-event, no polling).
+            if (e.status === 'running') {
+                clearTimeout(detailLogsDebounce);
+                detailLogsDebounce = setTimeout(() => {
+                    if (showDetail.value && selectedCampaign.value?.id === e.campaign_id) {
+                        loadDetailLogs(e.campaign_id, detailCurrentPage.value);
+                    }
+                }, 500);
+            }
+        }
+    });
 }
 
 async function openDetail(campaign) {
@@ -623,7 +647,6 @@ async function openDetail(campaign) {
     detailPrevPage.value    = null;
     showDetail.value        = true;
     await loadDetailLogs(campaign.id, 1);
-    if (campaign.status === 'running') startDetailPolling(campaign.id);
 }
 
 async function loadDetailLogs(campaignId, page = 1) {
@@ -696,8 +719,17 @@ function confirmDelete(campaign) {
     });
 }
 
-onMounted(() => loadCampaigns());
-onUnmounted(() => stopDetailPolling());
+onMounted(() => {
+    loadCampaigns();
+    subscribeRealtime();
+});
+onUnmounted(() => {
+    clearTimeout(detailLogsDebounce);
+    if (echoChannel) {
+        echoChannel.stopListening('.campaign.progress');
+        echoChannel = null;
+    }
+});
 </script>
 
 <style scoped>

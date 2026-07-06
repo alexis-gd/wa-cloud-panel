@@ -36,6 +36,8 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |
 | [docs/guia-operador.md](docs/guia-operador.md) | Manual de usuario para el equipo de Prestamaz |
 | [docs/qa-manual.md](docs/qa-manual.md) | Checklist de QA manual por módulo (happy path + casos borde) |
+| [docs/plan-realtime.md](docs/plan-realtime.md) | Tiempo real (Soketi): estado, pollings a matar, hoja de ruta de sockets (campañas, campanita, dashboard, SMS) |
+| [docs/guia-realtime-soketi.md](docs/guia-realtime-soketi.md) | Montaje de Soketi (Docker + Supervisor/Nginx wss) + variables + cómo verificar |
 
 ## Reglas de desarrollo
 

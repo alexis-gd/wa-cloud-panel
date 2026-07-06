@@ -1,0 +1,98 @@
+# Plan: Tiempo real (matar todos los pollings)
+
+Estado y hoja de ruta del tiempo real del panel. El transporte es **Soketi** (WebSocket
+compatible con Pusher); ver montaje/infra en [guia-realtime-soketi.md](guia-realtime-soketi.md).
+Objetivo del cliente/dev: **cero pollings**, todo lo que cambia "por fuera" se ve al instante.
+
+> Reverb es el destino final, pero exige Laravel 11 + PHP 8.2. Hoy el proyecto es Laravel 10.
+> Se eligio **Soketi ahora** (funciona en L10/PHP 8.1) y **Reverb despues** con calma. Todo el
+> codigo (eventos, echo.js, listeners, canales) se reusa al migrar: solo cambia el server WS.
+> Nota: el VPS **ya corre PHP 8.2** (`php8.2-fpm`), asi que el upgrade futuro esta medio adelantado.
+
+---
+
+## Concepto (para no confundirse)
+
+- **1 sola conexion WebSocket** compartida. Por esa tuberia viajan **varios eventos**; cada vista
+  escucha los que le tocan. No son "N sockets", es 1 socket + N eventos + N listeners.
+- **Regla para decidir si algo merece socket:** "¿cambia por algo que el usuario NO hizo en esta
+  pantalla (worker, webhook, otro operador) **y** lo esta viendo **y** le importa que sea ya?"
+  Si falta cualquiera de las tres, no lleva socket.
+- **Refetch-on-event NO es polling.** Polling = pregunto cada X seg aunque no pase nada. Refetch-on-event
+  = solo pido datos cuando el server avisa que hubo actividad (con debounce para no golpear en un blast).
+  En reposo: cero llamadas.
+
+---
+
+## Estado actual
+
+### HECHO (v0.19.1, en prod)
+- **Conversaciones en vivo.** Evento `App\Events\InboundMessageReceived` -> canal privado
+  `conversations` -> `ConversationsView` escucha `.inbound.message` (recarga chat abierto, refresca
+  lista, toast). Base: `resources/js/echo.js` (init guardado por `VITE_PUSHER_APP_KEY`),
+  `BroadcastServiceProvider` (auth Sanctum en `/broadcasting/auth`), `routes/channels.php` canal
+  `conversations` (incluye superadmin - el 403 inicial era por omitirlo).
+- **Infra Soketi**: Docker en el VPS (`quay.io/soketi/soketi:1.6-16-alpine`), `127.0.0.1:6001`,
+  Nginx `location /app/` (Cloudflare termina TLS), `.env` con PUSHER_* (server->127.0.0.1:6001) y
+  VITE_PUSHER_* (browser->sender.prestamaz.site:443 wss).
+
+### Pollings que quedan (verificado en codigo 2026-07-05)
+Solo **2** son polling real:
+1. `AppLayout.vue:234` - campanita `setInterval(fetchNotifications, 30_000)`.
+2. `CampaignsView.vue:600` - progreso del modal `setInterval` 5s.
+
+`ContactsView.vue:594` es un **debounce** (400ms tras teclear el numero para chequearlo 1 vez), NO
+polling: **no se toca**.
+
+Con matar esos 2 -> **cero pollings**.
+
+---
+
+## Roadmap (cada uno su rama, mismo proceso: feature/* -> develop -> main, el usuario deploya)
+
+Patron por feature: **evento backend (ShouldBroadcast) + punto que lo dispara + listener en la vista**.
+Reusar el canal `conversations` o crear canal nuevo segun convenga. Recordar auth del canal en
+`routes/channels.php` **incluyendo superadmin**. Broadcast va por la cola (no frena ni rompe si Soketi
+cae). Tests: al menos que el evento se dispara y su canal/payload (ver `WebhookInboundTest` como molde).
+
+### 1. Campañas (MAS IMPACTO, hacer primero) - mata polling #2
+- Evento `CampaignProgressUpdated` (campaign_id, sent_count, failed_count, total, status).
+- Dispararlo donde el worker incrementa contadores / marca completada (ver `SendWhatsAppMessage`,
+  `SendSmsMessage`, y el `checkAutoComplete` de Campaign). Cuidado: no emitir 1 por mensaje sin freno
+  en un blast de miles -> throttle/coalesce (ej. emitir cada N mensajes o cada X seg por campaña).
+- `CampaignsView`: listener actualiza **la fila de la tabla** (columna Progreso + Estado) **y el modal**
+  abierto (contadores + barras). **Borrar el `setInterval` (linea ~600)** y su limpieza.
+- Resultado: `12/200 -> 13/200...` sube solo en tabla y modal; Ejecutando -> Finalizada solo.
+
+### 2. Campanita - mata polling #1
+- Evento `NotificationCreated` (o reusar) cuando se crea un `AppNotification` (envio fallido, webhook
+  caido, numero pausado). Canal privado (roles admin/operator/agent + superadmin).
+- `AppLayout`: listener incrementa el badge y agrega la notif a la lista al instante. **Borrar el
+  `setInterval(fetchNotifications, 30_000)` (linea 234)**.
+- Resultado: la campanita se prende al momento; al abrir el panel la notif ya esta.
+
+### 3. Dashboard (bonus - hoy NO tiene polling, es agregar vida)
+- **Semaforo del numero** -> evento directo `PhoneNumberPaused` (instantaneo, es la senal de "para
+  campanias"). Merece socket propio.
+- **Cifras + Ultimos mensajes + Envios al dia** -> **refetch-on-event debounced**: al llegar un evento
+  relevante, volver a pedir `/dashboard/stats`, `/dashboard/messages`, `/dashboard/daily-stats` (max 1
+  cada pocos seg). NO calcular contadores en el cliente (se desincronizan).
+- **Historico por mes** (`/dashboard/monthly-history`) -> **NO** refetch. Cambia imperceptiblemente,
+  nadie lo mira en vivo. Carga 1 vez.
+- Resultado: pantalla de pared que se refresca sola con la actividad, sin timers, sin darle boton.
+
+### 4. Respuestas SMS (OPCIONAL, casi gratis) - hoy NO tiene polling
+- El evento `InboundMessageReceived` YA soporta `channel` (se paso 'whatsapp'). Falta: dispararlo en
+  `SmsWebhookController::handleInbound` con `channel='sms'` (solo para entrantes que SON contacto, ver
+  el fix de "Respuestas SMS solo contactos"), y que `SmsRepliesView` escuche y meta la fila + toast.
+- Baja prioridad (lista que se revisa de vez en cuando, no un chat).
+
+---
+
+## Pitfalls aprendidos (no repetir)
+- **Canal privado debe incluir `superadmin`** en la autorizacion (si no, `/broadcasting/auth` da 403 y
+  no llega nada). Alexis se loguea como superadmin.
+- Server->Soketi usa `127.0.0.1:6001 http` (PUSHER_*); browser->Soketi usa el dominio `:443 https`
+  (VITE_PUSHER_*). NO confundirlos.
+- Soketi npm no corre en Node 20 (uWS solo 14/16/18); por eso va por **Docker** (Node 16 dentro).
+- Al desplegar por SSH, pegar bloques con `sudo` mezcla lineas -> correr uno por uno o `sudo -v` antes.

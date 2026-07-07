@@ -242,6 +242,29 @@ class WebhookTest extends TestCase
         \Illuminate\Support\Facades\Event::assertNotDispatched(\App\Events\CampaignProgressUpdated::class);
     }
 
+    public function test_status_de_entrega_emite_conversation_updated(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([\App\Events\ConversationUpdated::class]);
+
+        $contact = \App\Models\Contact::factory()->create();
+        \App\Models\Conversation::create([
+            'contact_id'    => $contact->id,
+            'direction'     => 'outbound',
+            'message_type'  => 'text',
+            'body'          => 'Hola',
+            'wa_message_id' => 'wamid.conv.delivered',
+            'status'        => 'sent',
+            'window_open'   => true,
+        ]);
+
+        $this->postWebhookStatus('wamid.conv.delivered', 'read', []);
+
+        \Illuminate\Support\Facades\Event::assertDispatched(
+            \App\Events\ConversationUpdated::class,
+            fn ($e) => $e->contactId === $contact->id,
+        );
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function postWebhookStatus(string $waMessageId, string $status, array $errors): void

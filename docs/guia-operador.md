@@ -322,19 +322,26 @@ Los SMS que responden tus contactos aparecen en **Respuestas SMS** (menú latera
 A diferencia de **Conversaciones** (WhatsApp), esto es una **lista de solo lectura**: se ven
 las respuestas pero **no se contesta desde aquí** (el SMS es un canal de una sola vía en el panel).
 
-Cada fila muestra:
+Las respuestas vienen **agrupadas por contacto**: cada fila es un contacto, y si respondió varias
+veces las verás juntas. Da **click en la fila** para desplegar todos sus mensajes en orden. Así, si
+alguien mandó cinco SMS, no llenan la lista - es una sola fila que puedes abrir.
 
-- **Fecha** - cuándo llegó la respuesta (hora de México).
-- **Número** - el celular que respondió, y su nombre.
-- **Mensaje** - el texto que envió.
-- **Acción** - si respondió **STOP** o **BAJA**, el sistema lo dio de baja de SMS automáticamente
-  y lo verás marcado con la etiqueta roja **"Baja automática"**.
+Cada fila (grupo) muestra:
+
+- **Fecha** - cuándo llegó su **última** respuesta (hora de México).
+- **Contacto** - el nombre y el celular que respondió.
+- **Último mensaje** - el texto más reciente que envió.
+- **Msgs** - cuántas respuestas mandó en total (se ven al abrir la fila).
+- **Acción** - la etiqueta del grupo:
+  - **"Interesado"** (verde) si respondió **SÍ** o **INFO** - es tu prospecto, dale seguimiento.
+  - **"Baja automática"** (roja) si respondió **STOP** o **BAJA** - el sistema ya lo dio de baja de SMS.
+  - Si mandó ambas, manda la **baja** (ya no se le puede escribir).
 
 Herramientas:
 
-- **Buscar** por número o por texto del mensaje.
-- Botón **"Solo bajas"** para ver únicamente los que pidieron baja.
-- Botón **↻** para traer las respuestas más recientes.
+- **Buscar** por número, nombre o texto del mensaje.
+- Filtro **Todas / Interesados / Bajas** para ver solo los que dijeron que sí, solo las bajas, o todo.
+- Botón **↻** para traer las respuestas más recientes (también entran solas en tiempo real).
 
 > ℹ️ Aquí solo aparecen respuestas de tus **contactos**. Los SMS que recibe el chip del gateway
 > que no son de un contacto (promociones o alertas de la operadora, códigos de otros servicios)

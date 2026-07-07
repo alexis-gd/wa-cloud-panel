@@ -8,15 +8,17 @@
                         <span class="p-input-icon-left search">
                             <InputText
                                 v-model="q"
-                                placeholder="Buscar número o texto"
+                                placeholder="Buscar número, nombre o texto"
                                 @keyup.enter="reload"
                             />
                         </span>
-                        <ToggleButton
-                            v-model="optOutOnly"
-                            on-label="Solo bajas"
-                            off-label="Todas"
+                        <Select
+                            v-model="actionFilter"
+                            :options="actionOptions"
+                            option-label="label"
+                            option-value="value"
                             @change="reload"
+                            class="action-select"
                         />
                         <Button icon="pi pi-refresh" text @click="reload" :loading="loading" />
                     </div>
@@ -24,9 +26,10 @@
             </template>
             <template #content>
                 <p class="desc">
-                    Mensajes que los contactos respondieron por SMS. Es una lista de solo lectura
-                    (no un chat). Si alguien responde <b>STOP/BAJA</b>, el sistema lo da de baja
-                    automáticamente y lo verás marcado como <b>Baja automática</b>.
+                    Respuestas de los contactos por SMS, <b>agrupadas por contacto</b>. Da click en una
+                    fila para ver todos sus mensajes. Si alguien responde <b>SÍ</b> o <b>INFO</b> se marca
+                    <b>Interesado</b>; si responde <b>STOP/BAJA</b> se da de baja automáticamente
+                    (<b>Baja automática</b>).
                 </p>
 
                 <DataTable
@@ -37,35 +40,57 @@
                     :total-records="total"
                     lazy
                     @page="onPage"
-                    data-key="id"
+                    v-model:expandedRows="expandedRows"
+                    data-key="contact_id"
                 >
                     <template #empty>Sin respuestas SMS todavía.</template>
 
+                    <Column expander style="width: 42px" />
+
                     <Column header="Fecha" style="width: 150px">
-                        <template #body="{ data }">{{ data.received_at }}</template>
+                        <template #body="{ data }">{{ data.last_received_at }}</template>
                     </Column>
-                    <Column header="Número">
+                    <Column header="Contacto">
                         <template #body="{ data }">
                             <div class="num">
-                                <span>{{ data.from_number }}</span>
-                                <small v-if="data.contact_name">{{ data.contact_name }}</small>
+                                <span v-if="data.contact_name" class="name">{{ data.contact_name }}</span>
+                                <small>{{ data.from_number }}</small>
                             </div>
                         </template>
                     </Column>
-                    <Column header="Mensaje">
-                        <template #body="{ data }"><span class="msg">{{ data.body }}</span></template>
+                    <Column header="Último mensaje">
+                        <template #body="{ data }"><span class="msg">{{ data.last_body }}</span></template>
                     </Column>
-                    <Column header="Acción" style="width: 160px">
+                    <Column header="Msgs" style="width: 80px">
+                        <template #body="{ data }"><span class="count">{{ data.count }}</span></template>
+                    </Column>
+                    <Column header="Acción" style="width: 170px">
                         <template #body="{ data }">
                             <Tag
-                                v-if="data.action === 'opt_out'"
-                                value="Baja automática"
-                                severity="danger"
-                                icon="pi pi-ban"
+                                v-if="actionTag(data.summary_action)"
+                                :value="actionTag(data.summary_action).value"
+                                :severity="actionTag(data.summary_action).severity"
+                                :icon="actionTag(data.summary_action).icon"
                             />
                             <span v-else class="muted">-</span>
                         </template>
                     </Column>
+
+                    <template #expansion="{ data }">
+                        <div class="thread">
+                            <div v-for="m in data.messages" :key="m.id" class="thread-row">
+                                <span class="thread-date">{{ m.received_at }}</span>
+                                <span class="thread-body">{{ m.body }}</span>
+                                <Tag
+                                    v-if="actionTag(m.action)"
+                                    :value="actionTag(m.action).value"
+                                    :severity="actionTag(m.action).severity"
+                                    :icon="actionTag(m.action).icon"
+                                />
+                                <span v-else class="muted thread-action">-</span>
+                            </div>
+                        </div>
+                    </template>
                 </DataTable>
             </template>
         </Card>
@@ -78,7 +103,7 @@ import { useToast } from 'primevue/usetoast';
 import Card         from 'primevue/card';
 import Button       from 'primevue/button';
 import InputText    from 'primevue/inputtext';
-import ToggleButton from 'primevue/togglebutton';
+import Select       from 'primevue/select';
 import DataTable    from 'primevue/datatable';
 import Column       from 'primevue/column';
 import Tag          from 'primevue/tag';
@@ -87,19 +112,33 @@ import { initEcho } from '../echo.js';
 
 const toast = useToast();
 
-const rows       = ref([]);
-const total      = ref(0);
-const page       = ref(1);
-const loading    = ref(false);
-const q          = ref('');
-const optOutOnly = ref(false);
+const rows         = ref([]);
+const total        = ref(0);
+const page         = ref(1);
+const loading      = ref(false);
+const q            = ref('');
+const actionFilter = ref(null);
+const expandedRows = ref({});
+
+const actionOptions = [
+    { label: 'Todas',       value: null },
+    { label: 'Interesados', value: 'interested' },
+    { label: 'Bajas',       value: 'opt_out' },
+];
+
+// Etiqueta visual según la acción del mensaje/grupo. null -> sin tag (se muestra "-").
+function actionTag(action) {
+    if (action === 'opt_out')    return { value: 'Baja automática', severity: 'danger',  icon: 'pi pi-ban' };
+    if (action === 'interested') return { value: 'Interesado',      severity: 'success', icon: 'pi pi-check' };
+    return null;
+}
 
 async function load() {
     loading.value = true;
     const res = await api.smsInbound({
         page: page.value,
         ...(q.value ? { q: q.value } : {}),
-        ...(optOutOnly.value ? { opt_out_only: 1 } : {}),
+        ...(actionFilter.value ? { action: actionFilter.value } : {}),
     });
     if (res.status === 'ok') {
         rows.value  = res.data;
@@ -121,7 +160,7 @@ function onPage(e) {
 // ── Tiempo real (Soketi): cuando entra una respuesta SMS de un contacto, avisa al
 // instante. Si estamos en la primera pagina sin filtros, refresca la lista (refetch-on-event
 // debounced, no polling). Con filtros o en otra pagina, solo el toast (no interrumpe la vista).
-let echoChannel   = null;
+let echoChannel    = null;
 let reloadDebounce = null;
 
 function subscribeRealtime() {
@@ -140,7 +179,7 @@ function subscribeRealtime() {
         });
 
         // Solo refrescar si estamos viendo la lista fresca (pagina 1, sin filtros).
-        if (page.value === 1 && !q.value && !optOutOnly.value) {
+        if (page.value === 1 && !q.value && !actionFilter.value) {
             clearTimeout(reloadDebounce);
             reloadDebounce = setTimeout(load, 500);
         }
@@ -164,10 +203,21 @@ onUnmounted(() => {
 <style scoped>
 .head            { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .head-actions    { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.search :deep(input) { width: 220px; }
+.search :deep(input) { width: 240px; }
+.action-select   { min-width: 140px; }
 .desc            { font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 16px; }
 .num             { display: flex; flex-direction: column; }
+.num .name       { font-weight: 600; }
 .num small       { color: var(--p-text-muted-color); font-size: .76rem; }
 .msg             { white-space: pre-wrap; word-break: break-word; }
+.count           { font-variant-numeric: tabular-nums; font-weight: 600; }
 .muted           { color: var(--p-text-muted-color); }
+
+/* ── Hilo expandido ─────────────────────────────────────────── */
+.thread          { padding: 4px 8px 8px 42px; display: flex; flex-direction: column; gap: 6px; }
+.thread-row      { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--p-surface-100); }
+.thread-row:last-child { border-bottom: none; }
+.thread-date     { color: var(--p-text-muted-color); font-size: .78rem; width: 120px; flex-shrink: 0; }
+.thread-body     { flex: 1; white-space: pre-wrap; word-break: break-word; }
+.thread-action   { width: 150px; flex-shrink: 0; text-align: right; }
 </style>

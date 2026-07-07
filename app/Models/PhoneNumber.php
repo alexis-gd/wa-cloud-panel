@@ -35,5 +35,7 @@ class PhoneNumber extends Model
     public function pauseFor(int $minutes): void
     {
         $this->update(['paused_until' => now()->addMinutes($minutes)]);
+        // Semáforo del Dashboard en vivo: avisa que el número quedó pausado.
+        event(\App\Events\PhoneNumberPaused::fromModel($this));
     }
 }

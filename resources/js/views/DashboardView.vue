@@ -244,7 +244,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import Card      from 'primevue/card';
 import Button    from 'primevue/button';
 import Select    from 'primevue/select';
@@ -254,6 +254,7 @@ import Tag       from 'primevue/tag';
 import Chart     from 'primevue/chart';
 import { api }          from '../api.js';
 import { useFeatures }  from '../features.js';
+import { initEcho }     from '../echo.js';
 
 // ── Estado ────────────────────────────────────────────────────────────────────
 const logs             = ref([]);
@@ -444,12 +445,57 @@ async function downloadMessages() {
     URL.revokeObjectURL(url);
 }
 
+// ── Tiempo real (Soketi): el dashboard se refresca solo con la actividad, sin polling.
+// - Semaforo del numero (PhoneNumberPaused) -> recarga la salud al instante.
+// - Actividad de campanas (CampaignProgressUpdated) -> refetch debounced de cifras,
+//   ultimos mensajes y envios al dia. El historico mensual NO se refetch (no cambia en vivo).
+// Refetch-on-event NO es polling: en reposo, cero llamadas. Si no hay servidor WS,
+// initEcho() devuelve null y el dashboard se queda con la carga inicial (como antes).
+let dashChannel      = null;
+let campaignsChannel = null;
+let refetchDebounce  = null;
+
+function subscribeRealtime() {
+    const echo = initEcho();
+    if (! echo) return;
+
+    dashChannel = echo.private('dashboard');
+    dashChannel.listen('.phone.paused', () => {
+        loadHealth();
+    });
+
+    campaignsChannel = echo.private('campaigns');
+    campaignsChannel.listen('.campaign.progress', () => {
+        // Coalescer: en un blast llegan muchos eventos; refetch como maximo 1 cada 2s.
+        clearTimeout(refetchDebounce);
+        refetchDebounce = setTimeout(() => {
+            loadHealth();
+            loadStats();
+            loadMessages(logsMeta.value?.page ?? 1);
+            if (isEnabled('feature_daily_chart')) loadDailyStats();
+        }, 2000);
+    });
+}
+
 onMounted(() => {
     loadHealth();
     loadStats();
     loadMessages(1);
     loadDailyStats();
     loadMonthlyHistory();
+    subscribeRealtime();
+});
+
+onUnmounted(() => {
+    clearTimeout(refetchDebounce);
+    if (dashChannel) {
+        dashChannel.stopListening('.phone.paused');
+        dashChannel = null;
+    }
+    if (campaignsChannel) {
+        campaignsChannel.stopListening('.campaign.progress');
+        campaignsChannel = null;
+    }
 });
 </script>
 

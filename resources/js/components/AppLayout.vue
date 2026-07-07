@@ -19,20 +19,22 @@
             </div>
 
             <nav class="sidebar-nav">
-                <!-- Dashboard: nav oculto si flag off, ruta siempre accesible (fallback) -->
-                <RouterLink v-if="isEnabled('feature_dashboard')" to="/" class="nav-item" :class="{ active: route.path === '/' }" @click="sidebarOpen = false">
+                <!-- Dashboard/Contactos/Campañas/Respuestas SMS: solo admin y operator.
+                     El agente NO tiene acceso backend (rutas role:admin,operator -> 403), asi que
+                     se ocultan para no dejarle items muertos. El agente solo ve Conversaciones. -->
+                <RouterLink v-if="!isAgent() && isEnabled('feature_dashboard')" to="/" class="nav-item" :class="{ active: route.path === '/' }" @click="sidebarOpen = false">
                     <i class="pi pi-home" />
                     <span>Dashboard</span>
                 </RouterLink>
-                <RouterLink v-if="isEnabled('feature_contacts')" to="/contacts" class="nav-item" :class="{ active: route.path === '/contacts' }" @click="sidebarOpen = false">
+                <RouterLink v-if="!isAgent() && isEnabled('feature_contacts')" to="/contacts" class="nav-item" :class="{ active: route.path === '/contacts' }" @click="sidebarOpen = false">
                     <i class="pi pi-users" />
                     <span>Contactos</span>
                 </RouterLink>
-                <RouterLink v-if="isEnabled('feature_campaigns')" to="/campaigns" class="nav-item" :class="{ active: route.path === '/campaigns' }" @click="sidebarOpen = false">
+                <RouterLink v-if="!isAgent() && isEnabled('feature_campaigns')" to="/campaigns" class="nav-item" :class="{ active: route.path === '/campaigns' }" @click="sidebarOpen = false">
                     <i class="pi pi-send" />
                     <span>Campañas</span>
                 </RouterLink>
-                <RouterLink v-if="isEnabled('feature_campaigns')" to="/sms-replies" class="nav-item" :class="{ active: route.path === '/sms-replies' }" @click="sidebarOpen = false">
+                <RouterLink v-if="!isAgent() && isEnabled('feature_campaigns')" to="/sms-replies" class="nav-item" :class="{ active: route.path === '/sms-replies' }" @click="sidebarOpen = false">
                     <i class="pi pi-inbox" />
                     <span>Respuestas SMS</span>
                 </RouterLink>
@@ -72,7 +74,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.25.0 - Stage 3</span>
+                <span class="version">v0.25.1 - Stage 3</span>
             </div>
         </aside>
 
@@ -157,7 +159,7 @@ import { initEcho }    from '../echo.js';
 const route  = useRoute();
 const router = useRouter();
 const toast  = useToast();
-const { user: authState, isAdmin, isSuperAdmin, clearUser, isInitialLoad } = useAuth();
+const { user: authState, isAdmin, isSuperAdmin, isAgent, clearUser, isInitialLoad } = useAuth();
 const { isEnabled } = useFeatures();
 
 function handleSessionExpired() {

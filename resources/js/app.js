@@ -75,13 +75,22 @@ router.beforeEach(async (to) => {
 
     const loggedIn = !!authState.user;
 
+    // Ruta de inicio según rol: el agente no tiene Dashboard (solo Conversaciones).
+    const homeFor = (role) => (role === 'agent' ? '/conversations' : '/');
+
     if (to.meta.public) {
-        // Si ya está logueado y va al login, redirigir al dashboard
-        if (loggedIn) return '/';
+        // Si ya está logueado y va al login, redirigir a su inicio según rol
+        if (loggedIn) return homeFor(authState.user?.role);
         return true;
     }
 
     if (!loggedIn) return '/login';
+
+    // El agente solo puede ver Conversaciones (el resto es role:admin,operator -> 403 backend).
+    // Se le encierra ahí para no dejarlo en pantallas muertas.
+    if (authState.user?.role === 'agent') {
+        return to.path === '/conversations' ? true : '/conversations';
+    }
 
     // Verificar rol — superadmin pasa cualquier check
     if (to.meta.role) {

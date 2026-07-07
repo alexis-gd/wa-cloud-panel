@@ -137,6 +137,39 @@ class SmsWebhookTest extends TestCase
         ]);
     }
 
+    // ── Tiempo real ──────────────────────────────────────────────────────────────
+
+    public function test_respuesta_sms_de_contacto_emite_evento_tiempo_real(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([\App\Events\InboundMessageReceived::class]);
+
+        $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:received',
+            'payload' => ['sender' => '529991234567', 'message' => 'Si me interesa'],
+        ])->assertStatus(200);
+
+        \Illuminate\Support\Facades\Event::assertDispatched(
+            \App\Events\InboundMessageReceived::class,
+            fn ($e) => $e->contactId === $contact->id
+                && $e->channel === 'sms'
+                && str_contains($e->body, 'interesa'),
+        );
+    }
+
+    public function test_respuesta_sms_de_numero_desconocido_no_emite_evento(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([\App\Events\InboundMessageReceived::class]);
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:received',
+            'payload' => ['sender' => '528881112233', 'message' => 'hola'],
+        ])->assertStatus(200);
+
+        \Illuminate\Support\Facades\Event::assertNotDispatched(\App\Events\InboundMessageReceived::class);
+    }
+
     public function test_webhook_registra_ultimo_evento_para_health(): void
     {
         $this->smsLog('SM-h');

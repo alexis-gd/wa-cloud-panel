@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\InboundMessageReceived;
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
 use App\Models\Contact;
@@ -158,5 +159,17 @@ class SmsWebhookController extends Controller
             'action'      => $isOptOut ? 'opt_out' : null,
             'received_at' => now(),
         ]);
+
+        // Tiempo real: solo si el remitente ES un contacto (evita spam de SMS de operadoras/servicios,
+        // ej. UNOTV/TELCEL, que no son respuestas de campana). El panel lo escucha por WebSocket.
+        if ($contact) {
+            event(new InboundMessageReceived(
+                contactId:   $contact->id,
+                contactName: $contact->name,
+                body:        $message,
+                channel:     'sms',
+                receivedAt:  now()->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
+            ));
+        }
     }
 }

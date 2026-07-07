@@ -73,7 +73,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { useToast } from 'primevue/usetoast';
 import Card         from 'primevue/card';
 import Button       from 'primevue/button';
 import InputText    from 'primevue/inputtext';
@@ -82,6 +83,9 @@ import DataTable    from 'primevue/datatable';
 import Column       from 'primevue/column';
 import Tag          from 'primevue/tag';
 import { api }      from '../api.js';
+import { initEcho } from '../echo.js';
+
+const toast = useToast();
 
 const rows       = ref([]);
 const total      = ref(0);
@@ -114,7 +118,47 @@ function onPage(e) {
     load();
 }
 
-onMounted(load);
+// ── Tiempo real (Soketi): cuando entra una respuesta SMS de un contacto, avisa al
+// instante. Si estamos en la primera pagina sin filtros, refresca la lista (refetch-on-event
+// debounced, no polling). Con filtros o en otra pagina, solo el toast (no interrumpe la vista).
+let echoChannel   = null;
+let reloadDebounce = null;
+
+function subscribeRealtime() {
+    const echo = initEcho();
+    if (! echo) return;
+
+    echoChannel = echo.private('conversations');
+    echoChannel.listen('.inbound.message', (e) => {
+        if (e.channel !== 'sms') return; // esta vista es solo SMS
+
+        toast.add({
+            severity: 'info',
+            summary : 'Nueva respuesta SMS',
+            detail  : `${e.contact_name || 'Contacto'}: ${(e.body ?? '').slice(0, 40)}`,
+            life    : 4000,
+        });
+
+        // Solo refrescar si estamos viendo la lista fresca (pagina 1, sin filtros).
+        if (page.value === 1 && !q.value && !optOutOnly.value) {
+            clearTimeout(reloadDebounce);
+            reloadDebounce = setTimeout(load, 500);
+        }
+    });
+}
+
+onMounted(() => {
+    load();
+    subscribeRealtime();
+});
+
+onUnmounted(() => {
+    clearTimeout(reloadDebounce);
+    if (echoChannel) {
+        echoChannel.stopListening('.inbound.message');
+        echoChannel = null;
+    }
+});
 </script>
 
 <style scoped>

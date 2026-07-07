@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\CampaignProgressUpdated;
+use App\Events\ConversationUpdated;
 use App\Events\InboundMessageReceived;
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
@@ -65,6 +66,9 @@ class WebhookController extends Controller
         // statuses en lote, así que emitimos 1 evento por campaña al final (no 1 por mensaje):
         // el modal abierto refresca la fila (Enviado -> Entregado -> Leído -> Fallido) en vivo.
         $touchedCampaignIds = [];
+        // Contactos cuyos mensajes salientes cambiaron de status: el chat abierto refresca
+        // los checks (enviado -> entregado -> leído) en vivo.
+        $touchedConversationContactIds = [];
 
         // Procesar cambios de status (delivered, read, failed)
         // data_get con wildcards retorna array anidado — Arr::collapse lo aplana un nivel
@@ -117,9 +121,18 @@ class WebhookController extends Controller
                 }
 
                 // Sincronizar status en conversations (mensajes salientes)
+                $convContactId = Conversation::where('wa_message_id', $waMessageId)->value('contact_id');
                 Conversation::where('wa_message_id', $waMessageId)
                     ->update(['status' => $status]);
+                if ($convContactId) {
+                    $touchedConversationContactIds[] = $convContactId;
+                }
             }
+        }
+
+        // Refrescar en vivo el chat abierto de cada contacto tocado (checks de entrega).
+        foreach (array_unique($touchedConversationContactIds) as $contactId) {
+            event(new ConversationUpdated($contactId));
         }
 
         // Emitir progreso en vivo por cada campaña tocada (sin throttle: el estado terminal

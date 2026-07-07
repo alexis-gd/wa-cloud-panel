@@ -18,16 +18,20 @@
                    selected?.id === c.id ? 'sidebar-item--active' : '',
                    isMyConversation(c) ? 'sidebar-item--mine' : '']">
           <div class="item-row">
-            <span class="item-name">{{ c.name || c.phone }}</span>
+            <span class="item-name">
+              <span class="state-dot" :class="'dot--' + lifecycleOf(c)" v-tooltip.top="lifecycleTag(c).label"></span>
+              <span class="item-name-text">{{ c.name || c.phone }}</span>
+            </span>
             <span class="item-time">{{ formatTime(c.last_message_at) }}</span>
           </div>
           <div class="item-row">
             <span class="item-preview">{{ c.last_message }}</span>
-            <Tag v-if="!c.assigned_to"              value="Sin asignar" severity="warn"      class="item-tag" />
-            <Tag v-else-if="!c.window_open"          value="Cerrada"    severity="secondary" class="item-tag" />
-            <Tag v-else-if="c.snoozed_until"         value="Snooze"     severity="warn"      class="item-tag" />
-            <Tag v-else-if="c.status==='opted_out'"  value="Baja"       severity="danger"    class="item-tag" />
-            <Tag v-else                              value="Activa"      severity="success"   class="item-tag" />
+            <span class="item-badges">
+              <Tag :value="lifecycleTag(c).label" :severity="lifecycleTag(c).severity" class="item-tag" />
+              <span class="assign-mini" :class="'assign--' + assignmentOf(c).cls" v-tooltip.top="assignmentOf(c).title">
+                {{ assignmentOf(c).label }}
+              </span>
+            </span>
           </div>
         </div>
       </div>
@@ -48,9 +52,10 @@
             <span class="chat-phone">{{ selected.phone }}</span>
           </div>
           <div class="chat-badges">
-            <Tag v-if="!windowOpen"              value="Ventana cerrada — el cliente debe responder primero" severity="warn" />
+            <Tag v-if="selected.status==='opted_out'" value="Baja permanente" severity="danger" />
             <Tag v-else-if="selected.snoozed_until" :value="`Snooze hasta ${formatDate(selected.snoozed_until)}`" severity="warn" />
-            <Tag v-else-if="selected.status==='opted_out'" value="Baja permanente" severity="danger" />
+            <Tag v-else-if="!windowOpen"            value="Ventana cerrada — el cliente debe responder primero" severity="warn" />
+            <Tag v-else                             value="Abierta" severity="success" />
           </div>
         </div>
 
@@ -199,6 +204,41 @@ function isMyConversation(contact) {
   return contact.assigned_to?.id === authState.user?.id;
 }
 
+// ── Estado de la conversacion (ciclo de vida) ────────────────────────────────
+// Prioridad: Baja (terminal) > Snooze > Cerrada (ventana 24h) > Abierta.
+const LIFECYCLE = {
+  abierta: { label: 'Abierta', severity: 'success'   },
+  cerrada: { label: 'Cerrada', severity: 'secondary' },
+  snooze:  { label: 'Snooze',  severity: 'warn'      },
+  baja:    { label: 'Baja',    severity: 'danger'    },
+};
+
+function lifecycleOf(c) {
+  if (c.status === 'opted_out') return 'baja';
+  if (c.snoozed_until)          return 'snooze';
+  if (! c.window_open)          return 'cerrada';
+  return 'abierta';
+}
+
+function lifecycleTag(c) {
+  return LIFECYCLE[lifecycleOf(c)];
+}
+
+// ── Asignacion (separada del estado) ─────────────────────────────────────────
+function initials(name) {
+  return (name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+}
+
+function assignmentOf(c) {
+  if (! c.assigned_to) {
+    return { label: 'Sin asignar', cls: 'unassigned', title: 'Nadie la atiende' };
+  }
+  if (c.assigned_to.id === authState.user?.id) {
+    return { label: 'Tú', cls: 'mine', title: 'Asignada a ti' };
+  }
+  return { label: initials(c.assigned_to.name), cls: 'other', title: `Asignada a ${c.assigned_to.name}` };
+}
+
 const contacts     = ref([]);
 const selected     = ref(null);
 const messages     = ref([]);
@@ -221,6 +261,8 @@ const assigning        = ref(false);
 const claiming         = ref(false);
 
 let echoChannel = null;
+let listRefetchDebounce = null;
+let chatRefetchDebounce = null;
 
 onMounted(async () => {
   const promises = [loadContacts(), loadQuickReplies()];
@@ -230,29 +272,34 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  clearTimeout(listRefetchDebounce);
+  clearTimeout(chatRefetchDebounce);
   if (echoChannel) {
     echoChannel.stopListening('.inbound.message');
+    echoChannel.stopListening('.conversation.updated');
     echoChannel = null;
   }
 });
 
-// Tiempo real (Soketi): cuando entra una respuesta, se muestra sin recargar.
-// Si no hay servidor WS configurado, initEcho() devuelve null y no pasa nada
-// (las respuestas siguen apareciendo al reabrir la conversacion, como hoy).
+// Tiempo real (Soketi): todo lo de una conversacion se actualiza solo, sin recargar.
+// Dos eventos por el mismo canal:
+//  - .inbound.message: respuesta nueva de un contacto (toast + refresca chat y lista).
+//  - .conversation.updated: cambio de estado/asignacion/entrega (refetch dirigido, sin flicker).
+// Si no hay servidor WS, initEcho() devuelve null y no pasa nada (se ve al reabrir, como antes).
 function subscribeRealtime() {
   const echo = initEcho();
   if (! echo) return;
 
   echoChannel = echo.private('conversations');
+
   echoChannel.listen('.inbound.message', (e) => {
     // Esta vista es solo WhatsApp; las respuestas SMS las maneja SmsRepliesView.
     if (e.channel === 'sms') return;
-    // Si el chat abierto es de ese contacto, recargar sus mensajes.
+    // Si el chat abierto es de ese contacto, recargar sus mensajes (y bajar al final).
     if (selected.value && e.contact_id === selected.value.id) {
-      refreshOpenChat();
+      refreshOpenChat(true);
     }
-    // Refrescar la lista para que la conversacion suba y se note la respuesta.
-    loadContacts();
+    loadContacts(true); // refresca la lista sin spinner
     toast.add({
       severity: 'info',
       summary : 'Nueva respuesta',
@@ -260,16 +307,33 @@ function subscribeRealtime() {
       life    : 4000,
     });
   });
+
+  echoChannel.listen('.conversation.updated', (e) => {
+    // Estado/asignacion/entrega cambiaron: refrescar la fila (y el chat si es la abierta),
+    // sin spinner y sin saltar el scroll. Debounced para coalescer rafagas.
+    clearTimeout(listRefetchDebounce);
+    listRefetchDebounce = setTimeout(() => loadContacts(true), 300);
+    if (selected.value && e.contact_id === selected.value.id) {
+      clearTimeout(chatRefetchDebounce);
+      chatRefetchDebounce = setTimeout(() => refreshOpenChat(false), 300);
+    }
+  });
 }
 
-async function refreshOpenChat() {
+// scroll=true baja al final (mensaje nuevo). En refrescos de estado/entrega va false para
+// no mover el scroll mientras el operador lee. Sincroniza tambien estado + asignacion.
+async function refreshOpenChat(scroll = false) {
   if (! selected.value) return;
   const res = await api.conversation(selected.value.id);
   if (res.status === 'ok') {
-    messages.value   = res.data.messages;
-    windowOpen.value = res.data.window_open;
-    await nextTick();
-    scrollToBottom();
+    messages.value          = res.data.messages;
+    windowOpen.value        = res.data.window_open;
+    selected.value          = { ...selected.value, ...res.data.contact };
+    currentAssignment.value = res.data.contact.assigned_to ?? null;
+    if (scroll) {
+      await nextTick();
+      scrollToBottom();
+    }
   }
 }
 
@@ -278,11 +342,11 @@ async function loadUsers() {
   if (res.status === 'ok') users.value = res.data ?? [];
 }
 
-async function loadContacts() {
-  loadingContacts.value = true;
+async function loadContacts(silent = false) {
+  if (! silent) loadingContacts.value = true;
   const res = await api.conversations();
   if (res.status === 'ok') contacts.value = res.data;
-  loadingContacts.value = false;
+  if (! silent) loadingContacts.value = false;
 }
 
 async function selectContact(contact) {
@@ -407,15 +471,35 @@ function formatDate(iso) {
   cursor: pointer;
   transition: background .12s;
 }
-.sidebar-item:hover         { background: var(--p-surface-50); }
-.sidebar-item--active       { background: var(--p-primary-50); border-left: 3px solid var(--p-primary-500); }
 .sidebar-item--mine         { border-left: 3px solid var(--p-green-500); }
+.sidebar-item:hover         { background: var(--p-surface-50); }
+/* Seleccionada = fondo tintado (sin borde de color, para no confundir con el verde de "mia") */
+.sidebar-item--active       { background: var(--p-primary-100); }
+.sidebar-item--mine.sidebar-item--active { background: var(--p-primary-100); }
 
 .item-row    { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 3px; }
-.item-name   { font-size: .85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.item-name   { font-size: .85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.item-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item-time   { font-size: .7rem; color: var(--p-text-muted-color); flex-shrink: 0; }
 .item-preview{ font-size: .75rem; color: var(--p-text-muted-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.item-badges { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 .item-tag    { flex-shrink: 0; font-size: .65rem !important; }
+
+/* Punto de estado (ciclo de vida) junto al nombre */
+.state-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot--abierta { background: var(--p-green-500); }
+.dot--cerrada { background: var(--p-surface-400); }
+.dot--snooze  { background: var(--p-amber-500); }
+.dot--baja    { background: var(--p-red-500); }
+
+/* Mini indicador de asignacion (separado del estado) */
+.assign-mini {
+  font-size: .6rem; font-weight: 700; line-height: 1;
+  padding: 3px 5px; border-radius: 5px; flex-shrink: 0; white-space: nowrap;
+}
+.assign--unassigned { background: var(--p-amber-100); color: var(--p-amber-700); }
+.assign--mine       { background: var(--p-green-100); color: var(--p-green-700); }
+.assign--other      { background: var(--p-surface-200); color: var(--p-text-muted-color); }
 
 /* Chat */
 .conv-chat  { display: flex; flex-direction: column; overflow: hidden; }

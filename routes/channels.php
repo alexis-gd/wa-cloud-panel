@@ -23,3 +23,10 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 Broadcast::channel('conversations', function ($user) {
     return in_array($user->role, ['superadmin', 'admin', 'operator', 'agent'], true);
 });
+
+// Canal de progreso de campanas: el worker emite CampaignProgressUpdated mientras
+// envia (contadores + estado). La tabla y el modal suben solos, sin polling.
+// superadmin incluido (si no, /broadcasting/auth da 403 y no llega nada).
+Broadcast::channel('campaigns', function ($user) {
+    return in_array($user->role, ['superadmin', 'admin', 'operator', 'agent'], true);
+});

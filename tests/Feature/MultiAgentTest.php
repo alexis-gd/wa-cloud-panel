@@ -28,6 +28,49 @@ class MultiAgentTest extends TestCase
         return $contact;
     }
 
+    // ── Tiempo real: la asignacion cambia sin recargar ───────────────────────
+
+    public function test_assign_emite_conversation_updated(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([\App\Events\ConversationUpdated::class]);
+        $this->actingAsAdmin();
+
+        $contact = $this->createContactWithConversation();
+        $agent   = User::factory()->create(['role' => 'agent', 'is_active' => true]);
+
+        $this->postJson("/api/conversations/{$contact->id}/assign", ['user_id' => $agent->id])->assertOk();
+
+        \Illuminate\Support\Facades\Event::assertDispatched(
+            \App\Events\ConversationUpdated::class,
+            fn ($e) => $e->contactId === $contact->id,
+        );
+    }
+
+    public function test_claim_emite_conversation_updated(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([\App\Events\ConversationUpdated::class]);
+
+        $agent = User::factory()->create(['role' => 'agent', 'is_active' => true]);
+        Sanctum::actingAs($agent);
+        $contact = $this->createContactWithConversation();
+
+        $this->postJson("/api/conversations/{$contact->id}/claim")->assertOk();
+
+        \Illuminate\Support\Facades\Event::assertDispatched(
+            \App\Events\ConversationUpdated::class,
+            fn ($e) => $e->contactId === $contact->id,
+        );
+    }
+
+    public function test_conversation_updated_va_al_canal_privado_conversations(): void
+    {
+        $event = new \App\Events\ConversationUpdated(42);
+
+        $this->assertSame('private-conversations', $event->broadcastOn()->name);
+        $this->assertSame('conversation.updated', $event->broadcastAs());
+        $this->assertSame(42, $event->broadcastWith()['contact_id']);
+    }
+
     // ── Filtro por agente ────────────────────────────────────────────────────
 
     public function test_admin_sees_all_conversations(): void

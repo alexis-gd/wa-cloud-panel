@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\ConversationUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\Conversation;
@@ -81,6 +82,9 @@ class ConversationController extends Controller
             'assigned_at' => now(),
         ]);
 
+        // Tiempo real: la fila de la lista y el panel derecho cambian solos para todos.
+        event(new ConversationUpdated($contactId));
+
         return response()->json([
             'status' => 'ok',
             'data'   => ['assigned_to' => ['id' => $user->id, 'name' => $user->name]],
@@ -104,6 +108,9 @@ class ConversationController extends Controller
             'assigned_at' => now(),
         ]);
 
+        // Tiempo real: la fila de la lista y el panel derecho cambian solos para todos.
+        event(new ConversationUpdated($contactId));
+
         return response()->json([
             'status' => 'ok',
             'data'   => ['assigned_to' => ['id' => $authUser->id, 'name' => $authUser->name]],
@@ -114,6 +121,13 @@ class ConversationController extends Controller
     public function show(int $contactId): JsonResponse
     {
         $contact = Contact::findOrFail($contactId);
+
+        // Asignación actual (más reciente) para que el panel derecho la muestre y se
+        // sincronice en vivo al refetch el chat.
+        $currentAssignment = $contact->assignments()
+            ->latest('assigned_at')
+            ->with('user:id,name')
+            ->first()?->user;
 
         $messages = Conversation::where('contact_id', $contactId)
             ->orderBy('created_at')
@@ -141,6 +155,9 @@ class ConversationController extends Controller
                     'phone'         => $contact->phone,
                     'status'        => $contact->status,
                     'snoozed_until' => $contact->snoozed_until,
+                    'assigned_to'   => $currentAssignment
+                        ? ['id' => $currentAssignment->id, 'name' => $currentAssignment->name]
+                        : null,
                 ],
                 'messages'    => $messages,
                 'window_open' => $windowOpen,
@@ -262,6 +279,9 @@ class ConversationController extends Controller
             'status'        => 'sent',
             'window_open'   => true,
         ]);
+
+        // Tiempo real: preview/hora de la fila y el chat abierto de otros operadores.
+        event(new ConversationUpdated($contact->id));
 
         return response()->json([
             'status' => 'ok',

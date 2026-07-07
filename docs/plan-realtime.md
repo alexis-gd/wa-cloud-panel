@@ -40,21 +40,27 @@ Objetivo del cliente/dev: **cero pollings**, todo lo que cambia "por fuera" se v
   Lo dispara `checkAutoComplete()` en ambos jobs (`SendWhatsAppMessage`, `SendSmsMessage`) con throttle
   via `Cache::add("campaign_progress_{id}", 1, 3)` (max 1 cada 3s por campana) + evento final siempre.
   **Polling eliminado**: `CampaignsView` ya no usa `setInterval` de 5s.
+
+### HECHO (v0.21.0)
+- **Campanita en vivo.** Evento `App\Events\NotificationCreated` -> canal privado `notifications`
+  -> `AppLayout` escucha `.notification.created` (prepende a la lista, sube el badge, toast al instante).
+  Lo dispara el hook `booted()`/`created` de `AppNotification` (cubre todos los sitios que crean notifs
+  sin repetir codigo). **Polling eliminado**: `AppLayout` ya no usa `setInterval` de 30s; solo carga
+  inicial + eventos.
 - **Infra Soketi**: Docker en el VPS (`quay.io/soketi/soketi:1.6-16-alpine`), `127.0.0.1:6001`,
   Nginx `location /app/` (Cloudflare termina TLS), `.env` con PUSHER_* (server->127.0.0.1:6001) y
   VITE_PUSHER_* (browser->sender.prestamaz.site:443 wss).
 
 ### Pollings que quedan (actualizado 2026-07-06)
-Solo **1** es polling real:
-1. `AppLayout.vue:234` - campanita `setInterval(fetchNotifications, 30_000)`.
+**CERO pollings reales.** Los dos que quedaban se eliminaron:
 
+~~`AppLayout.vue:234` - campanita `setInterval(fetchNotifications, 30_000)`.~~ **ELIMINADO en v0.21.0**
+(ahora por evento `NotificationCreated`).
 ~~`CampaignsView.vue:600` - progreso del modal `setInterval` 5s.~~ **ELIMINADO en v0.20.0** (ahora
 por evento `CampaignProgressUpdated`).
 
 `ContactsView.vue:594` es un **debounce** (400ms tras teclear el numero para chequearlo 1 vez), NO
 polling: **no se toca**.
-
-Con matar ese 1 -> **cero pollings**.
 
 ---
 
@@ -74,7 +80,7 @@ cae). Tests: al menos que el evento se dispara y su canal/payload (ver `WebhookI
   abierto (contadores + barras). **Borrar el `setInterval` (linea ~600)** y su limpieza.
 - Resultado: `12/200 -> 13/200...` sube solo en tabla y modal; Ejecutando -> Finalizada solo.
 
-### 2. Campanita - mata polling #1
+### 2. Campanita - mata polling #1 [HECHO v0.21.0]
 - Evento `NotificationCreated` (o reusar) cuando se crea un `AppNotification` (envio fallido, webhook
   caido, numero pausado). Canal privado (roles admin/operator/agent + superadmin).
 - `AppLayout`: listener incrementa el badge y agrega la notif a la lista al instante. **Borrar el

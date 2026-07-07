@@ -352,6 +352,10 @@ class SettingsController extends Controller
             'sms_bounce_count' => 0,
         ]);
 
+        // Limpia el snooze de WhatsApp ("No por ahora") para que el número de demo vuelva a
+        // entrar en campañas de WhatsApp. Solo modo demo (superadmin).
+        $snoozeCleared = Contact::whereNotNull('snoozed_until')->update(['snoozed_until' => null]);
+
         // Reactiva las bajas de WhatsApp (status opted_out -> active) para que un número de
         // prueba que respondió STOP/BAJA vuelva a recibir. En operación real el opt-out es
         // irreversible; esto SOLO existe en el modo demo (superadmin, con advertencia).
@@ -367,6 +371,7 @@ class SettingsController extends Controller
                 'phones_unpaused' => $phones,
                 'logs_reset'      => $logs,
                 'sms_cleared'     => $smsCleared,
+                'snooze_cleared'  => $snoozeCleared,
                 'wa_reactivated'  => $waReactivated,
             ],
         ]);

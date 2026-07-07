@@ -624,15 +624,16 @@ function subscribeRealtime() {
                 total_contacts: e.total_contacts,
                 status        : e.status,
             };
-            // Refrescar tambien la lista de mensajes del modal (debounced, on-event, no polling).
-            if (e.status === 'running') {
-                clearTimeout(detailLogsDebounce);
-                detailLogsDebounce = setTimeout(() => {
-                    if (showDetail.value && selectedCampaign.value?.id === e.campaign_id) {
-                        loadDetailLogs(e.campaign_id, detailCurrentPage.value);
-                    }
-                }, 500);
-            }
+            // Refrescar tambien la lista de mensajes + tarjetas del modal (debounced, on-event,
+            // no polling). Se hace para TODOS los eventos, incluido el final (status completed):
+            // ese ultimo evento es justo el que trae el detalle definitivo (filas + stats). Si se
+            // saltara, el modal quedaria con las tarjetas viejas y la tabla vacia hasta reabrirlo.
+            clearTimeout(detailLogsDebounce);
+            detailLogsDebounce = setTimeout(() => {
+                if (showDetail.value && selectedCampaign.value?.id === e.campaign_id) {
+                    loadDetailLogs(e.campaign_id, detailCurrentPage.value);
+                }
+            }, 500);
         }
     });
 }

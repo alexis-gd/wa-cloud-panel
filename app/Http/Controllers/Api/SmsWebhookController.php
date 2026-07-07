@@ -32,6 +32,11 @@ class SmsWebhookController extends Controller
     // Mismas palabras que el webhook de WhatsApp (coincidencia exacta, case-insensitive).
     private const OPT_OUT_WORDS = ['STOP', 'BAJA', 'CANCELAR', 'NO', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'];
 
+    // Respuestas que marcan interés (match exacto). Sirven para que el operador ubique
+    // rápido al prospecto en la lista agrupada. No dispara ninguna acción automática:
+    // solo etiqueta la respuesta como "Interesado" (el operador da seguimiento a mano).
+    private const INTERESTED_WORDS = ['SI', 'INFO', 'INFORMACION'];
+
     // POST /api/sms/webhook — eventos del gateway (status + inbound)
     public function handle(Request $request): Response
     {
@@ -146,6 +151,29 @@ class SmsWebhookController extends Controller
         }
     }
 
+    // Clasifica la respuesta por match exacto: 'opt_out' (baja) tiene prioridad sobre
+    // 'interested', y cualquier otra cosa es null. Ignora acentos y mayúsculas.
+    private function classifyReply(string $message): ?string
+    {
+        $word = $this->normalizeWord($message);
+
+        if (in_array($word, self::OPT_OUT_WORDS, true)) {
+            return 'opt_out';
+        }
+        if (in_array($word, self::INTERESTED_WORDS, true)) {
+            return 'interested';
+        }
+        return null;
+    }
+
+    // Normaliza a mayúsculas sin acentos para comparar contra las listas de palabras.
+    private function normalizeWord(string $message): string
+    {
+        $upper = mb_strtoupper(trim($message), 'UTF-8');
+
+        return strtr($upper, ['Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U']);
+    }
+
     private function handleInbound(array $payload): void
     {
         // En sms:received el número del remitente viene en `sender` (no `phoneNumber`).
@@ -159,10 +187,11 @@ class SmsWebhookController extends Controller
         $phone   = Contact::normalizePhone($from);
         $contact = $phone ? Contact::where('phone', $phone)->first() : null;
 
-        // Opt-out SMS por texto exacto (evita falsos positivos: "no me interesa" no dispara, "NO" sí).
-        $isOptOut = in_array(strtoupper(trim($message)), self::OPT_OUT_WORDS, true);
+        // Clasificar la respuesta por texto exacto (baja > interés > nada). El match exacto
+        // evita falsos positivos: "no me interesa" no dispara baja, solo "NO" sola.
+        $action = $this->classifyReply($message);
 
-        if ($isOptOut && $contact) {
+        if ($action === 'opt_out' && $contact) {
             $contact->smsOptOut();
             Log::info("SMS opt-out por texto '{$message}' - contacto {$contact->id}");
         }
@@ -172,7 +201,7 @@ class SmsWebhookController extends Controller
             'contact_id'  => $contact?->id,
             'from_number' => $phone ?? $from,
             'body'        => $message,
-            'action'      => $isOptOut ? 'opt_out' : null,
+            'action'      => $action,
             'received_at' => now(),
         ]);
 

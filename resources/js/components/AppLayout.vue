@@ -72,7 +72,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.24.0 - Stage 3</span>
+                <span class="version">v0.25.0 - Stage 3</span>
             </div>
         </aside>
 
@@ -308,10 +308,10 @@ const helpContent = {
     '/sms-replies': {
         title: 'Respuestas SMS',
         items: [
-            { icon: 'pi-inbox',   label: 'Qué es',   text: 'Lista de los SMS que tus contactos respondieron. Es de solo lectura: no se contesta desde aquí (a diferencia de Conversaciones de WhatsApp).' },
+            { icon: 'pi-inbox',   label: 'Qué es',   text: 'Respuestas de tus contactos por SMS, agrupadas por contacto. Da click en una fila para ver todos sus mensajes. Es de solo lectura: no se contesta desde aquí.' },
+            { icon: 'pi-check',   label: 'Interesado', text: 'Si alguien responde SÍ o INFO, se marca con la etiqueta verde "Interesado". Ese es tu prospecto, dale seguimiento.' },
             { icon: 'pi-ban',     label: 'Baja automática', text: 'Si alguien responde STOP o BAJA, el sistema lo da de baja de SMS solo y lo marca con la etiqueta roja "Baja automática".' },
-            { icon: 'pi-search',  label: 'Buscar',   text: 'Filtra por número o por texto del mensaje. El botón "Solo bajas" deja ver únicamente las bajas.' },
-            { icon: 'pi-refresh', label: 'Actualizar', text: 'Usa ↻ para traer las respuestas más recientes.' },
+            { icon: 'pi-search',  label: 'Buscar y filtrar', text: 'Busca por número, nombre o texto. El filtro Todas / Interesados / Bajas deja ver solo lo que te interesa.' },
         ],
         tip: 'Aquí solo aparecen respuestas de tus contactos. Los SMS de operadora o de números que no son contactos no se muestran.',
     },

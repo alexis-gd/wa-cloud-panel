@@ -123,6 +123,47 @@ class SmsWebhookTest extends TestCase
         ]);
     }
 
+    /** @dataProvider interestedWords */
+    public function test_inbound_marca_interesado(string $word): void
+    {
+        $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:received',
+            'payload' => ['sender' => '529991234567', 'message' => $word],
+        ])->assertStatus(200);
+
+        // Interés NO cambia el status del contacto (no es baja): solo etiqueta la respuesta.
+        $this->assertSame('active', $contact->fresh()->status);
+        $this->assertFalse($contact->fresh()->sms_opt_out);
+
+        $this->assertDatabaseHas('sms_inbound_messages', [
+            'contact_id' => $contact->id,
+            'action'     => 'interested',
+        ]);
+    }
+
+    public static function interestedWords(): array
+    {
+        return [['SI'], ['si'], ['Sí'], ['SÍ'], ['INFO'], ['info'], ['informacion'], ['INFORMACIÓN']];
+    }
+
+    public function test_inbound_frase_con_si_embebido_no_marca_interesado(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:received',
+            'payload' => ['sender' => '529991234567', 'message' => 'si me interesa el prestamo'],
+        ])->assertStatus(200);
+
+        // Solo match exacto: una frase no dispara "Interesado".
+        $this->assertDatabaseHas('sms_inbound_messages', [
+            'contact_id' => $contact->id,
+            'action'     => null,
+        ]);
+    }
+
     public function test_inbound_de_numero_desconocido_se_registra_sin_contacto(): void
     {
         $this->postJson('/api/sms/webhook', [

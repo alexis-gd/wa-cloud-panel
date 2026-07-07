@@ -74,7 +74,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.26.0 - Stage 3</span>
+                <span class="version">v0.26.1 - Stage 3</span>
             </div>
         </aside>
 
@@ -277,6 +277,7 @@ const helpContent = {
             { icon: 'pi-chart-line',    label: 'Gráfica',     text: 'Envíos día a día del mes actual. Usa ↺ para refrescar.' },
             { icon: 'pi-history',       label: 'Histórico',   text: 'Enviados vs. capacidad de los últimos 6 meses. Útil para ver tendencia de crecimiento.' },
             { icon: 'pi-list',          label: 'Últimos',     text: 'Los 10 mensajes más recientes con su estado actual. Filtra por estado con el selector.' },
+            { icon: 'pi-bolt',          label: 'En vivo',     text: 'El tablero se actualiza solo con la actividad (semáforo, cifras, últimos mensajes) mientras corren las campañas. No hace falta recargar. El histórico por mes se carga una vez.' },
         ],
         warning: 'Si el semáforo está ROJO o PAUSADO, no ejecutar campañas hasta que se revise.',
     },
@@ -301,7 +302,7 @@ const helpContent = {
         title: 'Campañas',
         items: [
             { icon: 'pi-plus-circle',   label: 'Crear',      text: 'Dale un nombre y elige el canal. Ambos usan plantilla (nada de texto libre): WhatsApp una plantilla aprobada por Meta; SMS una plantilla SMS guardada. Verás la vista previa antes de crear.' },
-            { icon: 'pi-play-circle',   label: 'Ejecutar',   text: 'Abre la campaña y da clic en Ejecutar. Los mensajes se encolan en segundo plano.' },
+            { icon: 'pi-play-circle',   label: 'Ejecutar',   text: 'Abre la campaña y da clic en Ejecutar. Los mensajes se encolan en segundo plano. El progreso, el estado y las filas del detalle suben solos en vivo, sin cerrar ni recargar (incluye Enviado -> Entregado -> Leído).' },
             { icon: 'pi-shield',        label: 'Protección', text: 'Omite automáticamente: bajas (una baja en WhatsApp también frena SMS), inválidos y snooze. El dedup diario y el cooldown son por canal, separados.' },
             { icon: 'pi-clock',         label: 'Horario',    text: 'WhatsApp solo L-V 9AM–10PM (fuera de eso bloquea). SMS no tiene horario forzado: tú decides (aviso si es de madrugada).' },
         ],
@@ -314,16 +315,19 @@ const helpContent = {
             { icon: 'pi-check',   label: 'Interesado', text: 'Si alguien responde SÍ o INFO, se marca con la etiqueta verde "Interesado". Ese es tu prospecto, dale seguimiento.' },
             { icon: 'pi-ban',     label: 'Baja automática', text: 'Si alguien responde STOP o BAJA, el sistema lo da de baja de SMS solo y lo marca con la etiqueta roja "Baja automática".' },
             { icon: 'pi-search',  label: 'Buscar y filtrar', text: 'Busca por número, nombre o texto. El filtro Todas / Interesados / Bajas deja ver solo lo que te interesa.' },
+            { icon: 'pi-bolt',    label: 'En vivo',   text: 'Las respuestas nuevas de tus contactos entran solas, con un aviso arriba a la derecha. No hace falta recargar.' },
         ],
         tip: 'Aquí solo aparecen respuestas de tus contactos. Los SMS de operadora o de números que no son contactos no se muestran.',
     },
     '/conversations': {
         title: 'Conversaciones',
         items: [
-            { icon: 'pi-comments',      label: 'Ventana 24h', text: 'Solo puedes responder texto libre si el contacto te escribió en las últimas 24h.' },
-            { icon: 'pi-tag',           label: 'Tags',        text: 'Activa = puedes escribir. Cerrada = solo plantillas. Snooze = pausado. Baja = dado de baja.' },
+            { icon: 'pi-circle-fill',   label: 'Estado',      text: 'El punto de color y el chip dicen en qué anda la conversación: Abierta (verde, ventana 24h abierta, se puede responder libre), Cerrada (gris, 24h vencidas, solo plantilla reabre), Snooze (ámbar, pidió "no por ahora"), Baja (rojo, dado de baja).' },
+            { icon: 'pi-clock',         label: 'Snooze',      text: 'Snooze NO bloquea el chat: el contacto tocó "No por ahora", el sistema no lo mete en campañas hasta la fecha (arriba y en Info del contacto), pero tú SÍ le puedes seguir escribiendo aquí a mano.' },
+            { icon: 'pi-user',          label: 'Asignación',  text: 'Aparte del estado: "Sin asignar" (ámbar) = nadie la atiende; "Tú" (verde) con barra verde a la izquierda = es tuya; iniciales = la atiende otro agente.' },
+            { icon: 'pi-comments',      label: 'Ventana 24h', text: 'Solo puedes responder texto libre si el contacto te escribió en las últimas 24h. Si el campo está deshabilitado (Cerrada), crea una campaña con ese contacto para reabrirla.' },
             { icon: 'pi-bolt',          label: 'Rápidas',     text: 'Los chips de respuestas rápidas cargan el texto automáticamente. Clic para usarlos.' },
-            { icon: 'pi-lock',          label: 'Ventana cerrada', text: 'Cuando el campo está deshabilitado, crea una campaña con ese contacto para reabrirla.' },
+            { icon: 'pi-bolt',          label: 'En vivo',     text: 'Todo se actualiza solo: respuestas nuevas, asignación, estado y los ✓ de entrega/leído. No hace falta recargar.' },
         ],
         tip: 'Las respuestas rápidas las crea y elimina el administrador desde el panel derecho.',
     },
@@ -342,18 +346,18 @@ const helpContent = {
     '/users': {
         title: 'Usuarios',
         items: [
-            { icon: 'pi-shield',        label: 'Admin',      text: 'Acceso total: plantillas, configuración, campañas, usuarios.' },
-            { icon: 'pi-user',          label: 'Operador',   text: 'Puede cargar contactos, crear y ejecutar campañas, ver reportes.' },
-            { icon: 'pi-comments',      label: 'Agente',     text: 'Solo puede ver y responder conversaciones entrantes.' },
+            { icon: 'pi-shield',        label: 'Admin',      text: 'Acceso total: plantillas, usuarios, contactos, campañas, respuestas SMS, conversaciones.' },
+            { icon: 'pi-user',          label: 'Operador',   text: 'Dashboard, contactos, campañas, respuestas SMS y conversaciones (todas). No gestiona plantillas ni usuarios.' },
+            { icon: 'pi-comments',      label: 'Agente',     text: 'Solo Conversaciones, y solo las asignadas a él. Entra directo a esa pantalla; no ve Dashboard, Contactos, Campañas ni Respuestas SMS.' },
         ],
-        tip: 'Crea una cuenta por persona. No compartir credenciales.',
+        tip: 'Solo los usuarios con rol Agente reciben conversaciones por auto-asignación. Crea una cuenta por persona; no compartir credenciales.',
     },
     '/settings': {
         title: 'Configuración',
         items: [
             { icon: 'pi-key',           label: 'Token Meta',    text: 'El token de acceso a WhatsApp. Si los envíos fallan con error 467, el token expiró.' },
             { icon: 'pi-circle-fill',   label: 'Salud',         text: 'Muestra la calidad del número y si el circuito está pausado.' },
-            { icon: 'pi-users',         label: 'Multi-agente',  text: 'Modo de asignación automática al llegar un mensaje: "Menos chats" asigna al agente con menos conversaciones; "Primer disponible" al primero activo.' },
+            { icon: 'pi-users',         label: 'Multi-agente',  text: 'Modo de asignación automática al llegar el primer mensaje de un contacto: "Menos chats" asigna al agente con menos conversaciones; "Primer disponible" al primero activo. Solo entran usuarios con rol Agente activos (operadores y admin no reciben auto-asignación). Sin agentes activos, la conversación queda "Sin asignar".' },
             { icon: 'pi-clock',         label: 'Cooldown',      text: 'Días mínimos entre mensajes al mismo contacto. Default: 30 días.' },
         ],
         warning: 'El token es sensible. Solo el administrador debe actualizarlo.',

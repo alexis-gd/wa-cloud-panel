@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\CampaignProgressUpdated;
 use App\Events\InboundMessageReceived;
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
+use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\Setting;
@@ -105,6 +107,8 @@ class SmsWebhookController extends Controller
                 ->where('body', 'like', "%{$log->to_number}%")
                 ->delete();
         }
+
+        $this->broadcastCampaignProgress($log);
     }
 
     private function handleFailed(array $payload): void
@@ -127,6 +131,18 @@ class SmsWebhookController extends Controller
         if ($log) {
             $contact = Contact::where('phone', $log->to_number)->first();
             $contact?->registerSmsBounce();
+        }
+
+        $this->broadcastCampaignProgress($log);
+    }
+
+    // Progreso en vivo: si el mensaje pertenece a una campaña, avisa al panel para que el
+    // modal abierto refresque la fila (Enviado -> Entregado -> Fallido). Sin throttle: el
+    // estado terminal del SMS (delivered/failed) no se puede perder. Reusa el evento de campañas.
+    private function broadcastCampaignProgress(?MessageLog $log): void
+    {
+        if ($log?->campaign_id && $campaign = Campaign::find($log->campaign_id)) {
+            event(CampaignProgressUpdated::fromCampaign($campaign));
         }
     }
 

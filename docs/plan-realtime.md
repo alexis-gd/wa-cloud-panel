@@ -55,6 +55,15 @@ Objetivo del cliente/dev: **cero pollings**, todo lo que cambia "por fuera" se v
   + envios al dia: **refetch-on-event debounced** (2s) escuchando `.campaign.progress` en el canal
   `campaigns` (NO polling: en reposo, cero llamadas). El historico mensual NO se refetch.
 
+### HECHO (v0.24.0)
+- **Ciclo de entrega en vivo (WhatsApp + SMS).** Antes solo subia el envio; ahora la fila del modal
+  refleja el ciclo completo `Enviado -> Entregado -> Leido -> Fallido` sin cerrar/reabrir. Los estados
+  de entrega llegan por **webhook** (`WebhookController` de Meta, `SmsWebhookController` de capcom6) y
+  actualizan `message_log`; al hacerlo se emite `CampaignProgressUpdated` de la campana tocada, que el
+  modal ya escucha y refetch (silencioso, sin spinner). **Sin throttle en el webhook**: el estado
+  terminal no se puede perder (un solo emit basta porque el refetch lee el estado completo de las filas).
+  Meta manda los statuses en lote -> se emite 1 vez por campana por webhook (dedupe por request).
+
 ### HECHO (v0.23.0)
 - **Respuestas SMS en vivo.** Se reusa `App\Events\InboundMessageReceived` con `channel='sms'`,
   disparado en `SmsWebhookController::handleInbound` **solo si el remitente ES un contacto** (evita

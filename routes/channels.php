@@ -36,3 +36,10 @@ Broadcast::channel('campaigns', function ($user) {
 Broadcast::channel('notifications', function ($user) {
     return in_array($user->role, ['superadmin', 'admin', 'operator', 'agent'], true);
 });
+
+// Canal del Dashboard: semaforo del numero (PhoneNumberPaused). El resto del dashboard
+// (cifras, ultimos mensajes, envios al dia) se refresca on-event via el canal 'campaigns'.
+// superadmin incluido (si no, /broadcasting/auth da 403 y no llega nada).
+Broadcast::channel('dashboard', function ($user) {
+    return in_array($user->role, ['superadmin', 'admin', 'operator', 'agent'], true);
+});

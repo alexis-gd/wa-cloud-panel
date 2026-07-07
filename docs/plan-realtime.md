@@ -47,6 +47,13 @@ Objetivo del cliente/dev: **cero pollings**, todo lo que cambia "por fuera" se v
   Lo dispara el hook `booted()`/`created` de `AppNotification` (cubre todos los sitios que crean notifs
   sin repetir codigo). **Polling eliminado**: `AppLayout` ya no usa `setInterval` de 30s; solo carga
   inicial + eventos.
+
+### HECHO (v0.22.0)
+- **Dashboard en vivo (bonus, no tenia polling).** Semaforo del numero: evento
+  `App\Events\PhoneNumberPaused` (disparado en `PhoneNumber::pauseFor`) -> canal privado `dashboard`
+  -> `DashboardView` escucha `.phone.paused` y recarga la salud al instante. Cifras + ultimos mensajes
+  + envios al dia: **refetch-on-event debounced** (2s) escuchando `.campaign.progress` en el canal
+  `campaigns` (NO polling: en reposo, cero llamadas). El historico mensual NO se refetch.
 - **Infra Soketi**: Docker en el VPS (`quay.io/soketi/soketi:1.6-16-alpine`), `127.0.0.1:6001`,
   Nginx `location /app/` (Cloudflare termina TLS), `.env` con PUSHER_* (server->127.0.0.1:6001) y
   VITE_PUSHER_* (browser->sender.prestamaz.site:443 wss).
@@ -87,7 +94,7 @@ cae). Tests: al menos que el evento se dispara y su canal/payload (ver `WebhookI
   `setInterval(fetchNotifications, 30_000)` (linea 234)**.
 - Resultado: la campanita se prende al momento; al abrir el panel la notif ya esta.
 
-### 3. Dashboard (bonus - hoy NO tiene polling, es agregar vida)
+### 3. Dashboard (bonus - hoy NO tiene polling, es agregar vida) [HECHO v0.22.0]
 - **Semaforo del numero** -> evento directo `PhoneNumberPaused` (instantaneo, es la senal de "para
   campanias"). Merece socket propio.
 - **Cifras + Ultimos mensajes + Envios al dia** -> **refetch-on-event debounced**: al llegar un evento

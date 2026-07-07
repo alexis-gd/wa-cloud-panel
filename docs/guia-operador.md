@@ -12,9 +12,9 @@
 3. Si olvidaste tu contraseña, pedirle al administrador que la restablezca.
 
 **Roles disponibles:**
-- **Administrador** — acceso total (crear campañas, configurar plantillas, ver configuración)
-- **Operador** — puede cargar contactos, crear y ejecutar campañas, ver reportes
-- **Agente** — solo puede ver y responder conversaciones entrantes
+- **Administrador** — acceso total (contactos, campañas, respuestas SMS, plantillas, usuarios, conversaciones)
+- **Operador** — Dashboard, contactos, campañas, respuestas SMS y conversaciones (todas). No gestiona plantillas ni usuarios
+- **Agente** — **solo Conversaciones**, y solo las asignadas a él. Al entrar cae directo en esa pantalla; no ve Dashboard, Contactos, Campañas ni Respuestas SMS
 
 ---
 
@@ -250,12 +250,20 @@ naranja **"Sin asignar"** en la lista. El admin u operador puede tomarla manualm
 
 ### Indicadores visuales en la lista de conversaciones
 
-- Barra verde a la izquierda — conversación asignada al agente que está viendo la pantalla.
-- Chip **"Sin asignar"** (naranja) — nadie tiene esta conversación asignada aún.
-- Chip **"Activa"** (verde) — ventana de 24h abierta, se puede responder.
-- Chip **"Cerrada"** (gris) — el contacto no ha respondido en las últimas 24h.
-- Chip **"Snooze"** (naranja) — el contacto pidió "No por ahora".
-- Chip **"Baja"** (rojo) - contacto dado de baja permanentemente.
+La lista separa **dos cosas**: el estado de la conversación y quién la atiende.
+
+**Estado** (punto de color junto al nombre + chip):
+- 🟢 **"Abierta"** (verde) — ventana de 24h abierta, se puede responder texto libre.
+- ⚪ **"Cerrada"** (gris) — el contacto no ha respondido en las últimas 24h (solo plantilla reabre).
+- 🟠 **"Snooze"** (ámbar) — el contacto pidió "No por ahora". **No bloquea el chat**: no entra a campañas hasta la fecha, pero le puedes seguir escribiendo a mano.
+- 🔴 **"Baja"** (rojo) - dado de baja permanentemente, no se puede contactar.
+
+**Asignación** (aparte del estado):
+- Chip **"Sin asignar"** (ámbar) — nadie tiene esta conversación aún.
+- Chip **"Tú"** (verde) + barra verde a la izquierda — es tuya.
+- **Iniciales** del agente — la atiende otra persona (pasa el cursor para ver el nombre).
+
+> El fondo tintado marca la conversación que tienes **abierta/seleccionada** (es distinto de la barra verde de "es tuya").
 
 ### Acciones de asignación manual
 
@@ -291,16 +299,15 @@ Solo el administrador puede modificarlo: **Configuración → Multi-agente → M
 
 Cuando un contacto responde al WhatsApp, el mensaje aparece en **Conversaciones**.
 
-> ⚡ **En vivo:** si estás en Conversaciones, las respuestas nuevas aparecen **solas**, sin recargar,
-> y sale un aviso "Nueva respuesta" arriba a la derecha. (Requiere el servidor de tiempo real activo;
-> si no lo está, la respuesta igual aparece al reabrir la conversación, como siempre.)
+> ⚡ **En vivo:** si estás en Conversaciones, **todo** se actualiza solo sin recargar: las respuestas
+> nuevas (con aviso "Nueva respuesta"), la asignación, el estado y los ✓ de entrega/leído de tus
+> mensajes. (Requiere el servidor de tiempo real activo; si no lo está, se ve al reabrir, como siempre.)
 
 1. Ir a **Conversaciones** en el menú lateral.
-2. En el panel izquierdo ver la lista de contactos con mensajes. Los tags indican el estado:
-   - **Activa** (verde) — ventana de 24h abierta, puedes responder texto libre.
-   - **Cerrada** (gris) — el contacto no ha respondido en las últimas 24h.
-     Solo se puede reabrir enviando una plantilla desde Campañas.
-   - **Snooze** (naranja) — el contacto pidió "No por ahora", se reactivará automáticamente.
+2. En el panel izquierdo ver la lista de contactos con mensajes. El estado (ver arriba):
+   - **Abierta** (verde) — ventana de 24h abierta, puedes responder texto libre.
+   - **Cerrada** (gris) — el contacto no ha respondido en las últimas 24h. Solo plantilla reabre.
+   - **Snooze** (ámbar) — el contacto pidió "No por ahora". No entra a campañas hasta la fecha, pero **sí le puedes escribir a mano** desde aquí.
    - **Baja** (rojo) - dado de baja permanentemente, no se puede contactar.
 
 3. Seleccionar un contacto para ver el historial de mensajes.
@@ -395,7 +402,8 @@ El sistema controla esto automáticamente — el operador no puede cambiarlo.
 **¿Qué es el "snooze"?**
 Si un contacto toca el botón "No por ahora" en una plantilla, el sistema lo pausa
 por el período configurado (por defecto 30 días). Pasado ese período, vuelve a estar
-disponible para campañas automáticamente.
+disponible para campañas automáticamente. **El snooze solo pausa las campañas**: en
+Conversaciones le puedes seguir escribiendo a mano si hace falta darle seguimiento.
 
 ---
 

@@ -72,7 +72,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.20.0 - Stage 3</span>
+                <span class="version">v0.21.0 - Stage 3</span>
             </div>
         </aside>
 
@@ -152,6 +152,7 @@ import HelpPopover  from './HelpPopover.vue';
 import { api }         from '../api.js';
 import { useAuth }     from '../auth.js';
 import { useFeatures } from '../features.js';
+import { initEcho }    from '../echo.js';
 
 const route  = useRoute();
 const router = useRouter();
@@ -184,33 +185,38 @@ async function handleVisibilityChange() {
 const notifPanel   = ref(null);
 const notifUnread  = ref(0);
 const notifList    = ref([]);
-let   notifTimer   = null;
-let   notifInitial = true; // no disparar toast en la carga inicial
+let   echoChannel  = null;
 
+// Carga inicial del estado de la campanita (una vez, al entrar). Las notificaciones
+// nuevas llegan luego en vivo por WebSocket (ver subscribeRealtime), sin polling.
 async function fetchNotifications() {
     if (!authState.user) return;
     const res = await api.notifications();
     if (res.status === 'ok') {
-        const prevUnread = notifUnread.value;
-        const newUnread  = res.data.unread_count;
-
-        notifUnread.value = newUnread;
+        notifUnread.value = res.data.unread_count;
         notifList.value   = res.data.notifications;
-
-        // Toast solo en polls posteriores a la carga inicial
-        if (!notifInitial && newUnread > prevUnread) {
-            const newest = res.data.notifications.find(n => !n.read);
-            if (newest) {
-                toast.add({
-                    severity : 'warn',
-                    summary  : newest.title,
-                    detail   : newest.body,
-                    life     : 7000,
-                });
-            }
-        }
-        notifInitial = false;
     }
+}
+
+// Tiempo real (Soketi): cuando se crea una notificacion, la campanita se prende al
+// instante. Si no hay servidor WS configurado, initEcho() devuelve null y no pasa nada
+// (la notif igual aparece al recargar el panel, como carga inicial).
+function subscribeRealtime() {
+    const echo = initEcho();
+    if (! echo) return;
+
+    echoChannel = echo.private('notifications');
+    echoChannel.listen('.notification.created', (n) => {
+        // Prepender a la lista (cap 20, igual que el endpoint) y subir el badge.
+        notifList.value = [{ ...n, read: false }, ...notifList.value].slice(0, 20);
+        notifUnread.value += 1;
+        toast.add({
+            severity : 'warn',
+            summary  : n.title,
+            detail   : n.body,
+            life     : 7000,
+        });
+    });
 }
 
 async function openNotifications(event) {
@@ -231,13 +237,16 @@ onMounted(() => {
     window.addEventListener('wa:session-expired', handleSessionExpired);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     fetchNotifications();
-    notifTimer = setInterval(fetchNotifications, 30_000);
+    subscribeRealtime();
 });
 
 onUnmounted(() => {
     window.removeEventListener('wa:session-expired', handleSessionExpired);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
-    clearInterval(notifTimer);
+    if (echoChannel) {
+        echoChannel.stopListening('.notification.created');
+        echoChannel = null;
+    }
 });
 
 const sidebarOpen = ref(false);

@@ -30,3 +30,9 @@ Broadcast::channel('conversations', function ($user) {
 Broadcast::channel('campaigns', function ($user) {
     return in_array($user->role, ['superadmin', 'admin', 'operator', 'agent'], true);
 });
+
+// Canal de notificaciones (campanita): se emite NotificationCreated al crear una
+// AppNotification. La campanita se prende al instante, sin polling. superadmin incluido.
+Broadcast::channel('notifications', function ($user) {
+    return in_array($user->role, ['superadmin', 'admin', 'operator', 'agent'], true);
+});

@@ -107,7 +107,8 @@ class ContactDeliverabilityTest extends TestCase
         $row = $this->fetch($c->id);
         $this->assertTrue($row['snooze_active']);
         $this->assertNotNull($row['snooze_until']);
-        $this->assertFalse($row['deliverable']);
+        $this->assertFalse($row['deliverable']);       // WhatsApp: el snooze SÍ lo bloquea
+        $this->assertTrue($row['sms_deliverable']);    // SMS: el snooze es por canal, NO lo bloquea
     }
 
     public function test_snooze_vencido_no_afecta(): void

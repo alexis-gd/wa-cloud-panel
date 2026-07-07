@@ -145,10 +145,11 @@ class ContactController extends Controller
             $contact->setAttribute('deliverable', ! $waBlocked && ! $snoozeActive && ! $waSentToday && ! $waCooldownActive);
 
             // Eje SMS (nuevos, para el segundo tag de Entregabilidad).
+            // El snooze NO entra aquí: es por canal (solo WhatsApp). Ver contexto-sms.
             $contact->setAttribute('sms_sent_today', $smsSentToday);
             $contact->setAttribute('sms_cooldown_active', $smsCooldownActive);
             $contact->setAttribute('sms_cooldown_until', $smsCooldownUntil);
-            $contact->setAttribute('sms_deliverable', ! $smsBlocked && ! $snoozeActive && ! $smsSentToday && ! $smsCooldownActive);
+            $contact->setAttribute('sms_deliverable', ! $smsBlocked && ! $smsSentToday && ! $smsCooldownActive);
         }
     }
 

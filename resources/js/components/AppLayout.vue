@@ -74,7 +74,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.26.1 - Stage 3</span>
+                <span class="version">v0.27.0 - Stage 3</span>
             </div>
         </aside>
 
@@ -323,7 +323,7 @@ const helpContent = {
         title: 'Conversaciones',
         items: [
             { icon: 'pi-circle-fill',   label: 'Estado',      text: 'El punto de color y el chip dicen en qué anda la conversación: Abierta (verde, ventana 24h abierta, se puede responder libre), Cerrada (gris, 24h vencidas, solo plantilla reabre), Snooze (ámbar, pidió "no por ahora"), Baja (rojo, dado de baja).' },
-            { icon: 'pi-clock',         label: 'Snooze',      text: 'Snooze NO bloquea el chat: el contacto tocó "No por ahora", el sistema no lo mete en campañas hasta la fecha (arriba y en Info del contacto), pero tú SÍ le puedes seguir escribiendo aquí a mano.' },
+            { icon: 'pi-clock',         label: 'Snooze',      text: 'Snooze NO bloquea el chat: el contacto tocó "No por ahora", el sistema no lo mete en campañas de WhatsApp hasta la fecha (arriba y en Info del contacto). El SMS NO se ve afectado (el snooze es por canal). Y tú SÍ le puedes seguir escribiendo aquí a mano.' },
             { icon: 'pi-user',          label: 'Asignación',  text: 'Aparte del estado: "Sin asignar" (ámbar) = nadie la atiende; "Tú" (verde) con barra verde a la izquierda = es tuya; iniciales = la atiende otro agente.' },
             { icon: 'pi-comments',      label: 'Ventana 24h', text: 'Solo puedes responder texto libre si el contacto te escribió en las últimas 24h. Si el campo está deshabilitado (Cerrada), crea una campaña con ese contacto para reabrirla.' },
             { icon: 'pi-bolt',          label: 'Rápidas',     text: 'Los chips de respuestas rápidas cargan el texto automáticamente. Clic para usarlos.' },

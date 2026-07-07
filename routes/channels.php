@@ -23,3 +23,23 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 Broadcast::channel('conversations', function ($user) {
     return in_array($user->role, ['superadmin', 'admin', 'operator', 'agent'], true);
 });
+
+// Canal de progreso de campanas: el worker emite CampaignProgressUpdated mientras
+// envia (contadores + estado). La tabla y el modal suben solos, sin polling.
+// superadmin incluido (si no, /broadcasting/auth da 403 y no llega nada).
+Broadcast::channel('campaigns', function ($user) {
+    return in_array($user->role, ['superadmin', 'admin', 'operator', 'agent'], true);
+});
+
+// Canal de notificaciones (campanita): se emite NotificationCreated al crear una
+// AppNotification. La campanita se prende al instante, sin polling. superadmin incluido.
+Broadcast::channel('notifications', function ($user) {
+    return in_array($user->role, ['superadmin', 'admin', 'operator', 'agent'], true);
+});
+
+// Canal del Dashboard: semaforo del numero (PhoneNumberPaused). El resto del dashboard
+// (cifras, ultimos mensajes, envios al dia) se refresca on-event via el canal 'campaigns'.
+// superadmin incluido (si no, /broadcasting/auth da 403 y no llega nada).
+Broadcast::channel('dashboard', function ($user) {
+    return in_array($user->role, ['superadmin', 'admin', 'operator', 'agent'], true);
+});

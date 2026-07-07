@@ -245,6 +245,8 @@ function subscribeRealtime() {
 
   echoChannel = echo.private('conversations');
   echoChannel.listen('.inbound.message', (e) => {
+    // Esta vista es solo WhatsApp; las respuestas SMS las maneja SmsRepliesView.
+    if (e.channel === 'sms') return;
     // Si el chat abierto es de ese contacto, recargar sus mensajes.
     if (selected.value && e.contact_id === selected.value.id) {
       refreshOpenChat();

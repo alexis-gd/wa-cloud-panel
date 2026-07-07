@@ -54,6 +54,14 @@ Objetivo del cliente/dev: **cero pollings**, todo lo que cambia "por fuera" se v
   -> `DashboardView` escucha `.phone.paused` y recarga la salud al instante. Cifras + ultimos mensajes
   + envios al dia: **refetch-on-event debounced** (2s) escuchando `.campaign.progress` en el canal
   `campaigns` (NO polling: en reposo, cero llamadas). El historico mensual NO se refetch.
+
+### HECHO (v0.23.0)
+- **Respuestas SMS en vivo.** Se reusa `App\Events\InboundMessageReceived` con `channel='sms'`,
+  disparado en `SmsWebhookController::handleInbound` **solo si el remitente ES un contacto** (evita
+  el ruido de SMS de operadoras/servicios). `SmsRepliesView` escucha `.inbound.message` en el canal
+  `conversations`, filtra `channel==='sms'`, muestra toast y refresca la lista (refetch debounced)
+  si esta en pagina 1 sin filtros. `ConversationsView` ahora ignora `channel==='sms'` (separacion
+  de canales WA/SMS).
 - **Infra Soketi**: Docker en el VPS (`quay.io/soketi/soketi:1.6-16-alpine`), `127.0.0.1:6001`,
   Nginx `location /app/` (Cloudflare termina TLS), `.env` con PUSHER_* (server->127.0.0.1:6001) y
   VITE_PUSHER_* (browser->sender.prestamaz.site:443 wss).
@@ -104,7 +112,7 @@ cae). Tests: al menos que el evento se dispara y su canal/payload (ver `WebhookI
   nadie lo mira en vivo. Carga 1 vez.
 - Resultado: pantalla de pared que se refresca sola con la actividad, sin timers, sin darle boton.
 
-### 4. Respuestas SMS (OPCIONAL, casi gratis) - hoy NO tiene polling
+### 4. Respuestas SMS (OPCIONAL, casi gratis) - hoy NO tiene polling [HECHO v0.23.0]
 - El evento `InboundMessageReceived` YA soporta `channel` (se paso 'whatsapp'). Falta: dispararlo en
   `SmsWebhookController::handleInbound` con `channel='sms'` (solo para entrantes que SON contacto, ver
   el fix de "Respuestas SMS solo contactos"), y que `SmsRepliesView` escuche y meta la fila + toast.

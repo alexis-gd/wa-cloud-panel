@@ -71,11 +71,9 @@ class SendSmsMessage implements ShouldQueue
             return;
         }
 
-        // ── Snooze CROSS-CHANNEL (contacto pidió "no por ahora") ──
-        if ($contact->isSnoozeActive()) {
-            $this->discard($campaign, $contact, 'snooze');
-            return;
-        }
+        // ── Snooze es POR CANAL (solo WhatsApp): el "No por ahora" nace de un botón de
+        //    plantilla WhatsApp y pausa SOLO WhatsApp. SMS no lo respeta (el cliente impacta
+        //    por ambos canales por separado, igual que dedup/cooldown). Ver contexto-sms. ──
 
         // ── Dedup POR CANAL: no reenviar SMS si ya recibió un SMS hoy ──
         // (WhatsApp y SMS son independientes: un WA hoy no frena el SMS.)

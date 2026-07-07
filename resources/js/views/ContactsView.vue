@@ -491,9 +491,9 @@ const waDeliverTooltip = (c) => {
 // Bloqueo de SMS: la baja (opt-out) es cross-channel + banderas propias de SMS.
 const smsIsBlocked = (c) => c.status === 'opted_out' || c.sms_opt_out || c.sms_blocked || c.sms_invalid;
 
+// El snooze NO entra en SMS: es por canal (solo WhatsApp). Ver contexto-sms.
 const smsDeliverLabel = (c) => {
     if (smsIsBlocked(c))        return 'No recibe';
-    if (c.snooze_active)        return 'En snooze';
     if (c.sms_sent_today)       return 'Enviado hoy';
     if (c.sms_cooldown_active)  return 'En cooldown';
     return 'Disponible';
@@ -501,7 +501,6 @@ const smsDeliverLabel = (c) => {
 
 const smsDeliverSeverity = (c) => {
     if (smsIsBlocked(c))        return 'danger';
-    if (c.snooze_active)        return 'secondary';
     if (c.sms_sent_today)       return 'info';
     if (c.sms_cooldown_active)  return 'warn';
     return 'success';
@@ -512,7 +511,6 @@ const smsDeliverTooltip = (c) => {
     if (c.sms_opt_out) return 'SMS: dado de baja por SMS (respondió STOP/BAJA). No afecta WhatsApp';
     if (c.sms_blocked) return 'SMS: bloqueado por rebotes consecutivos. No afecta WhatsApp';
     if (c.sms_invalid) return 'SMS: el número no recibe SMS (línea fija o inexistente). No afecta WhatsApp';
-    if (c.snooze_active)        return `SMS: en snooze${c.snooze_until ? ` hasta ${c.snooze_until}` : ''} - el contacto pidió "No por ahora"`;
     if (c.sms_sent_today)       return 'SMS: ya recibió un SMS hoy (no se le reenvía el mismo día)';
     if (c.sms_cooldown_active)  return `SMS: en cooldown${c.sms_cooldown_until ? ` hasta ${c.sms_cooldown_until}` : ''} - no se le envía hasta que pase`;
     return 'SMS: disponible - le puede llegar una campaña ahora';

@@ -65,6 +65,22 @@ class SendSmsMessageJobTest extends TestCase
         $this->assertSame(1, $this->campaign->fresh()->sent_count);
     }
 
+    public function test_snooze_de_whatsapp_no_bloquea_sms(): void
+    {
+        // El "No por ahora" es de WhatsApp (por canal): el SMS SÍ se envía igual.
+        $this->mockOkClient();
+        $this->contact->update(['snoozed_until' => now()->addDays(10)]);
+
+        $this->makeJob()->handle(app(SmsGatewayClient::class));
+
+        $this->assertDatabaseHas('message_log', [
+            'to_number' => '529991234567',
+            'channel'   => 'sms',
+            'status'    => 'sent',
+        ]);
+        $this->assertSame(1, $this->campaign->fresh()->sent_count);
+    }
+
     public function test_optout_whatsapp_bloquea_sms_cross_channel(): void
     {
         $this->contact->update(['status' => 'opted_out']);

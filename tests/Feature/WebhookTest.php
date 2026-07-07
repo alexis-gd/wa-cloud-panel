@@ -206,6 +206,42 @@ class WebhookTest extends TestCase
         $this->assertDatabaseCount('app_notifications', 0);
     }
 
+    // ── Tiempo real: estado de entrega de campaña ────────────────────────────
+
+    public function test_status_de_mensaje_de_campana_emite_progreso(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([\App\Events\CampaignProgressUpdated::class]);
+
+        $campaign = \App\Models\Campaign::factory()->create(['status' => 'completed']);
+        MessageLog::factory()->create([
+            'wa_message_id' => 'wamid.camp.delivered',
+            'campaign_id'   => $campaign->id,
+            'status'        => 'sent',
+        ]);
+
+        $this->postWebhookStatus('wamid.camp.delivered', 'delivered', []);
+
+        \Illuminate\Support\Facades\Event::assertDispatched(
+            \App\Events\CampaignProgressUpdated::class,
+            fn ($e) => $e->campaignId === $campaign->id,
+        );
+    }
+
+    public function test_status_de_mensaje_sin_campana_no_emite_progreso(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([\App\Events\CampaignProgressUpdated::class]);
+
+        MessageLog::factory()->create([
+            'wa_message_id' => 'wamid.nocamp.delivered',
+            'campaign_id'   => null,
+            'status'        => 'sent',
+        ]);
+
+        $this->postWebhookStatus('wamid.nocamp.delivered', 'delivered', []);
+
+        \Illuminate\Support\Facades\Event::assertNotDispatched(\App\Events\CampaignProgressUpdated::class);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function postWebhookStatus(string $waMessageId, string $status, array $errors): void

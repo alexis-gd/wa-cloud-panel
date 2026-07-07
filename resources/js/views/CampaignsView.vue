@@ -631,7 +631,7 @@ function subscribeRealtime() {
             clearTimeout(detailLogsDebounce);
             detailLogsDebounce = setTimeout(() => {
                 if (showDetail.value && selectedCampaign.value?.id === e.campaign_id) {
-                    loadDetailLogs(e.campaign_id, detailCurrentPage.value);
+                    loadDetailLogs(e.campaign_id, detailCurrentPage.value, { silent: true });
                 }
             }, 500);
         }
@@ -650,8 +650,10 @@ async function openDetail(campaign) {
     await loadDetailLogs(campaign.id, 1);
 }
 
-async function loadDetailLogs(campaignId, page = 1) {
-    detailLoading.value = true;
+// silent: refetch en vivo (por evento) sin prender el spinner, para no provocar el "salto"
+// de la tabla al recargar. Las cargas manuales (abrir modal, paginar) sí muestran loading.
+async function loadDetailLogs(campaignId, page = 1, { silent = false } = {}) {
+    if (! silent) detailLoading.value = true;
     const res = await api.campaignLogs(campaignId, { page });
     if (res.status === 'ok') {
         // Actualizar selectedCampaign con datos frescos del servidor (elimina datos rancios del listado)
@@ -665,7 +667,7 @@ async function loadDetailLogs(campaignId, page = 1) {
         detailNextPage.value    = res.next_page ?? null;
         detailPrevPage.value    = res.prev_page ?? null;
     }
-    detailLoading.value = false;
+    if (! silent) detailLoading.value = false;
 }
 
 async function doPause(campaign) {

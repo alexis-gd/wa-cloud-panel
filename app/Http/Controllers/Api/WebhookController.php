@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\CampaignProgressUpdated;
 use App\Events\InboundMessageReceived;
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
+use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\MessageLog;
@@ -59,6 +61,11 @@ class WebhookController extends Controller
 
         $body = $request->json()->all();
 
+        // Campañas cuyos mensajes cambiaron de status en este webhook. Meta manda los
+        // statuses en lote, así que emitimos 1 evento por campaña al final (no 1 por mensaje):
+        // el modal abierto refresca la fila (Enviado -> Entregado -> Leído -> Fallido) en vivo.
+        $touchedCampaignIds = [];
+
         // Procesar cambios de status (delivered, read, failed)
         // data_get con wildcards retorna array anidado — Arr::collapse lo aplana un nivel
         foreach (Arr::collapse(data_get($body, 'entry.*.changes.*.value.statuses', [[]])) as $statusEvent) {
@@ -67,6 +74,10 @@ class WebhookController extends Controller
 
             if ($waMessageId && $status) {
                 $log = MessageLog::where('wa_message_id', $waMessageId)->first();
+
+                if ($log?->campaign_id) {
+                    $touchedCampaignIds[] = $log->campaign_id;
+                }
 
                 if ($status === 'failed') {
                     $errorData  = $statusEvent['errors'][0] ?? [];
@@ -108,6 +119,14 @@ class WebhookController extends Controller
                 // Sincronizar status en conversations (mensajes salientes)
                 Conversation::where('wa_message_id', $waMessageId)
                     ->update(['status' => $status]);
+            }
+        }
+
+        // Emitir progreso en vivo por cada campaña tocada (sin throttle: el estado terminal
+        // no se puede perder). El listener del modal refetch lee el estado completo de las filas.
+        foreach (array_unique($touchedCampaignIds) as $campaignId) {
+            if ($campaign = Campaign::find($campaignId)) {
+                event(CampaignProgressUpdated::fromCampaign($campaign));
             }
         }
 

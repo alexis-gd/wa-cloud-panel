@@ -173,12 +173,18 @@ Por eso el manejo de números SMS se separa del de WhatsApp:
 
 ## Protección anti-duplicado
 
-> **DECISIÓN DEL CLIENTE (implementada):** dedup diario y cooldown son **POR CANAL**, no
-> cross-channel. WhatsApp lleva su propio conteo y SMS el suyo — un contacto que recibió
+> **DECISIÓN DEL CLIENTE (implementada):** dedup diario, cooldown **y snooze** son **POR CANAL**,
+> no cross-channel. WhatsApp lleva su propio conteo y SMS el suyo — un contacto que recibió
 > WhatsApp hoy **sí** puede recibir un SMS hoy (y viceversa). El diseño original era
 > cross-channel; el cliente pidió separarlos para poder impactar por ambos canales.
 > Implementado con filtro `->where('channel', ...)` en los dedup/cooldown de ambos jobs
 > (`SendWhatsAppMessage`, `SendSmsMessage`).
+>
+> **Snooze POR CANAL (solo WhatsApp):** el "No por ahora" nace de un botón de plantilla de
+> WhatsApp (SMS no tiene botones) y pausa **solo WhatsApp**. `SendSmsMessage` **NO** checa
+> `isSnoozeActive()`, y en la entregabilidad (`ContactController`) el snooze NO entra al eje SMS.
+> Un contacto en snooze de WhatsApp sigue recibiendo SMS. La columna `snoozed_until` es, en la
+> práctica, el "snooze de WhatsApp".
 >
 > **Lo que SIGUE siendo cross-channel** (no se tocó): el **opt-out** y el **blacklist**.
 > Una baja (STOP/BAJA) o un `status = opted_out` bloquea AMBOS canales — es regla legal/seguridad.

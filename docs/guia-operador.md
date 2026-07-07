@@ -255,7 +255,7 @@ La lista separa **dos cosas**: el estado de la conversación y quién la atiende
 **Estado** (punto de color junto al nombre + chip):
 - 🟢 **"Abierta"** (verde) — ventana de 24h abierta, se puede responder texto libre.
 - ⚪ **"Cerrada"** (gris) — el contacto no ha respondido en las últimas 24h (solo plantilla reabre).
-- 🟠 **"Snooze"** (ámbar) — el contacto pidió "No por ahora". **No bloquea el chat**: no entra a campañas hasta la fecha, pero le puedes seguir escribiendo a mano.
+- 🟠 **"Snooze"** (ámbar) — el contacto pidió "No por ahora". **No bloquea el chat**: no entra a campañas de WhatsApp hasta la fecha (el SMS no se ve afectado, es por canal), pero le puedes seguir escribiendo a mano.
 - 🔴 **"Baja"** (rojo) - dado de baja permanentemente, no se puede contactar.
 
 **Asignación** (aparte del estado):
@@ -307,7 +307,7 @@ Cuando un contacto responde al WhatsApp, el mensaje aparece en **Conversaciones*
 2. En el panel izquierdo ver la lista de contactos con mensajes. El estado (ver arriba):
    - **Abierta** (verde) — ventana de 24h abierta, puedes responder texto libre.
    - **Cerrada** (gris) — el contacto no ha respondido en las últimas 24h. Solo plantilla reabre.
-   - **Snooze** (ámbar) — el contacto pidió "No por ahora". No entra a campañas hasta la fecha, pero **sí le puedes escribir a mano** desde aquí.
+   - **Snooze** (ámbar) — el contacto pidió "No por ahora". No entra a campañas de WhatsApp hasta la fecha (el SMS no se ve afectado), pero **sí le puedes escribir a mano** desde aquí.
    - **Baja** (rojo) - dado de baja permanentemente, no se puede contactar.
 
 3. Seleccionar un contacto para ver el historial de mensajes.
@@ -402,8 +402,9 @@ El sistema controla esto automáticamente — el operador no puede cambiarlo.
 **¿Qué es el "snooze"?**
 Si un contacto toca el botón "No por ahora" en una plantilla, el sistema lo pausa
 por el período configurado (por defecto 30 días). Pasado ese período, vuelve a estar
-disponible para campañas automáticamente. **El snooze solo pausa las campañas**: en
-Conversaciones le puedes seguir escribiendo a mano si hace falta darle seguimiento.
+disponible para campañas automáticamente. **El snooze solo pausa las campañas de WhatsApp**
+(el SMS es un canal aparte y no se ve afectado): en Conversaciones le puedes seguir
+escribiendo a mano si hace falta darle seguimiento.
 
 ---
 

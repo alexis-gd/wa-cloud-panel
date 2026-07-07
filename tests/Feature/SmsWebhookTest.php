@@ -170,6 +170,31 @@ class SmsWebhookTest extends TestCase
         \Illuminate\Support\Facades\Event::assertNotDispatched(\App\Events\InboundMessageReceived::class);
     }
 
+    public function test_sms_delivered_de_campana_emite_progreso(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([\App\Events\CampaignProgressUpdated::class]);
+
+        $campaign = \App\Models\Campaign::factory()->create(['channel' => 'sms', 'status' => 'completed']);
+        MessageLog::create([
+            'to_number'     => '529991234567',
+            'channel'       => 'sms',
+            'wa_message_id' => 'SM-camp-1',
+            'campaign_id'   => $campaign->id,
+            'status'        => 'sent',
+            'sent_at'       => now(),
+        ]);
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:delivered',
+            'payload' => ['messageId' => 'SM-camp-1'],
+        ])->assertStatus(200);
+
+        \Illuminate\Support\Facades\Event::assertDispatched(
+            \App\Events\CampaignProgressUpdated::class,
+            fn ($e) => $e->campaignId === $campaign->id,
+        );
+    }
+
     public function test_webhook_registra_ultimo_evento_para_health(): void
     {
         $this->smsLog('SM-h');

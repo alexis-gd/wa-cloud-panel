@@ -305,6 +305,21 @@ class SettingsControllerTest extends TestCase
         $this->assertSame(0, $contact->sms_bounce_count);
     }
 
+    public function test_demo_reset_limpia_el_snooze(): void
+    {
+        $contact = \App\Models\Contact::factory()->create([
+            'status'        => 'active',
+            'snoozed_until' => now()->addDays(10),
+        ]);
+
+        $this->actingAsSuperAdmin()
+             ->postJson('/api/settings/demo-reset')
+             ->assertStatus(200)
+             ->assertJsonPath('status', 'ok');
+
+        $this->assertNull($contact->fresh()->snoozed_until);
+    }
+
     public function test_demo_reset_reactiva_bajas_de_whatsapp(): void
     {
         $contact = \App\Models\Contact::factory()->create([

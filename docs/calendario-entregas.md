@@ -97,7 +97,7 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] **Optimización de queries para escala** — N+1 en ConversationController (window_open → withExists), ContactController::stats (4 queries → 1 GROUP BY)
 - [x] **Política de sesiones Sanctum** — tokens expiran a las 8h, sanctum:prune-expired corre diario
 - [x] **Índices de BD** — índice compuesto (contact_id, id) en conversation_assignments; índices previos en message_log y contacts.status ya existían
-- [~] **Detección de contactos inalcanzables (`unreachable`)** — ver plan completo en [`docs/plan-unreachable.md`](plan-unreachable.md). Comando `wa:mark-unreachable` corre diario a las 6AM CST (antes de la ventana de envíos). Marca contactos `active` con 2+ mensajes en `sent` de 30+ días sin ningún `delivered`/`read` histórico. Protege el ratio `delivered/sent` y la calidad del número en Meta. **Bloque A HECHO** (migración + comando + scheduler + check en job + tests, rama `feat/unreachable-contacts`). **Bloque B pendiente**: widget dashboard, reactivación manual, label en tabla Contactos, guía-operador.
+- [x] **Detección de contactos inalcanzables (`unreachable`)** — ver plan completo en [`docs/plan-unreachable.md`](plan-unreachable.md). Comando `wa:mark-unreachable` corre diario a las 6AM CST (antes de la ventana de envíos). Marca contactos `active` con 2+ mensajes en `sent` de 30+ días sin ningún `delivered`/`read` histórico. Protege el ratio `delivered/sent` y la calidad del número en Meta. **Bloque A** (migración + comando + scheduler + check en job + tests) y **Bloque B** (v0.18.0: widget dashboard, reactivación manual admin, label en Contactos, guía+popovers) HECHOS.
 - [ ] **Auto-sincronizar `daily_limit` cuando Meta sube el tier** — actualmente el `daily_limit` en BD se actualiza solo manualmente (botón Salud del número en Settings). Cuando Meta promueve el tier automáticamente, el PhoneNumberSelector sigue usando el límite viejo hasta que alguien presione el botón. Solución: el job de envío o un comando `wa:sync-limits` debería llamar al endpoint de Meta y actualizar `phone_numbers.daily_limit` si cambió.
 
 ### Features E2 (pendientes)
@@ -128,14 +128,14 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 
 - [x] **Migraciones multicanal** — `channel` en `message_log` y `campaigns`; columnas WA (`template_name`, `language_code`, `phone_number_id`) ahora nullable; campos `sms_opt_out`, `sms_blocked`, `sms_invalid`, `sms_bounce_count` en `contacts`.
 - [x] **`SmsGatewayClient`** — único punto de salida HTTP al gateway (espejo de `WhatsAppClient`, config en `config/sms.php`). Antepone `+` (E.164) que el gateway exige.
-- [x] **Job `SendSmsMessage`** — separado del job WA; opt-out **cross-channel**; dedup/cooldown **por canal**; SMS **sin horario forzado** (el cliente elige cuándo).
+- [x] **Job `SendSmsMessage`** — separado del job WA; opt-out y blacklist **cross-channel**; dedup, cooldown **y snooze por canal** (snooze es solo WhatsApp, v0.27.0); SMS **sin horario forzado** (el cliente elige cuándo).
 - [x] **Campaña por canal** — selector WhatsApp/SMS en el modal; el pool de chips lo resuelve el gateway (sin selector de número).
 - [x] **Botón "Enviar prueba"** (admin) — dispara 1 SMS al gateway sin crear campaña ni cooldown.
 - [x] **Gateway desplegado en prod** — Docker en el VPS, expuesto por **Cloudflare Tunnel** (`gw.prestamaz.site`), 1 teléfono (SIM Telcel) registrado. **Primer SMS OK vía botón + campaña.**
 - [x] **Webhook `POST /api/sms/webhook`** (✅ validado 2026-07-02) — 4 eventos registrados en el gateway; `sms:delivered` actualiza a "Entregado", `sms:received` STOP marca opt-out; `failed`→rebote (3⇒`sms_blocked`). Payload real: estados usan `messageId`, entrantes `sender`. **Gotcha**: el teléfono debe reiniciarse para re-sincronizar la lista de webhooks tras registrarlos.
 - [ ] **Firma del webhook (`SMS_WEBHOOK_SECRET`)** — opcional, endurecimiento: HMAC-SHA256(body+X-Timestamp). Hoy vacío (sin verificación de firma). Ojo pool: la Signing Key vive en cada teléfono (device-side) → habría que poner la misma en todos.
 - [x] **(A) Manejo de números SMS diferenciado — auto-blacklist configurable**: nuevo `Setting sms_auto_blacklist_bounces` (**default 0 = nunca bloquea**), editable en Configuración (solo superadmin). `Contact::registerSmsBounce()` sigue contando rebotes (para reporte) pero solo pone `sms_blocked` si el umbral > 0 y se alcanza. Razón: SIM propia barata → al cliente no le importa la reputación del número; "no suma fallas". **Opt-out (STOP) se queda igual (legal, LFPDPPP vigente 21-mar-2025)**. WhatsApp mantiene su bloqueo estricto.
-- [x] **(B) SMS entrantes visibles — "Respuestas SMS" (lista plana, NO conversación)**: los `sms:received` se guardan en tabla mínima `sms_inbound_messages` y se muestran como inbox plano (fecha · número · mensaje · acción "Baja automática"). Vista `SmsRepliesView` + nav gateado por `feature_campaigns`; endpoint `GET /api/sms/inbound` (admin/operator) con búsqueda y filtro "Solo bajas". Registra también entrantes de números fuera de `contacts` (contact_id null). No se reusó `conversations` (es WhatsApp-céntrica).
+- [x] **(B) SMS entrantes visibles — "Respuestas SMS"**: los `sms:received` se guardan en `sms_inbound_messages`. Vista `SmsRepliesView` + endpoint `GET /api/sms/inbound` (admin/operator). Solo muestra respuestas de CONTACTOS (`whereNotNull('contact_id')`, esconde ruido de operadora tipo UNOTV/TELCEL). **Evolucionado (v0.25.0)**: vista **AGRUPADA por contacto** (fila expandible con todos sus mensajes) + **detección de interés** (SI/INFO → tag verde "Interesado") además de STOP/BAJA → "Baja automática". Filtro Todas/Interesados/Bajas.
 - [x] **(C) Badge "SMS baja" en Contactos**: chip rojo "Baja SMS" bajo el Estado cuando `sms_opt_out`/`sms_blocked`/`sms_invalid`, separado del "Estado" (WhatsApp). Tooltip con el motivo (nota: no guardamos fecha/origen del opt-out SMS, solo el motivo). Filtro "Solo bajas SMS" (`?sms_blocked=1` en `/api/contacts`). Los flags `sms_*` ya viajaban en el index del modelo.
 - [x] **Plantillas de SMS locales**: tabla `sms_templates` (nombre + cuerpo + activa), no pasan por Meta. Se administran en la vista **Plantillas** (pestaña SMS): listar, crear/editar, activar/desactivar, vista previa, enviar prueba (reusa `POST /api/sms/send-test`). Endpoints `GET /api/sms-templates` (admin/operator) + `POST/PUT/DELETE` (admin). Componente `SmsTemplatesPanel.vue`.
 - [x] **Campaña SMS solo por plantilla (sin texto libre)**: la campaña SMS exige `sms_template_id` (no `sms_body` libre) - garantiza que se usó una plantilla revisada, igual que WhatsApp exige plantilla aprobada. El cuerpo se snapshotea en `sms_body` al crear (el envío no cambia si la plantilla se edita/borra). Migración `sms_template_id` en `campaigns` (FK nullOnDelete). La tabla Campañas muestra icono + nombre de plantilla SMS (paridad con WhatsApp). El textarea libre se eliminó; "Enviar prueba" usa el cuerpo de la plantilla elegida.
@@ -144,3 +144,25 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [ ] **Warm-up / rate limit por SIM** — el gateway limita a ~8 SMS/min por chip; configurar en el servidor gateway (fuera del panel).
 - [ ] **Feature flag `sms_campaigns`** — gatear el canal SMS por etapa/preset (follow-up: hoy visible para admin/superadmin).
 - [ ] **Setup físico prod** — escalar de 1 a 5–8 celulares + SIMs multi-operador (hoy 1 teléfono de prueba).
+
+### Tanda tiempo real + refinamiento (v0.19–v0.28, ✅ en prod)
+
+Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: evento `ShouldBroadcast` + punto que lo dispara + listener en la vista. Detalle en [`docs/plan-realtime.md`](plan-realtime.md).
+
+- [x] **Conversaciones en vivo** (v0.19) — `InboundMessageReceived` → canal `conversations`. Base echo.js + BroadcastServiceProvider (auth Sanctum).
+- [x] **Campañas en vivo** (v0.20) — `CampaignProgressUpdated` → mata el polling de 5s del modal; fila + modal + detalle suben solos (throttle en blasts).
+- [x] **Campanita en vivo** (v0.21) — `NotificationCreated` (hook del modelo) → mata el polling de 30s.
+- [x] **Dashboard en vivo** (v0.22) — `PhoneNumberPaused` (semáforo) + refetch-on-event debounced. **CERO pollings** logrado.
+- [x] **Respuestas SMS en vivo** (v0.23) — `InboundMessageReceived` con `channel='sms'`.
+- [x] **Ciclo de entrega en vivo WA+SMS** (v0.24) — los webhooks emiten `CampaignProgressUpdated` al cambiar status → Enviado→Entregado→Leído→Fallido sin reabrir.
+- [x] **Respuestas SMS agrupadas + interés** (v0.25) — 1 fila por contacto expandible; tag "Interesado" (SI/INFO) además de "Baja automática".
+- [x] **Nav por rol** (v0.25.1) — el agente queda encerrado en Conversaciones (router + nav); backend ya daba 403. Solo rol `agent` recibe auto-asignación.
+- [x] **Conversaciones: estado + asignación en vivo** (v0.26) — `ConversationUpdated` (assign/claim/send + webhook). Rediseño visual: chip de estado (Abierta/Cerrada/Snooze/Baja) separado de asignación (Sin asignar/Tú/iniciales); borde verde = solo "mía".
+- [x] **Snooze por canal** (v0.27) — el "No por ahora" (botón WhatsApp) pausa **solo WhatsApp**; SMS no lo respeta. Demo reset limpia snooze (v0.27.1).
+- [x] **Seeders + limpieza** (v0.28) — `migrate:fresh --seed` deja BD usable (5 usuarios @prestamaz.mx + 4 contactos + número). Comando `db:clean-demo` (flags `--contacts`/`--users`) limpia datos de prueba sin tocar plantillas/config. Ver [`docs/limpieza-y-seeds.md`](limpieza-y-seeds.md).
+- [x] **"Etapas de entrega" desactivado** (v0.28) — el control de feature flags queda oculto (const `stageControlEnabled=false`) para no apagar módulos por error. Footer sin "Stage 3".
+
+### Documentación al usuario (siguiente etapa)
+- [ ] Definir formato de entrega de guías al cliente (página web/Artifact, PDF imprimible, etc.)
+- [ ] QA manual completo — ejecutar `docs/qa-manual.md`
+- [ ] Sesión de capacitación + video

@@ -5,7 +5,7 @@
             <template #content>
                 <div class="token-status" v-if="tokenStatus">
                     <Tag
-                        :value="tokenStatus.token_valid ? 'Token válido — ' + tokenStatus.token_user : 'Token inválido'"
+                        :value="tokenStatus.token_valid ? 'Token válido - ' + tokenStatus.token_user : 'Token inválido'"
                         :severity="tokenStatus.token_valid ? 'success' : 'danger'"
                         :icon="tokenStatus.token_valid ? 'pi pi-check-circle' : 'pi pi-times-circle'"
                     />
@@ -14,26 +14,29 @@
                     </span>
                 </div>
 
-                <div class="form-group">
-                    <label>Pegar nuevo token</label>
-                    <Password
-                        v-model="newToken"
-                        placeholder="EAAUz..."
-                        :feedback="false"
-                        toggle-mask
-                        fluid
-                        input-class="token-input"
-                    />
-                    <small>El token temporal dura ~24h. Para producción usa un System User Token (no expira).</small>
-                </div>
+                <form class="token-form" @submit.prevent="saveToken" autocomplete="off">
+                    <div class="form-group">
+                        <label>Pegar nuevo token</label>
+                        <Password
+                            v-model="newToken"
+                            placeholder="EAAUz..."
+                            :feedback="false"
+                            toggle-mask
+                            fluid
+                            autocomplete="off"
+                            input-class="token-input"
+                        />
+                        <small>El token temporal dura ~24h. Para producción usa un System User Token (no expira).</small>
+                    </div>
 
-                <Button
-                    label="Guardar token"
-                    icon="pi pi-save"
-                    :loading="saving"
-                    :disabled="!newToken"
-                    @click="saveToken"
-                />
+                    <Button
+                        type="submit"
+                        label="Guardar token"
+                        icon="pi pi-save"
+                        :loading="saving"
+                        :disabled="!newToken"
+                    />
+                </form>
 
                 <Message v-if="saveResult" :severity="saveResult.error ? 'error' : 'success'" class="mt-3">
                     {{ saveResult.error ?? saveResult.message }}
@@ -477,6 +480,7 @@ onMounted(() => {
 
 <style scoped>
 .token-status { margin-bottom: 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.token-form   { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
 .token-error  { font-size: .82rem; color: var(--p-red-600); }
 .form-group   { margin-bottom: 16px; }
 .form-group label { display: block; font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 6px; }

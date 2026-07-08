@@ -32,7 +32,8 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 │   ├── guia-sms-gateway-setup.md      ← ✅ EN USO: montar el gateway capcom6 (Docker + túnel + teléfono)
 │   ├── guia-twilio-setup.md           ← ⚠️ referencia (NO elegido): setup Twilio
 │   ├── testing.md                     ← guía PHPUnit, convenciones de tests
-│   └── deploy-vps.md                  ← receta de deploy VPS Ubuntu + Nginx + SSL
+│   ├── deploy-vps.md                  ← receta de deploy VPS Ubuntu + Nginx + SSL
+│   └── limpieza-y-seeds.md            ← seeders + db:clean-demo + receta prod limpio para cliente
 │
 ├── .claude/                           ← instrucciones y reglas para Claude (viven en el repo)
 │   ├── context-map.md                 ← este archivo
@@ -347,6 +348,7 @@ En resumen:
 | Cambia la estructura técnica o se toma una decisión tecnológica | `docs/arquitectura-referencia.md` |
 | Cambia el flujo multicanal, cooldown o anti-duplicado | `docs/sms-referencia.md` |
 | Cambia el proceso de deploy | `docs/deploy-vps.md` |
+| Cambia seeders, limpieza de BD o el flujo de dejar prod limpio | `docs/limpieza-y-seeds.md` |
 | Cambia la convención de tests | `docs/testing.md` |
 | Se descubre comportamiento no obvio de la API Meta | `.claude/rules/contexto-meta-whatsapp.md` |
 | Se descubre comportamiento del gateway SMS, cambia regulación SMS, o se ajusta cooldown/dedup | `.claude/rules/contexto-sms.md` |

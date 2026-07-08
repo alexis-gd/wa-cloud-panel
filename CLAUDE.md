@@ -34,6 +34,7 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | [docs/calendario-entregas.md](docs/calendario-entregas.md) | Entregas al cliente + checklist de desarrollo por etapa + backlog técnico |
 | [docs/testing.md](docs/testing.md) | Guía PHPUnit, tipos de tests, mocks, convenciones |
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |
+| [docs/limpieza-y-seeds.md](docs/limpieza-y-seeds.md) | Seeders (`migrate:fresh --seed`) + comando `db:clean-demo` + receta para dejar prod limpio para el cliente |
 | [docs/guia-operador.md](docs/guia-operador.md) | Manual de usuario para el equipo de Prestamaz |
 | [docs/qa-manual.md](docs/qa-manual.md) | Checklist de QA manual por módulo (happy path + casos borde) |
 | [docs/plan-realtime.md](docs/plan-realtime.md) | Tiempo real (Soketi): estado, pollings a matar, hoja de ruta de sockets (campañas, campanita, dashboard, SMS) |

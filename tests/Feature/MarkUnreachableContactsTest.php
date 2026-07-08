@@ -88,6 +88,59 @@ class MarkUnreachableContactsTest extends TestCase
         $this->assertEquals('active', $contact->fresh()->status);
     }
 
+    public function test_marca_con_tres_sent_seguidos_aunque_sean_recientes(): void
+    {
+        // Regla B: 3 no-entregados seguidos SIN esperar 30 días (tope fijo).
+        $contact = Contact::factory()->create(['phone' => '521111111120', 'status' => 'active']);
+        $this->log($contact->phone, 'sent', now()->subDays(14));
+        $this->log($contact->phone, 'sent', now()->subDays(7));
+        $this->log($contact->phone, 'sent', now()->subDays(1));
+
+        $this->artisan('wa:mark-unreachable')->assertExitCode(0);
+
+        $this->assertEquals('unreachable', $contact->fresh()->status);
+    }
+
+    public function test_no_marca_con_solo_dos_sent_recientes(): void
+    {
+        // 2 no-entregados recientes: por debajo del tope de 3 y el más viejo < 30 días.
+        $contact = Contact::factory()->create(['phone' => '521111111121', 'status' => 'active']);
+        $this->log($contact->phone, 'sent', now()->subDays(10));
+        $this->log($contact->phone, 'sent', now()->subDays(3));
+
+        $this->artisan('wa:mark-unreachable')->assertExitCode(0);
+
+        $this->assertEquals('active', $contact->fresh()->status);
+    }
+
+    public function test_una_entrega_en_medio_reinicia_la_cuenta(): void
+    {
+        // sent, sent, delivered (reinicia), sent → solo 1 no-entregado tras la última entrega.
+        $contact = Contact::factory()->create(['phone' => '521111111122', 'status' => 'active']);
+        $this->log($contact->phone, 'sent',      now()->subDays(20));
+        $this->log($contact->phone, 'sent',      now()->subDays(15));
+        $this->log($contact->phone, 'delivered', now()->subDays(10));
+        $this->log($contact->phone, 'sent',      now()->subDays(3));
+
+        $this->artisan('wa:mark-unreachable')->assertExitCode(0);
+
+        $this->assertEquals('active', $contact->fresh()->status);
+    }
+
+    public function test_marca_si_hay_tres_sent_despues_de_una_entrega_vieja(): void
+    {
+        // Entregó 1 vez y luego bloqueó: 3 no-entregados DESPUÉS de la última entrega → se marca.
+        $contact = Contact::factory()->create(['phone' => '521111111123', 'status' => 'active']);
+        $this->log($contact->phone, 'delivered', now()->subDays(40));
+        $this->log($contact->phone, 'sent',      now()->subDays(20));
+        $this->log($contact->phone, 'sent',      now()->subDays(12));
+        $this->log($contact->phone, 'sent',      now()->subDays(4));
+
+        $this->artisan('wa:mark-unreachable')->assertExitCode(0);
+
+        $this->assertEquals('unreachable', $contact->fresh()->status);
+    }
+
     public function test_no_marca_contactos_opted_out_o_invalid(): void
     {
         $optedOut = Contact::factory()->create(['phone' => '521111111116', 'status' => 'opted_out']);

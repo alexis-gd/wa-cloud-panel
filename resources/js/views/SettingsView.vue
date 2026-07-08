@@ -106,11 +106,6 @@
                     <i class="pi pi-lock stage-disabled-icon"></i>
                     <div>
                         <p class="stage-disabled-title">Módulo desactivado temporalmente</p>
-                        <p class="stage-disabled-text">
-                            El control de mostrar/ocultar módulos por etapa está apagado a propósito para
-                            evitar cambios accidentales (un preset podía apagar módulos por error). Todos
-                            los módulos están activos. Se reactivará más adelante.
-                        </p>
                     </div>
                 </div>
             </template>
@@ -196,9 +191,8 @@
             </template>
             <template #content>
                 <p class="stage-desc">
-                    Confirma si el gateway le está entregando eventos de vuelta al panel (entregas y
-                    respuestas SMS). Distingue entre "el gateway no manda nada" y "manda pero se
-                    rechaza por firma".
+                    Confirma si el teléfono del gateway le está mandando al panel las entregas y las
+                    respuestas de SMS.
                 </p>
 
                 <div v-if="webhookHealth" class="wh-row">
@@ -213,18 +207,12 @@
                 </div>
 
                 <div class="wh-help">
-                    <p class="wh-help-title"><i class="pi pi-info-circle"></i> ¿No están entrando SMS (respuestas o entregas)?</p>
+                    <p class="wh-help-title"><i class="pi pi-info-circle"></i> ¿No están entrando ni saliendo SMS?</p>
                     <ol class="wh-help-list">
-                        <li>Revisa que el <b>teléfono del gateway</b> esté encendido y con internet.</li>
-                        <li>Que la app <b>SMS Gateway</b> esté corriendo: Autostart ON, sin restricción de batería y no cerrada en "recientes" (MIUI la mata).</li>
-                        <li>Que el <b>webhook</b> esté registrado en el gateway para <code>sms:received</code> (respuestas) y <code>sms:delivered/failed</code> (entregas), apuntando a la URL del panel.</li>
-                        <li>Si "Última llegada" no se mueve al mandarte un SMS de prueba, el teléfono no está entregando el webhook (es lo de arriba).</li>
-                        <li>Si dice "rechazo por firma", el secreto del webhook no coincide entre gateway y panel.</li>
+                        <li>Revisa el <b>teléfono del gateway</b>: que esté <b>encendido</b> y con <b>internet</b> (WiFi o datos).</li>
+                        <li>Abre la <b>app del gateway</b> en el teléfono y confirma que aparezca <b>en línea</b> (no "desconectado").</li>
+                        <li>Si sigue igual, avisa al <b>soporte técnico</b>.</li>
                     </ol>
-                    <p class="wh-help-note">
-                        Red de seguridad: las <b>entregas</b> se reconcilian solas con <code>sms:reconcile-status</code>.
-                        Las <b>respuestas entrantes</b> NO tienen reconcile: si el teléfono no las manda, no llegan.
-                    </p>
                 </div>
             </template>
         </Card>
@@ -512,8 +500,6 @@ onMounted(() => {
 .wh-help        { margin-top: 16px; padding: 12px 14px; background: var(--p-surface-50); border-radius: 8px; }
 .wh-help-title  { font-size: .82rem; font-weight: 600; margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
 .wh-help-list   { margin: 0; padding-left: 18px; font-size: .8rem; color: var(--p-text-color); line-height: 1.5; display: flex; flex-direction: column; gap: 4px; }
-.wh-help-list code, .wh-help-note code { background: var(--p-surface-200); border-radius: 4px; padding: 1px 4px; font-size: .76rem; }
-.wh-help-note   { font-size: .78rem; color: var(--p-text-muted-color); margin: 10px 0 0; line-height: 1.5; }
 
 .stage-disabled       { display: flex; align-items: flex-start; gap: 12px; padding: 6px 2px; }
 .stage-disabled-icon  { font-size: 1.1rem; color: var(--p-text-muted-color); margin-top: 2px; }

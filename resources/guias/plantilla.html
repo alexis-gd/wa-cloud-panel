@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+  /* Poppins self-host (subset latin) - sin depender de Google */
+  @font-face {
+    font-family: "Poppins"; font-style: normal; font-weight: 600; font-display: swap;
+    src: url("fonts/poppins-600.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Poppins"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("fonts/poppins-700.woff2") format("woff2");
+  }
+  :root {
+    --navy:      #0E2A47;
+    --navy-2:    #16385C;
+    --emerald:   #0C9E6D;
+    --emerald-d: #0A7C56;
+    --emerald-wash: #E8F5EF;
+    --paper:     #F7F5F1;
+    --card:      #FFFFFF;
+    --ink:       #1B2530;
+    --ink-soft:  #51606E;
+    --ink-faint: #7C8794;
+    --line:      #E4DFD5;
+    --warn-wash: #FBF1DA;
+    --warn-line: #E7B34D;
+    --display: "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --sidebar-w: 288px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); line-height: 1.65; font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Layout ---------- */
+  .layout { display: flex; align-items: flex-start; }
+
+  .sidebar {
+    width: var(--sidebar-w); flex: none; position: sticky; top: 0;
+    height: 100vh; overflow-y: auto; background: var(--navy); color: #DCE7F1;
+    padding: 22px 16px 40px;
+  }
+  .sidebar .brand {
+    display: flex; align-items: center; gap: 10px; padding: 6px 8px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 14px;
+  }
+  .sidebar .brand .dot {
+    width: 30px; height: 30px; border-radius: 8px; flex: none;
+    background: linear-gradient(135deg, var(--emerald), var(--navy-2));
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .sidebar .brand b { font-family: var(--display); font-size: 15px; font-weight: 600; color: #fff; line-height: 1.2; }
+  .sidebar .brand span { display: block; font-size: 11px; color: #8FA6BB; font-weight: 400; }
+
+  .toc { list-style: none; margin: 0; padding: 0; }
+  .toc a {
+    display: block; padding: 7px 10px; border-radius: 7px; color: #B9CBDC;
+    text-decoration: none; font-size: 13.5px; line-height: 1.35;
+    transition: background .12s, color .12s;
+  }
+  .toc a:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .toc a.active { background: var(--emerald); color: #fff; font-weight: 600; }
+
+  .main { flex: 1 1 auto; min-width: 0; display: flex; justify-content: center; }
+  .doc { width: 100%; max-width: 780px; padding: 34px 40px 90px; }
+
+  /* ---------- Doc header ---------- */
+  .doc-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+  .doc-top .eyebrow { font-family: var(--display); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--emerald-d); }
+  .print-btn {
+    display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink-soft); border-radius: 8px; padding: 8px 14px;
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .print-btn:hover { border-color: var(--emerald); color: var(--emerald-d); }
+
+  /* ---------- Typography ---------- */
+  .doc h1, .doc h2, .doc h3 { font-family: var(--display); }
+  .doc h1 { font-size: 31px; line-height: 1.12; margin: 0 0 6px; letter-spacing: -.02em; font-weight: 700; text-wrap: balance; }
+  .doc h2 {
+    font-size: 22px; margin: 44px 0 12px; padding-top: 12px; font-weight: 700; letter-spacing: -.01em;
+    border-top: 1px solid var(--line); scroll-margin-top: 16px; text-wrap: balance;
+  }
+  .doc h2:first-of-type { border-top: none; padding-top: 0; margin-top: 8px; }
+  .doc h3 { font-size: 16.5px; margin: 26px 0 8px; font-weight: 600; color: var(--navy); scroll-margin-top: 16px; }
+  .doc p { margin: 12px 0; }
+  .doc a { color: var(--emerald-d); text-decoration: none; border-bottom: 1px solid transparent; }
+  .doc a:hover { border-bottom-color: var(--emerald); }
+  .doc strong { font-family: var(--display); font-weight: 600; color: var(--ink); }
+  .doc ul, .doc ol { margin: 12px 0; padding-left: 22px; }
+  .doc li { margin: 6px 0; }
+  .doc li::marker { color: var(--emerald-d); }
+  .doc hr { border: none; border-top: 1px solid var(--line); margin: 30px 0; }
+
+  /* ---------- Callouts (blockquote) ---------- */
+  .doc blockquote {
+    margin: 16px 0; padding: 13px 16px; background: var(--emerald-wash);
+    border-left: 4px solid var(--emerald); border-radius: 0 10px 10px 0;
+    color: var(--ink); font-size: 14.5px;
+  }
+  .doc blockquote p { margin: 6px 0; }
+  .doc blockquote p:first-child { margin-top: 0; }
+  .doc blockquote p:last-child { margin-bottom: 0; }
+
+  /* ---------- Tables ---------- */
+  .table-wrap { overflow-x: auto; margin: 18px 0; border: 1px solid var(--line); border-radius: 10px; }
+  .doc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .doc thead th {
+    background: var(--navy); color: #EAF2FA; text-align: left; font-weight: 600;
+    font-family: var(--display); padding: 10px 14px; white-space: nowrap;
+  }
+  .doc tbody td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  .doc tbody tr:nth-child(even) { background: #FBFAF7; }
+
+  /* ---------- Code ---------- */
+  .doc code {
+    background: #EEF1F4; color: #0A3B63; padding: 1px 6px; border-radius: 5px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .88em;
+  }
+
+  /* ---------- Mobile ---------- */
+  .menu-toggle { display: none; }
+  @media (max-width: 900px) {
+    .sidebar {
+      position: fixed; z-index: 30; left: 0; top: 0; transform: translateX(-100%);
+      transition: transform .22s ease; box-shadow: 0 0 40px rgba(0,0,0,.3);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .doc { padding: 20px 20px 70px; }
+    .menu-toggle {
+      display: inline-flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 20;
+      width: 100%; background: var(--navy); color: #fff; border: none; padding: 12px 16px;
+      font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 25; }
+    .backdrop.show { display: block; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    .sidebar, .menu-toggle, .print-btn, .backdrop { display: none !important; }
+    body { background: #fff; font-size: 12pt; }
+    .doc { max-width: none; padding: 0; }
+    .doc h2 { break-after: avoid; }
+    .table-wrap, .doc blockquote { break-inside: avoid; }
+    a { color: inherit; border: none; }
+  }
+</style>
+</head>
+<body>
+  <button class="menu-toggle" onclick="document.body.classList.toggle('nav-open')">
+    &#9776; Contenido
+  </button>
+  <div class="backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="dot">&#128214;</span>
+        <b>Prestamaz Panel<span>Guía de uso</span></b>
+      </div>
+      <ul class="toc" id="toc">
+        {{TOC}}
+      </ul>
+    </nav>
+    <div class="main">
+      <article class="doc">
+        <div class="doc-top">
+          <span class="eyebrow">Guía de uso</span>
+          <button class="print-btn" onclick="window.print()">&#128424; Imprimir / Guardar PDF</button>
+        </div>
+        {{CONTENT}}
+      </article>
+    </div>
+  </div>
+
+<script>
+  // Sidebar movil
+  (function () {
+    var sb = document.getElementById('sidebar');
+    var bd = document.querySelector('.backdrop');
+    function sync() {
+      var open = document.body.classList.contains('nav-open');
+      sb.classList.toggle('open', open);
+      bd.classList.toggle('show', open);
+    }
+    new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    document.querySelectorAll('.toc a').forEach(function (a) {
+      a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+    });
+
+    // Scrollspy: resalta la seccion visible
+    var links = {}, targets = [];
+    document.querySelectorAll('.toc a').forEach(function (a) {
+      var id = a.getAttribute('href').slice(1);
+      links[id] = a; var el = document.getElementById(id); if (el) targets.push(el);
+    });
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          Object.values(links).forEach(function (l) { l.classList.remove('active'); });
+          var a = links[e.target.id]; if (a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '0px 0px -75% 0px', threshold: 0 });
+    targets.forEach(function (t) { obs.observe(t); });
+  })();
+</script>
+</body>
+</html>

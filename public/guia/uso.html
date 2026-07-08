@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guía de uso - Panel Prestamaz</title>
+<style>
+  /* Poppins self-host (subset latin) - sin depender de Google */
+  @font-face {
+    font-family: "Poppins"; font-style: normal; font-weight: 600; font-display: swap;
+    src: url("fonts/poppins-600.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Poppins"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("fonts/poppins-700.woff2") format("woff2");
+  }
+  :root {
+    --navy:      #0E2A47;
+    --navy-2:    #16385C;
+    --emerald:   #0C9E6D;
+    --emerald-d: #0A7C56;
+    --emerald-wash: #E8F5EF;
+    --paper:     #F7F5F1;
+    --card:      #FFFFFF;
+    --ink:       #1B2530;
+    --ink-soft:  #51606E;
+    --ink-faint: #7C8794;
+    --line:      #E4DFD5;
+    --warn-wash: #FBF1DA;
+    --warn-line: #E7B34D;
+    --display: "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --sidebar-w: 288px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); line-height: 1.65; font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Layout ---------- */
+  .layout { display: flex; align-items: flex-start; }
+
+  .sidebar {
+    width: var(--sidebar-w); flex: none; position: sticky; top: 0;
+    height: 100vh; overflow-y: auto; background: var(--navy); color: #DCE7F1;
+    padding: 22px 16px 40px;
+  }
+  .sidebar .brand {
+    display: flex; align-items: center; gap: 10px; padding: 6px 8px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 14px;
+  }
+  .sidebar .brand .dot {
+    width: 30px; height: 30px; border-radius: 8px; flex: none;
+    background: linear-gradient(135deg, var(--emerald), var(--navy-2));
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .sidebar .brand b { font-family: var(--display); font-size: 15px; font-weight: 600; color: #fff; line-height: 1.2; }
+  .sidebar .brand span { display: block; font-size: 11px; color: #8FA6BB; font-weight: 400; }
+
+  .toc { list-style: none; margin: 0; padding: 0; }
+  .toc a {
+    display: block; padding: 7px 10px; border-radius: 7px; color: #B9CBDC;
+    text-decoration: none; font-size: 13.5px; line-height: 1.35;
+    transition: background .12s, color .12s;
+  }
+  .toc a:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .toc a.active { background: var(--emerald); color: #fff; font-weight: 600; }
+
+  .main { flex: 1 1 auto; min-width: 0; display: flex; justify-content: center; }
+  .doc { width: 100%; max-width: 780px; padding: 34px 40px 90px; }
+
+  /* ---------- Doc header ---------- */
+  .doc-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+  .doc-top .eyebrow { font-family: var(--display); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--emerald-d); }
+  .print-btn {
+    display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink-soft); border-radius: 8px; padding: 8px 14px;
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .print-btn:hover { border-color: var(--emerald); color: var(--emerald-d); }
+
+  /* ---------- Typography ---------- */
+  .doc h1, .doc h2, .doc h3 { font-family: var(--display); }
+  .doc h1 { font-size: 31px; line-height: 1.12; margin: 0 0 6px; letter-spacing: -.02em; font-weight: 700; text-wrap: balance; }
+  .doc h2 {
+    font-size: 22px; margin: 44px 0 12px; padding-top: 12px; font-weight: 700; letter-spacing: -.01em;
+    border-top: 1px solid var(--line); scroll-margin-top: 16px; text-wrap: balance;
+  }
+  .doc h2:first-of-type { border-top: none; padding-top: 0; margin-top: 8px; }
+  .doc h3 { font-size: 16.5px; margin: 26px 0 8px; font-weight: 600; color: var(--navy); scroll-margin-top: 16px; }
+  .doc p { margin: 12px 0; }
+  .doc a { color: var(--emerald-d); text-decoration: none; border-bottom: 1px solid transparent; }
+  .doc a:hover { border-bottom-color: var(--emerald); }
+  .doc strong { font-family: var(--display); font-weight: 600; color: var(--ink); }
+  .doc ul, .doc ol { margin: 12px 0; padding-left: 22px; }
+  .doc li { margin: 6px 0; }
+  .doc li::marker { color: var(--emerald-d); }
+  .doc hr { border: none; border-top: 1px solid var(--line); margin: 30px 0; }
+
+  /* ---------- Callouts (blockquote) ---------- */
+  .doc blockquote {
+    margin: 16px 0; padding: 13px 16px; background: var(--emerald-wash);
+    border-left: 4px solid var(--emerald); border-radius: 0 10px 10px 0;
+    color: var(--ink); font-size: 14.5px;
+  }
+  .doc blockquote p { margin: 6px 0; }
+  .doc blockquote p:first-child { margin-top: 0; }
+  .doc blockquote p:last-child { margin-bottom: 0; }
+
+  /* ---------- Tables ---------- */
+  .table-wrap { overflow-x: auto; margin: 18px 0; border: 1px solid var(--line); border-radius: 10px; }
+  .doc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .doc thead th {
+    background: var(--navy); color: #EAF2FA; text-align: left; font-weight: 600;
+    font-family: var(--display); padding: 10px 14px; white-space: nowrap;
+  }
+  .doc tbody td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  .doc tbody tr:nth-child(even) { background: #FBFAF7; }
+
+  /* ---------- Code ---------- */
+  .doc code {
+    background: #EEF1F4; color: #0A3B63; padding: 1px 6px; border-radius: 5px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .88em;
+  }
+
+  /* ---------- Mobile ---------- */
+  .menu-toggle { display: none; }
+  @media (max-width: 900px) {
+    .sidebar {
+      position: fixed; z-index: 30; left: 0; top: 0; transform: translateX(-100%);
+      transition: transform .22s ease; box-shadow: 0 0 40px rgba(0,0,0,.3);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .doc { padding: 20px 20px 70px; }
+    .menu-toggle {
+      display: inline-flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 20;
+      width: 100%; background: var(--navy); color: #fff; border: none; padding: 12px 16px;
+      font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 25; }
+    .backdrop.show { display: block; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    .sidebar, .menu-toggle, .print-btn, .backdrop { display: none !important; }
+    body { background: #fff; font-size: 12pt; }
+    .doc { max-width: none; padding: 0; }
+    .doc h2 { break-after: avoid; }
+    .table-wrap, .doc blockquote { break-inside: avoid; }
+    a { color: inherit; border: none; }
+  }
+</style>
+</head>
+<body>
+  <button class="menu-toggle" onclick="document.body.classList.toggle('nav-open')">
+    &#9776; Contenido
+  </button>
+  <div class="backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="dot">&#128214;</span>
+        <b>Prestamaz Panel<span>Guía de uso</span></b>
+      </div>
+      <ul class="toc" id="toc">
+        <li><a href="#como-leer-esta-guia">Cómo leer esta guía</a></li>
+        <li><a href="#1-que-es-este-panel">1. ¿Qué es este panel?</a></li>
+        <li><a href="#2-entrar-al-panel">2. Entrar al panel</a></li>
+        <li><a href="#3-que-me-toca-a-mi-segun-tu-rol">3. ¿Qué me toca a mí? (según tu rol)</a></li>
+        <li><a href="#4-el-panel-pantalla-de-inicio">4. El Panel (pantalla de inicio)</a></li>
+        <li><a href="#5-la-campana-de-avisos">5. La campana de avisos</a></li>
+        <li><a href="#6-contactos">6. Contactos</a></li>
+        <li><a href="#7-etiquetas-tags">7. Etiquetas (tags)</a></li>
+        <li><a href="#8-campanas">8. Campañas</a></li>
+        <li><a href="#9-conversaciones-y-agentes">9. Conversaciones y agentes</a></li>
+        <li><a href="#10-respuestas-sms">10. Respuestas SMS</a></li>
+        <li><a href="#11-bajas-contactos-que-piden-no-recibir-mas">11. Bajas: contactos que piden no recibir más</a></li>
+        <li><a href="#12-control-de-envios-las-reglas-que-te-protegen">12. Control de envíos: las reglas que te protegen</a></li>
+        <li><a href="#13-reportes-en-excel">13. Reportes en Excel</a></li>
+        <li><a href="#14-que-hago-si-como-reaccionar">14. ¿Qué hago si...? (cómo reaccionar)</a></li>
+        <li><a href="#15-preguntas-frecuentes">15. Preguntas frecuentes</a></li>
+      </ul>
+    </nav>
+    <div class="main">
+      <article class="doc">
+        <div class="doc-top">
+          <span class="eyebrow">Guía de uso</span>
+          <button class="print-btn" onclick="window.print()">&#128424; Imprimir / Guardar PDF</button>
+        </div>
+        <h1>Guía de uso - Panel Prestamaz</h1>
+<blockquote>
+<p>Para todo el equipo de Prestamaz. No necesitas saber nada técnico.
+Aquí aprendes a usar el panel día a día: enviar campañas, atender respuestas,
+cuidar la base de contactos y entender por qué el sistema hace lo que hace.</p>
+<p>Para temas de Facebook/Meta (plantillas, números, permisos) hay una guía aparte.</p>
+</blockquote>
+<hr />
+<h2 id="como-leer-esta-guia">Cómo leer esta guía</h2>
+<ul>
+<li>Cada quien ve en el panel solo lo que le toca según su usuario. Esta guía cubre todas las
+pantallas; si alguna no te aparece, es porque tu rol no la usa (ver <a href="#3-que-me-toca-a-mi-segun-tu-rol">tu rol</a>).</li>
+<li><strong>Soporte</strong> o <strong>administrador del sistema</strong> = la persona que configura el sistema por
+dentro (hoy, quien lo instaló y lo mantiene). Cuando la guía dice &quot;avisa a soporte&quot;, es a
+esa persona.</li>
+<li>El ícono <strong>?</strong> que aparece junto a varios títulos dentro del panel abre una ayuda corta de
+esa pantalla. Úsalo cuando tengas una duda rápida.</li>
+</ul>
+<hr />
+<h2 id="1-que-es-este-panel">1. ¿Qué es este panel?</h2>
+<p>Es la herramienta para enviar <strong>mensajes masivos</strong> a prospectos, por dos vías:</p>
+<ul>
+<li><strong>WhatsApp</strong> - mensajes con plantilla aprobada e imagen de marca.</li>
+<li><strong>SMS</strong> - mensajes de texto normales.</li>
+</ul>
+<p>Sirve para <strong>promocionar los préstamos</strong>: mandas un mensaje a muchos contactos, quien
+responde &quot;Sí me interesa&quot; pasa a un agente que le da seguimiento hasta la sucursal.</p>
+<p><strong>Lo importante:</strong> el panel te protege solo. No te deja cometer errores que dañen la cuenta
+(enviar fuera de horario, mandar a quien pidió baja, saturar a un contacto). Si algo se ve
+&quot;bloqueado&quot;, casi siempre es el sistema cuidándote, no un error. La sección
+<a href="#12-control-de-envios-las-reglas-que-te-protegen">Control de envíos</a> explica cada regla y por qué existe.</p>
+<hr />
+<h2 id="2-entrar-al-panel">2. Entrar al panel</h2>
+<ol>
+<li>Abre el navegador y entra a la dirección del sistema (soporte te la da).</li>
+<li>Escribe tu <strong>correo</strong> y tu <strong>contraseña</strong>.</li>
+<li>Clic en <strong>Entrar</strong>.</li>
+</ol>
+<blockquote>
+<p><strong>¿Olvidaste tu contraseña?</strong> El login no tiene un botón para recuperarla solo. Pídele al
+administrador que te ponga una nueva: en <strong>Usuarios</strong>, junto a tu nombre, hay un botón
+<strong>Contraseña</strong> (🔑) que abre una ventana para escribir una nueva. La anterior deja de
+funcionar de inmediato. Es a propósito: así nadie cambia contraseñas por su cuenta.</p>
+</blockquote>
+<blockquote>
+<p>Cada persona tiene su propio usuario. No compartas tu contraseña.</p>
+</blockquote>
+<hr />
+<h2 id="3-que-me-toca-a-mi-segun-tu-rol">3. ¿Qué me toca a mí? (según tu rol)</h2>
+<p>Cada persona ve solo lo que necesita. Busca tu rol:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Tu rol</th>
+<th>Qué puedes ver y hacer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Administrador</strong></td>
+<td>Todo: contactos, campañas, respuestas SMS, plantillas, usuarios y conversaciones. Configura el sistema.</td>
+</tr>
+<tr>
+<td><strong>Operador</strong></td>
+<td>Panel, contactos, campañas, respuestas SMS y conversaciones (todas). No gestiona plantillas ni usuarios.</td>
+</tr>
+<tr>
+<td><strong>Agente</strong></td>
+<td><strong>Solo conversaciones</strong>, y solo las que le asignaron. Al entrar cae directo ahí. No ve el resto del panel.</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>Si eres agente</strong>, tu guía es corta: entra directo a
+<a href="#9-conversaciones-y-agentes">Conversaciones y agentes</a>. El resto de las pantallas no te
+aparecen, así que no tienes que leerlas.</p>
+</blockquote>
+<hr />
+<h2 id="4-el-panel-pantalla-de-inicio">4. El Panel (pantalla de inicio)</h2>
+<p>Al entrar ves un resumen de todo. De arriba a abajo:</p>
+<ul>
+<li><strong>Mensajes</strong>: cuántos se han enviado, entregado, leído y fallado (totales).</li>
+<li><strong>Contactos</strong>: total, activos, bajas, inválidos e inalcanzables.
+<ul>
+<li>Un <strong>inalcanzable</strong> es un contacto al que le mandamos <strong>3 mensajes seguidos que no llegaron</strong>
+(sin que ninguno se entregara en medio). Probablemente bloqueó el número o ya no existe. El
+sistema lo saca de las campañas para cuidar la calidad. El administrador lo puede reactivar
+si el contacto vuelve a escribir. <em>(Si en medio de esos 3 le llega uno, la cuenta se reinicia.)</em></li>
+</ul>
+</li>
+<li><strong>Meta mensual</strong>: una barra que muestra cuánto llevas del objetivo del mes. Colores:
+<strong>Azul</strong> = buen ritmo · <strong>Amarillo</strong> = vas por debajo · <strong>Rojo</strong> = muy por debajo ·
+<strong>Verde</strong> = meta alcanzada. El administrador cambia la meta en Configuración.</li>
+<li><strong>Gráfica de 14 días</strong>: barras por día con enviados, entregados, leídos y fallidos.</li>
+<li><strong>Salud del número</strong>: un semáforo (verde / amarillo / rojo) que dice cómo está el número de
+WhatsApp, cuántos mensajes van hoy y si está pausado.</li>
+<li><strong>Últimos mensajes</strong>: tabla con los envíos recientes y su estado. Mezcla WhatsApp y SMS; la
+columna <strong>Canal</strong> los distingue con un ícono.</li>
+</ul>
+<p><strong>Botones de esta pantalla:</strong></p>
+<ul>
+<li><strong>↺ (refrescar)</strong> - actualiza la gráfica y los números. Úsalo si acabas de enviar una campaña.</li>
+<li><strong>↓ (descargar)</strong> en &quot;Últimos mensajes&quot; - baja el reporte de mensajes a Excel.</li>
+<li><strong>Filtro de estado</strong> - muestra solo enviados / entregados / leídos / fallidos.</li>
+<li><strong>Enviar mensaje de prueba</strong> <em>(solo administrador)</em> - prueba una plantilla con un contacto
+antes de lanzar la campaña. El operador no ve este botón.</li>
+</ul>
+<blockquote>
+<p>⚠️ Si el semáforo está en <strong>ROJO</strong> o dice <strong>PAUSADO</strong>, NO ejecutes campañas. El sistema se
+pausó solo para proteger la cuenta. Avisa a soporte. (Ver
+<a href="#14-que-hago-si-como-reaccionar">¿Qué hago si...?</a>)</p>
+</blockquote>
+<h3 id="que-significa-el-estado-de-cada-mensaje">Qué significa el estado de cada mensaje</h3>
+<p>En &quot;Últimos mensajes&quot; (y en el detalle de una campaña) cada mensaje tiene un estado:</p>
+<ul>
+<li><strong>Enviados / En tránsito</strong> - salió de nuestro sistema, todavía no hay confirmación de que
+llegó al celular.</li>
+<li><strong>Entregados</strong> - llegó al celular del contacto.</li>
+<li><strong>Leídos</strong> - el contacto abrió el mensaje (solo WhatsApp).</li>
+<li><strong>Fallidos</strong> - no se pudo entregar (el número no existe, no tiene WhatsApp, o hubo un bloqueo).</li>
+</ul>
+<blockquote>
+<p>Es normal que un mensaje pase de Enviado a Entregado a Leído con unos minutos de diferencia.
+Si estás en la pantalla, se actualiza solo.</p>
+</blockquote>
+<hr />
+<h2 id="5-la-campana-de-avisos">5. La campana de avisos</h2>
+<p>Arriba a la derecha hay una <strong>campana</strong> 🔔. Cuando algo necesita tu atención, aparece un
+número rojo con la cantidad de avisos nuevos.</p>
+<p>Al hacer clic se abre una lista con los últimos avisos. Los no leídos salen con fondo azul; al
+abrir la lista se marcan como leídos.</p>
+<p><strong>Tipos de aviso:</strong></p>
+<ul>
+<li><strong>Entrega fallida</strong> - un mensaje no llegó. Te dice el motivo en palabras simples. Si ves
+muchos seguidos, revisa la <strong>Salud del número</strong> en el Panel.</li>
+<li><strong>Problema con los SMS</strong> - el sistema manda SMS pero no recibe de vuelta las confirmaciones.
+Avisa a soporte. Se limpia solo cuando vuelve a funcionar.</li>
+</ul>
+<blockquote>
+<p><strong>Por qué existe:</strong> para que te enteres de un problema sin tener que revisar tabla por tabla.
+No tienes que actuar en cada aviso, son informativos. Si un mensaje falló por un bloqueo
+temporal, el sistema lo reintenta solo cuando se levanta.</p>
+</blockquote>
+<hr />
+<h2 id="6-contactos">6. Contactos</h2>
+<p>Aquí vive tu base de prospectos. Entra a <strong>Contactos</strong> en el menú.</p>
+<h3 id="importar-desde-excel">Importar desde Excel</h3>
+<ol>
+<li>
+<p>Clic en <strong>Importar Excel</strong>.</p>
+</li>
+<li>
+<p>Sube el archivo <code>.xlsx</code>. El formato es simple:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Columna A</th>
+<th>Columna B (opcional)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Teléfono</td>
+<td>Nombre</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>Los teléfonos van con la clave del país, sin el signo +. Ejemplo: <code>529231311146</code>.</li>
+<li>Si la primera fila es un encabezado, el sistema lo detecta solo.</li>
+</ul>
+</li>
+<li>
+<p>Al terminar verás un resumen: <strong>aceptados / duplicados / formato inválido</strong>.</p>
+<ul>
+<li><strong>Duplicados</strong>: ya estaban, no se agregan otra vez.</li>
+<li><strong>Formato inválido</strong>: números mal escritos, se ignoran.</li>
+</ul>
+</li>
+<li>
+<p>Los contactos que ya pidieron <strong>baja</strong> nunca regresan, aunque los vuelvas a importar.</p>
+</li>
+</ol>
+<blockquote>
+<p>💡 Para bajar tus contactos a Excel, usa el botón <strong>Exportar</strong>.</p>
+</blockquote>
+<h3 id="agregar-un-contacto-a-mano">Agregar un contacto a mano</h3>
+<p>Para un prospecto suelto (un referido, una llamada):</p>
+<ol>
+<li>Clic en <strong>Agregar contacto</strong>.</li>
+<li>Escribe <strong>solo los 10 dígitos</strong> del celular (sin 52 ni +). El sistema pone el resto. Al
+terminar te avisa al instante:
+<ul>
+<li>✅ <strong>Disponible</strong> - se puede agregar.</li>
+<li>⚠️ <strong>Ya existe</strong> - te dice en qué estado está.</li>
+<li>❌ <strong>Deben ser 10 dígitos</strong> - faltan o sobran números.</li>
+</ul>
+</li>
+<li>Escribe el nombre (opcional) y clic en <strong>Guardar</strong>. El botón solo se activa si el número es
+válido y no existe.</li>
+</ol>
+<h3 id="los-estados-de-un-contacto">Los estados de un contacto</h3>
+<p>La tabla tiene dos columnas de estado. El ícono <strong>?</strong> junto al título las explica.</p>
+<p><strong>Estado</strong> (quién es el contacto):</p>
+<ul>
+<li><strong>Activo</strong> - normal.</li>
+<li><strong>Baja</strong> - pidió no recibir más.</li>
+<li><strong>Inválido</strong> - el número no tiene WhatsApp.</li>
+<li><strong>Inalcanzable</strong> - le mandamos 3 mensajes seguidos que no llegaron (probablemente bloqueó el
+número). El administrador lo puede reactivar.</li>
+</ul>
+<p><strong>Entregabilidad</strong> (si le llega ahora mismo). Se muestra <strong>por canal</strong>, con dos etiquetas: una
+de WhatsApp y otra de SMS. Cada canal cuenta por su lado, así que un contacto puede estar
+disponible en uno y en pausa en el otro:</p>
+<ul>
+<li>🟢 <strong>Disponible</strong> - se le puede enviar.</li>
+<li>⚪ <strong>Pospuesto</strong> - pidió &quot;No por ahora&quot;, no se le manda hasta la fecha.</li>
+<li>🟠 <strong>Enfriamiento</strong> - recibió hace poco, se espera un tiempo para no saturarlo.</li>
+<li>🔵 <strong>Enviado hoy</strong> - ya recibió hoy, no se le reenvía el mismo día.</li>
+<li>🔴 <strong>No recibe</strong> - bloqueado en ese canal (baja / inválido / inalcanzable).</li>
+</ul>
+<blockquote>
+<p>Un contacto puede estar <strong>Activo</strong> pero <strong>Pospuesto</strong>, en <strong>Enfriamiento</strong> o <strong>Enviado hoy</strong>. Es
+normal - solo significa que ahorita no se le envía para no saturarlo. (Ver
+<a href="#12-control-de-envios-las-reglas-que-te-protegen">Control de envíos</a>.)</p>
+</blockquote>
+<p><strong>Chip rojo &quot;Baja SMS&quot;</strong>: aparece cuando el contacto no recibe SMS (pidió baja por SMS o el
+número no recibe texto). Es aparte del estado: puede recibir WhatsApp pero no SMS.</p>
+<p><strong>Botones de la fila de un contacto:</strong></p>
+<ul>
+<li>🏷️ <strong>Etiqueta</strong> - le pones o quitas tags (ver <a href="#7-etiquetas-tags">Etiquetas</a>).</li>
+<li><strong>Dar de baja</strong> (rojo) - lo marca como baja (ver abajo).</li>
+<li>🗑 <strong>Eliminar</strong> (solo administrador) - lo borra de listas. Solo para basura o pruebas.</li>
+</ul>
+<h3 id="dar-de-baja-no-es-lo-mismo-que-eliminar">Dar de baja NO es lo mismo que Eliminar</h3>
+<ul>
+<li><strong>Dar de baja</strong> (admin u operador) - el contacto <strong>pidió baja</strong>. Se marca y nunca más se le
+envía. Se queda guardado para tener registro. <strong>Por qué:</strong> es un requisito legal, hay que
+poder demostrar que respetamos la baja.</li>
+<li><strong>Eliminar</strong> (solo administrador) - <strong>limpieza</strong> de basura o números de prueba. Úsalo para
+datos erróneos, NO para bajas reales. <strong>Por qué:</strong> eliminar no deja el registro de baja, así
+que no sirve para cumplimiento.</li>
+</ul>
+<hr />
+<h2 id="7-etiquetas-tags">7. Etiquetas (tags)</h2>
+<p>Las etiquetas agrupan contactos para mandarles campañas por separado (por ejemplo: &quot;Mazatlán&quot;,
+&quot;Interesados mayo&quot;).</p>
+<ol>
+<li>En <strong>Contactos</strong>, clic en el ícono 🏷️ de un contacto.</li>
+<li>En el panel que abre puedes elegir etiquetas ya creadas o <strong>crear una nueva</strong> (escribe el
+nombre y Enter).</li>
+<li>Clic en <strong>Guardar</strong>.</li>
+<li>Para ver solo los de una etiqueta, usa el selector &quot;Todos los tags&quot; en la búsqueda.</li>
+</ol>
+<p><strong>Etiquetar varios a la vez:</strong></p>
+<ol>
+<li>Marca la casilla de cada contacto (o la del encabezado para todos los de la página).</li>
+<li>Arriba aparece una barra. Elige la etiqueta y clic en <strong>Asignar tag</strong>.</li>
+<li>La etiqueta se <strong>agrega</strong> sin quitar las que ya tenían.</li>
+</ol>
+<p>Para <strong>quitar</strong> una etiqueta de varios: selecciónalos, elige la etiqueta y clic en <strong>Quitar tag</strong>.</p>
+<blockquote>
+<p>Las etiquetas son solo para clasificar. No afectan bajas ni pausas.</p>
+</blockquote>
+<hr />
+<h2 id="8-campanas">8. Campañas</h2>
+<p>Una campaña es un <strong>envío masivo</strong> a un grupo de contactos.</p>
+<h3 id="crear-una-campana">Crear una campaña</h3>
+<ol>
+<li>Ve a <strong>Campañas</strong> → clic en <strong>Nueva campaña</strong>.</li>
+<li>Llena el formulario:
+<ul>
+<li><strong>Nombre</strong>: para reconocerla (ejemplo: &quot;Promo mayo semana 1&quot;).</li>
+<li><strong>Canal</strong>: WhatsApp o SMS. Los dos usan <strong>plantilla</strong> - el mensaje NO se escribe a mano.
+<ul>
+<li><strong>WhatsApp</strong>: eliges una plantilla aprobada y llenas sus datos.</li>
+<li><strong>SMS</strong>: eliges una plantilla de SMS. Ves la vista previa con cuántos caracteres tiene.</li>
+</ul>
+</li>
+<li><strong>Destinatarios</strong>: a quién le llega. Es <strong>obligatorio</strong> elegir - no viene marcado para que
+no mandes a todos por error. Puedes elegir &quot;Todos los contactos activos&quot; o una <strong>etiqueta</strong>.</li>
+</ul>
+</li>
+<li>Clic en <strong>Crear campaña</strong>. Queda en <strong>borrador</strong> hasta que la ejecutes.</li>
+</ol>
+<blockquote>
+<p><strong>Por qué solo plantilla y no texto libre:</strong> en WhatsApp, Meta solo permite plantillas que
+ellos aprobaron. Y en SMS, la plantilla ya trae el &quot;responde STOP para baja&quot; que exige la ley.
+Escribir a mano se saltaría esas reglas y podría costar una multa o una suspensión.</p>
+</blockquote>
+<blockquote>
+<p>💡 <strong>SMS y horario</strong>: a diferencia de WhatsApp, el SMS lo mandas cuando quieras. Si lo haces
+entre 11 de la noche y 7 de la mañana, el sistema te avisa (no te bloquea): enviar de
+madrugada suele generar más bajas. Tú decides.</p>
+</blockquote>
+<blockquote>
+<p>💡 Al abrir un borrador ves su <strong>alcance estimado</strong>: cuántos contactos recibirían la campaña.</p>
+</blockquote>
+<h3 id="ejecutar-una-campana">Ejecutar una campaña</h3>
+<ol>
+<li>En <strong>Campañas</strong>, abre la que quieras enviar.</li>
+<li>Clic en <strong>Ejecutar</strong>.</li>
+<li>El sistema revisa que todo esté bien:
+<ul>
+<li>En <strong>WhatsApp</strong>: que la plantilla siga aprobada, que haya número activo y que sea horario
+válido (de lunes a viernes, de 9 de la mañana a 10 de la noche, hora del Centro de México
+<ul>
+<li>la misma de la Ciudad de México).</li>
+</ul>
+</li>
+<li>En <strong>SMS</strong>: no revisa horario (tú decides cuándo).</li>
+</ul>
+</li>
+<li>Si algo falla, te dice el motivo y <strong>no manda nada</strong>.</li>
+<li>Si todo está bien, los mensajes se empiezan a enviar en segundo plano (pueden tardar unos
+minutos en salir todos).</li>
+</ol>
+<blockquote>
+<p>⚠️ NO ejecutes la misma campaña dos veces. Si quieres reenviar, crea una campaña nueva. <strong>Por
+qué:</strong> ejecutarla otra vez volvería a mandar a los mismos y los saturaría.</p>
+</blockquote>
+<hr />
+<h2 id="9-conversaciones-y-agentes">9. Conversaciones y agentes</h2>
+<p>Cuando un contacto responde a un WhatsApp, su mensaje aparece en <strong>Conversaciones</strong>.</p>
+<blockquote>
+<p>⚡ <strong>En vivo:</strong> si estás en esta pantalla, todo se actualiza solo sin recargar: respuestas
+nuevas, quién atiende, el estado y las palomitas de entregado/leído.</p>
+</blockquote>
+<h3 id="como-responder">Cómo responder</h3>
+<ol>
+<li>Ve a <strong>Conversaciones</strong> en el menú.</li>
+<li>A la izquierda ves la lista de contactos con mensajes. Cada uno tiene un <strong>estado</strong>:
+<ul>
+<li>🟢 <strong>Abierta</strong> - puedes responder texto libre.</li>
+<li>⚪ <strong>Cerrada</strong> - el contacto no responde desde hace más de 24 horas. Solo una campaña con
+plantilla lo reactiva.</li>
+<li>🟠 <strong>Pospuesto</strong> - pidió &quot;No por ahora&quot;. No entra a campañas de WhatsApp, pero <strong>sí le puedes
+escribir a mano</strong> desde aquí.</li>
+<li>🔴 <strong>Baja</strong> - dado de baja, no se puede contactar.</li>
+</ul>
+</li>
+<li>Haz clic en un contacto para ver su historial.</li>
+<li>Si está <strong>Abierta</strong>, escribe abajo y presiona Enter (o el botón enviar).</li>
+<li>Si está <strong>Cerrada</strong>, el campo aparece deshabilitado.</li>
+</ol>
+<p><strong>Respuestas rápidas</strong>: los botones de abajo son mensajes frecuentes. Clic en uno y se carga el
+texto; luego envías. <em>(El administrador puede crear y borrar estas respuestas rápidas desde el
+panel derecho.)</em></p>
+<h3 id="quien-atiende-cada-conversacion-multi-agente">Quién atiende cada conversación (multi-agente)</h3>
+<p>Varias personas pueden atender conversaciones a la vez. Para que no se pisen, cada conversación
+se <strong>asigna</strong> a un agente.</p>
+<p><strong>Asignación automática:</strong> cuando un contacto escribe <strong>por primera vez</strong>, el sistema le asigna
+un agente solo. El modo lo elige el administrador en <strong>Configuración → Multi-agente</strong>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Modo</th>
+<th>Qué hace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Menos chats activos</strong> (predeterminado)</td>
+<td>Se la da al agente que tenga menos conversaciones en ese momento. Reparte parejo la carga.</td>
+</tr>
+<tr>
+<td><strong>Primer disponible</strong></td>
+<td>Se la da al primer agente activo. Más simple, menos parejo.</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>Si <strong>no hay agentes activos</strong>, la conversación queda <strong>&quot;Sin asignar&quot;</strong> y aparece un chip
+naranja. El admin u operador la puede repartir a mano.</li>
+<li>La asignación automática pasa <strong>una sola vez</strong> (en el primer mensaje). Después no se reasigna
+sola - se hace a mano si hace falta.</li>
+</ul>
+<p><strong>Cómo se lee la lista</strong> (son dos cosas separadas: el estado y quién atiende):</p>
+<ul>
+<li>Chip <strong>&quot;Sin asignar&quot;</strong> (naranja) - nadie la tiene todavía.</li>
+<li>Chip <strong>&quot;Tú&quot;</strong> (verde) + barra verde a la izquierda - es tuya.</li>
+<li><strong>Iniciales</strong> de un agente - la atiende otra persona (pasa el cursor para ver el nombre).</li>
+</ul>
+<p><strong>Botones de asignación:</strong></p>
+<ul>
+<li><strong>Tomar conversación</strong> - cualquier agente se la asigna a sí mismo.</li>
+<li><strong>Asignar a agente</strong> (solo admin y operador) - la pasa a otro miembro del equipo, con el
+selector de agentes. Úsalo si un agente ya no está disponible.</li>
+</ul>
+<blockquote>
+<p>Los agentes solo ven <strong>sus</strong> conversaciones. Admin y operador ven todas.</p>
+</blockquote>
+<hr />
+<h2 id="10-respuestas-sms">10. Respuestas SMS</h2>
+<p>Los SMS que te responden aparecen en <strong>Respuestas SMS</strong> (en el menú).</p>
+<p>A diferencia de Conversaciones (WhatsApp), esto es <strong>solo de lectura</strong>: ves las respuestas pero
+no se contesta desde aquí.</p>
+<p>Las respuestas vienen <strong>agrupadas por contacto</strong>: cada fila es una persona. Si respondió varias
+veces, haz clic en la fila para ver todos sus mensajes.</p>
+<p>Cada fila muestra:</p>
+<ul>
+<li><strong>Fecha</strong> de su última respuesta.</li>
+<li><strong>Contacto</strong> (nombre y celular).</li>
+<li><strong>Último mensaje</strong>.</li>
+<li><strong>Msgs</strong> - cuántas veces respondió.</li>
+<li><strong>Acción</strong> - una etiqueta:
+<ul>
+<li><strong>&quot;Interesado&quot;</strong> (verde) si respondió <strong>SÍ</strong> o <strong>INFO</strong> - es tu prospecto, dale seguimiento.</li>
+<li><strong>&quot;Baja automática&quot;</strong> (roja) si respondió <strong>STOP</strong> o <strong>BAJA</strong> - ya lo dimos de baja de SMS.</li>
+</ul>
+</li>
+</ul>
+<p><strong>Herramientas:</strong> buscar por número/nombre/texto, filtrar (Todas / Interesados / Bajas), y el
+botón ↻ para traer las más recientes.</p>
+<hr />
+<h2 id="11-bajas-contactos-que-piden-no-recibir-mas">11. Bajas: contactos que piden no recibir más</h2>
+<p>Cuando un contacto responde con una de estas palabras exactas:</p>
+<p><strong>STOP · BAJA · CANCELAR · NO</strong></p>
+<p>El sistema lo da de <strong>baja</strong> automáticamente y nunca más le envía por ese medio. Esto es
+<strong>irreversible</strong>.</p>
+<h3 id="importante-la-baja-no-funciona-igual-en-los-dos-canales">Importante: la baja NO funciona igual en los dos canales</h3>
+<p>Depende de <strong>por dónde</strong> pidió la baja:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>El contacto dijo STOP/BAJA por...</th>
+<th>¿Qué se bloquea?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WhatsApp</strong> (o le diste &quot;Dar de baja&quot; a mano)</td>
+<td><strong>Los dos canales</strong>: ya no recibe WhatsApp NI SMS.</td>
+</tr>
+<tr>
+<td><strong>SMS</strong></td>
+<td><strong>Solo SMS</strong>: deja de recibir SMS, pero <strong>sigue recibiendo WhatsApp</strong>.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Por qué esta diferencia:</strong> una baja por WhatsApp se trata como &quot;no me contactes por ningún
+medio&quot; (es el canal principal y el más delicado con Meta). Una baja por SMS se entiende como
+&quot;no me mandes textos&quot;, y no necesariamente que rechace el WhatsApp. Un contacto puede entonces
+tener <strong>Baja SMS</strong> y seguir <strong>Activo</strong> para WhatsApp.</p>
+<p>Otras notas:</p>
+<ul>
+<li>Las bajas se pueden <strong>ver</strong> en Contactos (filtro &quot;Baja&quot; para WhatsApp, &quot;Solo bajas SMS&quot; para SMS)
+pero no se borran (queda registro).</li>
+<li>El botón <strong>Dar de baja</strong> del panel es una baja manual y bloquea <strong>los dos canales</strong> (igual que
+una baja por WhatsApp).</li>
+</ul>
+<blockquote>
+<p><strong>Por qué es irreversible:</strong> la ley exige respetar la baja. Aunque el contacto luego diga que
+sí quiere, no se puede &quot;revivir&quot; una baja - es la prueba de que respetamos su decisión. Si de
+verdad quiere volver, tendría que ser un caso que revisa soporte.</p>
+</blockquote>
+<hr />
+<h2 id="12-control-de-envios-las-reglas-que-te-protegen">12. Control de envíos: las reglas que te protegen</h2>
+<p>El sistema aplica varias reglas automáticas para no saturar contactos ni dañar la cuenta. No
+las puedes apagar desde el uso normal; algunas las ajusta soporte. Aquí están todas, con el por
+qué:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Regla</th>
+<th>Qué hace</th>
+<th>Por qué</th>
+<th>¿Se puede cambiar?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Horario WhatsApp</strong></td>
+<td>Solo envía de Lunes a Viernes, 9am-10pm, hora del Centro (CDMX)</td>
+<td>Fuera de ese horario Meta lo puede tomar como spam</td>
+<td>No. Es fijo.</td>
+</tr>
+<tr>
+<td><strong>Límite diario WhatsApp</strong></td>
+<td>Cada número tiene un tope de mensajes al día</td>
+<td>La cuenta se &quot;madura&quot; de a poco; pasarse la daña</td>
+<td>No. El sistema lo sube solo con el tiempo.</td>
+</tr>
+<tr>
+<td><strong>No repetir el mismo día</strong></td>
+<td>Un contacto no recibe dos veces el mismo día por el mismo canal</td>
+<td>Evita saturarlo</td>
+<td>No.</td>
+</tr>
+<tr>
+<td><strong>Enfriamiento</strong></td>
+<td>Tras recibir, el contacto espera un tiempo antes de recibir otra vez (por el mismo canal)</td>
+<td>Que no le lleguen campañas muy seguidas</td>
+<td>Sí, soporte. Por defecto <strong>30 días</strong>, mínimo <strong>7</strong>.</td>
+</tr>
+<tr>
+<td><strong>Pospuesto</strong></td>
+<td>Si el contacto pide &quot;No por ahora&quot;, se pausa (solo WhatsApp) hasta que pase</td>
+<td>Respeta que ahorita no quiere</td>
+<td>Vuelve solo. Dura lo mismo que el enfriamiento.</td>
+</tr>
+<tr>
+<td><strong>Inalcanzable (WhatsApp)</strong></td>
+<td>Si 3 mensajes seguidos no le llegan (sin ninguna entrega en medio), se saca de campañas. El tope de 3 es fijo, no depende del enfriamiento</td>
+<td>Probablemente bloqueó; seguir enviándole baja la calidad y arriesga la cuenta</td>
+<td>El admin lo puede reactivar.</td>
+</tr>
+<tr>
+<td><strong>Autobaja por rebotes (SMS)</strong></td>
+<td>Tras varios SMS que rebotan seguidos, se bloquea el SMS de ese contacto</td>
+<td>Dejar de gastar en números que no reciben</td>
+<td>Sí, soporte. <strong>Apagada por defecto</strong> (no bloquea salvo que se active).</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Cosas clave que conviene tener claras:</strong></p>
+<ul>
+<li><strong>Cada canal cuenta por separado.</strong> WhatsApp lleva su cuenta y SMS la suya. Un contacto que
+recibió WhatsApp hoy <strong>sí</strong> puede recibir un SMS hoy. Lo único que bloquea los dos a la vez es
+una <strong>baja por WhatsApp</strong> (o la baja manual). Una <strong>baja por SMS</strong> solo frena el SMS (ver
+<a href="#11-bajas-contactos-que-piden-no-recibir-mas">Bajas</a>).</li>
+<li><strong>El &quot;Pospuesto&quot; es solo de WhatsApp.</strong> Por SMS sigue disponible, y en Conversaciones le puedes
+escribir a mano aunque esté pospuesto.</li>
+<li><strong>Lo que ajusta soporte</strong> (enfriamiento, autobaja) se cambia en <strong>Configuración</strong>. Si necesitas
+cambiar un tiempo, pídeselo a soporte con el motivo.</li>
+</ul>
+<blockquote>
+<p>Cuando veas un contacto <strong>Activo</strong> pero que &quot;no se le envió&quot;, casi siempre es una de estas
+reglas (enfriamiento, pospuesto, enviado hoy). No es un error: es el sistema cuidándolo.</p>
+</blockquote>
+<hr />
+<h2 id="13-reportes-en-excel">13. Reportes en Excel</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Reporte</th>
+<th>Cómo bajarlo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Contactos</strong></td>
+<td>Contactos → botón <strong>Exportar Excel</strong></td>
+</tr>
+<tr>
+<td><strong>Mensajes</strong></td>
+<td>Panel → botón ↓ en &quot;Últimos mensajes&quot;</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="14-que-hago-si-como-reaccionar">14. ¿Qué hago si...? (cómo reaccionar)</h2>
+<p>Guía rápida de reacción. Si algo se ve raro, busca aquí antes de asustarte.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Situación</th>
+<th>Qué significa</th>
+<th>Qué hacer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>El semáforo del número está en ROJO</strong></td>
+<td>Meta bajó la calidad del número</td>
+<td><strong>No ejecutes campañas.</strong> Avisa a soporte. El sistema ya pausó solo.</td>
+</tr>
+<tr>
+<td><strong>El número dice PAUSADO</strong></td>
+<td>El sistema detuvo los envíos para proteger la cuenta</td>
+<td>No reanudes. Avisa a soporte.</td>
+</tr>
+<tr>
+<td><strong>No me deja ejecutar una campaña de WhatsApp</strong></td>
+<td>Estás fuera del horario permitido (Lunes a Viernes, 9am-10pm hora del Centro/CDMX)</td>
+<td>Espera al horario. Es normal, no es un error.</td>
+</tr>
+<tr>
+<td><strong>Muchas alertas de &quot;entrega fallida&quot; seguidas</strong></td>
+<td>Los mensajes no están llegando</td>
+<td>Revisa la Salud del número en el Panel. Si sigue, avisa a soporte.</td>
+</tr>
+<tr>
+<td><strong>Alerta de &quot;problema con los SMS&quot;</strong></td>
+<td>El sistema no recibe confirmaciones de SMS</td>
+<td>Avisa a soporte (es tema del teléfono que manda los SMS).</td>
+</tr>
+<tr>
+<td><strong>Un contacto dice que no le llegó el mensaje</strong></td>
+<td>Puede no tener WhatsApp, o estar Pospuesto / en Enfriamiento</td>
+<td>Búscalo en Contactos y mira su estado de entregabilidad.</td>
+</tr>
+<tr>
+<td><strong>Quiero mandar una plantilla nueva y no aparece</strong></td>
+<td>Solo salen plantillas aprobadas por Meta</td>
+<td>El administrador debe crearla y esperar aprobación. Ver <strong>Guía Meta</strong>.</td>
+</tr>
+<tr>
+<td><strong>Un agente ya no trabaja aquí</strong></td>
+<td>Sus conversaciones quedan con él asignadas</td>
+<td>Admin u operador las reasigna a otro agente con &quot;Asignar a agente&quot;.</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>Todo lo que diga &quot;avisa a soporte&quot; o &quot;ver Guía Meta&quot; son cosas que resuelve quien administra
+la cuenta de Facebook/Meta. Tú no tienes que tocar nada de eso.</p>
+</blockquote>
+<hr />
+<h2 id="15-preguntas-frecuentes">15. Preguntas frecuentes</h2>
+<p><strong>¿Por qué no puedo enviar una campaña de WhatsApp ahorita?</strong>
+WhatsApp solo permite enviar de lunes a viernes, de 9 de la mañana a 10 de la noche, hora del
+Centro de México (la de la CDMX). El sistema lo bloquea fuera de ese horario para cuidar la
+cuenta. El SMS no tiene ese límite. <em>Nota: se usa la hora del Centro aunque estés en otra zona
+(por ejemplo Sinaloa o Baja California); así el mensaje nunca llega demasiado temprano ni tarde
+en ninguna parte del país.</em></p>
+<p><strong>¿Por qué el número aparece &quot;PAUSADO&quot;?</strong>
+Meta detectó algo inusual y el sistema pausó los envíos solo para proteger la cuenta. El
+administrador debe revisar antes de reanudar.</p>
+<p><strong>¿Se puede enviar a un número que no tiene WhatsApp?</strong>
+No. Se marca solo como &quot;inválido&quot; tras el primer intento y no se vuelve a intentar.</p>
+<p><strong>¿Cuántos mensajes se pueden enviar por día?</strong>
+Depende de qué tan &quot;madura&quot; esté la cuenta. Empieza bajito y sube solo con el tiempo si la
+calidad es buena. El sistema controla esto - nadie del equipo lo puede cambiar.</p>
+<p><strong>¿Qué es &quot;Pospuesto&quot;?</strong>
+Si un contacto toca &quot;No por ahora&quot; en un mensaje, el sistema lo pospone un tiempo (por defecto
+30 días) para no molestarlo. Vuelve solo. Esta pausa solo aplica a WhatsApp; por SMS sigue
+disponible. En Conversaciones le puedes seguir escribiendo a mano.</p>
+<p><strong>¿Un contacto puede recibir WhatsApp y SMS el mismo día?</strong>
+Sí. Cada canal cuenta por separado. Lo único que bloquea los dos a la vez es una <strong>baja por
+WhatsApp</strong> (o la baja manual). Si pidió baja <strong>por SMS</strong>, deja de recibir SMS pero sigue
+recibiendo WhatsApp.</p>
+<p><strong>¿Puedo cambiar el enfriamiento o el tiempo de la pausa &quot;Pospuesto&quot;?</strong>
+Desde el uso normal no. Lo ajusta soporte en Configuración (mínimo 7 días). Pídeselo con el
+motivo si de verdad lo necesitas.</p>
+<p><strong>Olvidé mi contraseña, ¿cómo la recupero?</strong>
+El login no tiene recuperación automática. Pídele al administrador que te ponga una nueva desde
+la pantalla Usuarios, con el botón <strong>Contraseña</strong> (🔑) que está junto a tu nombre.</p>
+<hr />
+<blockquote>
+<p><strong>¿Eres el administrador?</strong> Para crear plantillas sin arriesgar multas, generar permisos de
+Meta, agregar números o entender las alertas de Facebook, ve a la <strong>Guía Meta</strong>.</p>
+</blockquote>
+
+      </article>
+    </div>
+  </div>
+
+<script>
+  // Sidebar movil
+  (function () {
+    var sb = document.getElementById('sidebar');
+    var bd = document.querySelector('.backdrop');
+    function sync() {
+      var open = document.body.classList.contains('nav-open');
+      sb.classList.toggle('open', open);
+      bd.classList.toggle('show', open);
+    }
+    new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    document.querySelectorAll('.toc a').forEach(function (a) {
+      a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+    });
+
+    // Scrollspy: resalta la seccion visible
+    var links = {}, targets = [];
+    document.querySelectorAll('.toc a').forEach(function (a) {
+      var id = a.getAttribute('href').slice(1);
+      links[id] = a; var el = document.getElementById(id); if (el) targets.push(el);
+    });
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          Object.values(links).forEach(function (l) { l.classList.remove('active'); });
+          var a = links[e.target.id]; if (a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '0px 0px -75% 0px', threshold: 0 });
+    targets.forEach(function (t) { obs.observe(t); });
+  })();
+</script>
+</body>
+</html>

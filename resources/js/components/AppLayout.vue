@@ -24,7 +24,7 @@
                      se ocultan para no dejarle items muertos. El agente solo ve Conversaciones. -->
                 <RouterLink v-if="!isAgent() && isEnabled('feature_dashboard')" to="/" class="nav-item" :class="{ active: route.path === '/' }" @click="sidebarOpen = false">
                     <i class="pi pi-home" />
-                    <span>Dashboard</span>
+                    <span>Panel</span>
                 </RouterLink>
                 <RouterLink v-if="!isAgent() && isEnabled('feature_contacts')" to="/contacts" class="nav-item" :class="{ active: route.path === '/contacts' }" @click="sidebarOpen = false">
                     <i class="pi pi-users" />
@@ -96,6 +96,9 @@
                 </div>
 
                 <div class="topbar-right">
+                    <a class="guide-btn" href="/guia/uso.html" target="_blank" rel="noopener" title="Guía de uso">
+                        <i class="pi pi-book" />
+                    </a>
                     <button class="notif-btn" @click="openNotifications" title="Notificaciones">
                         <i class="pi pi-bell" />
                         <span v-if="notifUnread > 0" class="notif-badge">{{ notifUnread > 9 ? '9+' : notifUnread }}</span>
@@ -254,7 +257,7 @@ onUnmounted(() => {
 const sidebarOpen = ref(false);
 
 const pageTitles = {
-    '/'               : 'Dashboard',
+    '/'               : 'Panel',
     '/contacts'       : 'Contactos',
     '/campaigns'      : 'Campañas',
     '/sms-replies'    : 'Respuestas SMS',
@@ -268,7 +271,7 @@ const pageTitle = computed(() => pageTitles[route.path] ?? 'Prestamaz Panel');
 
 const helpContent = {
     '/': {
-        title: 'Dashboard',
+        title: 'Panel',
         items: [
             { icon: 'pi-circle-fill',   label: 'Semáforo',    text: 'Calidad del número en Meta. Verde = ok. Amarillo = cuidado. Rojo = problema. Si está PAUSADO, el sistema activó el circuit breaker: detectó un error de calidad o spam y pausó los envíos automáticamente 60 minutos para proteger la cuenta. Se reanuda solo.' },
             { icon: 'pi-chart-bar',     label: 'Meta mensual', text: 'Progreso del mes: mensajes enviados vs. la capacidad real del sistema (días hábiles × límite diario). El color indica el avance.' },
@@ -285,13 +288,13 @@ const helpContent = {
         title: 'Contactos',
         items: [
             { icon: 'pi-upload',        label: 'Importar',   text: 'Sube un Excel (.xlsx). Columna A: teléfono, Columna B: nombre (opcional).' },
-            { icon: 'pi-plus',          label: 'Agregar uno', text: 'Botón "Agregar contacto" para alta manual. Al teclear el número te avisa si ya existe, está bloqueado o en cooldown.' },
+            { icon: 'pi-plus',          label: 'Agregar uno', text: 'Botón "Agregar contacto" para alta manual. Al teclear el número te avisa si ya existe, está bloqueado o en enfriamiento.' },
             { icon: 'pi-phone',         label: 'Formato',    text: 'Teléfonos en formato mexicano con código de país: 529231311146.' },
             { icon: 'pi-check-circle',  label: 'Resultado',  text: 'Al importar verás: aceptados / duplicados / formato inválido.' },
             { icon: 'pi-ban',           label: 'Dar de baja', text: 'El botón Dar de baja marca al contacto como baja permanente (cumplimiento). Nunca más se le envía.' },
-            { icon: 'pi-refresh',       label: 'Reactivar',  text: 'Solo admin: el botón Reactivar aparece en contactos Inalcanzables (recibieron varios mensajes sin entregarse). Los vuelve a Activo si hay evidencia de que el número volvió a ser alcanzable. Filtra por "Inalcanzables" para encontrarlos. Las bajas e inválidos NO se reactivan.' },
+            { icon: 'pi-refresh',       label: 'Reactivar',  text: 'Solo admin: el botón Reactivar aparece en contactos Inalcanzables (3 mensajes seguidos sin entregarse). Los vuelve a Activo si hay evidencia de que el número volvió a ser alcanzable. Filtra por "Inalcanzables" para encontrarlos. Las bajas e inválidos NO se reactivan.' },
             { icon: 'pi-trash',         label: 'Eliminar',   text: 'El bote de basura (solo admin) quita el contacto de listas y campañas - para limpiar pruebas/basura. Es recuperable y no afecta las stats de bajas.' },
-            { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora, POR CANAL: dos etiquetas, una de WhatsApp y otra de SMS (Disponible, En snooze, En cooldown, Enviado hoy o No recibe). Cada canal cuenta lo suyo, puede estar disponible en uno y en cooldown en el otro. Distinta del Estado.' },
+            { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora, POR CANAL: dos etiquetas, una de WhatsApp y otra de SMS (Disponible, Pospuesto, Enfriamiento, Enviado hoy o No recibe). Cada canal cuenta lo suyo, puede estar disponible en uno y en enfriamiento en el otro. Distinta del Estado.' },
             { icon: 'pi-mobile',        label: 'Baja SMS',   text: 'Chip rojo bajo el Estado cuando el contacto NO recibe SMS (pidió baja por SMS, bloqueado o número inválido). Es independiente del Estado de WhatsApp: puede estar Activo para WhatsApp y con Baja SMS. Filtra con "Solo bajas SMS".' },
             { icon: 'pi-tag',           label: 'Tags masivos', text: 'Marca varios contactos con las casillas y usa la barra superior para asignar un tag a todos a la vez.' },
             { icon: 'pi-download',      label: 'Exportar',   text: 'Descarga la lista actual de contactos en Excel.' },
@@ -303,8 +306,8 @@ const helpContent = {
         items: [
             { icon: 'pi-plus-circle',   label: 'Crear',      text: 'Dale un nombre y elige el canal. Ambos usan plantilla (nada de texto libre): WhatsApp una plantilla aprobada por Meta; SMS una plantilla SMS guardada. Verás la vista previa antes de crear.' },
             { icon: 'pi-play-circle',   label: 'Ejecutar',   text: 'Abre la campaña y da clic en Ejecutar. Los mensajes se encolan en segundo plano. El progreso, el estado y las filas del detalle suben solos en vivo, sin cerrar ni recargar (incluye Enviado -> Entregado -> Leído).' },
-            { icon: 'pi-shield',        label: 'Protección', text: 'Omite automáticamente: bajas (una baja en WhatsApp también frena SMS), inválidos y snooze. El dedup diario y el cooldown son por canal, separados.' },
-            { icon: 'pi-clock',         label: 'Horario',    text: 'WhatsApp solo L-V 9AM–10PM (fuera de eso bloquea). SMS no tiene horario forzado: tú decides (aviso si es de madrugada).' },
+            { icon: 'pi-shield',        label: 'Protección', text: 'Omite automáticamente: bajas (una baja en WhatsApp también frena SMS), inválidos y pospuestos. El dedup diario y el enfriamiento son por canal, separados.' },
+            { icon: 'pi-clock',         label: 'Horario',    text: 'WhatsApp solo Lunes a Viernes 9AM-10PM, hora del Centro (CDMX) - fuera de eso bloquea. SMS no tiene horario forzado: tú decides (aviso si es de madrugada).' },
         ],
         warning: 'No ejecutar la misma campaña dos veces. Si necesitas reenviar, crea una nueva.',
     },
@@ -322,8 +325,8 @@ const helpContent = {
     '/conversations': {
         title: 'Conversaciones',
         items: [
-            { icon: 'pi-circle-fill',   label: 'Estado',      text: 'El punto de color y el chip dicen en qué anda la conversación: Abierta (verde, ventana 24h abierta, se puede responder libre), Cerrada (gris, 24h vencidas, solo plantilla reabre), Snooze (ámbar, pidió "no por ahora"), Baja (rojo, dado de baja).' },
-            { icon: 'pi-clock',         label: 'Snooze',      text: 'Snooze NO bloquea el chat: el contacto tocó "No por ahora", el sistema no lo mete en campañas de WhatsApp hasta la fecha (arriba y en Info del contacto). El SMS NO se ve afectado (el snooze es por canal). Y tú SÍ le puedes seguir escribiendo aquí a mano.' },
+            { icon: 'pi-circle-fill',   label: 'Estado',      text: 'El punto de color y el chip dicen en qué anda la conversación: Abierta (verde, ventana 24h abierta, se puede responder libre), Cerrada (gris, 24h vencidas, solo plantilla reabre), Pospuesto (ámbar, pidió "no por ahora"), Baja (rojo, dado de baja).' },
+            { icon: 'pi-clock',         label: 'Pospuesto',   text: 'Pospuesto NO bloquea el chat: el contacto tocó "No por ahora", el sistema no lo mete en campañas de WhatsApp hasta la fecha (arriba y en Info del contacto). El SMS NO se ve afectado (es por canal). Y tú SÍ le puedes seguir escribiendo aquí a mano.' },
             { icon: 'pi-user',          label: 'Asignación',  text: 'Aparte del estado: "Sin asignar" (ámbar) = nadie la atiende; "Tú" (verde) con barra verde a la izquierda = es tuya; iniciales = la atiende otro agente.' },
             { icon: 'pi-comments',      label: 'Ventana 24h', text: 'Solo puedes responder texto libre si el contacto te escribió en las últimas 24h. Si el campo está deshabilitado (Cerrada), crea una campaña con ese contacto para reabrirla.' },
             { icon: 'pi-bolt',          label: 'Rápidas',     text: 'Los chips de respuestas rápidas cargan el texto automáticamente. Clic para usarlos.' },
@@ -339,7 +342,7 @@ const helpContent = {
             { icon: 'pi-check-circle',  label: 'Aprobadas',   text: 'WhatsApp: solo las plantillas "Aprobada" aparecen al crear campañas. SMS: todas las activas se pueden usar.' },
             { icon: 'pi-plus',          label: 'Crear SMS',   text: 'En la pestaña SMS, "Nueva plantilla SMS": ponle un nombre interno y el mensaje (incluye "STOP para baja"). No pasa por Meta.' },
             { icon: 'pi-send',          label: 'Enviar prueba', text: 'Selecciona una plantilla y usa "Enviar prueba": WhatsApp va a un contacto activo; SMS a un número de 10 dígitos.' },
-            { icon: 'pi-eye-slash',     label: 'Ocultar', text: 'Solo superadmin: el ojo junto a cada plantilla de WhatsApp la oculta o muestra. Una plantilla oculta no aparece al operador ni en el selector de campañas, pero NO se borra (sigue en Meta). Útil para quitar de la vista plantillas de prueba como hello_world.' },
+            { icon: 'pi-eye-slash',     label: 'Ocultar', text: 'Solo soporte: el ojo junto a cada plantilla de WhatsApp la oculta o muestra. Una plantilla oculta no aparece al operador ni en el selector de campañas, pero NO se borra (sigue en Meta). Útil para quitar de la vista plantillas de prueba como hello_world.' },
         ],
         warning: 'Solo el administrador puede crear, editar o eliminar plantillas.',
     },
@@ -347,8 +350,8 @@ const helpContent = {
         title: 'Usuarios',
         items: [
             { icon: 'pi-shield',        label: 'Admin',      text: 'Acceso total: plantillas, usuarios, contactos, campañas, respuestas SMS, conversaciones.' },
-            { icon: 'pi-user',          label: 'Operador',   text: 'Dashboard, contactos, campañas, respuestas SMS y conversaciones (todas). No gestiona plantillas ni usuarios.' },
-            { icon: 'pi-comments',      label: 'Agente',     text: 'Solo Conversaciones, y solo las asignadas a él. Entra directo a esa pantalla; no ve Dashboard, Contactos, Campañas ni Respuestas SMS.' },
+            { icon: 'pi-user',          label: 'Operador',   text: 'Panel, contactos, campañas, respuestas SMS y conversaciones (todas). No gestiona plantillas ni usuarios.' },
+            { icon: 'pi-comments',      label: 'Agente',     text: 'Solo Conversaciones, y solo las asignadas a él. Entra directo a esa pantalla; no ve Panel, Contactos, Campañas ni Respuestas SMS.' },
         ],
         tip: 'Solo los usuarios con rol Agente reciben conversaciones por auto-asignación. Crea una cuenta por persona; no compartir credenciales.',
     },
@@ -358,7 +361,7 @@ const helpContent = {
             { icon: 'pi-key',           label: 'Token Meta',    text: 'El token de acceso a WhatsApp. Si los envíos fallan con error 467, el token expiró.' },
             { icon: 'pi-circle-fill',   label: 'Salud',         text: 'Muestra la calidad del número y si el circuito está pausado.' },
             { icon: 'pi-users',         label: 'Multi-agente',  text: 'Modo de asignación automática al llegar el primer mensaje de un contacto: "Menos chats" asigna al agente con menos conversaciones; "Primer disponible" al primero activo. Solo entran usuarios con rol Agente activos (operadores y admin no reciben auto-asignación). Sin agentes activos, la conversación queda "Sin asignar".' },
-            { icon: 'pi-clock',         label: 'Cooldown',      text: 'Días mínimos entre mensajes al mismo contacto. Default: 30 días.' },
+            { icon: 'pi-clock',         label: 'Enfriamiento',  text: 'Días mínimos entre mensajes al mismo contacto (enfriamiento). Default: 30 días.' },
         ],
         warning: 'El token es sensible. Solo el administrador debe actualizarlo.',
     },
@@ -495,7 +498,22 @@ async function logout() {
 }
 
 .topbar-left  { display: flex; align-items: center; gap: 12px; }
-.topbar-right { display: flex; align-items: center; }
+.topbar-right { display: flex; align-items: center; gap: 4px; }
+
+/* ── Guide (book) button ───────────────────────── */
+.guide-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 1.1rem;
+    padding: 6px 8px;
+    border-radius: 8px;
+    line-height: 1;
+    text-decoration: none;
+    transition: color .15s, background .15s;
+}
+.guide-btn:hover { color: var(--p-primary-600); background: #f1f5f9; }
 
 /* ── Notification bell ─────────────────────────── */
 .notif-btn {

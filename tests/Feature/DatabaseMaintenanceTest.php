@@ -82,4 +82,28 @@ class DatabaseMaintenanceTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $user->id]);
         $this->assertDatabaseHas('contacts', ['id' => $contact->id]);
     }
+
+    public function test_clean_demo_con_flag_contacts_borra_contactos(): void
+    {
+        $user    = User::factory()->create();
+        $contact = Contact::factory()->create();
+
+        $this->artisan('db:clean-demo --force --contacts')->assertExitCode(0);
+
+        $this->assertDatabaseCount('contacts', 0);   // con --contacts: borrados
+        $this->assertDatabaseHas('users', ['id' => $user->id]); // usuarios intactos
+    }
+
+    public function test_clean_demo_con_flag_users_borra_usuarios_y_seed_los_repone(): void
+    {
+        User::factory()->count(3)->create();
+
+        $this->artisan('db:clean-demo --force --users')->assertExitCode(0);
+        $this->assertDatabaseCount('users', 0); // con --users: borrados
+
+        // El seed los vuelve a meter limpios (los 5 base).
+        $this->seed(\Database\Seeders\UserSeeder::class);
+        $this->assertDatabaseCount('users', 5);
+        $this->assertDatabaseHas('users', ['email' => 'superadmin@prestamaz.mx', 'role' => 'superadmin']);
+    }
 }

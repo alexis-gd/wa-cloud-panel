@@ -53,8 +53,8 @@
           </div>
           <div class="chat-badges">
             <Tag v-if="selected.status==='opted_out'" value="Baja permanente" severity="danger" />
-            <Tag v-else-if="selected.snoozed_until" :value="`Snooze hasta ${formatDate(selected.snoozed_until)}`" severity="warn" />
-            <Tag v-else-if="!windowOpen"            value="Ventana cerrada — el cliente debe responder primero" severity="warn" />
+            <Tag v-else-if="selected.snoozed_until" :value="`Pospuesto hasta ${formatDate(selected.snoozed_until)}`" severity="warn" />
+            <Tag v-else-if="!windowOpen"            value="Ventana cerrada - el cliente debe responder primero" severity="warn" />
             <Tag v-else                             value="Abierta" severity="success" />
           </div>
         </div>
@@ -111,7 +111,7 @@
           <div class="info-row"><span class="info-lbl">Teléfono</span><span class="info-val">{{ selected.phone }}</span></div>
           <div class="info-row"><span class="info-lbl">Estado</span><span class="info-val">{{ selected.status }}</span></div>
           <div v-if="selected.snoozed_until" class="info-row">
-            <span class="info-lbl">Snooze</span>
+            <span class="info-lbl">Pospuesto</span>
             <span class="info-val info-val--warn">{{ formatDate(selected.snoozed_until) }}</span>
           </div>
         </div>
@@ -209,7 +209,7 @@ function isMyConversation(contact) {
 const LIFECYCLE = {
   abierta: { label: 'Abierta', severity: 'success'   },
   cerrada: { label: 'Cerrada', severity: 'secondary' },
-  snooze:  { label: 'Snooze',  severity: 'warn'      },
+  snooze:  { label: 'Pospuesto', severity: 'warn'    },
   baja:    { label: 'Baja',    severity: 'danger'    },
 };
 

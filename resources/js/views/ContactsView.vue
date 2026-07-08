@@ -465,9 +465,9 @@ const isBlockedStatus = (s) => ['opted_out', 'invalid', 'unreachable'].includes(
 // ── Eje WhatsApp ──────────────────────────────────────────────
 const waDeliverLabel = (c) => {
     if (isBlockedStatus(c.status)) return 'No recibe';
-    if (c.snooze_active)   return 'En snooze';
+    if (c.snooze_active)   return 'Pospuesto';
     if (c.sent_today)      return 'Enviado hoy';
-    if (c.cooldown_active) return 'En cooldown';
+    if (c.cooldown_active) return 'Enfriamiento';
     return 'Disponible';
 };
 
@@ -481,9 +481,9 @@ const waDeliverSeverity = (c) => {
 
 const waDeliverTooltip = (c) => {
     if (isBlockedStatus(c.status)) return 'WhatsApp: no recibe (contacto dado de baja, inválido o inalcanzable)';
-    if (c.snooze_active)   return `WhatsApp: en snooze${c.snooze_until ? ` hasta ${c.snooze_until}` : ''} - el contacto pidió "No por ahora"`;
+    if (c.snooze_active)   return `WhatsApp: pospuesto${c.snooze_until ? ` hasta ${c.snooze_until}` : ''} - el contacto pidió "No por ahora"`;
     if (c.sent_today)      return 'WhatsApp: ya recibió un mensaje hoy (no se le reenvía el mismo día)';
-    if (c.cooldown_active) return `WhatsApp: en cooldown${c.cooldown_until ? ` hasta ${c.cooldown_until}` : ''} - no se le envía hasta que pase`;
+    if (c.cooldown_active) return `WhatsApp: en enfriamiento${c.cooldown_until ? ` hasta ${c.cooldown_until}` : ''} - no se le envía hasta que pase`;
     return 'WhatsApp: disponible - le puede llegar una campaña ahora';
 };
 
@@ -495,7 +495,7 @@ const smsIsBlocked = (c) => c.status === 'opted_out' || c.sms_opt_out || c.sms_b
 const smsDeliverLabel = (c) => {
     if (smsIsBlocked(c))        return 'No recibe';
     if (c.sms_sent_today)       return 'Enviado hoy';
-    if (c.sms_cooldown_active)  return 'En cooldown';
+    if (c.sms_cooldown_active)  return 'Enfriamiento';
     return 'Disponible';
 };
 
@@ -512,7 +512,7 @@ const smsDeliverTooltip = (c) => {
     if (c.sms_blocked) return 'SMS: bloqueado por rebotes consecutivos. No afecta WhatsApp';
     if (c.sms_invalid) return 'SMS: el número no recibe SMS (línea fija o inexistente). No afecta WhatsApp';
     if (c.sms_sent_today)       return 'SMS: ya recibió un SMS hoy (no se le reenvía el mismo día)';
-    if (c.sms_cooldown_active)  return `SMS: en cooldown${c.sms_cooldown_until ? ` hasta ${c.sms_cooldown_until}` : ''} - no se le envía hasta que pase`;
+    if (c.sms_cooldown_active)  return `SMS: en enfriamiento${c.sms_cooldown_until ? ` hasta ${c.sms_cooldown_until}` : ''} - no se le envía hasta que pase`;
     return 'SMS: disponible - le puede llegar una campaña ahora';
 };
 
@@ -520,9 +520,9 @@ const tableHelp =
     'Estado: identidad del contacto (Activo / Baja / Inválido / Inalcanzable) - eje WhatsApp. '
     + 'Chip rojo "Baja SMS" (si aparece): el contacto no recibe SMS aunque sí reciba WhatsApp. '
     + 'Entregabilidad: se muestra POR CANAL con dos etiquetas - una de WhatsApp (icono verde) y '
-    + 'otra de SMS (icono de celular). Cada canal cuenta su propio cooldown y "enviado hoy", así '
-    + 'que un contacto puede estar Disponible en WhatsApp y En cooldown en SMS al mismo tiempo. '
-    + 'Estados: Disponible, En snooze (pidió "No por ahora"), En cooldown (recibió hace poco), '
+    + 'otra de SMS (icono de celular). Cada canal cuenta su propio enfriamiento y "enviado hoy", así '
+    + 'que un contacto puede estar Disponible en WhatsApp y en Enfriamiento en SMS al mismo tiempo. '
+    + 'Estados: Disponible, Pospuesto (pidió "No por ahora"), Enfriamiento (recibió hace poco), '
     + 'Enviado hoy (ya recibió hoy) o No recibe (bloqueado en ese canal).';
 
 // Baja de SMS - eje SEPARADO del Estado (que es WhatsApp). Un contacto puede estar

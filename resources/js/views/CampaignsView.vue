@@ -485,8 +485,8 @@ const logStatusSeverity = (s) => ({
 }[s] ?? 'secondary');
 
 const discardLabel = (r) => ({
-    cooldown   : 'En cooldown',
-    snooze     : 'En snooze',
+    cooldown   : 'Enfriamiento',
+    snooze     : 'Pospuesto',
     opted_out  : 'Baja',
     dedup_today: 'Ya enviado hoy',
     unreachable: 'Inalcanzable',

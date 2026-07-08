@@ -114,7 +114,7 @@
             <template #title>Control de envíos</template>
             <template #content>
                 <div class="form-group">
-                    <label>Días de espera entre mensajes al mismo contacto</label>
+                    <label>Días de enfriamiento entre mensajes al mismo contacto</label>
                     <div class="cooldown-row">
                         <InputNumber
                             v-model="cooldownDays"
@@ -138,7 +138,7 @@
                 </div>
 
                 <Message v-if="cooldownResult" :severity="cooldownResult.error ? 'error' : 'success'" class="mt-3">
-                    {{ cooldownResult.error ?? 'Cooldown actualizado a ' + cooldownResult.data?.cooldown_days + ' días.' }}
+                    {{ cooldownResult.error ?? 'Enfriamiento actualizado a ' + cooldownResult.data?.cooldown_days + ' días.' }}
                 </Message>
             </template>
         </Card>
@@ -220,7 +220,7 @@
             <template #title>Modo demo</template>
             <template #content>
                 <p class="stage-desc">
-                    Quita el circuit breaker del número, resetea el cooldown de todos los contactos,
+                    Quita el circuit breaker del número, resetea el enfriamiento de todos los contactos,
                     limpia las bajas de SMS (baja por STOP, bloqueo, inválido) y reactiva las bajas de
                     WhatsApp (vuelve a Activo a los que se dieron de baja) para que el número de prueba
                     pueda volver a recibir. Úsalo antes de una demostración.
@@ -233,7 +233,7 @@
                     @click="confirmDemoReset"
                 />
                 <Message v-if="demoResetResult" :severity="demoResetResult.error ? 'error' : 'success'" class="mt-3">
-                    {{ demoResetResult.error ?? 'Listo - cooldown reseteado, circuit breaker quitado, bajas de SMS limpiadas y bajas de WhatsApp reactivadas.' }}
+                    {{ demoResetResult.error ?? 'Listo - enfriamiento reseteado, circuit breaker quitado, bajas de SMS limpiadas y bajas de WhatsApp reactivadas.' }}
                 </Message>
             </template>
         </Card>
@@ -291,7 +291,7 @@ const stageControlEnabled = false;
 
 const flagModules = [
     {
-        key: 'feature_dashboard', label: 'Dashboard',
+        key: 'feature_dashboard', label: 'Panel',
         subs: [
             { key: 'feature_daily_chart', label: 'Gráfica diaria' },
         ],
@@ -391,7 +391,7 @@ async function saveToken() {
 
 function confirmDemoReset() {
     confirm.require({
-        message: '¿Quitar el circuit breaker, resetear el cooldown, limpiar las bajas de SMS y reactivar las bajas de WhatsApp de todos los contactos?',
+        message: '¿Quitar el circuit breaker, resetear el enfriamiento, limpiar las bajas de SMS y reactivar las bajas de WhatsApp de todos los contactos?',
         header:  'Resetear para demo',
         icon:    'pi pi-exclamation-triangle',
         acceptLabel: 'Sí, resetear',

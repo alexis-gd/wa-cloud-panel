@@ -72,31 +72,47 @@
         <Card style="max-width: 560px; margin-top: 24px">
             <template #title>Etapas de entrega</template>
             <template #content>
-                <p class="stage-desc">Activa las funciones disponibles según la entrega pactada con el cliente.</p>
+                <!-- Control desactivado a propósito (ver stageControlEnabled). Se mantiene todo el
+                     código intacto para reactivarlo más adelante poniendo la constante en true. -->
+                <template v-if="stageControlEnabled">
+                    <p class="stage-desc">Activa las funciones disponibles según la entrega pactada con el cliente.</p>
 
-                <div class="preset-btns">
-                    <Button label="E1 — Contactos" severity="secondary" size="small" @click="applyPreset(1)" :loading="savingFlags" />
-                    <Button label="E2 — Demo WA"   severity="secondary" size="small" @click="applyPreset(2)" :loading="savingFlags" />
-                    <Button label="E3 — Métricas"  severity="secondary" size="small" @click="applyPreset(3)" :loading="savingFlags" />
-                    <Button label="E4 — Completo"  severity="secondary" size="small" @click="applyPreset(4)" :loading="savingFlags" />
-                </div>
+                    <div class="preset-btns">
+                        <Button label="E1 — Contactos" severity="secondary" size="small" @click="applyPreset(1)" :loading="savingFlags" />
+                        <Button label="E2 — Demo WA"   severity="secondary" size="small" @click="applyPreset(2)" :loading="savingFlags" />
+                        <Button label="E3 — Métricas"  severity="secondary" size="small" @click="applyPreset(3)" :loading="savingFlags" />
+                        <Button label="E4 — Completo"  severity="secondary" size="small" @click="applyPreset(4)" :loading="savingFlags" />
+                    </div>
 
-                <div class="flags-modules">
-                    <div v-for="mod in flagModules" :key="mod.key">
-                        <div class="flag-row">
-                            <ToggleSwitch v-model="flags[mod.key]" @update:modelValue="saveFlags" />
-                            <span class="flag-label">{{ mod.label }}</span>
-                        </div>
-                        <div v-for="sub in mod.subs" :key="sub.key" class="flag-row flag-row--sub">
-                            <ToggleSwitch v-model="flags[sub.key]" @update:modelValue="saveFlags" />
-                            <span class="flag-label flag-label--sub">{{ sub.label }}</span>
+                    <div class="flags-modules">
+                        <div v-for="mod in flagModules" :key="mod.key">
+                            <div class="flag-row">
+                                <ToggleSwitch v-model="flags[mod.key]" @update:modelValue="saveFlags" />
+                                <span class="flag-label">{{ mod.label }}</span>
+                            </div>
+                            <div v-for="sub in mod.subs" :key="sub.key" class="flag-row flag-row--sub">
+                                <ToggleSwitch v-model="flags[sub.key]" @update:modelValue="saveFlags" />
+                                <span class="flag-label flag-label--sub">{{ sub.label }}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <Message v-if="flagsResult" :severity="flagsResult.error ? 'error' : 'success'" class="mt-3">
-                    {{ flagsResult.error ?? 'Funciones actualizadas.' }}
-                </Message>
+                    <Message v-if="flagsResult" :severity="flagsResult.error ? 'error' : 'success'" class="mt-3">
+                        {{ flagsResult.error ?? 'Funciones actualizadas.' }}
+                    </Message>
+                </template>
+
+                <div v-else class="stage-disabled">
+                    <i class="pi pi-lock stage-disabled-icon"></i>
+                    <div>
+                        <p class="stage-disabled-title">Módulo desactivado temporalmente</p>
+                        <p class="stage-disabled-text">
+                            El control de mostrar/ocultar módulos por etapa está apagado a propósito para
+                            evitar cambios accidentales (un preset podía apagar módulos por error). Todos
+                            los módulos están activos. Se reactivará más adelante.
+                        </p>
+                    </div>
+                </div>
             </template>
         </Card>
         <Card style="max-width: 560px; margin-top: 24px">
@@ -155,6 +171,11 @@
                         />
                     </div>
                     <small>
+                        Un <b>rebote</b> es un SMS que no se pudo entregar: número apagado o sin señal
+                        por mucho tiempo, línea fija, número inexistente o bloqueado por la operadora
+                        (el gateway lo reporta como fallido). "Seguidos" = rebotes uno tras otro sin
+                        ninguna entrega exitosa en medio; una entrega exitosa reinicia el contador.
+                        <br><br>
                         <b>0 = desactivado</b> (default): los rebotes se cuentan para reporte pero nunca
                         bloquean el número. Un valor mayor bloquea el SMS tras esa cantidad de fallos seguidos.
                         No afecta WhatsApp ni la baja por STOP (STOP siempre bloquea).
@@ -189,6 +210,21 @@
                     <div><span class="wh-muted">Última llegada:</span> {{ webhookHealth.last_hit_at ? `${webhookHealth.last_hit_at} (${agoLabel(webhookHealth.last_hit_ago)})` : 'nunca' }}</div>
                     <div><span class="wh-muted">Último OK:</span> {{ webhookHealth.last_at ? `${webhookHealth.last_event} · ${webhookHealth.last_at} (${agoLabel(webhookHealth.last_at_ago)})` : 'nunca' }}</div>
                     <div v-if="webhookHealth.last_rejected_at"><span class="wh-muted">Último rechazo (firma):</span> {{ webhookHealth.last_rejected_at }} ({{ agoLabel(webhookHealth.last_rejected_ago) }})</div>
+                </div>
+
+                <div class="wh-help">
+                    <p class="wh-help-title"><i class="pi pi-info-circle"></i> ¿No están entrando SMS (respuestas o entregas)?</p>
+                    <ol class="wh-help-list">
+                        <li>Revisa que el <b>teléfono del gateway</b> esté encendido y con internet.</li>
+                        <li>Que la app <b>SMS Gateway</b> esté corriendo: Autostart ON, sin restricción de batería y no cerrada en "recientes" (MIUI la mata).</li>
+                        <li>Que el <b>webhook</b> esté registrado en el gateway para <code>sms:received</code> (respuestas) y <code>sms:delivered/failed</code> (entregas), apuntando a la URL del panel.</li>
+                        <li>Si "Última llegada" no se mueve al mandarte un SMS de prueba, el teléfono no está entregando el webhook (es lo de arriba).</li>
+                        <li>Si dice "rechazo por firma", el secreto del webhook no coincide entre gateway y panel.</li>
+                    </ol>
+                    <p class="wh-help-note">
+                        Red de seguridad: las <b>entregas</b> se reconcilian solas con <code>sms:reconcile-status</code>.
+                        Las <b>respuestas entrantes</b> NO tienen reconcile: si el teléfono no las manda, no llegan.
+                    </p>
                 </div>
             </template>
         </Card>
@@ -259,6 +295,11 @@ const assignmentModes = [
     { label: 'Menos chats activos',    value: 'least_chats' },
     { label: 'Primer disponible',      value: 'first_available' },
 ];
+
+// Interruptor del bloque "Etapas de entrega". Apagado a propósito: el control de
+// feature flags (presets + toggles) queda oculto para que nadie apague módulos por error.
+// Ya cumplió su ciclo (todos los módulos activos). Poner en true para reactivarlo más adelante.
+const stageControlEnabled = false;
 
 const flagModules = [
     {
@@ -467,4 +508,15 @@ onMounted(() => {
 .wh-msg    { font-size: .82rem; color: var(--p-text-color); margin: 10px 0 0; line-height: 1.5; }
 .wh-stats  { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; font-size: .8rem; }
 .wh-muted  { color: var(--p-text-muted-color); font-size: .78rem; }
+
+.wh-help        { margin-top: 16px; padding: 12px 14px; background: var(--p-surface-50); border-radius: 8px; }
+.wh-help-title  { font-size: .82rem; font-weight: 600; margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
+.wh-help-list   { margin: 0; padding-left: 18px; font-size: .8rem; color: var(--p-text-color); line-height: 1.5; display: flex; flex-direction: column; gap: 4px; }
+.wh-help-list code, .wh-help-note code { background: var(--p-surface-200); border-radius: 4px; padding: 1px 4px; font-size: .76rem; }
+.wh-help-note   { font-size: .78rem; color: var(--p-text-muted-color); margin: 10px 0 0; line-height: 1.5; }
+
+.stage-disabled       { display: flex; align-items: flex-start; gap: 12px; padding: 6px 2px; }
+.stage-disabled-icon  { font-size: 1.1rem; color: var(--p-text-muted-color); margin-top: 2px; }
+.stage-disabled-title { font-size: .88rem; font-weight: 600; margin: 0 0 4px; }
+.stage-disabled-text  { font-size: .82rem; color: var(--p-text-muted-color); margin: 0; line-height: 1.5; }
 </style>

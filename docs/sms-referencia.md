@@ -86,28 +86,29 @@ CampaignController ──── channel: whatsapp | sms
 
 ---
 
-## Protección anti-duplicado cross-channel
+## Protección anti-duplicado — POR CANAL (decisión del cliente, implementada)
 
-### Ventana de exclusión
-Config recomendada: **24 horas** por defecto (admin configurable: 12h, 24h, 48h, 72h).
+> ⚠️ **Actualizado (v0.27):** el diseño original era cross-channel; el cliente pidió separarlo
+> para impactar por ambos canales. La fuente de verdad de esta lógica es
+> [`.claude/rules/contexto-sms.md`](../.claude/rules/contexto-sms.md).
 
-Antes de despachar cada mensaje en el Job:
-```php
-$ultimoMensaje = MessageLog::where('contact_id', $contactId)
-    ->where('status', '!=', 'failed')
-    ->where('created_at', '>=', now()->subHours($ventanaHoras))
-    ->first();
+Qué es por canal y qué es cross-channel:
 
-if ($ultimoMensaje) {
-    // Omitir: contacto ya impactado por {$ultimoMensaje->channel}
-    return;
-}
-```
+| Regla | Alcance | Nota |
+|---|---|---|
+| **Dedup diario** (1 msj/día por contacto) | **por canal** | un WhatsApp hoy NO frena el SMS de hoy |
+| **Cooldown** (`Setting cooldown_days`, mín 7) | **por canal** | cada canal cuenta el suyo |
+| **Snooze** ("No por ahora") | **por canal (solo WhatsApp)** | nace de un botón WA; SMS no lo respeta |
+| **Opt-out** (STOP/BAJA / `status=opted_out`) | **cross-channel** | una baja bloquea AMBOS (legal) |
+| **Blacklist** por rebotes | **cross-channel** para opt-out, propio de SMS para rebotes | ver `registerSmsBounce()` |
+
+Cada job filtra su propio canal: `->where('channel', 'whatsapp'|'sms')` en `SendWhatsAppMessage`
+y `SendSmsMessage`. El snooze se checa **solo** en el job WhatsApp.
 
 ### Reglas absolutas
-1. Nunca enviar el mismo mensaje por ambos canales al mismo contacto
+1. Nunca enviar el mismo mensaje por ambos canales al mismo contacto en la misma campaña
 2. Nunca usar SMS como fallback automático de WA sin consentimiento
-3. Opt-out en un canal → bloqueo en AMBOS canales
+3. Opt-out (baja) → bloqueo en AMBOS canales (no negociable, legal)
 
 ---
 

@@ -31,6 +31,14 @@
                         <template #body="{ data }">
                             <div class="action-row" v-if="data.id !== currentUser?.id">
                                 <Button
+                                    label="Contraseña"
+                                    icon="pi pi-key"
+                                    severity="secondary"
+                                    size="small"
+                                    text
+                                    @click="openPwdModal(data)"
+                                />
+                                <Button
                                     :label="data.is_active ? 'Desactivar' : 'Activar'"
                                     :severity="data.is_active ? 'warn' : 'success'"
                                     size="small"
@@ -89,6 +97,26 @@
             </template>
         </Dialog>
 
+        <!-- ── Modal restablecer contraseña ────────────── -->
+        <Dialog v-model:visible="showPwdModal" header="Restablecer contraseña" modal :style="{ width: '440px' }">
+            <div class="modal-form">
+                <p class="pwd-target">
+                    Nueva contraseña para <strong>{{ pwdForm.name }}</strong>.
+                    La contraseña anterior deja de funcionar de inmediato.
+                </p>
+                <div class="field">
+                    <label>Nueva contraseña</label>
+                    <Password v-model="pwdForm.password" :feedback="false" toggleMask fluid />
+                    <small class="role-hint">Mínimo 8 caracteres.</small>
+                </div>
+                <div v-if="pwdError" class="form-error">{{ pwdError }}</div>
+            </div>
+            <template #footer>
+                <Button label="Cancelar" severity="secondary" text @click="showPwdModal = false" />
+                <Button label="Guardar contraseña" icon="pi pi-check" :loading="pwdSaving" :disabled="!canSavePwd" @click="resetPassword" />
+            </template>
+        </Dialog>
+
     </div>
 
     <ConfirmDialog />
@@ -120,6 +148,13 @@ const loading    = ref(false);
 const showModal  = ref(false);
 const saving     = ref(false);
 const formError  = ref('');
+
+const showPwdModal = ref(false);
+const pwdSaving    = ref(false);
+const pwdError     = ref('');
+const pwdForm      = ref({ id: null, name: '', password: '' });
+
+const canSavePwd = computed(() => pwdForm.value.password.length >= 8);
 
 const currentUser = computed(() => authState.user);
 
@@ -185,6 +220,29 @@ async function saveUser() {
     }
 }
 
+function openPwdModal(user) {
+    pwdForm.value  = { id: user.id, name: user.name, password: '' };
+    pwdError.value = '';
+    showPwdModal.value = true;
+}
+
+async function resetPassword() {
+    if (!canSavePwd.value) return;
+    pwdSaving.value = true;
+    pwdError.value  = '';
+
+    const res = await api.updateUser(pwdForm.value.id, { password: pwdForm.value.password });
+
+    pwdSaving.value = false;
+
+    if (res.status === 'ok') {
+        showPwdModal.value = false;
+        toast.add({ severity: 'success', summary: 'Contraseña actualizada', detail: pwdForm.value.name, life: 3000 });
+    } else {
+        pwdError.value = res.message ?? 'No se pudo actualizar la contraseña.';
+    }
+}
+
 async function toggleActive(user) {
     const res = await api.updateUser(user.id, { is_active: !user.is_active });
     if (res.status === 'ok') {
@@ -228,6 +286,7 @@ onMounted(() => loadUsers());
 .field        { display: flex; flex-direction: column; gap: 6px; }
 .field label  { font-size: .85rem; font-weight: 600; color: #374151; }
 .role-hint    { color: var(--p-text-muted-color); font-size: .78rem; line-height: 1.4; }
+.pwd-target   { margin: 0; font-size: .88rem; color: var(--p-text-muted-color); line-height: 1.5; }
 
 .form-error {
     padding: 10px 14px;

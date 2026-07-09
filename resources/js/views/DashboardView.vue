@@ -88,7 +88,7 @@
         <div class="section-header mb-xs">
             <i class="pi pi-send section-icon"></i>
             <span class="section-title">Estado de mensajes</span>
-            <span class="section-subtitle">— etapas por las que pasa cada mensaje enviado</span>
+            <span class="section-subtitle">- etapas por las que pasa cada mensaje enviado</span>
         </div>
         <div class="stats-row mb">
             <Card class="stat-card" v-for="s in messageStats" :key="s.key">
@@ -98,7 +98,7 @@
                             <span class="stat-lbl">{{ s.label }}</span>
                             <i class="pi pi-info-circle stat-info" v-tooltip.top="s.tooltip"></i>
                         </div>
-                        <span class="stat-num" :class="s.class">{{ stats[s.key] ?? '—' }}</span>
+                        <span class="stat-num" :class="s.class">{{ stats[s.key] ?? '-' }}</span>
                     </div>
                 </template>
             </Card>
@@ -108,7 +108,7 @@
         <div class="section-header mb-xs">
             <i class="pi pi-users section-icon"></i>
             <span class="section-title">Base de contactos</span>
-            <span class="section-subtitle">— estado actual de todos los contactos registrados</span>
+            <span class="section-subtitle">- estado actual de todos los contactos registrados</span>
         </div>
         <div class="stats-row mb">
             <Card class="stat-card" v-for="c in contactStats" :key="c.key">
@@ -118,7 +118,7 @@
                             <span class="stat-lbl">{{ c.label }}</span>
                             <i class="pi pi-info-circle stat-info" v-tooltip.top="c.tooltip"></i>
                         </div>
-                        <span class="stat-num" :class="c.class">{{ contacts[c.key] ?? '—' }}</span>
+                        <span class="stat-num" :class="c.class">{{ contacts[c.key] ?? '-' }}</span>
                     </div>
                 </template>
             </Card>
@@ -128,7 +128,7 @@
         <Card v-if="isEnabled('feature_daily_chart')" class="chart-card mb">
             <template #title>
                 <div class="card-title-row">
-                    <span>Envíos día a día — {{ monthly.month_label }}</span>
+                    <span>Envíos día a día - {{ monthly.month_label }}</span>
                     <Button icon="pi pi-refresh" severity="secondary" text size="small" :loading="loadingChart" @click="loadDailyStats" />
                 </div>
             </template>

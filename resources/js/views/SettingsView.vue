@@ -102,7 +102,7 @@
             </template>
         </Card>
         <Card style="max-width: 560px; margin-top: 24px">
-            <template #title>Multi-agente — asignación automática</template>
+            <template #title>Multi-agente - asignación automática</template>
             <template #content>
                 <div class="form-group">
                     <label>Modo de asignación al llegar un mensaje nuevo</label>
@@ -139,10 +139,10 @@
                     <p class="stage-desc">Activa las funciones disponibles según la entrega pactada con el cliente.</p>
 
                     <div class="preset-btns">
-                        <Button label="E1 — Contactos" severity="secondary" size="small" @click="applyPreset(1)" :loading="savingFlags" />
-                        <Button label="E2 — Demo WA"   severity="secondary" size="small" @click="applyPreset(2)" :loading="savingFlags" />
-                        <Button label="E3 — Métricas"  severity="secondary" size="small" @click="applyPreset(3)" :loading="savingFlags" />
-                        <Button label="E4 — Completo"  severity="secondary" size="small" @click="applyPreset(4)" :loading="savingFlags" />
+                        <Button label="E1 - Contactos" severity="secondary" size="small" @click="applyPreset(1)" :loading="savingFlags" />
+                        <Button label="E2 - Demo WA"   severity="secondary" size="small" @click="applyPreset(2)" :loading="savingFlags" />
+                        <Button label="E3 - Métricas"  severity="secondary" size="small" @click="applyPreset(3)" :loading="savingFlags" />
+                        <Button label="E4 - Completo"  severity="secondary" size="small" @click="applyPreset(4)" :loading="savingFlags" />
                     </div>
 
                     <div class="flags-modules">

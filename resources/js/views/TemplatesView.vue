@@ -82,7 +82,7 @@
                   <span class="quality-dot" :class="`quality-dot--${t.quality_score?.toLowerCase()}`"></span>
                   {{ t.quality_score }}
                 </span>
-                <span v-else class="muted">—</span>
+                <span v-else class="muted">-</span>
               </td>
               <td class="muted">{{ t.language_code }}</td>
               <td class="col-center">
@@ -140,7 +140,7 @@
           <div v-if="selected.rejection_reason" class="preview-rejection">
             <strong>Rechazada:</strong> {{ selected.rejection_reason }}
           </div>
-          <!-- Enviar prueba — solo admin/superadmin -->
+          <!-- Enviar prueba - solo admin/superadmin -->
           <Button
             v-if="selected.status === 'approved' && isAdmin"
             label="Enviar prueba"
@@ -325,7 +325,7 @@ async function loadContactOptions() {
   loadingContacts.value = true;
   const data = await api.contacts({ status: 'active', per_page: 200 });
   contactOptions.value = (data.data ?? []).map(c => ({
-    label: c.name ? `${c.name} — ${c.phone}` : c.phone,
+    label: c.name ? `${c.name} - ${c.phone}` : c.phone,
     value: c.phone,
   }));
   loadingContacts.value = false;

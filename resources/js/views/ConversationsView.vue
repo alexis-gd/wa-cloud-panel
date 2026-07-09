@@ -108,7 +108,7 @@
       <div class="info-section">
         <p class="info-title">Info del contacto</p>
         <div class="info-rows">
-          <div class="info-row"><span class="info-lbl">Nombre</span><span class="info-val">{{ selected.name || '—' }}</span></div>
+          <div class="info-row"><span class="info-lbl">Nombre</span><span class="info-val">{{ selected.name || '-' }}</span></div>
           <div class="info-row"><span class="info-lbl">Teléfono</span><span class="info-val">{{ selected.phone }}</span></div>
           <div class="info-row"><span class="info-lbl">Estado</span><span class="info-val">{{ selected.status }}</span></div>
           <div v-if="selected.snoozed_until" class="info-row">

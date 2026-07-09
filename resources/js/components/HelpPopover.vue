@@ -1,6 +1,6 @@
 <template>
   <div class="help-wrap">
-    <button class="help-btn" @click="pop.toggle($event)" :title="`Ayuda — ${title}`">
+    <button class="help-btn" @click="pop.toggle($event)" :title="`Ayuda - ${title}`">
       <i class="pi pi-question-circle" />
     </button>
 

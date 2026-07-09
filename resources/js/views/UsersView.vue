@@ -163,9 +163,9 @@ const currentUser = computed(() => authState.user);
 const form = ref({ name: '', email: '', password: '', role: 'operator' });
 
 const roleOptions = [
-    { label: 'Administrador — acceso completo',               value: 'admin'    },
-    { label: 'Operador — contactos y campañas',               value: 'operator' },
-    { label: 'Agente — solo atención de mensajes entrantes',  value: 'agent'    },
+    { label: 'Administrador - acceso completo',               value: 'admin'    },
+    { label: 'Operador - contactos y campañas',               value: 'operator' },
+    { label: 'Agente - solo atención de mensajes entrantes',  value: 'agent'    },
 ];
 
 const roleHints = {

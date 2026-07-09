@@ -872,7 +872,7 @@ onMounted(() => { loadContacts(); loadTags(); });
     font-size: .85rem;
 }
 .total-count { color: var(--p-text-muted-color); margin-left: 8px; }
-.export-row  { display: flex; justify-content: flex-end; }
+.export-row  { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .row-actions { display: flex; gap: 2px; align-items: center; }
 
 .edit-field        { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
@@ -913,5 +913,8 @@ onMounted(() => { loadContacts(); loadTags(); });
     .upload-row { flex-direction: column; align-items: stretch; }
     .filter-row { flex-wrap: wrap; }
     .bulk-bar   { flex-wrap: wrap; }
+    /* Botones de acción apilados y a todo el ancho (no pegados ni cortados). */
+    .export-row               { flex-direction: column; align-items: stretch; }
+    .export-row :deep(.p-button) { width: 100%; justify-content: center; }
 }
 </style>

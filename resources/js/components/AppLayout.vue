@@ -171,7 +171,7 @@ const { isEnabled } = useFeatures();
 function handleSessionExpired() {
     if (!authState.user) return; // ya fue manejado, no repetir
     clearUser();
-    // Durante carga inicial: el guard ya redirige a /login — sin toast ni push duplicado
+    // Durante carga inicial: el guard ya redirige a /login - sin toast ni push duplicado
     if (isInitialLoad()) return;
     toast.add({
         severity : 'warn',
@@ -684,5 +684,16 @@ async function logout() {
     .main          { margin-left: 0; }
     .menu-btn      { display: block; }
     .content       { padding: 16px; }
+}
+</style>
+
+<!-- Global (SIN scoped): los dialogs de PrimeVue se teleportan a <body>, fuera del scope.
+     En móvil evita que el modal pegue con los bordes de la pantalla. -->
+<style>
+@media (max-width: 768px) {
+    .p-dialog {
+        max-width: calc(100vw - 32px);
+        margin: 16px;
+    }
 }
 </style>

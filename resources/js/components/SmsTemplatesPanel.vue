@@ -16,7 +16,8 @@
                     <p class="empty-title">Sin plantillas de SMS.</p>
                     <p v-if="isAdmin" class="empty-sub">Crea una con el boton "Nueva plantilla SMS".</p>
                 </div>
-                <table v-else class="tpl-table">
+                <div v-else class="table-scroll">
+                <table class="tpl-table">
                     <thead>
                         <tr><th>Nombre</th><th>Mensaje</th><th class="col-center">Activa</th><th></th></tr>
                     </thead>
@@ -36,6 +37,7 @@
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
 
             <div class="preview-panel">
@@ -226,7 +228,9 @@ async function sendTest() {
 .panel-sub     { font-size: .82rem; color: var(--p-text-muted-color); margin: 0; max-width: 60ch; }
 
 .main-layout   { display: grid; grid-template-columns: 1fr 280px; gap: 20px; align-items: start; }
+.table-scroll  { overflow-x: auto; }
 .table-panel   { background: var(--p-content-background); border: 1px solid var(--p-content-border-color); border-radius: 12px; overflow: hidden; }
+@media (max-width: 768px) { .main-layout { grid-template-columns: 1fr; } }
 
 .empty-state   { padding: 48px 24px; text-align: center; color: var(--p-text-muted-color); }
 .empty-icon    { font-size: 2.5rem; display: block; margin-bottom: 12px; }

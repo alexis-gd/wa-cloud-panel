@@ -54,7 +54,7 @@ const router = createRouter({
     ],
 });
 
-// Marcar app como lista DESPUÉS de que la navegación completó —
+// Marcar app como lista DESPUÉS de que la navegación completó -
 // evita que AppLayout re-renderice con appReady=true mientras route.path
 // todavía apunta a la ruta protegida (antes de que el redirect a /login ocurra).
 router.afterEach(() => {
@@ -62,7 +62,7 @@ router.afterEach(() => {
     if (!authState.appReady) setAppReady();
 });
 
-// Navigation guard — verificar auth y feature flags antes de cada ruta
+// Navigation guard - verificar auth y feature flags antes de cada ruta
 router.beforeEach(async (to) => {
     const { user: authState } = useAuth();
     const { isEnabled } = useFeatures();
@@ -92,13 +92,13 @@ router.beforeEach(async (to) => {
         return to.path === '/conversations' ? true : '/conversations';
     }
 
-    // Verificar rol — superadmin pasa cualquier check
+    // Verificar rol - superadmin pasa cualquier check
     if (to.meta.role) {
         const userRole = authState.user?.role;
         if (userRole !== to.meta.role && userRole !== 'superadmin') return '/';
     }
 
-    // Verificar feature flags por ruta — superadmin bypasa, dashboard siempre accesible
+    // Verificar feature flags por ruta - superadmin bypasa, dashboard siempre accesible
     if (authState.user?.role !== 'superadmin') {
         const featureForRoute = {
             '/contacts':      'feature_contacts',

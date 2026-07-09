@@ -6,7 +6,7 @@ const state = reactive({ flags: {}, ready: false });
 
 export function useFeatures() {
     return {
-        // superadmin bypasa todos los feature flags — ve el sistema completo siempre
+        // superadmin bypasa todos los feature flags - ve el sistema completo siempre
         isEnabled: (key) => {
             const { isSuperAdmin } = useAuth();
             if (isSuperAdmin()) return true;

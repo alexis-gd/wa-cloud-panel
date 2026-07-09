@@ -7,6 +7,7 @@ use App\Models\PhoneNumber;
 use App\Services\WhatsApp\PhoneNumberVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Alta y gestión de números de WhatsApp (solo superadmin/soporte).
@@ -65,9 +66,15 @@ class PhoneNumberController extends Controller
         // phone_number_id no sirven, no se crea la fila (nada de números fantasma).
         $verify = $verifier->verify($data['phone_number_id'], $token);
         if (! $verify['ok']) {
+            Log::warning('Alta de número: Meta rechazó la verificación', [
+                'phone_number_id' => $data['phone_number_id'],
+                'meta_code'       => $verify['code'],
+                'meta_error'      => $verify['error'],
+            ]);
+
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Meta no reconoció el número o el token: ' . $verify['error'],
+                'message' => $verify['friendly'],
                 'code'    => 'META_VERIFY_FAILED',
             ], 422);
         }

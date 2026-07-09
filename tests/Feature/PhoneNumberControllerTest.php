@@ -63,15 +63,38 @@ class PhoneNumberControllerTest extends TestCase
             ], 401),
         ]);
 
-        $this->actingAsSuperAdmin()->postJson('/api/phone-numbers', [
+        $response = $this->actingAsSuperAdmin()->postJson('/api/phone-numbers', [
             'display_name'    => 'Número malo',
             'phone_number_id' => '99999999999',
             'waba_id'         => '88888888888',
             'token'           => self::TOKEN,
-        ])->assertStatus(422)
-          ->assertJsonPath('code', 'META_VERIFY_FAILED');
+        ]);
+
+        $response->assertStatus(422)->assertJsonPath('code', 'META_VERIFY_FAILED');
+        // Mensaje amigable en español (code 190 = token), sin el crudo técnico de Meta.
+        $this->assertStringContainsString('token', $response->json('message'));
+        $this->assertStringNotContainsString('Unsupported', $response->json('message'));
+        $this->assertStringNotContainsString('OAuth', $response->json('message'));
 
         $this->assertDatabaseMissing('phone_numbers', ['phone_number_id' => '99999999999']);
+    }
+
+    public function test_store_traduce_error_de_id_inexistente_code_100(): void
+    {
+        Http::fake([
+            'graph.facebook.com/*' => Http::response([
+                'error' => ['message' => "Unsupported get request. Object with ID '121212' does not exist", 'code' => 100],
+            ], 400),
+        ]);
+
+        $this->actingAsSuperAdmin()->postJson('/api/phone-numbers', [
+            'display_name'    => 'ID inexistente',
+            'phone_number_id' => '121212',
+            'waba_id'         => '1221212',
+            'token'           => self::TOKEN,
+        ])->assertStatus(422)
+          ->assertJsonPath('code', 'META_VERIFY_FAILED')
+          ->assertJsonFragment(['message' => 'El Phone number ID no existe en esta cuenta de Meta, o el token no tiene permiso sobre él. Revisa que el ID sea correcto.']);
     }
 
     public function test_store_rechaza_phone_number_id_no_numerico(): void

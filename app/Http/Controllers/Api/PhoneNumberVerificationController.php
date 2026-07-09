@@ -24,7 +24,7 @@ class PhoneNumberVerificationController extends Controller
         if (! $verify['ok']) {
             return response()->json([
                 'status'  => 'error',
-                'message' => $verify['error'],
+                'message' => $verify['friendly'],
                 'code'    => 'META_VERIFY_FAILED',
             ], 422);
         }

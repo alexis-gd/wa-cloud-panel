@@ -143,7 +143,7 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] **Reconcile de entrantes (red de seguridad)**: `SmsGatewayClient::requestInboxExport()` + comando `sms:reconcile-received` (cada hora) le pide al teléfono re-exportar los `sms:received` de las últimas 24h vía `POST {url}/messages/inbox/export`. Los mensajes vuelven por el mismo webhook y se deduplican por `sms_inbound_messages.gateway_message_id` (evita filas y opt-outs repetidos). Recupera respuestas perdidas si MIUI mató la app. Async (dispara la exportación, no la lee).
 - [~] **Rate limit por SIM** — NO es tarea de desarrollo: el gateway/operadora ya limita a ~8 SMS/min por chip. Solo afinarlo en el servidor gateway si hiciera falta. Fuera del panel.
 - [~] **Feature flag `sms_campaigns`** — descartado salvo que se necesite: solo serviría para ocultar el canal SMS a un cliente que no lo contrató. Prestamaz sí usa SMS → innecesario.
-- [~] **Setup físico prod (responsabilidad del cliente)** — escalar de 1 a 5-8 celulares + SIMs lo hace el cliente. Pasos documentados en la **guía Meta** (sección 5, "Agregar más teléfonos para enviar SMS") + [docs/guia-sms-gateway-setup.md](guia-sms-gateway-setup.md).
+- [~] **Setup físico prod (responsabilidad del cliente)** — escalar de 1 a 5-8 celulares + SIMs lo hace el cliente. Pasos documentados en la **guía Meta** (sección 6, "Agregar teléfonos para enviar SMS") + [docs/guia-sms-gateway-setup.md](guia-sms-gateway-setup.md).
 
 ### Tanda tiempo real + refinamiento (v0.19–v0.28, ✅ en prod)
 

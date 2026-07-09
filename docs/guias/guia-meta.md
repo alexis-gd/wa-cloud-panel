@@ -34,13 +34,14 @@
 3. [Crear plantillas de WhatsApp sin que las rechacen](#3-crear-plantillas-de-whatsapp-sin-que-las-rechacen)
 4. [Palabras clave que el sistema entiende (lo más importante)](#4-palabras-clave-que-el-sistema-entiende-lo-mas-importante)
 5. [Crear mensajes de SMS](#5-crear-mensajes-de-sms)
-6. [El permiso para enviar: el token permanente](#6-el-permiso-para-enviar-el-token-permanente)
-7. [Agregar un número de WhatsApp](#7-agregar-un-numero-de-whatsapp)
-8. [Agregar un número de prueba (sandbox)](#8-agregar-un-numero-de-prueba-sandbox)
-9. [Verificar el negocio en Meta (Business Verification)](#9-verificar-el-negocio-en-meta-business-verification)
-10. [Interpretar las alertas de Business Manager](#10-interpretar-las-alertas-de-business-manager)
-11. [Códigos de error y qué hacer](#11-codigos-de-error-y-que-hacer)
-12. [Preguntas frecuentes](#12-preguntas-frecuentes)
+6. [Agregar teléfonos para enviar SMS](#6-agregar-telefonos-para-enviar-sms)
+7. [El permiso para enviar: el token permanente](#7-el-permiso-para-enviar-el-token-permanente)
+8. [Agregar un número de WhatsApp](#8-agregar-un-numero-de-whatsapp)
+9. [Agregar un número de prueba (sandbox)](#9-agregar-un-numero-de-prueba-sandbox)
+10. [Verificar el negocio en Meta (Business Verification)](#10-verificar-el-negocio-en-meta-business-verification)
+11. [Interpretar las alertas de Business Manager](#11-interpretar-las-alertas-de-business-manager)
+12. [Códigos de error y qué hacer](#12-codigos-de-error-y-que-hacer)
+13. [Preguntas frecuentes](#13-preguntas-frecuentes)
 
 ---
 
@@ -249,12 +250,16 @@ entre 11PM y 7AM (más bajas y más filtrado de las operadoras). Es aviso, no bl
 Si un número está en el **REPEP** (Registro Público para Evitar Publicidad), hay 30 días
 para dejar de enviarle. Es responsabilidad del negocio revisarlo periódicamente.
 
-### Agregar más teléfonos para enviar SMS
+---
+
+## 6. Agregar teléfonos para enviar SMS
 
 Los SMS no salen de internet: salen de **teléfonos Android reales con chip** (SIM Telcel u
 otra) conectados al sistema. Al principio hay 1 teléfono; para mandar más SMS al día se
 suman más teléfonos. Cada teléfono reparte la carga con los demás **automáticamente** - el
 panel no se toca, solo se da de alta el teléfono nuevo.
+
+### Agregar un teléfono nuevo
 
 **Qué necesitas por cada teléfono nuevo:**
 - Un celular Android con su chip y **saldo** (o plan con SMS).
@@ -290,7 +295,7 @@ Regla rápida: **si NINGÚN SMS se está entregando, es la app; si solo fallan a
 
 ---
 
-## 6. El permiso para enviar: el token permanente
+## 7. El permiso para enviar: el token permanente
 
 El **token** es la llave que le da al panel permiso de enviar por la cuenta de WhatsApp.
 Sin token válido, no hay envíos por WhatsApp.
@@ -330,7 +335,7 @@ del sistema en Business Manager, o si se cambia la contraseña maestra de la cue
 
 ---
 
-## 7. Agregar un número de WhatsApp
+## 8. Agregar un número de WhatsApp
 
 **Cuándo se hace:** cuando el negocio quiere más capacidad de envío, o reemplazar un
 número con calidad degradada.
@@ -387,7 +392,7 @@ actualizas el Panel - soporte no tiene que tocar nada.
 
 ---
 
-## 8. Agregar un número de prueba (sandbox)
+## 9. Agregar un número de prueba (sandbox)
 
 **Cuándo se necesita:** en la cuenta de pruebas, un compañero no recibe los mensajes de
 prueba del panel. Es porque la cuenta sandbox de Meta **solo permite enviar a números
@@ -408,7 +413,7 @@ registrados** antes.
 
 ---
 
-## 9. Verificar el negocio en Meta (Business Verification)
+## 10. Verificar el negocio en Meta (Business Verification)
 
 **Qué es:** Meta exige comprobar que el negocio es real antes de dejar enviar a gran
 escala. Sin esta verificación, la cuenta queda topada en 250 mensajes/día en total.
@@ -442,7 +447,7 @@ El administrador los sube directo en Business Manager. Meta tarda **3 a 10 días
 
 ---
 
-## 10. Interpretar las alertas de Business Manager
+## 11. Interpretar las alertas de Business Manager
 
 Meta muestra alertas en **business.facebook.com** cuando algo necesita atención. Qué
 significa cada una y qué hacer:
@@ -455,14 +460,14 @@ significa cada una y qué hacer:
 | **Cuenta en revisión / Restricción temporal** | Meta está revisando la cuenta | **Parar todos los envíos de inmediato** y avisar a soporte. No enviar mientras dure la revisión. |
 | **Plantilla rechazada** | Meta no aprobó una plantilla | No afecta la cuenta. Esa plantilla no se puede usar. Revisar el motivo y cambiar el contenido antes de reenviar (nunca reenviar igual). |
 | **Actualización de políticas** | Meta cambió sus términos | Leer y aceptar si aplica. Soporte revisa si afecta al sistema. |
-| **Token expirado / Permiso revocado** | Se cortó el acceso a la API | Seguir la sección 6 para generar y pegar un token nuevo. |
+| **Token expirado / Permiso revocado** | Se cortó el acceso a la API | Seguir la sección 7 para generar y pegar un token nuevo. |
 
 > Si aparece una alerta que no está aquí: **anota el mensaje exacto y avisa a soporte antes
 > de tocar nada.**
 
 ---
 
-## 11. Códigos de error y qué hacer
+## 12. Códigos de error y qué hacer
 
 El panel puede registrar estos códigos de error de Meta en los envíos. Qué significan y la
 acción correcta:
@@ -475,7 +480,7 @@ acción correcta:
 | **131050** | El destinatario se dio de **baja** de marketing desde su WhatsApp | El sistema lo marca como Baja solo (ver sección 4). No hay que hacer nada. |
 | **131064** | La **cuenta** llegó a su límite por categorización de plantillas | El sistema pausa el número. Avisar a soporte para revisar las categorías de las plantillas en Business Manager. |
 | **368** | Cuenta bloqueada temporalmente | **Parar TODO y revisar Business Manager.** Avisar a soporte. |
-| **190** | Token expirado | Renovar el token (sección 6) antes de seguir. |
+| **190** | Token expirado | Renovar el token (sección 7) antes de seguir. |
 | **132001** | Plantilla no aprobada | Revisar el estado de la plantilla en Meta. Solo se usan las aprobadas. |
 
 > La mayoría de estos el sistema los maneja solo (pausa el número, marca inválido). Tu
@@ -484,7 +489,7 @@ acción correcta:
 
 ---
 
-## 12. Preguntas frecuentes
+## 13. Preguntas frecuentes
 
 **¿Puedo escribir el nombre de una plantilla a mano en una campaña?**
 No. El panel solo deja elegir plantillas que Meta ya aprobó. Es a propósito: evita mandar
@@ -507,7 +512,7 @@ identificación del remitente y opción de baja (sección 5).
 
 **¿Cada cuánto renuevo el token?**
 Normalmente nunca: el System User Token no expira. Solo si ves el código 190 (token
-expirado) o alguien revocó los permisos. Sigue la sección 6.
+expirado) o alguien revocó los permisos. Sigue la sección 7.
 
 **Meta me rechazó una plantilla. ¿La vuelvo a mandar igual?**
 No. Reenviar el mismo contenido rechazado baja la reputación de la cuenta. Cambia el

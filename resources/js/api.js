@@ -67,6 +67,23 @@ export const api = {
         body   : JSON.stringify({ cooldown_days: days }),
     }),
 
+    // ── Números de WhatsApp (superadmin) ─────────────────────────────────────
+    phoneNumbers: () => request('/phone-numbers'),
+
+    addPhoneNumber: (payload) => request('/phone-numbers', {
+        method : 'POST',
+        body   : JSON.stringify(payload),
+    }),
+
+    updatePhoneNumber: (id, payload) => request(`/phone-numbers/${id}`, {
+        method : 'PUT',
+        body   : JSON.stringify(payload),
+    }),
+
+    verifyPhoneNumber: (id) => request(`/phone-numbers/${id}/verify`, {
+        method : 'POST',
+    }),
+
     smsWebhookHealth: () => request('/settings/sms-webhook-health'),
 
     getSmsAutoBlacklist: () => request('/settings/sms-auto-blacklist'),

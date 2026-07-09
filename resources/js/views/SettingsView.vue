@@ -44,6 +44,73 @@
             </template>
         </Card>
         <Card style="max-width: 560px; margin-top: 24px">
+            <template #title>Números de WhatsApp</template>
+            <template #content>
+                <p class="pn-help">
+                    Da de alta los números que envían campañas. Primero regístralos en Meta
+                    (Business Manager); aquí ingresas sus datos y el sistema los verifica contra
+                    Meta antes de guardarlos. El token es el mismo de la cuenta (System User Token).
+                </p>
+
+                <ul v-if="phoneNumbers.length" class="pn-list">
+                    <li v-for="n in phoneNumbers" :key="n.id" class="pn-item">
+                        <div class="pn-info">
+                            <span class="pn-name">{{ n.display_name }}</span>
+                            <span class="pn-meta">
+                                {{ n.daily_limit }} msg/día
+                                <template v-if="n.quality_rating"> · calidad {{ n.quality_rating }}</template>
+                            </span>
+                        </div>
+                        <Tag v-if="n.is_paused" value="Pausado" severity="danger" />
+                        <Tag v-else :value="n.is_active ? 'Activo' : 'Inactivo'" :severity="n.is_active ? 'success' : 'secondary'" />
+                        <div class="pn-actions">
+                            <Button icon="pi pi-verified" text size="small" title="Verificar con Meta" :loading="verifyingId === n.id" @click="verifyNumber(n)" />
+                            <Button :icon="n.is_active ? 'pi pi-pause' : 'pi pi-play'" text size="small" :title="n.is_active ? 'Desactivar' : 'Activar'" @click="toggleActive(n)" />
+                        </div>
+                    </li>
+                </ul>
+                <p v-else class="pn-empty">Aún no hay números dados de alta.</p>
+
+                <Message v-if="verifyResult" :severity="verifyResult.error ? 'error' : 'success'" class="mt-3">
+                    {{ verifyResult.error ?? verifyResult.message }}
+                </Message>
+
+                <form class="pn-form" @submit.prevent="addNumber" autocomplete="off">
+                    <div class="form-group">
+                        <label>Nombre para identificarlo</label>
+                        <InputText v-model="pnForm.display_name" placeholder="Número campañas 1" fluid />
+                    </div>
+                    <div class="form-group">
+                        <label>Phone number ID (de Meta)</label>
+                        <InputText v-model="pnForm.phone_number_id" placeholder="1082360764952377" fluid />
+                    </div>
+                    <div class="form-group">
+                        <label>WABA ID (de Meta)</label>
+                        <InputText v-model="pnForm.waba_id" placeholder="1236630511398211" fluid />
+                    </div>
+                    <div class="form-group">
+                        <label>Token (System User Token)</label>
+                        <Password
+                            v-model="pnForm.token"
+                            :feedback="false"
+                            toggle-mask
+                            fluid
+                            :input-props="{ autocomplete: 'one-time-code', name: 'wa-new-number-token' }"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label>Límite diario inicial</label>
+                        <InputNumber v-model="pnForm.daily_limit" :min="1" :max="1000000" fluid style="max-width: 200px" />
+                    </div>
+                    <Button type="submit" label="Verificar y guardar" icon="pi pi-plus" :loading="addingNumber" :disabled="!pnFormValid" />
+                </form>
+
+                <Message v-if="addResult" :severity="addResult.error ? 'error' : 'success'" class="mt-3">
+                    {{ addResult.error ?? 'Número dado de alta y verificado.' }}
+                </Message>
+            </template>
+        </Card>
+        <Card style="max-width: 560px; margin-top: 24px">
             <template #title>Multi-agente — asignación automática</template>
             <template #content>
                 <div class="form-group">
@@ -252,6 +319,7 @@ import Password      from 'primevue/password';
 import Tag           from 'primevue/tag';
 import Message       from 'primevue/message';
 import InputNumber   from 'primevue/inputnumber';
+import InputText     from 'primevue/inputtext';
 import Select        from 'primevue/select';
 import ToggleSwitch  from 'primevue/toggleswitch';
 import ConfirmDialog from 'primevue/confirmdialog';
@@ -267,6 +335,19 @@ const tokenStatus = ref(null);
 const newToken    = ref('');
 const saving      = ref(false);
 const saveResult  = ref(null);
+
+// ── Números de WhatsApp ──
+const phoneNumbers  = ref([]);
+const pnForm        = ref({ display_name: '', phone_number_id: '', waba_id: '', token: '', daily_limit: 250 });
+const addingNumber  = ref(false);
+const addResult     = ref(null);
+const verifyingId   = ref(null);
+const verifyResult  = ref(null);
+
+const pnFormValid = computed(() =>
+    !!pnForm.value.display_name && !!pnForm.value.phone_number_id &&
+    !!pnForm.value.waba_id && !!pnForm.value.token && pnForm.value.daily_limit > 0,
+);
 
 const cooldownDays   = ref(null);
 const savingCooldown = ref(false);
@@ -363,6 +444,42 @@ async function applyPreset(stage) {
 
 async function loadStatus() {
     tokenStatus.value = await api.tokenStatus();
+}
+
+async function loadPhoneNumbers() {
+    const res = await api.phoneNumbers();
+    if (res.status === 'ok') phoneNumbers.value = res.data;
+}
+
+async function addNumber() {
+    addingNumber.value = true;
+    addResult.value    = null;
+    const res = await api.addPhoneNumber({ ...pnForm.value });
+    addResult.value    = res.status === 'ok' ? res : { error: res.message };
+    addingNumber.value = false;
+    if (res.status === 'ok') {
+        pnForm.value = { display_name: '', phone_number_id: '', waba_id: '', token: '', daily_limit: 250 };
+        await loadPhoneNumbers();
+    }
+}
+
+async function verifyNumber(n) {
+    verifyingId.value  = n.id;
+    verifyResult.value = null;
+    const res = await api.verifyPhoneNumber(n.id);
+    if (res.status === 'ok') {
+        const d = res.data;
+        verifyResult.value = { message: `${n.display_name}: ${d.display_phone_number ?? ''} · verificación ${d.code_verification_status ?? '-'} · nombre ${d.name_status ?? '-'} · calidad ${d.quality_rating ?? '-'}` };
+        n.quality_rating = d.quality_rating;
+    } else {
+        verifyResult.value = { error: res.message };
+    }
+    verifyingId.value = null;
+}
+
+async function toggleActive(n) {
+    const res = await api.updatePhoneNumber(n.id, { is_active: !n.is_active });
+    if (res.status === 'ok') n.is_active = res.data.is_active;
 }
 
 async function loadCooldown() {
@@ -470,6 +587,7 @@ async function saveSmsBounces() {
 
 onMounted(() => {
     loadStatus();
+    loadPhoneNumbers();
     loadCooldown();
     loadAssignmentMode();
     loadFlags();
@@ -486,6 +604,15 @@ onMounted(() => {
 .form-group label { display: block; font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 6px; }
 .form-group small { display: block; font-size: .78rem; color: var(--p-text-muted-color); margin-top: 6px; }
 .mt-3         { margin-top: 12px; }
+.pn-help  { font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 14px; }
+.pn-list  { list-style: none; padding: 0; margin: 0 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.pn-item  { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--p-surface-100); border-radius: 8px; }
+.pn-info  { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.pn-name  { font-weight: 600; font-size: .9rem; }
+.pn-meta  { font-size: .78rem; color: var(--p-text-muted-color); }
+.pn-actions { display: flex; gap: 2px; }
+.pn-empty { font-size: .85rem; color: var(--p-text-muted-color); margin-bottom: 16px; }
+.pn-form  { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--p-surface-200); padding-top: 16px; }
 .cooldown-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .stage-desc   { font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 14px; }
 .preset-btns  { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }

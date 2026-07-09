@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PhoneNumberController;
+use App\Http\Controllers\Api\PhoneNumberVerificationController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SmsController;
 use App\Http\Controllers\Api\SmsInboundController;
@@ -166,6 +168,12 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/settings/sms-auto-blacklist', [SettingsController::class, 'getSmsAutoBlacklist']);
         Route::put('/settings/sms-auto-blacklist', [SettingsController::class, 'updateSmsAutoBlacklist']);
         Route::post('/settings/demo-reset',      [SettingsController::class, 'demoReset']);
+
+        // Alta y gestión de números de WhatsApp (verificados contra Meta)
+        Route::get('/phone-numbers',             [PhoneNumberController::class, 'index']);
+        Route::post('/phone-numbers',            [PhoneNumberController::class, 'store']);
+        Route::put('/phone-numbers/{id}',        [PhoneNumberController::class, 'update']);
+        Route::post('/phone-numbers/{id}/verify', [PhoneNumberVerificationController::class, 'store']);
 
         // Visibilidad de plantillas — mostrar/ocultar (no borra)
         Route::put('/templates/{id}/visibility', [TemplateController::class, 'setVisibility']);

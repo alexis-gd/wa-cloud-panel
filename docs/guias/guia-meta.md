@@ -249,6 +249,45 @@ entre 11PM y 7AM (más bajas y más filtrado de las operadoras). Es aviso, no bl
 Si un número está en el **REPEP** (Registro Público para Evitar Publicidad), hay 30 días
 para dejar de enviarle. Es responsabilidad del negocio revisarlo periódicamente.
 
+### Agregar más teléfonos para enviar SMS
+
+Los SMS no salen de internet: salen de **teléfonos Android reales con chip** (SIM Telcel u
+otra) conectados al sistema. Al principio hay 1 teléfono; para mandar más SMS al día se
+suman más teléfonos. Cada teléfono reparte la carga con los demás **automáticamente** - el
+panel no se toca, solo se da de alta el teléfono nuevo.
+
+**Qué necesitas por cada teléfono nuevo:**
+- Un celular Android con su chip y **saldo** (o plan con SMS).
+- La app **SMS Gateway for Android** instalada (la misma que ya usa el teléfono actual).
+- El **token privado** del sistema y la dirección del servidor: los tiene **soporte**.
+
+**Pasos (los hace soporte o quien administra los teléfonos):**
+1. Instalar la app **SMS Gateway for Android** en el teléfono nuevo.
+2. En la app: **Settings -> Cloud server**, y poner la **dirección del servidor** y el
+   **token privado** que da soporte (los mismos que el teléfono que ya funciona).
+3. Encender el interruptor a **online**. En unos segundos el teléfono queda conectado.
+4. **Muy importante - que Android no mate la app** (si no, deja de enviar y de recibir):
+   - **Inicio automático (Autostart): activado.**
+   - **Batería: "Sin restricciones"** para esa app.
+   - Dejar la app **fija/bloqueada** en la lista de apps recientes.
+   - Teléfono **enchufado** y con **WiFi estable**.
+5. Mandar un SMS de prueba desde el panel (Campañas -> prueba) para confirmar que llega.
+
+> No hay que configurar nada en el panel: en cuanto el teléfono queda conectado, el sistema
+> empieza a repartirle SMS solo. Puedes sumar los que quieras (típico: 5 a 8 teléfonos).
+
+### ¿Un SMS no salió: es el chip o es la app?
+
+Regla rápida: **si NINGÚN SMS se está entregando, es la app; si solo fallan algunos, es un chip.**
+
+- **Es la app (se cerró):** ningún SMS pasa a "Entregado" y no entran respuestas. El panel lo
+  avisa en **Configuración -> Salud del webhook SMS** y en la campana. Solución: abrir la app
+  del teléfono, ponerla **online** y revisar el punto 4 de arriba (que Android no la mate).
+- **Es un chip (uno de varios):** los demás teléfonos siguen enviando bien; solo fallan algunos
+  SMS. Suele ser **saldo agotado, sin señal, o el chip bloqueado por la operadora**. Solución:
+  revisar saldo y señal de ese teléfono; si la operadora lo bloqueó, cambiar el chip. El resto
+  sigue trabajando mientras tanto.
+
 ---
 
 ## 6. El permiso para enviar: el token permanente

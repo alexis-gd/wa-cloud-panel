@@ -80,7 +80,7 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 ### Etapa 3 (alimenta Entrega 4)
 
 - [x] Detalle y control de campañas — logs por contacto, discard_reason, pause, delete, auto-completar campaña
-- [ ] Redis + Laravel Horizon
+- [ ] Redis + Laravel Horizon — solo cuando el volumen sea alto (hoy cola `database` alcanza). Redis = cola en memoria (más rápida); Horizon = panel para verla en vivo. Fase de escalado real.
 - [x] Multi-número con balanceo inteligente — PhoneNumberSelector distribuye en round-robin por capacidad restante
 - [x] Tags y segmentación de contactos
 - [x] Multi-agente de atención — auto-asignación, claim, assign, modos least_chats/first_available, chip Sin asignar, resaltado propias
@@ -89,8 +89,7 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [ ] Tests regresión automatizados (CI GitHub Actions)
 - [ ] ⚠️ Warm-up número producción (3-4 semanas paralelas)
 - [x] 📘 Guía completa operador — sección guías operacionales Meta (agregar número prueba, registrar número nuevo, renovar token, interpretar alertas Business Manager)
-- [ ] 📋 QA manual completo — ejecutar `docs/qa-manual.md` y corregir bugs encontrados
-- [ ] 📘 Sesión capacitación + video grabado
+- [x] 📋 QA / capacitación — reemplazados por las **guías** (`guia-uso.md` operador + `guia-meta.md` admin, compiladas a HTML). El modo de entrega cambió: se le explicó al intermediario con las guías y él trata con su cliente. Video descartado.
 
 ### Backlog técnico (no bloquea Entrega 4, priorizar según crecimiento de BD)
 
@@ -105,17 +104,17 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] **Total contactos en modal campaña** — muestra "0/N contactos" antes de ejecutar (snapshot al crear + recálculo en vivo para draft). Rama `feat/campaign-total-contacts`.
 - [x] **Asignación masiva de tags** — selección múltiple + barra de acción: asignar, quitar y crear tag al vuelo. Rama `feat/contacts-bulk-tags`.
 - [x] **Eliminar contactos** — soft delete (`deleted_at`), solo admin/superadmin, separado del opt-out. Para limpiar basura/pruebas. Rama `feat/contacts-soft-delete`.
-- [ ] **Borrar plantillas jaspers del panel** — limpiar plantillas de demo/prueba antes de mostrar al cliente.
+- [x] **Borrar plantillas jaspers del panel** (2026-07-08) — plantillas de demo/prueba ya apagadas; el panel solo muestra las aprobadas reales.
 - [x] **Tooltip en "Lista de contactos"** — ícono ? explica Estado vs Entregabilidad. + columna **Entregabilidad** (Disponible / En cooldown / Enviado hoy / No recibe). Rama `feat/contacts-deliverability`.
 - [x] **Alta individual de contacto** — formulario manual + chequeo de estado en vivo. Rama `feat/contact-manual-add`.
 
 ### Bugs y mejoras UI (pendientes)
 
-- [ ] **Homologar botones** — hay inconsistencias entre vistas (ej. Contactos usa estilos distintos al editar y las pills/badges de tags varían). Crear componente base o definir uso estricto de PrimeVue Button según la tabla del estilo-codigo.md.
-- [ ] **Responsive mobile** — Dashboard y Contactos no funcionan adecuadamente en móvil. Revisar layout de cards de stats, tabla de últimos mensajes y tabla de contactos en pantallas < 768px.
-- [ ] **Pills de estado en tabla "Últimos mensajes"** — agregar icono `ⓘ` con tooltip explicando cada estado posible (en tránsito, entregado, leído, fallido) para que el operador entienda el semáforo sin ir al Help.
-- [ ] **Actualizar popovers de ayuda** — revisar todos los `helpContent` en `AppLayout.vue` al finalizar cada entrega y alinearlos con el comportamiento real del sistema.
-- [ ] **Mejorar pantalla de login** — rediseñar al estilo Doters Admin (más visual, con branding, fondo con gradiente o imagen, card centrada con sombra más pronunciada).
+- [ ] **Homologar botones (auditar)** — no urgente, pero no se pierde nada auditando: revisar inconsistencias entre vistas (ej. Contactos usa estilos distintos al editar y las pills/badges de tags varían) contra la tabla de `estilo-codigo.md`.
+- [x] **Responsive mobile** (hecho hace tiempo) — Dashboard y Contactos ya funcionan en móvil. Ver [[project_responsive_design]].
+- [ ] **Pills de estado + tooltips (auditar)** — repaso opcional de tooltips/`helpContent` de estados en tablas; alinearlos con el comportamiento real. No se pierde nada auditando.
+- [ ] **Popovers de ayuda (auditar)** — repaso opcional de los `helpContent` en `AppLayout.vue` para alinearlos con cada entrega. No urgente.
+- [x] **Pantalla de login** (rediseñada hace tiempo) — split-panel navy/blanco full-viewport. Ver MEMORY (Frontend).
 - [ ] **Consola limpia** — suprimir el warning de i18next que aparece en consola del navegador. Agregar mensaje de firma de NodosMX (ej. `console.log` estilizado con CSS) como branding de desarrollo.
 
 ### Canal SMS — SIM propia vía Android Gateway (✅ EN PRODUCCIÓN, probado 2026-07-02)
@@ -142,9 +141,9 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] **Salud del webhook SMS + alerta**: card en Configuración que diagnostica el canal de vuelta (registra cada llegada al endpoint, las rechazadas por firma y el último OK) → distingue "firma" vs "sin llegadas" vs "ok". Comando `sms:monitor-webhook` (cada 15 min) alerta en la campana si se envía pero no vuelve nada; se auto-resuelve al recibir un evento. **Nota capcom6**: los webhooks los entrega el TELÉFONO (no el server; `fcm` vacío, sin worker server-side); se desincroniza al registrar webhooks nuevos o si MIUI mata la app (fix: Autostart ON + batería sin restricción + bloquear en recientes).
 - [x] **Polling de estado SMS (red de seguridad)**: `SmsGatewayClient::getState()` + comando `sms:reconcile-status` (cada 10 min) consulta al gateway el estado de los SMS en 'sent' y los pasa a delivered/failed **sin depender del webhook** (server-a-server). Cubre solo estado de entrega.
 - [x] **Reconcile de entrantes (red de seguridad)**: `SmsGatewayClient::requestInboxExport()` + comando `sms:reconcile-received` (cada hora) le pide al teléfono re-exportar los `sms:received` de las últimas 24h vía `POST {url}/inbox/export`. Los mensajes vuelven por el mismo webhook y se deduplican por `sms_inbound_messages.gateway_message_id` (evita filas y opt-outs repetidos). Recupera respuestas perdidas si MIUI mató la app. Async (dispara la exportación, no la lee).
-- [ ] **Warm-up / rate limit por SIM** — el gateway limita a ~8 SMS/min por chip; configurar en el servidor gateway (fuera del panel).
-- [ ] **Feature flag `sms_campaigns`** — gatear el canal SMS por etapa/preset (follow-up: hoy visible para admin/superadmin).
-- [ ] **Setup físico prod** — escalar de 1 a 5–8 celulares + SIMs multi-operador (hoy 1 teléfono de prueba).
+- [~] **Rate limit por SIM** — NO es tarea de desarrollo: el gateway/operadora ya limita a ~8 SMS/min por chip. Solo afinarlo en el servidor gateway si hiciera falta. Fuera del panel.
+- [~] **Feature flag `sms_campaigns`** — descartado salvo que se necesite: solo serviría para ocultar el canal SMS a un cliente que no lo contrató. Prestamaz sí usa SMS → innecesario.
+- [~] **Setup físico prod (responsabilidad del cliente)** — escalar de 1 a 5-8 celulares + SIMs lo hace el cliente. Pasos documentados en la **guía Meta** (sección 5, "Agregar más teléfonos para enviar SMS") + [docs/guia-sms-gateway-setup.md](guia-sms-gateway-setup.md).
 
 ### Tanda tiempo real + refinamiento (v0.19–v0.28, ✅ en prod)
 
@@ -172,8 +171,7 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
 
 ### Documentación al usuario (siguiente etapa)
 - [x] Definir formato de entrega de guías al cliente — HTML autogenerado (`guias:build`), servido en `/guia/uso.html` y `/guia/meta.html`, accesible desde el panel.
-- [ ] QA manual completo — ejecutar `docs/qa-manual.md`
-- [ ] Sesión de capacitación + video
+- [x] QA / capacitación / video — reemplazados por las guías HTML. Entrega vía intermediario, sin sesión ni video (descartado).
 
 ### Backlog abierto (2026-07-08)
 - [x] **SMS inbound reconcile** (2026-07-08) — resuelto con `sms:reconcile-received` (ver arriba). ⚠️ **Verificar en Swagger del gateway** (`gw.prestamaz.site`) que la ruta de export es `POST /inbox/export`; si difiere, es ajuste de una línea en `SmsGatewayClient::requestInboxExport()`.

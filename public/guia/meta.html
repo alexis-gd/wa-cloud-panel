@@ -480,6 +480,48 @@ entre 11PM y 7AM (más bajas y más filtrado de las operadoras). Es aviso, no bl
 <h3 id="repep-importante">REPEP (importante)</h3>
 <p>Si un número está en el <strong>REPEP</strong> (Registro Público para Evitar Publicidad), hay 30 días
 para dejar de enviarle. Es responsabilidad del negocio revisarlo periódicamente.</p>
+<h3 id="agregar-mas-telefonos-para-enviar-sms">Agregar más teléfonos para enviar SMS</h3>
+<p>Los SMS no salen de internet: salen de <strong>teléfonos Android reales con chip</strong> (SIM Telcel u
+otra) conectados al sistema. Al principio hay 1 teléfono; para mandar más SMS al día se
+suman más teléfonos. Cada teléfono reparte la carga con los demás <strong>automáticamente</strong> - el
+panel no se toca, solo se da de alta el teléfono nuevo.</p>
+<p><strong>Qué necesitas por cada teléfono nuevo:</strong></p>
+<ul>
+<li>Un celular Android con su chip y <strong>saldo</strong> (o plan con SMS).</li>
+<li>La app <strong>SMS Gateway for Android</strong> instalada (la misma que ya usa el teléfono actual).</li>
+<li>El <strong>token privado</strong> del sistema y la dirección del servidor: los tiene <strong>soporte</strong>.</li>
+</ul>
+<p><strong>Pasos (los hace soporte o quien administra los teléfonos):</strong></p>
+<ol>
+<li>Instalar la app <strong>SMS Gateway for Android</strong> en el teléfono nuevo.</li>
+<li>En la app: <strong>Settings -&gt; Cloud server</strong>, y poner la <strong>dirección del servidor</strong> y el
+<strong>token privado</strong> que da soporte (los mismos que el teléfono que ya funciona).</li>
+<li>Encender el interruptor a <strong>online</strong>. En unos segundos el teléfono queda conectado.</li>
+<li><strong>Muy importante - que Android no mate la app</strong> (si no, deja de enviar y de recibir):
+<ul>
+<li><strong>Inicio automático (Autostart): activado.</strong></li>
+<li><strong>Batería: &quot;Sin restricciones&quot;</strong> para esa app.</li>
+<li>Dejar la app <strong>fija/bloqueada</strong> en la lista de apps recientes.</li>
+<li>Teléfono <strong>enchufado</strong> y con <strong>WiFi estable</strong>.</li>
+</ul>
+</li>
+<li>Mandar un SMS de prueba desde el panel (Campañas -&gt; prueba) para confirmar que llega.</li>
+</ol>
+<blockquote>
+<p>No hay que configurar nada en el panel: en cuanto el teléfono queda conectado, el sistema
+empieza a repartirle SMS solo. Puedes sumar los que quieras (típico: 5 a 8 teléfonos).</p>
+</blockquote>
+<h3 id="un-sms-no-salio-es-el-chip-o-es-la-app">¿Un SMS no salió: es el chip o es la app?</h3>
+<p>Regla rápida: <strong>si NINGÚN SMS se está entregando, es la app; si solo fallan algunos, es un chip.</strong></p>
+<ul>
+<li><strong>Es la app (se cerró):</strong> ningún SMS pasa a &quot;Entregado&quot; y no entran respuestas. El panel lo
+avisa en <strong>Configuración -&gt; Salud del webhook SMS</strong> y en la campana. Solución: abrir la app
+del teléfono, ponerla <strong>online</strong> y revisar el punto 4 de arriba (que Android no la mate).</li>
+<li><strong>Es un chip (uno de varios):</strong> los demás teléfonos siguen enviando bien; solo fallan algunos
+SMS. Suele ser <strong>saldo agotado, sin señal, o el chip bloqueado por la operadora</strong>. Solución:
+revisar saldo y señal de ese teléfono; si la operadora lo bloqueó, cambiar el chip. El resto
+sigue trabajando mientras tanto.</li>
+</ul>
 <hr />
 <h2 id="6-el-permiso-para-enviar-el-token-permanente">6. El permiso para enviar: el token permanente</h2>
 <p>El <strong>token</strong> es la llave que le da al panel permiso de enviar por la cuenta de WhatsApp.

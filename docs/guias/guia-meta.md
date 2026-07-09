@@ -304,21 +304,37 @@ número con calidad degradada.
 - Se registra en **business.facebook.com** -> **Cuentas de WhatsApp -> Números de teléfono
   -> Agregar número**.
 
-### Qué hace el panel
+### Cómo darlo de alta en el panel
 
-1. Una vez registrado en Meta, el número aparece solo en el panel (**Configuración ->
-   Números de WhatsApp**).
-2. No hay que hacer nada más: el sistema arranca el **warm-up** automático.
+Después de registrarlo en Meta necesitas dos datos que Meta te da: el **Phone number ID** y
+el **WABA ID** (se ven en business.facebook.com, en la configuración del número y de la cuenta).
+
+1. En el panel, entra a **Configuración -> Números de WhatsApp** (solo soporte/superadmin; el
+   operador no ve esta pantalla).
+2. Llena el formulario: un **nombre** para identificarlo, el **Phone number ID**, el **WABA ID**,
+   el **token** (el mismo System User Token de la cuenta) y el **límite diario inicial**.
+3. Clic en **Verificar y guardar**. El sistema consulta a Meta para confirmar que el número
+   existe y está aprobado **antes** de guardarlo. Si Meta lo rechaza (token o ID incorrecto),
+   no se guarda y te dice el motivo.
+4. Ya guardado, aparece en la lista como **Activo** y entra al reparto de campañas.
+
+En la lista, cada número tiene un botón para **Verificar** (reconsultar su estado y calidad en
+Meta) y otro para **Activar/Desactivar** (para sacar de circulación un número con problemas sin
+borrarlo).
+
+> **Reemplazar un número quemado:** si un número baja de calidad, el sistema lo pausa solo
+> (circuit breaker). Puedes **desactivarlo** aquí y dar de alta uno nuevo con estos mismos
+> pasos, siempre que Meta permita el alta.
 
 ### Qué es el warm-up
 
-El número empieza con un tope bajo (aprox. 250 mensajes/día) y el sistema lo sube solo,
-poco a poco, mientras los envíos tengan buena calidad y no generen reportes. Tarda de 2 a
-4 semanas en llegar a capacidad plena. **No se puede acelerar** - es la protección que
-evita el bloqueo.
+Un número nuevo debe empezar con **poco volumen** e ir subiendo poco a poco - mandar miles de
+mensajes desde el día 1 es la vía más rápida a un bloqueo. Por eso, al darlo de alta, ponle un
+**límite diario inicial bajo** (por ejemplo 250) y súbelo con calma conforme mantenga buena
+calidad. Meta, por su parte, sube el **límite de la cuenta** de forma automática cuando envías
+con buena calidad (ver la nota de abajo).
 
-> Durante el warm-up, el semáforo del número puede verse amarillo ("calidad pendiente").
-> Es normal en los primeros días.
+> Los primeros días el semáforo del número puede verse amarillo ("calidad pendiente"). Es normal.
 
 **Nota sobre límites:** desde 2025 Meta cuenta el límite **por cuenta**, no por número.
 Varios números bajo la misma cuenta **comparten** el tope diario - agregar números da más

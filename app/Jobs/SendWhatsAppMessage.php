@@ -250,9 +250,10 @@ class SendWhatsAppMessage implements ShouldQueue
             return;
         }
 
-        // 131048: spam rate limit — circuit breaker 60 minutos
+        // 131048: spam rate limit — circuit breaker 60 minutos + warm-down
         if ($errorCode === 131048) {
             $phoneNumber->pauseFor(60);
+            $phoneNumber->backOffDailyLimit();
             Log::error('SendWhatsAppMessage: spam rate limit (131048) — número pausado 60 min', [
                 'phone_number_id' => $this->phoneNumberId,
                 'paused_until'    => $phoneNumber->fresh()->paused_until,
@@ -266,6 +267,7 @@ class SendWhatsAppMessage implements ShouldQueue
         // el periodo de aplicación. Pausar el número y avisar para revisión de categorías.
         if ($errorCode === 131064) {
             $phoneNumber->pauseFor(60);
+            $phoneNumber->backOffDailyLimit();
             Log::critical('SendWhatsAppMessage: límite por categorización de plantillas (131064) — número pausado 60 min, revisar categorías en Business Manager', [
                 'phone_number_id' => $this->phoneNumberId,
                 'paused_until'    => $phoneNumber->fresh()->paused_until,
@@ -277,6 +279,7 @@ class SendWhatsAppMessage implements ShouldQueue
         // 368: cuenta bloqueada — circuit breaker 24 horas + desactivar número
         if ($errorCode === 368) {
             $phoneNumber->pauseFor(1440); // 24 horas
+            $phoneNumber->backOffDailyLimit();
             Log::critical('SendWhatsAppMessage: cuenta bloqueada (368) — número pausado 24h, revisar Business Manager', [
                 'phone_number_id' => $this->phoneNumberId,
                 'paused_until'    => $phoneNumber->fresh()->paused_until,

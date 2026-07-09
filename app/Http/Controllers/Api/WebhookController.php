@@ -133,6 +133,7 @@ class WebhookController extends Controller
                         $phoneNumber = PhoneNumber::find($log->phone_number_id);
                         if ($phoneNumber && ! $phoneNumber->isPaused()) {
                             $phoneNumber->pauseFor(60);
+                            $phoneNumber->backOffDailyLimit();
                             Log::critical('Webhook: límite por categorización de plantillas (131064) — número pausado 60 min', [
                                 'phone_number_id' => $log->phone_number_id,
                                 'paused_until'    => $phoneNumber->fresh()->paused_until,

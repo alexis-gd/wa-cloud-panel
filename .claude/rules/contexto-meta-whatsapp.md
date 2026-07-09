@@ -54,6 +54,7 @@ relacionada con Meta, envíos o plantillas.
 - **Warm-up automático + freno (implementado 2026-07-08):** `App\Services\WhatsApp\PortfolioLimit::daily()` parsea el límite del portfolio (helper reusable). 
   - **Freno de cuenta:** `SendWhatsAppMessage` no envía si el total del día (todos los números) alcanzó el límite del portfolio → reencola para mañana. Nunca rebasa a Meta.
   - **Warm-up:** comando `wa:warmup-numbers` (scheduler diario 05:00 CST) sube el `daily_limit` de cada número activo/no-pausado que usó >=50% de su límite ayer (criterio Meta), duplicando, topado por el límite del portfolio. No rampa si el portfolio es desconocido.
+  - **Warm-down:** `PhoneNumber::backOffDailyLimit()` (halve, piso `WARMUP_FLOOR`=250) se llama al pausar por calidad/spam (131048, 131064, 368) en `SendWhatsAppMessage` y `WebhookController`. Así un número que se degrada recula y re-calienta conservador tras la pausa (simetría del warm-up).
   - **Capacidad del Dashboard:** `dailySendCapacity()` = `min(portfolio, suma por número)`, ya no sobreestima.
 
 ## Token de acceso — Reglas críticas

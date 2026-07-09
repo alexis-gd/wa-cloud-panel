@@ -396,6 +396,34 @@ class SendWhatsAppMessageJobTest extends TestCase
         $this->assertEqualsWithDelta(60, now()->diffInMinutes($this->phone->paused_until), 2);
     }
 
+    public function test_warm_down_baja_el_limite_a_la_mitad_en_131048(): void
+    {
+        $this->phone->update(['daily_limit' => 1000]);
+
+        $this->mock(WhatsAppClient::class, function ($mock) {
+            $mock->shouldReceive('post')->andReturn([
+                'ok'   => false,
+                'body' => ['error' => ['code' => 131048, 'message' => 'Spam rate limit']],
+            ]);
+        });
+
+        try {
+            $this->makeJob()->handle(app(WhatsAppClient::class), app(TemplateBuilder::class));
+        } catch (\Error) {
+            // release() sin queue real
+        }
+
+        $this->assertEquals(500, $this->phone->fresh()->daily_limit);
+    }
+
+    public function test_warm_down_respeta_el_piso_de_250(): void
+    {
+        $phone = PhoneNumber::factory()->create(['daily_limit' => 300]);
+        $phone->backOffDailyLimit();
+
+        $this->assertEquals(250, $phone->fresh()->daily_limit); // max(250, 150)
+    }
+
     public function test_error_131064_pausa_el_numero_60_minutos(): void
     {
         $this->mock(WhatsAppClient::class, function ($mock) {

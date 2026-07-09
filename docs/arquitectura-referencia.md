@@ -40,6 +40,10 @@ Navegador/cliente
 | `Models/MessageLog.php` | Tabla `message_log`. Cada mensaje enviado. Métodos: `logSend()`, `updateFromResponse()`, `updateStatus()` |
 | `Services/WhatsApp/WhatsAppClient.php` | **Único** lugar que hace HTTP a Meta. Todos los envíos pasan por aquí (regla del proyecto) |
 | `Services/WhatsApp/TemplateBuilder.php` | Arma el JSON que Meta espera para enviar una plantilla aprobada |
+| `Services/WhatsApp/PortfolioLimit.php` | Lee/parsea el límite de mensajería del **portfolio** (Setting `wa_portfolio_daily_limit`): techo diario compartido por todos los números. `TIER_250/10K/100000/UNLIMITED` |
+| `Services/WhatsApp/PhoneNumberVerifier.php` | Verifica un número contra Meta (estado de verificación, nombre, calidad). Traduce el error de Meta a mensaje claro en español |
+| `Controllers/Api/PhoneNumberController.php` | Alta y gestión de números WhatsApp (solo superadmin). Verifica contra Meta antes de guardar; nunca expone token ni IDs internos |
+| `Console/Commands/WarmupPhoneNumbersCommand.php` | `wa:warmup-numbers` — warm-up automático: sube el `daily_limit` por número (uso ≥50% ayer, ×2) topado por el portfolio |
 | `Middleware/ApiKeyMiddleware.php` | Verifica header `X-API-Key` en cada petición a `/api/*` |
 | `Controllers/Api/TemplateController.php` | `GET /api/templates` y `POST /api/templates/send-test` |
 | `Controllers/Api/WebhookController.php` | `GET /webhook` (verificación Meta) y `POST /webhook` (eventos de entrega/lectura) |
@@ -192,4 +196,13 @@ php artisan config:clear
 
 # Consola interactiva PHP con acceso a Laravel
 php artisan tinker
+
+# Warm-up automático del daily_limit por número (lo corre el scheduler a las 5AM CST)
+php artisan wa:warmup-numbers
+
+# Marcar contactos inalcanzables (lo corre el scheduler a las 6AM CST)
+php artisan wa:mark-unreachable
+
+# Regenerar el HTML de las guías desde su Markdown fuente
+php artisan guias:build
 ```

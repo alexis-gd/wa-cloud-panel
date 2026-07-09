@@ -61,6 +61,28 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Salud del número**: widget muestra calidad GREEN/YELLOW/RED y modo SANDBOX/LIVE correctamente
 - [ ] **Circuit breaker**: número pausado por error 131048 → widget muestra `paused_until` → campañas no se envían con ese número
 - [ ] **Expiración de sesión 8h** *(nuevo)*: verificar en Tinker que `PersonalAccessToken::latest()->first()->expires_at` sea `now() + 8h` tras hacer login → con token expirado → frontend redirige a login con 401
+- [ ] **Límite de la cuenta (Meta)**: en el Dashboard aparece "Límite de la cuenta (Meta)" si Meta reporta el dato (en sandbox puede no aparecer)
+
+---
+
+## Números de WhatsApp (solo superadmin)
+
+- [ ] **La tarjeta solo la ve superadmin**: entrar como admin/operator → **no** aparece "Números de WhatsApp" en Configuración
+- [ ] **Verificar número existente**: botón ✔ → muestra estado/verificación/nombre/calidad de Meta
+- [ ] **Alta con datos inválidos (formato)**: escribir letras en Phone number ID/WABA ID → el botón "Verificar y guardar" queda deshabilitado + error rojo inline
+- [ ] **Alta con credenciales incorrectas**: ID numérico inexistente → Meta rechaza → mensaje amigable en español ("El Phone number ID no existe...") y **no** se crea la fila
+- [ ] **Alta duplicada**: usar un `phone_number_id` ya registrado → "ya está registrado"
+- [ ] **Token no se pide**: el formulario no tiene campo token (usa el de la cuenta) ni límite diario
+- [ ] **Activar/Desactivar**: el toggle cambia el estado del número
+
+---
+
+## Warm-up / freno del portfolio
+
+- [ ] **Warm-up sube**: con `Setting wa_portfolio_daily_limit` alto y un número que envió ≥50% ayer → `wa:warmup-numbers` duplica su `daily_limit` (topado por el portfolio)
+- [ ] **Warm-up no rampa sin portfolio**: sin el Setting → el comando no cambia límites
+- [ ] **Warm-down**: número pausado por 131048/131064/368 → su `daily_limit` baja a la mitad (piso 250)
+- [ ] **Freno del portfolio**: cuando el total del día alcanza el límite del portfolio → el job reencola para mañana (no envía de más)
 
 ---
 

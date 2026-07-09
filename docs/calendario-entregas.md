@@ -75,7 +75,7 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] Conversaciones — chat entrante/saliente, ventana 24h, respuestas rápidas
 - [x] Sincronización plantillas con Meta API
 - [x] Tests integración completos — ConversationController, Export, Settings, Webhook, etc.
-- [x] 📘 Guía de operador — ayuda contextual por sección (popover `?` en topbar) + `docs/guia-operador.md`
+- [x] 📘 Guía de operador — ayuda contextual por sección (popover `?` en topbar) + `docs/guia-operador.md` (retirado 2026-07-08 → hoy `docs/guias/guia-uso.md` + `guia-meta.md`)
 
 ### Etapa 3 (alimenta Entrega 4)
 
@@ -98,7 +98,7 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 - [x] **Política de sesiones Sanctum** — tokens expiran a las 8h, sanctum:prune-expired corre diario
 - [x] **Índices de BD** — índice compuesto (contact_id, id) en conversation_assignments; índices previos en message_log y contacts.status ya existían
 - [x] **Detección de contactos inalcanzables (`unreachable`)** — ver plan completo en [`docs/plan-unreachable.md`](plan-unreachable.md). Comando `wa:mark-unreachable` corre diario a las 6AM CST (antes de la ventana de envíos). Marca contactos `active` con 2+ mensajes en `sent` de 30+ días sin ningún `delivered`/`read` histórico. Protege el ratio `delivered/sent` y la calidad del número en Meta. **Bloque A** (migración + comando + scheduler + check en job + tests) y **Bloque B** (v0.18.0: widget dashboard, reactivación manual admin, label en Contactos, guía+popovers) HECHOS.
-- [ ] **Auto-sincronizar `daily_limit` cuando Meta sube el tier** — actualmente el `daily_limit` en BD se actualiza solo manualmente (botón Salud del número en Settings). Cuando Meta promueve el tier automáticamente, el PhoneNumberSelector sigue usando el límite viejo hasta que alguien presione el botón. Solución: el job de envío o un comando `wa:sync-limits` debería llamar al endpoint de Meta y actualizar `phone_numbers.daily_limit` si cambió.
+- [x] **Warm-up/tier automático + freno del portfolio** (2026-07-08) — el límite de la cuenta lo pone Meta (por **portfolio**, compartido); se lee en `phoneHealth` (`whatsapp_business_manager_messaging_limit`; `messaging_limit_tier` deprecado) y se guarda en `Setting wa_portfolio_daily_limit`. Comando `wa:warmup-numbers` (scheduler 05:00 CST) sube el `daily_limit` de cada número que usó ≥50% ayer, ×2, topado por el portfolio; `PhoneNumber::backOffDailyLimit()` lo baja a la mitad (piso 250) al pausar por calidad/spam (131048/131064/368). El job frena si el total del día alcanza el techo del portfolio. Dashboard: capacidad = `min(portfolio, suma)`. Helper `App\Services\WhatsApp\PortfolioLimit`.
 
 ### Features E2 (pendientes)
 
@@ -162,7 +162,19 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
 - [x] **Seeders + limpieza** (v0.28) — `migrate:fresh --seed` deja BD usable (5 usuarios @prestamaz.mx + 4 contactos + número). Comando `db:clean-demo` (flags `--contacts`/`--users`) limpia datos de prueba sin tocar plantillas/config. Ver [`docs/limpieza-y-seeds.md`](limpieza-y-seeds.md).
 - [x] **"Etapas de entrega" desactivado** (v0.28) — el control de feature flags queda oculto (const `stageControlEnabled=false`) para no apagar módulos por error. Footer sin "Stage 3".
 
+### Tanda Meta + guías + warm-up (2026-07-08, ✅ en prod)
+
+- [x] **Guías del cliente (HTML)** — `docs/guias/guia-uso.md` (uso, todo el equipo) y `docs/guias/guia-meta.md` (Meta/Facebook, solo admin/soporte). Se compilan con `php artisan guias:build` → `public/guia/*.html`. Botón libro (uso) para todos + botón `pi-facebook` (Meta) gateado a admin en `AppLayout.vue`. **Retirado `docs/guia-operador.md`**.
+- [x] **Códigos de error Meta al día (doc oficial v25)** — `131050` (baja desde la app → opt-out cross-channel), `131049` (tope POR USUARIO: ya no pausa el número + hold de 24h al contacto, columna `contacts.wa_marketing_hold_until`), `131064` (pausa el número). Docs corregidos `467→190`, `470→132001`. Referencia oficial Meta v25 guardada en `.claude/rules/contexto-meta-whatsapp.md`.
+- [x] **Alta de números WhatsApp en el panel** — Configuración → **Números de WhatsApp** (solo superadmin): `PhoneNumberController` (index/store/update) + `PhoneNumberVerificationController` (verify). Verifica contra Meta al guardar (mensajes de error amigables en español), activar/desactivar, reemplazar número quemado. **No pide token** (reusa el de la cuenta/WABA) ni **límite** (lo pone Meta); IDs validados numéricos front+back. Nunca expone token/IDs internos. Servicio `PhoneNumberVerifier`.
+- [x] **Fix global `Accept: application/json`** en `api.js` — los errores de validación ya no salían como "Error del servidor"; ahora se muestran los mensajes 422. + fix autocomplete del token (`one-time-code`).
+
 ### Documentación al usuario (siguiente etapa)
-- [ ] Definir formato de entrega de guías al cliente (página web/Artifact, PDF imprimible, etc.)
+- [x] Definir formato de entrega de guías al cliente — HTML autogenerado (`guias:build`), servido en `/guia/uso.html` y `/guia/meta.html`, accesible desde el panel.
 - [ ] QA manual completo — ejecutar `docs/qa-manual.md`
 - [ ] Sesión de capacitación + video
+
+### Backlog abierto (2026-07-08)
+- [ ] **SMS inbound sin reconcile** — el `sms:received` lo entrega el TELÉFONO; si MIUI mata la app del gateway, las **respuestas SMS entrantes se pierden** sin recuperación (el saliente sí tiene `sms:reconcile-status`). Falta un `sms:reconcile-received` análogo. Única salvedad operativa conocida.
+- [ ] **Confirmar pool SMS multi-celular** — al escalar a varios teléfonos, verificar que el alta es solo en el gateway (round-robin) sin cambios en el panel.
+- [ ] **Warm-down por calidad suave (opcional)** — hoy el warm-down reacciona a errores duros (131048/131064/368); una degradación YELLOW/RED sin error no baja el límite. Se podría consultar la calidad por número en `wa:warmup-numbers` y recular en RED.

@@ -262,6 +262,43 @@ class SendWhatsAppMessageJobTest extends TestCase
         ]);
     }
 
+    public function test_descarta_contacto_con_hold_de_marketing_activo(): void
+    {
+        // 131049 dejó un hold de 24h: no reintentar plantilla de marketing por WhatsApp.
+        $this->contact->update(['wa_marketing_hold_until' => now()->addHours(20)]);
+
+        $this->makeJob()->handle(
+            app(WhatsAppClient::class),
+            app(TemplateBuilder::class),
+        );
+
+        $this->assertDatabaseHas('campaigns', [
+            'id'           => $this->campaign->id,
+            'failed_count' => 1,
+        ]);
+        $this->assertDatabaseHas('message_log', [
+            'campaign_id'    => $this->campaign->id,
+            'status'         => 'discarded',
+            'discard_reason' => 'marketing_hold',
+        ]);
+    }
+
+    public function test_permite_envio_si_hold_de_marketing_ya_expiro(): void
+    {
+        $this->mockSuccessfulClient();
+        $this->contact->update(['wa_marketing_hold_until' => now()->subHour()]);
+
+        $this->makeJob()->handle(
+            app(WhatsAppClient::class),
+            app(TemplateBuilder::class),
+        );
+
+        $this->assertDatabaseHas('campaigns', [
+            'id'         => $this->campaign->id,
+            'sent_count' => 1,
+        ]);
+    }
+
     public function test_permite_envio_si_snooze_ya_expiro(): void
     {
         $this->mockSuccessfulClient();
@@ -313,6 +350,30 @@ class SendWhatsAppMessageJobTest extends TestCase
             $mock->shouldReceive('post')->andReturn([
                 'ok'   => false,
                 'body' => ['error' => ['code' => 131048, 'message' => 'Spam rate limit']],
+            ]);
+        });
+
+        // release(3600) lanza Error sin queue job real; pauseFor() ya escribió a BD
+        try {
+            $this->makeJob()->handle(
+                app(WhatsAppClient::class),
+                app(TemplateBuilder::class),
+            );
+        } catch (\Error) {
+            // release() sin queue job real — ignorar
+        }
+
+        $this->phone->refresh();
+        $this->assertTrue($this->phone->isPaused());
+        $this->assertEqualsWithDelta(60, now()->diffInMinutes($this->phone->paused_until), 2);
+    }
+
+    public function test_error_131064_pausa_el_numero_60_minutos(): void
+    {
+        $this->mock(WhatsAppClient::class, function ($mock) {
+            $mock->shouldReceive('post')->andReturn([
+                'ok'   => false,
+                'body' => ['error' => ['code' => 131064, 'message' => 'Account messaging limit reached due to template categorization']],
             ]);
         });
 

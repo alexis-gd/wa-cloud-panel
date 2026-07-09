@@ -25,11 +25,16 @@ class WebhookController extends Controller
     private const OPT_OUT_WORDS = ['STOP', 'BAJA', 'CANCELAR', 'NO'];
 
     private const DELIVERY_ERROR_MESSAGES = [
-        131049 => 'Entrega pausada por límite de calidad. Se reanudará automáticamente.',
+        131049 => 'El destinatario alcanzó su límite de mensajes de marketing. No es un problema del número.',
+        131050 => 'El destinatario se dio de baja de mensajes de marketing en WhatsApp.',
         131048 => 'Entrega pausada por límite de envíos. Se reanudará automáticamente.',
+        131064 => 'Cuenta pausada por categorización de plantillas. Se reanudará automáticamente.',
         131026 => 'El mensaje no pudo ser entregado al destinatario.',
         368    => 'Cuenta temporalmente restringida por Meta.',
-        470    => 'La plantilla no está aprobada en Meta.',
+        132001 => 'La plantilla no está aprobada en Meta.',
+        132007 => 'La plantilla infringe una política de WhatsApp.',
+        132015 => 'La plantilla está pausada por baja calidad.',
+        132016 => 'La plantilla se desactivó de forma permanente por baja calidad.',
     ];
 
     public function __construct(private readonly AssignmentService $assignmentService) {}
@@ -97,12 +102,38 @@ class WebhookController extends Controller
                         'error_title'   => $errorTitle,
                     ]);
 
-                    // 131049: quality rate limit — circuit breaker 60 min
-                    if ($errorCode === 131049 && $log?->phone_number_id) {
+                    // 131049: tope de marketing POR USUARIO (frecuencia del destinatario,
+                    // suma de todas las empresas). NO es un problema del número — no pausar.
+                    // Solo falla ese mensaje. Meta exige esperar 24h antes de reintentar a
+                    // ESE contacto (reintentar antes lo bloquea hasta 24h más) → hold 24h.
+                    if ($errorCode === 131049 && $log?->to_number) {
+                        $contact = Contact::where('phone', $log->to_number)->first();
+                        if ($contact) {
+                            $contact->holdWaMarketingFor24h();
+                        }
+                        Log::info('Webhook: tope de marketing por usuario (131049) — hold 24h al contacto, número sin pausar', [
+                            'log_id'    => $log?->id,
+                            'to_number' => $log?->to_number,
+                        ]);
+                    }
+
+                    // 131050: el usuario se dio de baja de marketing desde WhatsApp (baja a
+                    // nivel Meta, sin escribirnos texto). Marcar opt-out cross-channel.
+                    if ($errorCode === 131050 && $log?->to_number) {
+                        $contact = Contact::where('phone', $log->to_number)->first();
+                        if ($contact && $contact->status !== 'opted_out') {
+                            $contact->optOut('whatsapp_131050');
+                            Log::info("Webhook: baja a nivel WhatsApp (131050) — contacto {$contact->id} marcado opt-out");
+                        }
+                    }
+
+                    // 131064: límite de la cuenta por categorización de plantillas (afecta
+                    // toda la WABA). Pausar el número para no seguir chocando con el límite.
+                    if ($errorCode === 131064 && $log?->phone_number_id) {
                         $phoneNumber = PhoneNumber::find($log->phone_number_id);
                         if ($phoneNumber && ! $phoneNumber->isPaused()) {
                             $phoneNumber->pauseFor(60);
-                            Log::error('Webhook: quality limit hit (131049) — número pausado 60 min', [
+                            Log::critical('Webhook: límite por categorización de plantillas (131064) — número pausado 60 min', [
                                 'phone_number_id' => $log->phone_number_id,
                                 'paused_until'    => $phoneNumber->fresh()->paused_until,
                             ]);

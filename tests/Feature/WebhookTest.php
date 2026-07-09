@@ -107,49 +107,88 @@ class WebhookTest extends TestCase
         $this->assertNull($log->delivery_error_code);
     }
 
-    // ── 131049 circuit breaker ────────────────────────────────────────────────
+    // ── 131049: tope por usuario, NO pausa el número ─────────────────────────
 
-    public function test_error_131049_pauses_phone_number_60_minutes(): void
+    public function test_error_131049_no_pausa_el_numero_pero_aplica_hold_24h_al_contacto(): void
     {
-        $phone = PhoneNumber::factory()->create(['is_active' => true]);
+        // 131049 es un tope de marketing POR USUARIO (frecuencia del destinatario),
+        // no un problema del número. El número debe seguir enviando a los demás, pero
+        // al contacto se le aplica un hold de 24h (Meta exige esperar antes de reintentar).
+        $phone   = PhoneNumber::factory()->create(['is_active' => true]);
+        $contact = \App\Models\Contact::factory()->create([
+            'phone'  => '529231311146',
+            'status' => 'active',
+        ]);
 
         $log = MessageLog::factory()->create([
             'phone_number_id' => $phone->id,
+            'to_number'       => '529231311146',
             'wa_message_id'   => 'wamid.test.131049',
             'status'          => 'sent',
         ]);
 
         $this->postWebhookStatus('wamid.test.131049', 'failed', [
-            ['code' => 131049, 'title' => 'Message failed to send because there were too many messages sent from this phone number in a short period of time'],
+            ['code' => 131049, 'title' => 'Message was not delivered to maintain healthy ecosystem engagement'],
         ]);
 
+        // El número NO se pausa.
         $phone->refresh();
-        $this->assertNotNull($phone->paused_until);
-        $this->assertTrue($phone->isPaused());
-        $this->assertEqualsWithDelta(now()->addMinutes(60)->timestamp, $phone->paused_until->timestamp, 5);
+        $this->assertNull($phone->paused_until);
+        $this->assertFalse($phone->isPaused());
+
+        // El mensaje sí queda marcado como fallido.
+        $log->refresh();
+        $this->assertEquals('failed', $log->status);
+
+        // El contacto queda con hold de ~24h.
+        $contact->refresh();
+        $this->assertTrue($contact->isWaMarketingHoldActive());
+        $this->assertEqualsWithDelta(now()->addHours(24)->timestamp, $contact->wa_marketing_hold_until->timestamp, 60);
     }
 
-    public function test_error_131049_does_not_double_pause_already_paused_number(): void
+    // ── 131050: baja a nivel WhatsApp → opt-out cross-channel ─────────────────
+
+    public function test_error_131050_marca_opt_out_al_contacto(): void
     {
-        $pausedUntil = now()->addMinutes(90);
-        $phone = PhoneNumber::factory()->create([
-            'is_active'    => true,
-            'paused_until' => $pausedUntil,
+        $contact = \App\Models\Contact::factory()->create([
+            'phone'  => '529231311146',
+            'status' => 'active',
         ]);
 
         $log = MessageLog::factory()->create([
+            'to_number'     => '529231311146',
+            'wa_message_id' => 'wamid.test.131050',
+            'status'        => 'sent',
+        ]);
+
+        $this->postWebhookStatus('wamid.test.131050', 'failed', [
+            ['code' => 131050, 'title' => 'Recipient opted out of marketing messages'],
+        ]);
+
+        $contact->refresh();
+        $this->assertEquals('opted_out', $contact->status);
+        $this->assertEquals('whatsapp_131050', $contact->opted_out_source);
+    }
+
+    // ── 131064: límite de cuenta por categorización → pausa el número ─────────
+
+    public function test_error_131064_pausa_el_numero_60_minutos(): void
+    {
+        $phone = PhoneNumber::factory()->create(['is_active' => true]);
+
+        $log = MessageLog::factory()->create([
             'phone_number_id' => $phone->id,
-            'wa_message_id'   => 'wamid.test.131049.double',
+            'wa_message_id'   => 'wamid.test.131064',
             'status'          => 'sent',
         ]);
 
-        $this->postWebhookStatus('wamid.test.131049.double', 'failed', [
-            ['code' => 131049, 'title' => 'Quality limit hit'],
+        $this->postWebhookStatus('wamid.test.131064', 'failed', [
+            ['code' => 131064, 'title' => 'Account has reached its messaging limit due to template categorization violations'],
         ]);
 
         $phone->refresh();
-        // paused_until should NOT be reset (already paused longer)
-        $this->assertEqualsWithDelta($pausedUntil->timestamp, $phone->paused_until->timestamp, 5);
+        $this->assertTrue($phone->isPaused());
+        $this->assertEqualsWithDelta(now()->addMinutes(60)->timestamp, $phone->paused_until->timestamp, 5);
     }
 
     public function test_other_error_codes_do_not_pause_phone_number(): void
@@ -191,7 +230,7 @@ class WebhookTest extends TestCase
 
         $notif = AppNotification::first();
         $this->assertStringContainsString('529231311146', $notif->body);
-        $this->assertStringContainsString('calidad', $notif->body);
+        $this->assertStringContainsString('marketing', $notif->body);
     }
 
     public function test_delivered_status_does_not_create_notification(): void

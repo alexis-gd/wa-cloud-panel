@@ -35,11 +35,13 @@
 ## Señales de alerta en los logs (revisar antes de continuar)
 
 - `error_code: 131026` → número no existe en WhatsApp (marcar inválido, no reintentar)
-- `error_code: 131048` → spam rate limit hit — **PARAR envíos mínimo 1 hora**
-- `error_code: 131049` → quality rate limit hit — **PARAR envíos mínimo 1 hora** (igual que 131048 pero por calidad del número, llega vía webhook de delivery, no por respuesta directa del API)
-- `error_code: 368` → cuenta temporalmente bloqueada — **PARAR TODO, revisar Business Manager**
-- `error_code: 467` → token expirado — renovar antes de continuar
-- `error_code: 470` → plantilla rechazada/no aprobada — revisar status en Meta
+- `error_code: 131048` → restricción de envíos del número (spam) - **PARAR envíos mínimo 1 hora** (pausa el número 60 min)
+- `error_code: 131049` → tope de marketing **POR USUARIO** (no del número). **NO pausar el número**, solo falla ese mensaje + hold de 24h a ESE contacto (`wa_marketing_hold_until`, cumplimiento Meta - reintentar antes lo bloquea hasta 24h más). Aparte del enfriamiento y del Pospuesto
+- `error_code: 131050` → el usuario se dio de baja de marketing desde WhatsApp - marcar `optOut('whatsapp_131050')` cross-channel
+- `error_code: 131064` → límite de cuenta por categorización de plantillas - pausar el número 60 min, revisar categorías en Business Manager
+- `error_code: 368` → cuenta temporalmente bloqueada - **PARAR TODO, revisar Business Manager**
+- `error_code: 190` → token expirado (antes `467`) - renovar antes de continuar
+- `error_code: 132001` → plantilla no aprobada (antes `470`) - revisar status en Meta
 
 ---
 

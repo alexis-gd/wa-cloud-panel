@@ -22,6 +22,10 @@
                             {{ healthData.sent_today ?? '…' }} / {{ healthData.daily_limit ?? '…' }}
                         </span>
                     </div>
+                    <div v-if="healthData.portfolio_limit" class="health-item">
+                        <span class="health-label">Límite de la cuenta (Meta)</span>
+                        <span class="health-value">{{ portfolioLimitLabel }}</span>
+                    </div>
                     <div class="health-item">
                         <span class="health-label">Número</span>
                         <span class="health-value">{{ healthData.display_phone ?? '…' }}</span>
@@ -359,6 +363,16 @@ const qualityClass = computed(() => ({
     'quality-red'    : healthData.value.quality_rating === 'RED',
     'quality-unknown': !['GREEN','YELLOW','RED'].includes(healthData.value.quality_rating),
 }));
+
+// Límite del portfolio que Meta reporta por webhook (compartido por todos los números).
+// "UNLIMITED" -> "Ilimitado"; numérico -> con separador de miles.
+const portfolioLimitLabel = computed(() => {
+    const raw = healthData.value.portfolio_limit;
+    if (!raw) return '…';
+    const digits = String(raw).replace(/\D/g, '');
+    if (!digits) return 'Ilimitado';
+    return Number(digits).toLocaleString('es-MX');
+});
 
 const statusSeverity = (status) => ({
     sent      : 'info',

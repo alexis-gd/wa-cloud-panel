@@ -21,6 +21,7 @@ class Contact extends Model
         'opted_out_at',
         'opted_out_source',
         'snoozed_until',
+        'wa_marketing_hold_until',
         'sms_opt_out',
         'sms_blocked',
         'sms_invalid',
@@ -28,9 +29,10 @@ class Contact extends Model
     ];
 
     protected $casts = [
-        'opted_out_at'  => 'datetime',
-        'snoozed_until' => 'datetime',
-        'sms_opt_out'   => 'boolean',
+        'opted_out_at'            => 'datetime',
+        'snoozed_until'           => 'datetime',
+        'wa_marketing_hold_until' => 'datetime',
+        'sms_opt_out'             => 'boolean',
         'sms_blocked'   => 'boolean',
         'sms_invalid'   => 'boolean',
     ];
@@ -123,6 +125,30 @@ class Contact extends Model
     public function isSnoozeActive(): bool
     {
         return $this->snoozed_until !== null && $this->snoozed_until->isFuture();
+    }
+
+    /**
+     * Aplica el hold de 24h por error 131049 (tope de marketing POR USUARIO de WhatsApp).
+     * Meta exige esperar al menos 24h antes de reintentar una plantilla a ese usuario;
+     * reintentar antes lo bloquea hasta 24h más. No acorta un hold ya vigente más largo.
+     */
+    public function holdWaMarketingFor24h(): void
+    {
+        $until = now()->addHours(24);
+
+        if ($this->wa_marketing_hold_until === null || $this->wa_marketing_hold_until->lt($until)) {
+            $this->update(['wa_marketing_hold_until' => $until]);
+        }
+    }
+
+    /**
+     * True si el contacto tiene hold de marketing WhatsApp activo (131049): no reintentar
+     * plantilla de marketing por WhatsApp hasta que venza. Es cumplimiento Meta (24h),
+     * aparte del snooze/Pospuesto y del enfriamiento anti-spam.
+     */
+    public function isWaMarketingHoldActive(): bool
+    {
+        return $this->wa_marketing_hold_until !== null && $this->wa_marketing_hold_until->isFuture();
     }
 
     public function conversations(): HasMany

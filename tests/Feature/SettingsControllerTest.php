@@ -44,6 +44,30 @@ class SettingsControllerTest extends TestCase
         $this->assertArrayHasKey('sent_today', $response->json('data'));
     }
 
+    public function test_phone_health_lee_y_persiste_el_limite_del_portfolio(): void
+    {
+        PhoneNumber::factory()->create(['is_active' => true, 'paused_until' => null]);
+
+        Http::fake([
+            'graph.facebook.com/*' => Http::response([
+                'quality_rating'                            => 'GREEN',
+                'account_mode'                              => 'LIVE',
+                'display_phone_number'                      => '+52 669 101 0211',
+                'verified_name'                             => 'Prestamaz',
+                'whatsapp_business_manager_messaging_limit' => 'TIER_10K',
+            ], 200),
+        ]);
+
+        $this->actingAsSuperAdmin()
+             ->getJson('/api/settings/phone-health')
+             ->assertStatus(200)
+             ->assertJsonPath('data.portfolio_limit', 'TIER_10K');
+
+        // Se persiste para que otras pantallas lo usen sin re-consultar a Meta.
+        $this->assertEquals('TIER_10K', \App\Models\Setting::get('wa_portfolio_daily_limit'));
+        $this->assertNotNull(\App\Models\Setting::get('wa_portfolio_limit_updated_at'));
+    }
+
     public function test_phone_health_incluye_sent_today_correcto(): void
     {
         $phone = PhoneNumber::factory()->create(['is_active' => true]);

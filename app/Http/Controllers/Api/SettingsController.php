@@ -85,7 +85,7 @@ class SettingsController extends Controller
         $result = $client->get(
             $phone->phone_number_id,
             $phone->token,
-            ['fields' => 'quality_rating,account_mode,display_phone_number,verified_name']
+            ['fields' => 'quality_rating,account_mode,display_phone_number,verified_name,whatsapp_business_manager_messaging_limit']
         );
 
         if (! $result['ok']) {
@@ -100,6 +100,16 @@ class SettingsController extends Controller
 
         $meta = $result['body'];
 
+        // Límite de mensajería del PORTFOLIO (compartido por todos los números), que Meta
+        // reporta en esta misma llamada. El campo viejo `messaging_limit_tier` está deprecado;
+        // el vigente es `whatsapp_business_manager_messaging_limit` (TIER_250/2000/.../UNLIMITED).
+        // Lo persistimos aquí (sin webhook ni polling): se refresca cada que se abre el semáforo.
+        $portfolioLimit = $meta['whatsapp_business_manager_messaging_limit'] ?? null;
+        if ($portfolioLimit !== null && $portfolioLimit !== '') {
+            Setting::set('wa_portfolio_daily_limit', $portfolioLimit);
+            Setting::set('wa_portfolio_limit_updated_at', now()->toIso8601String());
+        }
+
         return response()->json([
             'status' => 'ok',
             'data'   => [
@@ -108,6 +118,10 @@ class SettingsController extends Controller
                 'quality_rating' => $meta['quality_rating']       ?? 'UNKNOWN',
                 'account_mode'   => $meta['account_mode']         ?? 'UNKNOWN',
                 'daily_limit'    => $phone->daily_limit,
+                // Límite del PORTFOLIO (compartido por todos los números). Se lee de Meta en
+                // esta llamada; devolvemos el último conocido. Null si Meta aún no lo reporta.
+                'portfolio_limit'            => Setting::get('wa_portfolio_daily_limit'),
+                'portfolio_limit_updated_at' => Setting::get('wa_portfolio_limit_updated_at'),
                 'sent_today'     => MessageLog::where('phone_number_id', $phone->id)
                                         ->whereBetween('sent_at', [
                                             now('America/Mexico_City')->startOfDay()->utc(),

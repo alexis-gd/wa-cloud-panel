@@ -46,6 +46,13 @@ relacionada con Meta, envíos o plantillas.
 - Verificar en: business.facebook.com → Configuración → Información del negocio → campo "Verificación del negocio".
 - Tener página de FB o cuenta personal verificada NO equivale a Business Verification.
 
+**Límite de mensajería - cómo lo leemos (implementado 2026-07-08):**
+- El campo `messaging_limit_tier` está **DEPRECADO**. El nuevo es `whatsapp_business_manager_messaging_limit` (valores `TIER_250`, `2000`, `10000`, `100000`, `UNLIMITED`), pedible en phone/WABA/portfolio.
+- El límite es **por Business Portfolio** (compartido por todos los números), vigente desde 7-oct-2025. Sube solo (~6h) si en 7d usaste >=50% del límite con calidad alta.
+- **Lo leemos SIN webhook ni polling:** `SettingsController::phoneHealth()` ya hace un GET al phone number para el semáforo; le agregamos el campo `whatsapp_business_manager_messaging_limit` a ese mismo GET, lo persiste en `Setting wa_portfolio_daily_limit` (+ `wa_portfolio_limit_updated_at`) y lo devuelve. Se refresca cada que se abre/refresca el semáforo del Panel. (Se descartó el webhook `business_capability_update` para no depender de suscribir un campo en Meta.)
+- El panel (Dashboard, semáforo) muestra "Límite de la cuenta (Meta)" desde ese dato.
+- **Pendiente/deuda:** `phone_numbers.daily_limit` sigue siendo el warm-up por-número (estático, del seed) y `DashboardController` aún **suma** por número para la capacidad mensual = sobreestima bajo el modelo portfolio. Ver [[project-tier-autoupdate-gap]].
+
 ## Token de acceso — Reglas críticas
 
 - **Token actual**: System User Token **sin expiración** — ya configurado y en uso
@@ -90,12 +97,14 @@ relacionada con Meta, envíos o plantillas.
 
 | Código | Significado | Acción |
 |---|---|---|
-| `131026` | Número no existe en WhatsApp | Marcar inválido, no reintentar |
-| `131048` | Spam rate limit | **PARAR envíos mínimo 1 hora** |
-| `131049` | Quality rate limit (llega por webhook de delivery, no por respuesta API directa) | **PARAR envíos mínimo 1 hora** — `WebhookController` pausa el número igual que 131048 |
+| `131026` | Número no existe / no acepta ToS / versión vieja | Marcar inválido, no reintentar |
+| `131048` | Restricción de envíos del número (spam/bloqueos) | **PARAR envíos mínimo 1 hora** - `SendWhatsAppMessage` pausa el número 60 min |
+| `131049` | Tope de marketing **POR USUARIO** (frecuencia del destinatario, suma de todas las empresas) - llega por webhook de delivery | **NO pausar el número.** Solo falla ese mensaje; los demás contactos siguen. Implementado: `Contact::holdWaMarketingFor24h()` pone `wa_marketing_hold_until = now()+24h` (Meta exige 24h, reintentar antes lo bloquea hasta 24h más). El job WA respeta el hold (`isWaMarketingHoldActive()`). Es aparte del enfriamiento (7-30d) y del Pospuesto |
+| `131050` | El usuario se dio de baja de marketing **desde WhatsApp** (baja a nivel Meta, sin escribirnos texto) - llega por webhook de delivery | `WebhookController` marca `optOut('whatsapp_131050')` (cross-channel). Opcional futuro: webhook `user_preferences` para enterarse sin intento de envío |
+| `131064` | Límite de la cuenta por infracciones de **categorización de plantillas** (afecta toda la WABA) | Pausar el número 60 min (`SendWhatsAppMessage` y `WebhookController`). Revisar categorías en Business Manager |
 | `368` | Cuenta bloqueada temporalmente | **PARAR TODO, revisar Business Manager** |
-| `467` | Token expirado | Renovar token antes de continuar |
-| `470` | Plantilla no aprobada | Revisar status en Meta |
+| `190` | Token expirado (antes decíamos `467`, ya no existe en la doc actual) | Renovar token antes de continuar. Auth relacionados: `0`, `200`, `10`, `3` |
+| `132001` | Plantilla no aprobada / no existe en ese idioma (antes decíamos `470`) | Revisar status en Meta. Relacionados: `132007` (viola política), `132015` (pausada baja calidad), `132016` (desactivada permanente) |
 
 ## Opt-out — Reglas inquebrantables
 

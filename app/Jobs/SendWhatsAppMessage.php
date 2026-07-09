@@ -105,6 +105,19 @@ class SendWhatsAppMessage implements ShouldQueue
             return;
         }
 
+        // ── Hold 131049: Meta capó a este contacto por su tope de marketing. Esperar
+        //    24h antes de reintentarle (reintentar antes lo bloquea hasta 24h más). ──
+        if ($contact->isWaMarketingHoldActive()) {
+            Log::info('SendWhatsAppMessage: contacto en hold de marketing (131049), descartando', [
+                'contact_id'    => $this->contactId,
+                'hold_until'    => $contact->wa_marketing_hold_until,
+            ]);
+            MessageLog::logDiscard($this->phoneNumberId, $this->campaignId, $contact->phone, $this->templateName, $this->languageCode, 'marketing_hold');
+            $campaign->increment('failed_count');
+            $this->checkAutoComplete($campaign);
+            return;
+        }
+
         // ── Dedup: no enviar más de 1 mensaje/día al mismo contacto (hora México) ──
         $startOfDay = now('America/Mexico_City')->startOfDay()->utc();
         $endOfDay   = now('America/Mexico_City')->endOfDay()->utc();
@@ -220,6 +233,19 @@ class SendWhatsAppMessage implements ShouldQueue
         if ($errorCode === 131048) {
             $phoneNumber->pauseFor(60);
             Log::error('SendWhatsAppMessage: spam rate limit (131048) — número pausado 60 min', [
+                'phone_number_id' => $this->phoneNumberId,
+                'paused_until'    => $phoneNumber->fresh()->paused_until,
+            ]);
+            $this->release(3600);
+            return;
+        }
+
+        // 131064: la cuenta llegó a su límite por infracciones de categorización de
+        // plantillas (afecta a TODA la WABA, plantilla y directo). Se levanta solo tras
+        // el periodo de aplicación. Pausar el número y avisar para revisión de categorías.
+        if ($errorCode === 131064) {
+            $phoneNumber->pauseFor(60);
+            Log::critical('SendWhatsAppMessage: límite por categorización de plantillas (131064) — número pausado 60 min, revisar categorías en Business Manager', [
                 'phone_number_id' => $this->phoneNumberId,
                 'paused_until'    => $phoneNumber->fresh()->paused_until,
             ]);

@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Services\WhatsApp\PortfolioLimit;
+use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -13,6 +14,12 @@ use Illuminate\Support\Facades\Log;
  * portfolio, imitando el criterio de Meta (subir a quien usó >=50% de su límite ayer y no
  * está pausado). Nunca crece por encima del límite que Meta reporta, así que no expone la
  * cuenta. Corre a diario por el scheduler.
+ *
+ * Además reacciona a la CALIDAD suave del número (quality_rating de Meta), no solo a los
+ * errores duros (131048/131064/368 que ya pausan+recular en el job de envío):
+ *   - RED    -> warm-down (recula el límite a la mitad, piso 250). No pausa: es señal suave.
+ *   - YELLOW -> hold: no sube (en riesgo), pero tampoco recula.
+ *   - GREEN / UNKNOWN / sin dato -> elegible para warm-up normal.
  */
 class WarmupPhoneNumbersCommand extends Command
 {
@@ -22,7 +29,7 @@ class WarmupPhoneNumbersCommand extends Command
     /** Fracción del límite que un número debe haber usado ayer para merecer subir (criterio Meta). */
     private const USAGE_THRESHOLD = 0.5;
 
-    public function handle(): int
+    public function handle(WhatsAppClient $client): int
     {
         // Sin límite de portfolio conocido no rampamos: crecer a ciegas podría rebasar a Meta.
         // En cuanto phoneHealth reporte el límite (producción), el warm-up arranca solo.
@@ -42,9 +49,33 @@ class WarmupPhoneNumbersCommand extends Command
             ->where(fn ($q) => $q->whereNull('paused_until')->orWhere('paused_until', '<', now()))
             ->get();
 
-        $raised = 0;
+        $raised  = 0;
+        $lowered = 0;
 
         foreach ($numbers as $number) {
+            // Calidad suave de Meta primero: recula ANTES de considerar techo/uso, para que
+            // un número en RED baje aunque ya esté en el techo o no haya enviado nada.
+            $quality = $this->quality($client, $number);
+
+            if ($quality === 'RED') {
+                $before = $number->daily_limit;
+                $number->backOffDailyLimit();
+                if ($number->daily_limit < $before) {
+                    $lowered++;
+                    Log::warning('wa:warmup-numbers warm-down por calidad RED', [
+                        'phone_number_id' => $number->id,
+                        'from'            => $before,
+                        'to'              => $number->daily_limit,
+                    ]);
+                }
+                continue;
+            }
+
+            if ($quality === 'YELLOW') {
+                continue; // en riesgo: ni sube ni baja
+            }
+
+            // GREEN / UNKNOWN -> warm-up normal.
             if ($number->daily_limit >= $ceiling) {
                 continue; // ya en el techo del portfolio
             }
@@ -66,9 +97,24 @@ class WarmupPhoneNumbersCommand extends Command
             }
         }
 
-        $this->info("Warm-up: {$raised} número(s) subieron de límite (techo del portfolio: {$ceiling}).");
-        Log::info('wa:warmup-numbers ejecutado', ['raised' => $raised, 'ceiling' => $ceiling]);
+        $this->info("Warm-up: {$raised} número(s) subieron, {$lowered} recularon por calidad (techo: {$ceiling}).");
+        Log::info('wa:warmup-numbers ejecutado', ['raised' => $raised, 'lowered' => $lowered, 'ceiling' => $ceiling]);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Lee el quality_rating del número desde Meta (GREEN | YELLOW | RED | UNKNOWN). Tolerante:
+     * si Meta falla, devuelve UNKNOWN para no penalizar el número por un error transitorio.
+     */
+    private function quality(WhatsAppClient $client, PhoneNumber $number): string
+    {
+        $res = $client->get($number->phone_number_id, $number->token, ['fields' => 'quality_rating']);
+
+        if (! $res['ok']) {
+            return 'UNKNOWN';
+        }
+
+        return strtoupper((string) ($res['body']['quality_rating'] ?? 'UNKNOWN'));
     }
 }

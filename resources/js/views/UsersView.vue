@@ -8,6 +8,7 @@
         <Card>
             <template #title>Usuarios del sistema</template>
             <template #content>
+                <div class="table-scroll">
                 <DataTable :value="users" :loading="loading" size="small" stripedRows>
                     <Column field="name" header="Nombre" />
                     <Column field="email" header="Correo" />
@@ -60,6 +61,7 @@
                         <span class="empty-msg">Sin usuarios.</span>
                     </template>
                 </DataTable>
+                </div>
             </template>
         </Card>
 
@@ -276,6 +278,7 @@ onMounted(() => loadUsers());
 </script>
 
 <style scoped>
+.table-scroll { overflow-x: auto; }
 .page-header  { display: flex; justify-content: flex-end; margin-bottom: 16px; }
 .date-cell    { color: var(--p-text-muted-color); font-size: .82rem; }
 .empty-msg    { color: var(--p-text-muted-color); font-size: .85rem; }

@@ -10,6 +10,7 @@
         <Card>
             <template #title>Campañas</template>
             <template #content>
+                <div class="table-scroll">
                 <DataTable :value="campaigns" :loading="loading" size="small" stripedRows>
                     <Column field="id" header="#" style="width:60px" />
                     <Column header="Nombre">
@@ -75,6 +76,7 @@
                         <span class="empty-msg">Sin campañas. Crea una para comenzar.</span>
                     </template>
                 </DataTable>
+                </div>
 
                 <!-- Paginación -->
                 <div class="pagination" v-if="meta">
@@ -260,6 +262,7 @@
                 </div>
 
                 <!-- Tabla de logs -->
+                <div class="table-scroll">
                 <DataTable :value="detailLogs" :loading="detailLoading" size="small" stripedRows class="logs-table">
                     <Column header="Teléfono">
                         <template #body="{ data }">
@@ -287,6 +290,7 @@
                         <span class="empty-msg">Sin registros de detalle.</span>
                     </template>
                 </DataTable>
+                </div>
 
                 <!-- Paginación de logs (prev/next - sin COUNT(*) para no colgar con 200k filas) -->
                 <div class="pagination" v-if="detailPrevPage || detailHasMore">
@@ -931,4 +935,10 @@ onUnmounted(() => {
     color: var(--p-text-muted-color);
 }
 .estimate-note .pi { font-size: .9rem; flex-shrink: 0; }
+
+/* Tabla scrollea en su caja en móvil, sin estirar la página. */
+.table-scroll { overflow-x: auto; }
+@media (max-width: 640px) {
+    .stats-row { flex-wrap: wrap; }
+}
 </style>

@@ -56,7 +56,8 @@
           <p class="empty-sub">Usa <strong>Sincronizar con Meta</strong> para importarlas automáticamente.</p>
         </div>
 
-        <table v-else class="tpl-table">
+        <div v-else class="table-scroll">
+        <table class="tpl-table">
           <thead>
             <tr>
               <th>Nombre</th>
@@ -100,6 +101,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <!-- Preview derecho -->
@@ -397,6 +399,12 @@ function statusSeverity(s) {
   grid-template-columns: 1fr 280px;
   gap: 20px;
   align-items: start;
+}
+.table-scroll { overflow-x: auto; }
+
+/* Móvil: apilar lista y vista previa; la tabla scrollea dentro de su panel. */
+@media (max-width: 768px) {
+  .main-layout { grid-template-columns: 1fr; }
 }
 
 /* Tabla */

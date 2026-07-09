@@ -1,5 +1,5 @@
 <template>
-  <div class="conv-page">
+  <div class="conv-page" :class="{ 'conv-page--detail': selected }">
 
     <!-- Panel izquierdo: lista de contactos -->
     <div class="conv-sidebar">
@@ -47,6 +47,7 @@
       <template v-else>
         <!-- Topbar del chat -->
         <div class="chat-header">
+          <Button icon="pi pi-arrow-left" text rounded class="chat-back" @click="selected = null" aria-label="Volver a la lista" />
           <div>
             <span class="chat-name">{{ selected.name || selected.phone }}</span>
             <span class="chat-phone">{{ selected.phone }}</span>
@@ -585,4 +586,18 @@ function formatDate(iso) {
 .assign-empty   { font-size: .78rem; color: var(--p-text-muted-color); margin-bottom: 8px; }
 .assign-btn     { width: 100%; margin-bottom: 6px; }
 .assign-select  { margin-bottom: 6px; }
+
+/* Botón "atrás" del chat: solo en móvil (master-detail). */
+.chat-back { display: none; }
+
+/* ── Responsive móvil: una sola columna, master-detail ────────────
+   Sin selección se ve la lista; al elegir un chat se ve la conversación
+   (con botón atrás). El panel de info/agentes se oculta en móvil. */
+@media (max-width: 768px) {
+  .conv-page { grid-template-columns: 1fr; height: calc(100vh - 56px - 32px); }
+  .conv-chat, .conv-info { display: none; }
+  .conv-page--detail .conv-sidebar { display: none; }
+  .conv-page--detail .conv-chat    { display: flex; }
+  .chat-back { display: inline-flex; }
+}
 </style>

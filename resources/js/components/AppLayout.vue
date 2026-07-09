@@ -485,6 +485,9 @@ async function logout() {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    /* Permite que el contenido ancho (tablas) NO estire la columna y provoque scroll de página;
+       cada tabla scrollea dentro de su propia caja (.table-scroll en cada vista). */
+    min-width: 0;
 }
 
 .topbar {
@@ -658,7 +661,7 @@ async function logout() {
 
 .page-title { font-size: 1rem; font-weight: 600; color: #0f172a; }
 
-.content { padding: 24px; flex: 1; }
+.content { padding: 24px; flex: 1; min-width: 0; }
 
 /* ── Loading screen inicial ────────────────────── */
 .app-loading {

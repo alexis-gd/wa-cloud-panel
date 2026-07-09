@@ -131,7 +131,8 @@
                     <Button label="Limpiar" text size="small" severity="secondary" @click="selected = []" />
                 </div>
 
-                <DataTable v-model:selection="selected" data-key="id" :value="contacts" :loading="loading" size="small" stripedRows class="mt-3">
+                <div class="table-scroll mt-3">
+                <DataTable v-model:selection="selected" data-key="id" :value="contacts" :loading="loading" size="small" stripedRows>
                     <Column selection-mode="multiple" header-style="width: 3rem" />
                     <Column field="id" header="#" style="width: 60px" />
                     <Column field="phone" header="Teléfono">
@@ -248,6 +249,7 @@
                         <span class="empty-msg">Sin contactos</span>
                     </template>
                 </DataTable>
+                </div>
 
                 <!-- Paginación -->
                 <div class="pagination" v-if="meta">
@@ -808,6 +810,7 @@ onMounted(() => { loadContacts(); loadTags(); });
 </script>
 
 <style scoped>
+.table-scroll { overflow-x: auto; }
 .stats-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -902,4 +905,13 @@ onMounted(() => { loadContacts(); loadTags(); });
 .tag-manage-item     { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .tag-count           { font-size: .75rem; color: var(--p-text-muted-color); flex: 1; }
 .tags-empty-hint     { font-size: .82rem; color: var(--p-text-muted-color); text-align: center; }
+
+/* ── Responsive móvil ─────────────────────────────────────── */
+@media (max-width: 640px) {
+    .stats-row  { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stat-num   { font-size: 1.5rem; }
+    .upload-row { flex-direction: column; align-items: stretch; }
+    .filter-row { flex-wrap: wrap; }
+    .bulk-bar   { flex-wrap: wrap; }
+}
 </style>

@@ -32,6 +32,7 @@
                     (<b>Baja automática</b>).
                 </p>
 
+                <div class="table-scroll">
                 <DataTable
                     :value="rows"
                     :loading="loading"
@@ -92,6 +93,7 @@
                         </div>
                     </template>
                 </DataTable>
+                </div>
             </template>
         </Card>
     </div>
@@ -201,9 +203,11 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Tabla scrollea en su propia caja en móvil, sin estirar la página. */
+.table-scroll    { overflow-x: auto; }
 .head            { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .head-actions    { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.search :deep(input) { width: 240px; }
+.search :deep(input) { width: 240px; max-width: 100%; }
 .action-select   { min-width: 140px; }
 .desc            { font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 16px; }
 .num             { display: flex; flex-direction: column; }

@@ -94,6 +94,42 @@ class SmsGatewayClient
     }
 
     /**
+     * Pide al gateway re-exportar los SMS entrantes (sms:received) de una ventana.
+     * A diferencia del estado saliente (getState, pull directo), los entrantes viven en el
+     * TELÉFONO: capcom6 no los expone para leer server-a-server, solo puede re-empujarlos por
+     * el webhook. Este endpoint le ordena al device volver a enviar los recibidos del periodo;
+     * llegan por el mismo POST /api/sms/webhook y el dedup por gateway_message_id evita repetir.
+     * Es la red de seguridad si MIUI mató la app y se perdieron entrantes en vivo.
+     *
+     * POST {baseUrl}/inbox/export  body {since, until, deviceId?} (ISO8601). Respuesta 202.
+     * Async: solo dispara la exportación; no devuelve los mensajes.
+     *
+     * @return array{ok: bool, status: int, error: mixed}
+     */
+    public function requestInboxExport(string $since, string $until, ?string $deviceId = null): array
+    {
+        $body = ['since' => $since, 'until' => $until];
+        if ($deviceId) {
+            $body['deviceId'] = $deviceId;
+        }
+
+        $response = Http::withBasicAuth((string) $this->login, (string) $this->password)
+            ->timeout($this->timeout)
+            ->post("{$this->baseUrl}/inbox/export", $body);
+
+        if ($response->failed()) {
+            Log::error('SMS gateway inbox export error', [
+                'status' => $response->status(),
+                'body'   => $response->json() ?: 'gateway request failed',
+            ]);
+
+            return ['ok' => false, 'status' => $response->status(), 'error' => $response->json() ?: 'gateway request failed'];
+        }
+
+        return ['ok' => true, 'status' => $response->status(), 'error' => null];
+    }
+
+    /**
      * El gateway exige el número en E.164 CON prefijo '+' (ej. +529231311146).
      * En BD los guardamos como 52XXXXXXXXXX (sin '+'), así que lo anteponemos aquí,
      * en el único punto de salida — el operador nunca escribe el '+' ni el código de país.

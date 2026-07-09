@@ -177,10 +177,19 @@ class SmsWebhookController extends Controller
     private function handleInbound(array $payload): void
     {
         // En sms:received el número del remitente viene en `sender` (no `phoneNumber`).
-        $from    = $payload['sender'] ?? null;
-        $message = $payload['message'] ?? '';
+        $from      = $payload['sender'] ?? null;
+        $message   = $payload['message'] ?? '';
+        $messageId = $payload['messageId'] ?? null;
 
         if (! $from) {
+            return;
+        }
+
+        // Dedup: el reconcile (sms:reconcile-received) re-empuja los sms:received por este
+        // mismo webhook. Si ya registramos ese id del gateway, no duplicamos ni re-disparamos
+        // opt-out/tiempo real. El entrante en vivo también trae el id, así vivo y re-export
+        // comparten la llave.
+        if ($messageId && SmsInboundMessage::where('gateway_message_id', $messageId)->exists()) {
             return;
         }
 
@@ -198,11 +207,12 @@ class SmsWebhookController extends Controller
 
         // Registrar SIEMPRE en la bandeja plana de respuestas (aunque el número no esté en contactos).
         SmsInboundMessage::create([
-            'contact_id'  => $contact?->id,
-            'from_number' => $phone ?? $from,
-            'body'        => $message,
-            'action'      => $action,
-            'received_at' => now(),
+            'gateway_message_id' => $messageId,
+            'contact_id'         => $contact?->id,
+            'from_number'        => $phone ?? $from,
+            'body'               => $message,
+            'action'             => $action,
+            'received_at'        => now(),
         ]);
 
         // Tiempo real: solo si el remitente ES un contacto (evita spam de SMS de operadoras/servicios,

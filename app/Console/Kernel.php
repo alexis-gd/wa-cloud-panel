@@ -52,6 +52,13 @@ class Kernel extends ConsoleKernel
         $schedule->command('sms:reconcile-status')
             ->everyTenMinutes()
             ->withoutOverlapping();
+
+        // Red de seguridad para los ENTRANTES: pide al teléfono re-exportar los sms:received
+        // recientes por si MIUI mató la app y se perdieron respuestas en vivo. Cada hora
+        // (los entrantes no son tan urgentes como el estado y la re-exportación es más pesada).
+        $schedule->command('sms:reconcile-received')
+            ->hourly()
+            ->withoutOverlapping();
     }
 
     /**

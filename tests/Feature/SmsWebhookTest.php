@@ -178,6 +178,40 @@ class SmsWebhookTest extends TestCase
         ]);
     }
 
+    public function test_inbound_con_mismo_gateway_id_no_se_duplica(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([\App\Events\InboundMessageReceived::class]);
+        $contact = Contact::factory()->create(['phone' => '529991234567', 'status' => 'active']);
+
+        $payload = ['event' => 'sms:received', 'payload' => [
+            'messageId' => 'IN-1',
+            'sender'    => '529991234567',
+            'message'   => 'SI',
+        ]];
+
+        // Primera entrega (en vivo) + segunda (re-export del reconcile) con el mismo id.
+        $this->postJson('/api/sms/webhook', $payload)->assertStatus(200);
+        $this->postJson('/api/sms/webhook', $payload)->assertStatus(200);
+
+        // Una sola fila y un solo evento de tiempo real pese a las dos entregas.
+        $this->assertSame(1, \App\Models\SmsInboundMessage::where('gateway_message_id', 'IN-1')->count());
+        \Illuminate\Support\Facades\Event::assertDispatchedTimes(\App\Events\InboundMessageReceived::class, 1);
+    }
+
+    public function test_inbound_sin_gateway_id_se_registra_como_antes(): void
+    {
+        // Compatibilidad: un entrante sin messageId sigue guardándose (no dedup).
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:received',
+            'payload' => ['sender' => '528881112233', 'message' => 'hola'],
+        ])->assertStatus(200);
+
+        $this->assertDatabaseHas('sms_inbound_messages', [
+            'from_number'        => '528881112233',
+            'gateway_message_id' => null,
+        ]);
+    }
+
     // ── Tiempo real ──────────────────────────────────────────────────────────────
 
     public function test_respuesta_sms_de_contacto_emite_evento_tiempo_real(): void

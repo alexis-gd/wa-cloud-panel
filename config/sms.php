@@ -22,6 +22,9 @@ return [
         'login'    => env('SMS_GATEWAY_LOGIN'),
         'password' => env('SMS_GATEWAY_PASSWORD'),
         'timeout'  => (int) env('SMS_GATEWAY_TIMEOUT', 15),
+        // Device concreto al que pedir la re-exportación de entrantes (sms:reconcile-received).
+        // Vacío = todos los devices del gateway. Con pool multi-celular se puede dejar vacío.
+        'device_id' => env('SMS_GATEWAY_DEVICE_ID'),
     ],
 
     // Secreto compartido para validar que el webhook de status viene del gateway.

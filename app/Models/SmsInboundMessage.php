@@ -15,6 +15,7 @@ class SmsInboundMessage extends Model
     use HasFactory;
 
     protected $fillable = [
+        'gateway_message_id',
         'contact_id',
         'from_number',
         'body',

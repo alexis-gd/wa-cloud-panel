@@ -167,6 +167,18 @@ En el servidor gateway (panel de admin del gateway o su API de webhooks), regist
 Sin webhook los SMS se marcan `sent` pero nunca `delivered`/`failed`, y el STOP por SMS no marca
 opt-out automático.
 
+### Redes de seguridad si el webhook no llega (app del gateway muerta por MIUI)
+El webhook lo entrega el TELÉFONO; si MIUI mata la app, se pierden eventos. Dos comandos lo cubren
+(scheduler, sin tocar el teléfono a mano):
+- **Salientes** (`sms:reconcile-status`, cada 10 min): pregunta al gateway el estado de los SMS en
+  `sent` y los pasa a delivered/failed (pull server-a-server).
+- **Entrantes** (`sms:reconcile-received`, cada hora): los recibidos viven en el teléfono y NO se
+  pueden pollear; el comando le pide re-exportar los `sms:received` de las últimas 24h vía
+  `POST {url}/inbox/export`. Vuelven por el mismo webhook y se deduplican por `gateway_message_id`.
+  ⚠️ **Verificar en Swagger** que la ruta de export es `POST /inbox/export` (igual que se verifica
+  `/messages` para el envío); si difiere, ajustar `SmsGatewayClient::requestInboxExport()`. Opcional:
+  `SMS_GATEWAY_DEVICE_ID` en `.env` para pedir la re-exportación a un device concreto (vacío = todos).
+
 ---
 
 ## Probar

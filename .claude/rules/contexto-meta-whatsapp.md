@@ -185,3 +185,90 @@ La calidad baja cuando: usuarios bloquean el número, mensajes masivos no leído
 3. Warm-up agresivo (subir límites antes de tiempo)
 4. Contenido engañoso o promesas falsas en plantillas
 5. Auto-responder a cualquier mensaje entrante (patrón de bot/spam)
+
+---
+
+# Referencia oficial Meta (API v25, verificada 2026-07-08)
+
+> **PRECEDENCIA:** esto viene directo de la documentación oficial de Meta (developers.facebook.com).
+> **Si algo aquí contradice lo de más arriba o el código, MANDA ESTO** - es la fuente de verdad.
+> Verificar en la doc oficial si cambian versiones.
+
+## Límites de mensajería (messaging limits) - CRÍTICO
+
+- **`messaging_limit_tier` está DEPRECADO.** Campo vigente: **`whatsapp_business_manager_messaging_limit`**
+  (valores `TIER_250`, `TIER_2000`, `TIER_10K`/`10000`, `100000`, `UNLIMITED`). Pedible en phone number, WABA o portfolio.
+- **El límite es POR BUSINESS PORTFOLIO (compartido por TODOS los números)**, vigente desde 7-oct-2025.
+  Un solo número puede consumir toda la capacidad del portfolio. **Agregar números NO multiplica el volumen.**
+- Es el máximo de **usuarios únicos** a los que puedes iniciar conversación (fuera de ventana de servicio) en 24h móviles.
+- **Escalado:** empieza en 250. Sube a 2,000 completando un "scaling path" (verificar negocio, o **enviar 2,000
+  mensajes entregados a usuarios únicos fuera de ventana en 30 días móviles con plantillas de calidad alta**).
+  Luego 10,000 -> 100,000 -> Unlimited por **escalado automático**.
+- **Criterio de escalado automático:** mandas mensajes de alta calidad en todos los números/plantillas **Y**
+  en los últimos 7 días usaste **>=50%** del límite actual -> sube 1 nivel **en ~6h**.
+- **Webhook** `business_capability_update`: `max_daily_conversations_per_business` (v24+) /
+  `max_daily_conversation_per_phone` (v23, se retira **feb-2026**). *(Nosotros NO lo usamos: leemos el límite
+  en `phoneHealth`, ver sección "Límite de mensajería - cómo lo leemos".)*
+- El estado de calidad **"Flagged" ya NO existe** (post 7-oct-2025). Si la calidad baja, el límite **NO** se degrada.
+- **Throughput 1,000 msg/s:** requiere portfolio en Unlimited + el número usado con 100k+ usuarios únicos/24h +
+  calidad Medium o más -> upgrade en ~12h.
+
+## Tope de marketing POR USUARIO (error 131049) - detalle oficial
+
+- Meta limita cuántas **plantillas de marketing** recibe un usuario de **cualquier** empresa en un periodo,
+  según su read-rate reciente y qué tan lleno tiene el inbox. Es **adaptativo** por persona.
+- **Números de EE.UU. (+1): Meta NO entrega plantillas de marketing** -> da error. (Somos México, pero ojo si entra un +1.)
+- **Países excluidos** (no aplica el tope por-usuario): EEE (Europa), Reino Unido, Japón, Corea del Sur.
+  **México NO está excluido -> a nosotros SÍ nos aplica.**
+- **Conteo:** cada plantilla de marketing entregada suma. Si el usuario **responde**, abre ventana de servicio
+  de 24h y los mensajes dentro de esa ventana **no** cuentan al tope.
+- **Reintentos:** esperar **>=24h** para reintentar a un usuario capado. Reintentar de más dentro de 24h ->
+  Meta lo bloquea hasta 24h más y sigue devolviendo 131049. **No afecta a los demás usuarios.**
+
+## Calidad de plantilla (template quality rating)
+
+- Ratings: **`GREEN`** (alta), **`YELLOW`** (media, en riesgo), **`RED`** (baja, en peligro de pausa),
+  **`UNKNOWN`** (pendiente; las nuevas empiezan aquí).
+- Campo API **`quality_score`** `{score, date}` (Template API). En WhatsApp Manager: "Quality pending / High / Medium / Low".
+- Alimenta el **pacing** y el **pausing**. Si baja de `APPROVED`, la plantilla no se puede enviar hasta recuperar estado.
+
+## Pausado de plantilla (template pausing)
+
+- Si una plantilla llega a **RED**, se **auto-pausa**: **1ra vez 3h · 2da vez 6h · 3ra vez DESACTIVADA**.
+- Pausada = no se puede enviar; la API rechaza (no cobra, no cuenta al límite). Detener campañas que la usen.
+- Se despausa sola al cumplir el tiempo, **o** manualmente: `POST /{template_id}/unpause` o en WhatsApp Manager.
+  Las pausadas por **pacing** hay que despausarlas **manualmente**.
+- Pausar **no** golpea al número al inicio; pero si mandas seguido plantillas de baja calidad, el número eventualmente se ve afectado.
+- Avisa por WhatsApp Manager, email y webhook `message_template_status_update`.
+
+## Ritmo de plantilla (template pacing)
+
+- Plantillas nuevas, despausadas, o sin calidad `GREEN` pueden ser "paced".
+- API: el response de `/messages` trae `message_status` = **`accepted`** o **`held_for_quality_assessment`**.
+- Señal mala -> plantilla `PAUSED`, los mensajes retenidos se **descartan** -> webhook messages `status=failed`, `code=132015`.
+- Señal buena -> los retenidos se liberan y se envían. Guardrail: aun con pacing, los de mayor throughput se entregan dentro de ~1h (p99).
+
+## Revisión/aprobación de plantilla
+
+- Aprobación tarda hasta **24h**. Avisa por WhatsApp Manager, email y webhook `message_template_status_update`.
+- Aprobada -> estado "Active - Quality pending" (`APPROVED` en API), ya se puede enviar.
+- Variables: formato `{{1}}` posicional, secuenciales, sin caracteres especiales (`#`,`$`,`%`), no al inicio/fin (no "dangling").
+- Rechazos comunes: variables mal, viola Commerce/Business Policy (no pedir identificadores sensibles completos),
+  contenido abusivo/amenazante, **duplicado** (mismo body+footer que otra existente; no aplica a `AUTHENTICATION`).
+- Se puede **apelar** (con sample) o editar y resometer (pasa a "In Review", no se envía hasta re-aprobar).
+
+## Códigos de error (oficial, MANDA sobre lo que teníamos)
+
+- **Construir el manejo alrededor de `code`**, NO de `error_subcode` (deprecado v16+) ni del HTTP status.
+- **Auth:** `0` (no autenticado), `3`/`10` (permiso), **`190` (token expirado)**, `200` (sin token). **NO existe `467`.**
+- **Integridad:** `368` / `131031` (WABA restringida/deshabilitada por política), `130497` (restringida a ciertos países).
+- **Envío:** `131026` (no está en WhatsApp / no aceptó ToS / versión vieja), `131047` (pasaron 24h de ventana -> usar plantilla),
+  `131048` (restricción de envíos del número), `131049` (tope marketing por-usuario), `131050` (el usuario se dio de baja de marketing),
+  `131056` (muchos al mismo destinatario; puedes seguir con otros), `131064` (límite de cuenta por categorización de plantillas),
+  `130403` (la empresa bloqueó al usuario).
+- **Límites/throughput:** `4` (rate limit de la app), `80007` (rate limit de la WABA), `130429` (throughput de Cloud API).
+- **Plantillas (envío):** `132000` (nº de variables no coincide), **`132001` (no aprobada / no existe en ese idioma; NO existe `470`)**,
+  `132007` (viola política), `132012` (formato de variable), `132015` (pausada por baja calidad), `132016` (desactivada permanente), `132018` (validación).
+- **Plantillas (creación):** familia `2388xxx`. Máx **250 plantillas** por WABA (`2388019`).
+- NO nos aplican (otra arquitectura): migración de teléfonos (`2388012/91/93/103`), OBO (`2593079/85`), sync (`2593107/8`),
+  Marketing Messages Lite API (`134100/101/102`, `131055`, `1752041`), Flows (`132068/69`), pagos (`134011`), 2FA/registro (`133xxx`).

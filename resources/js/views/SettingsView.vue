@@ -83,13 +83,15 @@
                     </div>
                     <div class="form-group">
                         <label>Phone number ID (de Meta)</label>
-                        <InputText v-model="pnForm.phone_number_id" placeholder="1082360764952377" inputmode="numeric" fluid />
-                        <small>Solo números, tal como aparece en Meta (business.facebook.com).</small>
+                        <InputText v-model="pnForm.phone_number_id" placeholder="1082360764952377" inputmode="numeric" :invalid="!!phoneIdError" fluid />
+                        <small v-if="phoneIdError" class="pn-field-error">{{ phoneIdError }}</small>
+                        <small v-else>Solo números, tal como aparece en Meta (business.facebook.com).</small>
                     </div>
                     <div class="form-group">
                         <label>WABA ID (de Meta)</label>
-                        <InputText v-model="pnForm.waba_id" placeholder="1236630511398211" inputmode="numeric" fluid />
-                        <small>Solo números. Es el ID de la cuenta de WhatsApp Business.</small>
+                        <InputText v-model="pnForm.waba_id" placeholder="1236630511398211" inputmode="numeric" :invalid="!!wabaIdError" fluid />
+                        <small v-if="wabaIdError" class="pn-field-error">{{ wabaIdError }}</small>
+                        <small v-else>Solo números. Es el ID de la cuenta de WhatsApp Business.</small>
                     </div>
                     <Button type="submit" label="Verificar y guardar" icon="pi pi-plus" :loading="addingNumber" :disabled="!pnFormValid" />
                 </form>
@@ -333,10 +335,24 @@ const addResult     = ref(null);
 const verifyingId   = ref(null);
 const verifyResult  = ref(null);
 
+// Los IDs de Meta son numéricos (5-20 dígitos). Validamos en el front para no gastar un
+// request ni una llamada a Meta si el dato viene mal.
+const isMetaId    = (v) => /^\d{5,20}$/.test(String(v ?? '').trim());
+const phoneIdError = computed(() =>
+    pnForm.value.phone_number_id && !isMetaId(pnForm.value.phone_number_id)
+        ? 'Debe ser solo números (5 a 20 dígitos).' : '',
+);
+const wabaIdError = computed(() =>
+    pnForm.value.waba_id && !isMetaId(pnForm.value.waba_id)
+        ? 'Debe ser solo números (5 a 20 dígitos).' : '',
+);
+
 // El token no se pide: se reutiliza el de la cuenta (número activo / misma WABA). El límite
 // diario tampoco: lo dicta Meta.
 const pnFormValid = computed(() =>
-    !!pnForm.value.display_name && !!pnForm.value.phone_number_id && !!pnForm.value.waba_id,
+    !!pnForm.value.display_name &&
+    isMetaId(pnForm.value.phone_number_id) &&
+    isMetaId(pnForm.value.waba_id),
 );
 
 const cooldownDays   = ref(null);
@@ -603,6 +619,7 @@ onMounted(() => {
 .pn-actions { display: flex; gap: 2px; }
 .pn-empty { font-size: .85rem; color: var(--p-text-muted-color); margin-bottom: 16px; }
 .pn-form  { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--p-surface-200); padding-top: 16px; }
+.pn-field-error { color: var(--p-red-600) !important; }
 .cooldown-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .stage-desc   { font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 14px; }
 .preset-btns  { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }

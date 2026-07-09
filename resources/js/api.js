@@ -8,6 +8,10 @@ function authHeaders() {
     const token = getToken();
     return {
         'Content-Type': 'application/json',
+        // Sin este header, Laravel responde los errores de validación con un redirect
+        // (modo formulario web) en vez de 422 JSON, y el fetch termina mostrando
+        // "Error del servidor". Con Accept: application/json siempre devuelve JSON.
+        'Accept': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     };
 }

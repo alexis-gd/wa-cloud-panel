@@ -35,7 +35,8 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | [docs/testing.md](docs/testing.md) | Guía PHPUnit, tipos de tests, mocks, convenciones |
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |
 | [docs/limpieza-y-seeds.md](docs/limpieza-y-seeds.md) | Seeders (`migrate:fresh --seed`) + comando `db:clean-demo` + receta para dejar prod limpio para el cliente |
-| [docs/guia-operador.md](docs/guia-operador.md) | Manual de usuario para el equipo de Prestamaz |
+| [docs/guias/guia-uso.md](docs/guias/guia-uso.md) | Manual de uso para el equipo de Prestamaz (fuente del HTML `public/guia/uso.html`) |
+| [docs/guias/guia-meta.md](docs/guias/guia-meta.md) | Guía técnica Meta/Facebook para admin y soporte (fuente del HTML `public/guia/meta.html`, gateado a admin) |
 | [docs/qa-manual.md](docs/qa-manual.md) | Checklist de QA manual por módulo (happy path + casos borde) |
 | [docs/plan-realtime.md](docs/plan-realtime.md) | Tiempo real (Soketi): estado, pollings a matar, hoja de ruta de sockets (campañas, campanita, dashboard, SMS) |
 | [docs/guia-realtime-soketi.md](docs/guia-realtime-soketi.md) | Montaje de Soketi (Docker + Supervisor/Nginx wss) + variables + cómo verificar |
@@ -51,26 +52,33 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | Contexto Meta/WhatsApp — decisiones, políticas y lecciones | [.claude/rules/contexto-meta-whatsapp.md](.claude/rules/contexto-meta-whatsapp.md) |
 | Contexto SMS — proveedor elegido (SIM propia/capcom6), reglas, cooldown, legal | [.claude/rules/contexto-sms.md](.claude/rules/contexto-sms.md) |
 
-## Regla: Mantener la guía de operador actualizada
+## Regla: Mantener las guías del cliente actualizadas
 
-**Cuándo actualizar [`docs/guia-operador.md`](docs/guia-operador.md):**
+Hay dos guías, ambas en Markdown fuente bajo `docs/guias/` y compiladas a HTML con
+`php artisan guias:build` (nunca editar el HTML de `public/guia/` a mano):
+- [`docs/guias/guia-uso.md`](docs/guias/guia-uso.md) → uso diario del panel (todo el equipo).
+- [`docs/guias/guia-meta.md`](docs/guias/guia-meta.md) → Meta/Facebook (solo admin y soporte).
+
+**Cuándo actualizar `guia-uso.md`:**
 - Al agregar un feature nuevo que el operador necesita usar (nueva pantalla, nuevo flujo, nuevo botón visible).
-- Al cambiar el comportamiento de algo ya documentado (ej: cambiar el límite de snooze, cambiar el horario, cambiar cómo funciona opt-out).
+- Al cambiar el comportamiento de algo ya documentado (ej: cambiar el límite de Pospuesto, el horario, cómo funciona la Baja).
 - Al renombrar o mover algo en la UI que el operador vería (labels, secciones, rutas).
+
+**Cuándo actualizar `guia-meta.md`:**
+- Al cambiar algo del lado de Meta (plantillas, token, números, palabras clave del sistema, alertas).
 
 **Cuándo NO es necesario actualizar:**
 - Cambios internos de backend sin impacto en la UI del operador.
 - Refactors, cambios de performance, ajustes de tests.
-- Features solo visibles para admin que el operador no toca.
 
-**Cómo actualizar:** editar la sección correspondiente de `docs/guia-operador.md` en el mismo commit del feature. Si el cambio afecta las FAQ, actualizarlas también.
+**Cómo actualizar:** editar la sección correspondiente del `.md` fuente en el mismo commit del feature, luego `php artisan guias:build` para regenerar el HTML. Si el cambio afecta las FAQ, actualizarlas también.
 
 ## ⚠️ OBLIGATORIO antes de cualquier cambio de código
 
 Antes de escribir, editar o borrar cualquier archivo de código (feat, fix, refactor, test, chore), Claude **DEBE** leer y aplicar los lineamientos en [`.claude/commands/lineamientos.md`](.claude/commands/lineamientos.md).
 
 Esto incluye sin excepción:
-- Verificar si el cambio afecta la UI del operador → actualizar `docs/guia-operador.md`
+- Verificar si el cambio afecta la UI del operador → actualizar `docs/guias/guia-uso.md` (+ `php artisan guias:build`)
 - Crear test antes o junto con el código
 - Verificar reglas de seguridad si toca envíos o tokens
 - Correr `php artisan test` antes del commit

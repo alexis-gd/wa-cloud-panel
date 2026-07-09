@@ -24,7 +24,8 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 │
 ├── docs/                              ← documentación del proyecto (vive en el repo)
 │   ├── calendario-entregas.md         ← qué existe, qué falta, backlog técnico
-│   ├── guia-operador.md               ← manual de usuario para el equipo Prestamaz
+│   ├── guias/guia-uso.md              ← manual de uso para el equipo Prestamaz (fuente HTML)
+│   ├── guias/guia-meta.md             ← guía Meta/Facebook para admin y soporte (fuente HTML)
 │   ├── qa-manual.md                   ← checklist de pruebas manuales por módulo
 │   ├── arquitectura-referencia.md     ← cómo está construido + decisiones tecnológicas
 │   ├── sms-referencia.md              ← arquitectura multicanal SMS, flujos, anti-duplicado
@@ -159,7 +160,7 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 
 **No va aquí:**
 - Estado de features implementadas
-- Guías para el operador (eso va en `docs/guia-operador.md`)
+- Guías para el operador (eso va en `docs/guias/guia-uso.md`)
 - Pitfalls de código PHP/Laravel (eso va en `MEMORY.md`)
 - Información de SMS (eso va en `contexto-sms.md`)
 
@@ -195,15 +196,20 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 
 ---
 
-### `docs/guia-operador.md`
-**Para qué sirve:** manual de usuario para el equipo de Prestamaz — lo que el operador necesita saber para usar el sistema día a día
+### `docs/guias/guia-uso.md` y `docs/guias/guia-meta.md`
+**Para qué sirven:** las guías del cliente en Markdown fuente. Se compilan a HTML con `php artisan guias:build` → `public/guia/uso.html` y `public/guia/meta.html` (nunca editar el HTML a mano). Reemplazaron al viejo `docs/guia-operador.md`.
 
-**Sí va aquí:**
+- `guia-uso.md` → uso diario del panel, para todo el equipo (operador/agente/admin).
+- `guia-meta.md` → Meta/Facebook (plantillas, token, números, palabras clave, alertas), solo admin y soporte. En el panel el botón está gateado a admin.
+
+**Sí va en `guia-uso.md`:**
 - Cómo usar cada pantalla del panel
 - Qué significan los chips, estados y botones
 - Flujos de trabajo (crear campaña WA o SMS, gestionar conversaciones, etc.)
-- Guías operacionales de Meta (cómo agregar número de prueba, cómo renovar token, etc.)
 - FAQ del operador
+
+**Sí va en `guia-meta.md`:**
+- Crear plantillas WA/SMS sin multas, palabras clave que el sistema entiende, generar token, agregar números, Business Verification, alertas de Business Manager, códigos de error
 
 **No va aquí:**
 - Detalles técnicos de implementación
@@ -298,7 +304,7 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 - Estado de features (va en `docs/calendario-entregas.md`)
 - Backlog y pendientes (va en `docs/calendario-entregas.md`)
 - Checklist QA (va en `docs/qa-manual.md`)
-- Guías para el operador (va en `docs/guia-operador.md`)
+- Guías para el operador (va en `docs/guias/guia-uso.md`)
 - Historia completa del proyecto
 
 **Actualizar cuando:**
@@ -314,7 +320,8 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 ```
 CLAUDE.md                    ← punto de entrada, reglas y referencias
   ├── docs/calendario-entregas.md     ← qué existe hoy y qué falta
-  ├── docs/guia-operador.md           ← cómo usa el sistema el operador
+  ├── docs/guias/guia-uso.md          ← cómo usa el sistema el operador
+  ├── docs/guias/guia-meta.md         ← Meta/Facebook para admin y soporte
   ├── docs/qa-manual.md               ← cómo validar que todo funciona
   ├── docs/arquitectura-referencia.md ← cómo está construido
   ├── docs/sms-referencia.md          ← arquitectura multicanal SMS
@@ -329,7 +336,7 @@ En resumen:
 - `CLAUDE.md` = cómo se trabaja y referencias
 - `docs/calendario-entregas.md` = qué existe hoy
 - `docs/sms-referencia.md` = cómo funciona el canal SMS
-- `docs/guia-operador.md` = cómo lo usa el operador
+- `docs/guias/guia-uso.md` = cómo lo usa el operador
 - `docs/qa-manual.md` = cómo se valida
 - `.claude/rules/` = reglas permanentes de código
 - `.claude/rules/contexto-meta-whatsapp.md` = qué sabemos de Meta
@@ -343,7 +350,7 @@ En resumen:
 | Tipo de cambio | Archivo a actualizar |
 |---|---|
 | Se completa un feature / hay nuevo pendiente | `docs/calendario-entregas.md` |
-| Cambia algo visible en la UI para el operador | `docs/guia-operador.md` + popover en `AppLayout.vue` |
+| Cambia algo visible en la UI para el operador | `docs/guias/guia-uso.md` (+ `guias:build`) + popover en `AppLayout.vue` |
 | Cambia cómo validar manualmente un flujo | `docs/qa-manual.md` |
 | Cambia la estructura técnica o se toma una decisión tecnológica | `docs/arquitectura-referencia.md` |
 | Cambia el flujo multicanal, cooldown o anti-duplicado | `docs/sms-referencia.md` |

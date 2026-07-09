@@ -99,6 +99,9 @@
                     <a class="guide-btn" href="/guia/uso.html" target="_blank" rel="noopener" title="Guía de uso">
                         <i class="pi pi-book" />
                     </a>
+                    <a v-if="isAdmin()" class="guide-btn" href="/guia/meta.html" target="_blank" rel="noopener" title="Guía de Facebook y Meta (admin)">
+                        <i class="pi pi-facebook" />
+                    </a>
                     <button class="notif-btn" @click="openNotifications" title="Notificaciones">
                         <i class="pi pi-bell" />
                         <span v-if="notifUnread > 0" class="notif-badge">{{ notifUnread > 9 ? '9+' : notifUnread }}</span>

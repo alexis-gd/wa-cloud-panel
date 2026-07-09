@@ -47,22 +47,24 @@ git branch -vv
 
 ---
 
-## 1. Guía de operador — OBLIGATORIO
+## 1. Guías del cliente — OBLIGATORIO
 
 Antes de hacer el commit, responde: **¿este cambio es visible para el operador en la UI?**
 
-Ejemplos que SÍ requieren actualizar `docs/guia-operador.md`:
+Ejemplos que SÍ requieren actualizar `docs/guias/guia-uso.md`:
 - Nueva pantalla, sección, tab o botón visible
 - Cambio en el comportamiento de algo ya documentado (límites, flujos, labels)
 - Renombrar algo en la UI (columnas, menús, títulos)
 - Nuevo flujo de trabajo que el operador debe conocer
 
+Si el cambio toca algo del lado de Meta (plantillas, token, números, palabras clave,
+alertas) → actualizar `docs/guias/guia-meta.md`.
+
 Ejemplos que NO requieren actualizar:
 - Cambios internos de backend sin impacto en UI
 - Refactors, performance, ajustes de tests
-- Features solo visibles para admin que el operador no toca
 
-**Cómo verificar**: `grep` el término en `docs/guia-operador.md`. Si el feature existe en la UI pero no en la guía → actualizar antes del commit.
+**Cómo verificar**: `grep` el término en `docs/guias/guia-uso.md` (o `guia-meta.md`). Si el feature existe en la UI pero no en la guía → actualizar antes del commit. Tras editar, correr `php artisan guias:build` para regenerar el HTML.
 
 ---
 
@@ -115,7 +117,7 @@ Ejemplos que NO requieren actualizar:
 ## 7. Al terminar cualquier cambio
 
 1. `php artisan test` — 100% verde
-2. ¿UI visible para operador? → `docs/guia-operador.md` actualizado
+2. ¿UI visible para operador? → `docs/guias/guia-uso.md` actualizado (+ `php artisan guias:build`)
 3. ¿Feature nuevo en Stage 3? → **preguntar al usuario antes de marcar `[x]` en `docs/calendario-entregas.md`** — no marcar como listo sin confirmación explícita
 4. **¿El commit es `feat:` o `fix:`? → OBLIGATORIO actualizar versión en `AppLayout.vue` antes de commitear** (ver sección 9)
 5. Ejecutar flujo de commit — **ver sección 8** (preview → aprobación → commit)

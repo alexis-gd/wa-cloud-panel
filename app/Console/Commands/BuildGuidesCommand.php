@@ -13,7 +13,8 @@ class BuildGuidesCommand extends Command
 
     /** Markdown fuente => HTML destino (relativo a public/). */
     private const GUIAS = [
-        'docs/guias/guia-uso.md' => 'guia/uso.html',
+        'docs/guias/guia-uso.md'  => 'guia/uso.html',
+        'docs/guias/guia-meta.md' => 'guia/meta.html',
     ];
 
     public function handle(): int

@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guía de Facebook y Meta - Panel Prestamaz</title>
+<style>
+  /* Poppins self-host (subset latin) - sin depender de Google */
+  @font-face {
+    font-family: "Poppins"; font-style: normal; font-weight: 600; font-display: swap;
+    src: url("fonts/poppins-600.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Poppins"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("fonts/poppins-700.woff2") format("woff2");
+  }
+  :root {
+    --navy:      #0E2A47;
+    --navy-2:    #16385C;
+    --emerald:   #0C9E6D;
+    --emerald-d: #0A7C56;
+    --emerald-wash: #E8F5EF;
+    --paper:     #F7F5F1;
+    --card:      #FFFFFF;
+    --ink:       #1B2530;
+    --ink-soft:  #51606E;
+    --ink-faint: #7C8794;
+    --line:      #E4DFD5;
+    --warn-wash: #FBF1DA;
+    --warn-line: #E7B34D;
+    --display: "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --sidebar-w: 288px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); line-height: 1.65; font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Layout ---------- */
+  .layout { display: flex; align-items: flex-start; }
+
+  .sidebar {
+    width: var(--sidebar-w); flex: none; position: sticky; top: 0;
+    height: 100vh; overflow-y: auto; background: var(--navy); color: #DCE7F1;
+    padding: 22px 16px 40px;
+  }
+  .sidebar .brand {
+    display: flex; align-items: center; gap: 10px; padding: 6px 8px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 14px;
+  }
+  .sidebar .brand .dot {
+    width: 30px; height: 30px; border-radius: 8px; flex: none;
+    background: linear-gradient(135deg, var(--emerald), var(--navy-2));
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .sidebar .brand b { font-family: var(--display); font-size: 15px; font-weight: 600; color: #fff; line-height: 1.2; }
+  .sidebar .brand span { display: block; font-size: 11px; color: #8FA6BB; font-weight: 400; }
+
+  .toc { list-style: none; margin: 0; padding: 0; }
+  .toc a {
+    display: block; padding: 7px 10px; border-radius: 7px; color: #B9CBDC;
+    text-decoration: none; font-size: 13.5px; line-height: 1.35;
+    transition: background .12s, color .12s;
+  }
+  .toc a:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .toc a.active { background: var(--emerald); color: #fff; font-weight: 600; }
+
+  .main { flex: 1 1 auto; min-width: 0; display: flex; justify-content: center; }
+  .doc { width: 100%; max-width: 780px; padding: 34px 40px 90px; }
+
+  /* ---------- Doc header ---------- */
+  .doc-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+  .doc-top .eyebrow { font-family: var(--display); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--emerald-d); }
+  .print-btn {
+    display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink-soft); border-radius: 8px; padding: 8px 14px;
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .print-btn:hover { border-color: var(--emerald); color: var(--emerald-d); }
+
+  /* ---------- Typography ---------- */
+  .doc h1, .doc h2, .doc h3 { font-family: var(--display); }
+  .doc h1 { font-size: 31px; line-height: 1.12; margin: 0 0 6px; letter-spacing: -.02em; font-weight: 700; text-wrap: balance; }
+  .doc h2 {
+    font-size: 22px; margin: 44px 0 12px; padding-top: 12px; font-weight: 700; letter-spacing: -.01em;
+    border-top: 1px solid var(--line); scroll-margin-top: 16px; text-wrap: balance;
+  }
+  .doc h2:first-of-type { border-top: none; padding-top: 0; margin-top: 8px; }
+  .doc h3 { font-size: 16.5px; margin: 26px 0 8px; font-weight: 600; color: var(--navy); scroll-margin-top: 16px; }
+  .doc p { margin: 12px 0; }
+  .doc a { color: var(--emerald-d); text-decoration: none; border-bottom: 1px solid transparent; }
+  .doc a:hover { border-bottom-color: var(--emerald); }
+  .doc strong { font-family: var(--display); font-weight: 600; color: var(--ink); }
+  .doc ul, .doc ol { margin: 12px 0; padding-left: 22px; }
+  .doc li { margin: 6px 0; }
+  .doc li::marker { color: var(--emerald-d); }
+  .doc hr { border: none; border-top: 1px solid var(--line); margin: 30px 0; }
+
+  /* ---------- Callouts (blockquote) ---------- */
+  .doc blockquote {
+    margin: 16px 0; padding: 13px 16px; background: var(--emerald-wash);
+    border-left: 4px solid var(--emerald); border-radius: 0 10px 10px 0;
+    color: var(--ink); font-size: 14.5px;
+  }
+  .doc blockquote p { margin: 6px 0; }
+  .doc blockquote p:first-child { margin-top: 0; }
+  .doc blockquote p:last-child { margin-bottom: 0; }
+
+  /* ---------- Tables ---------- */
+  .table-wrap { overflow-x: auto; margin: 18px 0; border: 1px solid var(--line); border-radius: 10px; }
+  .doc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .doc thead th {
+    background: var(--navy); color: #EAF2FA; text-align: left; font-weight: 600;
+    font-family: var(--display); padding: 10px 14px; white-space: nowrap;
+  }
+  .doc tbody td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  .doc tbody tr:nth-child(even) { background: #FBFAF7; }
+
+  /* ---------- Code ---------- */
+  .doc code {
+    background: #EEF1F4; color: #0A3B63; padding: 1px 6px; border-radius: 5px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .88em;
+  }
+
+  /* ---------- Mobile ---------- */
+  .menu-toggle { display: none; }
+  @media (max-width: 900px) {
+    .sidebar {
+      position: fixed; z-index: 30; left: 0; top: 0; transform: translateX(-100%);
+      transition: transform .22s ease; box-shadow: 0 0 40px rgba(0,0,0,.3);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .doc { padding: 20px 20px 70px; }
+    .menu-toggle {
+      display: inline-flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 20;
+      width: 100%; background: var(--navy); color: #fff; border: none; padding: 12px 16px;
+      font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 25; }
+    .backdrop.show { display: block; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    .sidebar, .menu-toggle, .print-btn, .backdrop { display: none !important; }
+    body { background: #fff; font-size: 12pt; }
+    .doc { max-width: none; padding: 0; }
+    .doc h2 { break-after: avoid; }
+    .table-wrap, .doc blockquote { break-inside: avoid; }
+    a { color: inherit; border: none; }
+  }
+</style>
+</head>
+<body>
+  <button class="menu-toggle" onclick="document.body.classList.toggle('nav-open')">
+    &#9776; Contenido
+  </button>
+  <div class="backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="dot">&#128214;</span>
+        <b>Prestamaz Panel<span>Guía de uso</span></b>
+      </div>
+      <ul class="toc" id="toc">
+        <li><a href="#como-leer-esta-guia">Cómo leer esta guía</a></li>
+        <li><a href="#1-que-es-meta-y-por-que-hay-que-cuidarla">1. ¿Qué es Meta y por qué hay que cuidarla?</a></li>
+        <li><a href="#2-antes-de-tocar-nada-4-reglas-que-evitan-multas-y-bloqueos">2. Antes de tocar nada: 4 reglas que evitan multas y bloqueos</a></li>
+        <li><a href="#3-crear-plantillas-de-whatsapp-sin-que-las-rechacen">3. Crear plantillas de WhatsApp sin que las rechacen</a></li>
+        <li><a href="#4-palabras-clave-que-el-sistema-entiende-lo-mas-importante">4. Palabras clave que el sistema entiende (lo más importante)</a></li>
+        <li><a href="#5-crear-mensajes-de-sms">5. Crear mensajes de SMS</a></li>
+        <li><a href="#6-el-permiso-para-enviar-el-token-permanente">6. El permiso para enviar: el token permanente</a></li>
+        <li><a href="#7-agregar-un-numero-de-whatsapp">7. Agregar un número de WhatsApp</a></li>
+        <li><a href="#8-agregar-un-numero-de-prueba-sandbox">8. Agregar un número de prueba (sandbox)</a></li>
+        <li><a href="#9-verificar-el-negocio-en-meta-business-verification">9. Verificar el negocio en Meta (Business Verification)</a></li>
+        <li><a href="#10-interpretar-las-alertas-de-business-manager">10. Interpretar las alertas de Business Manager</a></li>
+        <li><a href="#11-codigos-de-error-y-que-hacer">11. Códigos de error y qué hacer</a></li>
+        <li><a href="#12-preguntas-frecuentes">12. Preguntas frecuentes</a></li>
+      </ul>
+    </nav>
+    <div class="main">
+      <article class="doc">
+        <div class="doc-top">
+          <span class="eyebrow">Guía de uso</span>
+          <button class="print-btn" onclick="window.print()">&#128424; Imprimir / Guardar PDF</button>
+        </div>
+        <h1>Guía de Facebook y Meta - Panel Prestamaz</h1>
+<blockquote>
+<p>Guía técnica, solo para <strong>administrador</strong> y <strong>soporte</strong>. El operador y el agente
+no necesitan nada de esto para su trabajo diario.</p>
+<p>Aquí está todo lo que se configura del lado de Meta (Facebook): crear plantillas
+sin que las rechacen ni generen multas, generar el permiso (token) que deja enviar,
+agregar números, verificar el negocio e interpretar las alertas de Business Manager.</p>
+<p>Para el uso diario del panel (campañas, contactos, respuestas) hay una guía aparte:
+la <strong>Guía de uso</strong>.</p>
+</blockquote>
+<hr />
+<h2 id="como-leer-esta-guia">Cómo leer esta guía</h2>
+<ul>
+<li>Esta guía es para quien administra la cuenta de Meta del negocio. Si tu trabajo es
+mandar campañas o atender respuestas, no necesitas esto: usa la <strong>Guía de uso</strong>.</li>
+<li><strong>Soporte</strong> o <strong>administrador del sistema</strong> = la persona que instaló y mantiene el
+sistema por dentro. Cuando la guía dice &quot;pídeselo a soporte&quot;, es a esa persona. Varias
+cosas de aquí (agregar palabras clave, cambiar el token en el servidor) solo las hace
+soporte.</li>
+<li>Los pasos que se hacen en la página de Meta se marcan con el sitio: <strong>business.facebook.com</strong>
+(Business Manager) o <strong>developers.facebook.com</strong> (panel de desarrollador).</li>
+<li>Regla de oro: <strong>si tienes duda, no toques nada de Meta. Pregunta primero.</strong> Un error
+aquí puede costar una multa o el bloqueo de la cuenta de WhatsApp.</li>
+</ul>
+<hr />
+<h2 id="1-que-es-meta-y-por-que-hay-que-cuidarla">1. ¿Qué es Meta y por qué hay que cuidarla?</h2>
+<p><strong>Meta</strong> es la empresa dueña de Facebook y WhatsApp. Para mandar mensajes masivos por
+WhatsApp de forma legal, el negocio usa la <strong>WhatsApp Cloud API</strong> de Meta: es el canal
+oficial, no una app pirata ni un WhatsApp normal.</p>
+<p>Todo vive dentro de una cuenta llamada <strong>Business Manager</strong> (o WABA - WhatsApp Business
+Account). Ahí están los números, las plantillas y los permisos.</p>
+<p><strong>Lo que tienes que entender antes que nada:</strong></p>
+<ul>
+<li>La cuenta de WhatsApp es el activo más valioso del sistema. Si Meta la bloquea, <strong>no
+hay envíos por WhatsApp hasta resolverlo</strong> (y a veces no se resuelve). El SMS es un
+canal aparte y no se ve afectado.</li>
+<li>Meta bloquea cuentas por spam, por mensajes sin permiso del destinatario, por ignorar
+a quien pide baja, o por crecer el volumen demasiado rápido. El panel está hecho para
+que esos errores <strong>no se puedan cometer</strong> desde el uso diario. Pero del lado de Meta
+(esta guía) sí se pueden cometer a mano, por eso hay que tener cuidado.</li>
+<li>Hay dos cuentas distintas según la etapa:</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Etapa</th>
+<th>Cuenta</th>
+<th>Número</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pruebas / desarrollo</td>
+<td>Cuenta sandbox del que instaló el sistema</td>
+<td>Número de prueba de Meta</td>
+</tr>
+<tr>
+<td>Producción (real)</td>
+<td>Cuenta de Meta del negocio (Prestamaz)</td>
+<td>SIM dedicada verificada</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="2-antes-de-tocar-nada-4-reglas-que-evitan-multas-y-bloqueos">2. Antes de tocar nada: 4 reglas que evitan multas y bloqueos</h2>
+<p>Estas cuatro reglas cubren el 90% de los problemas. Si las respetas, es muy difícil que
+algo salga mal.</p>
+<ol>
+<li><strong>Solo se envía a quien dio permiso.</strong> Meta y la ley mexicana (LFPDPPP) exigen que el
+contacto haya autorizado recibir publicidad. Nunca cargar bases compradas o &quot;frías&quot;
+sin consentimiento.</li>
+<li><strong>Toda plantilla debe permitir darse de baja.</strong> Es obligatorio por ley y Meta lo
+revisa. Ojo con un detalle importante: <strong>para que el sistema registre la baja, el
+contacto tiene que responder una palabra exacta</strong> (<code>BAJA</code>, <code>STOP</code>, <code>CANCELAR</code> o <code>NO</code>).
+Un botón que diga &quot;No, gracias&quot; se ve bonito pero <strong>no da de baja</strong>, porque el sistema
+no reconoce ese texto. La forma correcta de garantizar la baja está en la
+<a href="#4-palabras-clave-que-el-sistema-entiende-lo-mas-importante">sección 4</a>. <strong>No confundir la
+baja con el botón &quot;no por ahora&quot;: son cosas distintas</strong> (ver el recuadro de abajo).</li>
+<li><strong>La publicidad financiera lleva el CAT.</strong> Por ley (CONDUSEF) toda promoción de
+préstamos debe mostrar el CAT promedio informativo. Sin él, Meta puede rechazar la
+plantilla. Formato exacto: <code>CAT promedio informativo 485.5% sin IVA</code>.</li>
+<li><strong>No se apura el crecimiento.</strong> Un número nuevo empieza con pocos mensajes al día y
+sube solo (warm-up). Nunca intentar forzar más volumen del que el sistema permite:
+es la vía más rápida a un bloqueo.</li>
+</ol>
+<blockquote>
+<p><strong>Baja y &quot;no por ahora&quot; NO son lo mismo:</strong></p>
+<ul>
+<li><strong>Baja</strong> = el contacto ya no quiere recibir NADA, nunca más. Es permanente y bloquea
+los dos canales (WhatsApp y SMS). Palabras: <code>BAJA</code>, <code>STOP</code>, <code>CANCELAR</code>, <code>NO</code>.</li>
+<li><strong>Pospuesto (&quot;no por ahora&quot;)</strong> = el contacto no dice que no para siempre, solo &quot;ahorita
+no&quot;. Pausa las campañas de WhatsApp un tiempo y luego se le puede volver a escribir.
+Se activa con un botón cuyo título contenga &quot;no por ahora&quot;.</li>
+</ul>
+<p>Son dos botones y dos efectos completamente diferentes. No los mezcles en la misma
+plantilla ni uses el texto de uno para el otro.</p>
+</blockquote>
+<blockquote>
+<p>Si alguna vez tienes que elegir entre &quot;mandar más rápido&quot; y &quot;cuidar la cuenta&quot;, <strong>siempre
+gana cuidar la cuenta</strong>. Un número bloqueado cuesta semanas de recuperación.</p>
+</blockquote>
+<hr />
+<h2 id="3-crear-plantillas-de-whatsapp-sin-que-las-rechacen">3. Crear plantillas de WhatsApp sin que las rechacen</h2>
+<p>Una <strong>plantilla</strong> es el mensaje pre-aprobado que WhatsApp permite mandar en frío (a quien
+no te ha escrito). Meta las revisa una por una. El panel <strong>solo deja usar las que Meta ya
+aprobó</strong> - nunca se escribe el nombre de una plantilla a mano.</p>
+<h3 id="donde-se-crean">Dónde se crean</h3>
+<p>En <strong>business.facebook.com</strong> -&gt; <strong>Administrador de WhatsApp</strong> -&gt; <strong>Plantillas de mensajes</strong>
+-&gt; <strong>Crear plantilla</strong>. (No se crean desde el panel; el panel solo las sincroniza y las
+muestra ya aprobadas.)</p>
+<h3 id="reglas-para-que-la-aprueben-y-no-penalicen-la-cuenta">Reglas para que la aprueben (y no penalicen la cuenta)</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Valor correcto</th>
+<th>Por qué</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Categoría</strong></td>
+<td><strong>Marketing</strong></td>
+<td>Es publicidad. Nunca &quot;Utility&quot; (eso es para avisos transaccionales) ni &quot;Authentication&quot;.</td>
+</tr>
+<tr>
+<td><strong>Idioma</strong></td>
+<td><strong>es_MX</strong> (Español - México)</td>
+<td>El público es mexicano.</td>
+</tr>
+<tr>
+<td><strong>CAT</strong></td>
+<td>Incluir <code>CAT promedio informativo 485.5% sin IVA</code> en el texto</td>
+<td>Obligatorio por ley para publicidad de préstamos. Sin él, riesgo de rechazo.</td>
+</tr>
+<tr>
+<td><strong>Opción de baja</strong></td>
+<td>Que el contacto pueda responder una palabra de baja (ver sección 4)</td>
+<td>Obligatorio. Además es lo que hace que el sistema procese la baja de verdad.</td>
+</tr>
+<tr>
+<td><strong>Contenido</strong></td>
+<td>Claro, sin promesas exageradas ni datos falsos</td>
+<td>Meta rechaza contenido engañoso o &quot;spam&quot;.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="los-botones-de-la-plantilla-baja-posponer-interes">Los botones de la plantilla (baja, posponer, interés)</h3>
+<p>Cuando el contacto toca un botón, <strong>WhatsApp envía como respuesta el título del botón</strong>.
+Por eso el título importa tanto: el sistema decide qué hacer según ese texto (sección 4).</p>
+<ul>
+<li><strong>Botón de baja:</strong> su título tiene que ser una palabra que el sistema reconozca como
+baja (<code>BAJA</code> es la más clara). Un botón &quot;No, gracias&quot; <strong>no funciona</strong> porque ese texto
+no está en la lista. Alternativa: dejar en el cuerpo del mensaje &quot;Responde BAJA para no
+recibir más&quot;.</li>
+<li><strong>Botón de posponer (&quot;no por ahora&quot;):</strong> su título debe contener <strong>&quot;no por ahora&quot;</strong>.
+Esto activa el Pospuesto (pausa temporal de WhatsApp), NO la baja.</li>
+<li><strong>Botón de interés:</strong> su título debe contener <strong>&quot;me interesa&quot;</strong>. Marca al contacto como
+interesado y lo pasa a un agente.</li>
+</ul>
+<blockquote>
+<p>No mezcles baja y &quot;no por ahora&quot;: son dos botones y dos efectos distintos (ver el recuadro
+de la sección 2).</p>
+</blockquote>
+<h3 id="por-que-se-rechaza-una-plantilla-y-que-no-hacer">Por qué se rechaza una plantilla (y qué NO hacer)</h3>
+<p>Las causas más comunes de rechazo:</p>
+<ul>
+<li>Contenido que suena a spam o promete cosas imposibles (&quot;préstamo garantizado sin
+requisitos&quot;).</li>
+<li>Falta el botón o texto de baja.</li>
+<li>Contenido engañoso.</li>
+<li><strong>Reenviar la misma plantilla rechazada sin cambiarle nada.</strong> Esto sí es una señal de
+spam para Meta y puede bajar la reputación.</li>
+</ul>
+<blockquote>
+<p>Someter una plantilla a revisión NO baja la reputación de la cuenta. Lo que la baja es
+reenviar el mismo contenido rechazado una y otra vez. Si te la rechazan: <strong>cambia el
+texto</strong> o espera 24h, no la reenvíes igual.</p>
+</blockquote>
+<h3 id="despues-de-crearla">Después de crearla</h3>
+<ol>
+<li>Meta la revisa (de minutos a 24h). Queda en estado &quot;En revisión&quot;, luego &quot;Aprobada&quot; o
+&quot;Rechazada&quot;.</li>
+<li>En el panel, ve a <strong>Plantillas</strong> y usa <strong>Sincronizar</strong>: baja de Meta las plantillas y
+sus estados.</li>
+<li>Solo las <strong>Aprobadas</strong> aparecerán para elegir al crear una campaña. Las demás no se
+pueden usar (a propósito).</li>
+</ol>
+<hr />
+<h2 id="4-palabras-clave-que-el-sistema-entiende-lo-mas-importante">4. Palabras clave que el sistema entiende (lo más importante)</h2>
+<p><strong>Esta es la sección más crítica de toda la guía.</strong> El sistema reacciona a las respuestas
+de los contactos <strong>solo si contienen ciertas palabras exactas</strong>. Si creas una plantilla o
+un botón con OTRAS palabras, <strong>el sistema no va a reaccionar</strong> - la baja no se registra,
+el interés no se marca, el Pospuesto no se activa.</p>
+<h3 id="que-entiende-el-sistema-en-whatsapp">Qué entiende el sistema en WhatsApp</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Acción del contacto</th>
+<th>Palabras que el sistema entiende</th>
+<th>Qué hace el sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pedir baja</strong></td>
+<td>El mensaje es exactamente <code>STOP</code>, <code>BAJA</code>, <code>CANCELAR</code> o <code>NO</code></td>
+<td>Marca al contacto como Baja. Nunca se le vuelve a enviar (WhatsApp y SMS). Es permanente.</td>
+</tr>
+<tr>
+<td><strong>Posponer</strong> (botón)</td>
+<td>El título del botón contiene <strong>&quot;no por ahora&quot;</strong></td>
+<td>Activa el Pospuesto: pausa las campañas de WhatsApp a ese contacto un tiempo. NO es baja.</td>
+</tr>
+<tr>
+<td><strong>Mostrar interés</strong> (botón)</td>
+<td>El título del botón contiene <strong>&quot;me interesa&quot;</strong></td>
+<td>Marca al contacto como interesado y lo pasa a un agente.</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>Baja sin escribir nada:</strong> el contacto también puede darse de baja <strong>desde su propia app
+de WhatsApp</strong> (tocando &quot;dejar de recibir mensajes de esta empresa&quot;), sin mandarnos ningún
+texto. En ese caso Meta nos avisa y el sistema lo marca como Baja igual. No hay que hacer
+nada - es automático.</p>
+</blockquote>
+<h3 id="que-entiende-el-sistema-en-sms">Qué entiende el sistema en SMS</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Acción del contacto</th>
+<th>Palabras que el sistema entiende</th>
+<th>Qué hace el sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pedir baja</strong></td>
+<td>El mensaje es exactamente <code>STOP</code>, <code>BAJA</code>, <code>CANCELAR</code> o <code>NO</code></td>
+<td>Marca al contacto como Baja (bloquea ambos canales).</td>
+</tr>
+<tr>
+<td><strong>Mostrar interés</strong></td>
+<td>El mensaje es <code>SI</code>, <code>INFO</code> o <code>INFORMACION</code></td>
+<td>Marca interés y lo pasa a un agente.</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>El SMS no tiene botones (es texto plano), así que en SMS solo cuentan las palabras que el
+contacto escribe. No hay &quot;posponer&quot; por SMS: el Pospuesto es solo de WhatsApp.</p>
+</blockquote>
+<h3 id="la-regla-de-oro">La regla de oro</h3>
+<blockquote>
+<p><strong>Si creas una plantilla o un botón con una palabra distinta a las de estas tablas, el
+sistema no reacciona.</strong> Por ejemplo: un botón que diga &quot;Quitarme&quot; no da de baja; uno que
+diga &quot;Cuéntame más&quot; no marca interés; uno que diga &quot;Después&quot; no pospone.</p>
+<p>Por eso, al diseñar una plantilla:</p>
+<ul>
+<li>Para el botón de <strong>baja</strong>, el título debe ser una palabra de baja (<code>BAJA</code> es la más
+clara), o deja en el mensaje &quot;responde BAJA para no recibir más&quot;.</li>
+<li>Para el botón de <strong>posponer</strong>, el título debe contener <strong>&quot;no por ahora&quot;</strong>.</li>
+<li>Para el botón de <strong>interés</strong>, el título debe contener <strong>&quot;me interesa&quot;</strong>.</li>
+</ul>
+<p><strong>¿Necesitas que el sistema entienda una palabra nueva</strong> (por ejemplo aceptar &quot;QUITAR&quot;
+como baja)? Eso no se cambia desde el panel: <strong>pídeselo a soporte.</strong> Es a propósito -
+las palabras clave no se cambian solas para no romper el cumplimiento legal.</p>
+</blockquote>
+<hr />
+<h2 id="5-crear-mensajes-de-sms">5. Crear mensajes de SMS</h2>
+<p>El SMS es más simple que WhatsApp: <strong>no necesita plantilla aprobada por nadie</strong>. Es texto
+plano y se escribe directo al crear la campaña en el panel. Pero tiene sus propias reglas
+de cumplimiento.</p>
+<h3 id="reglas-para-el-texto-del-sms">Reglas para el texto del SMS</h3>
+<ul>
+<li><strong>Identifica al remitente.</strong> Empieza con &quot;Prestamaz te informa:&quot; o similar. El contacto
+debe saber quién le escribe.</li>
+<li><strong>Incluye la opción de baja al final.</strong> Texto recomendado: <code>Responde STOP para no recibir más</code>.
+Es obligatorio por ley. (Recuerda: el sistema da de baja con <code>STOP</code>, <code>BAJA</code>, <code>CANCELAR</code>
+o <code>NO</code> - ver sección 4.)</li>
+<li><strong>Cuida el largo.</strong> 160 caracteres = 1 SMS. Más de eso se parte en 2 o 3 segmentos (y
+cuesta más). El panel te avisa cuántos segmentos son.</li>
+<li><strong>No pongas contenido prohibido:</strong> nada político, religioso, engañoso ni ilegal.</li>
+</ul>
+<h3 id="horario-del-sms">Horario del SMS</h3>
+<p>A diferencia de WhatsApp (horario forzado por ley y por Meta), el SMS <strong>no tiene horario
+obligatorio</strong> en México. El sistema deja enviar a cualquier hora, pero avisa si programas
+entre 11PM y 7AM (más bajas y más filtrado de las operadoras). Es aviso, no bloqueo.</p>
+<h3 id="repep-importante">REPEP (importante)</h3>
+<p>Si un número está en el <strong>REPEP</strong> (Registro Público para Evitar Publicidad), hay 30 días
+para dejar de enviarle. Es responsabilidad del negocio revisarlo periódicamente.</p>
+<hr />
+<h2 id="6-el-permiso-para-enviar-el-token-permanente">6. El permiso para enviar: el token permanente</h2>
+<p>El <strong>token</strong> es la llave que le da al panel permiso de enviar por la cuenta de WhatsApp.
+Sin token válido, no hay envíos por WhatsApp.</p>
+<h3 id="que-tipo-de-token-se-usa">Qué tipo de token se usa</h3>
+<p>Un <strong>System User Token</strong> (token de usuario del sistema). Su ventaja: <strong>no expira</strong>. Es el
+que debe estar en producción. (Hay tokens temporales que duran ~24h; esos son solo para
+pruebas rápidas, nunca para producción.)</p>
+<h3 id="cuando-hay-que-renovarlo">Cuándo hay que renovarlo</h3>
+<p>Normalmente <strong>nunca</strong>. Pero puede invalidarse si alguien revoca los permisos del usuario
+del sistema en Business Manager, o si se cambia la contraseña maestra de la cuenta de Meta.</p>
+<p><strong>Señal de alerta:</strong> el panel muestra envíos fallidos con <strong>código 190</strong> (token expirado).</p>
+<h3 id="como-generar-uno-nuevo">Cómo generar uno nuevo</h3>
+<ol>
+<li>Entra a <strong>business.facebook.com</strong> -&gt; <strong>Configuración del negocio</strong> (icono de engranaje).</li>
+<li>Menú izquierdo: <strong>Usuarios -&gt; Usuarios del sistema</strong>.</li>
+<li>Selecciona el usuario del sistema (<code>waclouddev</code> o el que corresponda).</li>
+<li>Clic en <strong>Generar nuevo token</strong>.</li>
+<li>Elige la app (<code>wa-api-test</code>) y marca estos dos permisos:
+<ul>
+<li><code>whatsapp_business_messaging</code></li>
+<li><code>whatsapp_business_management</code></li>
+</ul>
+</li>
+<li>Copia el token (aparece <strong>una sola vez</strong> - guárdalo de inmediato).</li>
+</ol>
+<h3 id="como-ponerlo-en-el-panel">Cómo ponerlo en el panel</h3>
+<ul>
+<li><strong>Opción A - Panel web:</strong> ve a <strong>Configuración</strong> -&gt; campo <strong>Pegar nuevo token</strong> -&gt; pega -&gt;
+<strong>Guardar token</strong>.</li>
+<li><strong>Opción B - servidor (soporte):</strong> <code>php artisan wa:update-token TOKEN_AQUI</code></li>
+</ul>
+<blockquote>
+<p>Por seguridad el panel <strong>nunca</strong> muestra el token completo: solo confirma que quedó
+guardado (los últimos 4 caracteres). Es normal, no es un error.</p>
+</blockquote>
+<hr />
+<h2 id="7-agregar-un-numero-de-whatsapp">7. Agregar un número de WhatsApp</h2>
+<p><strong>Cuándo se hace:</strong> cuando el negocio quiere más capacidad de envío, o reemplazar un
+número con calidad degradada.</p>
+<h3 id="requisitos-los-prepara-soporte-administrador">Requisitos (los prepara soporte / administrador)</h3>
+<ul>
+<li>Una <strong>SIM nueva dedicada</strong> exclusivamente a WhatsApp (Telcel o AT&amp;T recomendados).
+<strong>Nunca usar el número oficial del negocio</strong> para campañas.</li>
+<li>El número debe poder recibir una llamada o SMS para la verificación inicial de Meta.</li>
+<li>Se registra en <strong>business.facebook.com</strong> -&gt; <strong>Cuentas de WhatsApp -&gt; Números de teléfono
+-&gt; Agregar número</strong>.</li>
+</ul>
+<h3 id="que-hace-el-panel">Qué hace el panel</h3>
+<ol>
+<li>Una vez registrado en Meta, el número aparece solo en el panel (<strong>Configuración -&gt;
+Números de WhatsApp</strong>).</li>
+<li>No hay que hacer nada más: el sistema arranca el <strong>warm-up</strong> automático.</li>
+</ol>
+<h3 id="que-es-el-warm-up">Qué es el warm-up</h3>
+<p>El número empieza con un tope bajo (aprox. 250 mensajes/día) y el sistema lo sube solo,
+poco a poco, mientras los envíos tengan buena calidad y no generen reportes. Tarda de 2 a
+4 semanas en llegar a capacidad plena. <strong>No se puede acelerar</strong> - es la protección que
+evita el bloqueo.</p>
+<blockquote>
+<p>Durante el warm-up, el semáforo del número puede verse amarillo (&quot;calidad pendiente&quot;).
+Es normal en los primeros días.</p>
+</blockquote>
+<p><strong>Nota sobre límites:</strong> desde 2025 Meta cuenta el límite <strong>por cuenta</strong>, no por número.
+Varios números bajo la misma cuenta <strong>comparten</strong> el tope diario - agregar números da más
+redundancia y balanceo, pero no multiplica el volumen total. Meta sube este límite solo
+cuando la cuenta manda con buena calidad. El panel muestra el límite actual de la cuenta en
+el semáforo del Panel (&quot;Límite de la cuenta (Meta)&quot;), que se refresca cada vez que abres o
+actualizas el Panel - soporte no tiene que tocar nada.</p>
+<hr />
+<h2 id="8-agregar-un-numero-de-prueba-sandbox">8. Agregar un número de prueba (sandbox)</h2>
+<p><strong>Cuándo se necesita:</strong> en la cuenta de pruebas, un compañero no recibe los mensajes de
+prueba del panel. Es porque la cuenta sandbox de Meta <strong>solo permite enviar a números
+registrados</strong> antes.</p>
+<p><strong>Pasos:</strong></p>
+<ol>
+<li>Entra a <strong>developers.facebook.com</strong> con la cuenta del administrador.</li>
+<li>Selecciona la app del proyecto (<code>wa-api-test</code>).</li>
+<li>Menú izquierdo: <strong>WhatsApp -&gt; Configuración de API</strong>.</li>
+<li>Ve a <strong>&quot;Números de teléfono de destinatario&quot;</strong> -&gt; <strong>Agregar número de teléfono</strong>.</li>
+<li>Escribe el número en formato internacional (ej: <code>+52 923 131 1146</code>).</li>
+<li>Llega un código por WhatsApp - escríbelo en pantalla para verificar.</li>
+<li>Ya verificado, el número puede recibir mensajes de prueba.</li>
+</ol>
+<blockquote>
+<p>Esta restricción es solo en sandbox (pruebas). En la cuenta de producción del negocio
+se puede enviar a cualquier número (respetando permiso, baja y horario).</p>
+</blockquote>
+<hr />
+<h2 id="9-verificar-el-negocio-en-meta-business-verification">9. Verificar el negocio en Meta (Business Verification)</h2>
+<p><strong>Qué es:</strong> Meta exige comprobar que el negocio es real antes de dejar enviar a gran
+escala. Sin esta verificación, la cuenta queda topada en 250 mensajes/día en total.</p>
+<p><strong>Ojo: hay 3 tipos de &quot;verificado&quot; en Meta y NO son lo mismo:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Tipo</th>
+<th>Dónde se ve</th>
+<th>¿Sirve para WhatsApp API?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cuenta personal de FB verificada</td>
+<td>Perfil personal</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Página de FB verificada (palomita azul)</td>
+<td>Fan page pública</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Business Manager verificado</strong></td>
+<td>Business Manager -&gt; Configuración -&gt; Información del negocio</td>
+<td><strong>Sí, esta es la que se necesita</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Cómo confirmar si ya está:</strong></p>
+<ol>
+<li>Entra a <strong>business.facebook.com</strong>.</li>
+<li><strong>Configuración del negocio -&gt; Información del negocio</strong>.</li>
+<li>Busca el campo <strong>&quot;Verificación del negocio&quot;</strong>:
+<ul>
+<li>Dice <strong>&quot;Verificado&quot;</strong> (palomita verde) -&gt; listo, no hay que subir nada.</li>
+<li>Dice <strong>&quot;Sin verificar&quot;</strong> o <strong>&quot;Pendiente&quot;</strong> -&gt; falta, aunque la página o el perfil
+personal estén verificados.</li>
+</ul>
+</li>
+</ol>
+<p><strong>Si falta - documentos que pide Meta (México):</strong></p>
+<ul>
+<li><strong>RFC</strong> - el más común, generalmente suficiente.</li>
+<li>O Acta Constitutiva / Cédula de Identificación Fiscal.</li>
+</ul>
+<p>El administrador los sube directo en Business Manager. Meta tarda <strong>3 a 10 días hábiles</strong>.</p>
+<blockquote>
+<p>Se hace <strong>una sola vez</strong>. Ya aprobada, aplica a todos los números y apps bajo ese
+Business Manager.</p>
+</blockquote>
+<hr />
+<h2 id="10-interpretar-las-alertas-de-business-manager">10. Interpretar las alertas de Business Manager</h2>
+<p>Meta muestra alertas en <strong>business.facebook.com</strong> cuando algo necesita atención. Qué
+significa cada una y qué hacer:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Alerta</th>
+<th>Qué significa</th>
+<th>Qué hacer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Calidad del número: Baja (rojo)</strong></td>
+<td>Muchos bloqueos o reportes de spam</td>
+<td>El sistema ya paró los envíos de ese número solo. No reanudar hasta que suba a Media. Revisar qué campañas recientes lo causaron.</td>
+</tr>
+<tr>
+<td><strong>Calidad del número: Media (amarillo)</strong></td>
+<td>Algunos bloqueos o mensajes no leídos. En riesgo</td>
+<td>Continuar con cuidado. Bajar volumen si la tendencia empeora.</td>
+</tr>
+<tr>
+<td><strong>Límite de mensajes alcanzado</strong></td>
+<td>Se llegó al tope diario del tier</td>
+<td>Normal. Los pendientes se encolan para el día siguiente solos.</td>
+</tr>
+<tr>
+<td><strong>Cuenta en revisión / Restricción temporal</strong></td>
+<td>Meta está revisando la cuenta</td>
+<td><strong>Parar todos los envíos de inmediato</strong> y avisar a soporte. No enviar mientras dure la revisión.</td>
+</tr>
+<tr>
+<td><strong>Plantilla rechazada</strong></td>
+<td>Meta no aprobó una plantilla</td>
+<td>No afecta la cuenta. Esa plantilla no se puede usar. Revisar el motivo y cambiar el contenido antes de reenviar (nunca reenviar igual).</td>
+</tr>
+<tr>
+<td><strong>Actualización de políticas</strong></td>
+<td>Meta cambió sus términos</td>
+<td>Leer y aceptar si aplica. Soporte revisa si afecta al sistema.</td>
+</tr>
+<tr>
+<td><strong>Token expirado / Permiso revocado</strong></td>
+<td>Se cortó el acceso a la API</td>
+<td>Seguir la sección 6 para generar y pegar un token nuevo.</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>Si aparece una alerta que no está aquí: <strong>anota el mensaje exacto y avisa a soporte antes
+de tocar nada.</strong></p>
+</blockquote>
+<hr />
+<h2 id="11-codigos-de-error-y-que-hacer">11. Códigos de error y qué hacer</h2>
+<p>El panel puede registrar estos códigos de error de Meta en los envíos. Qué significan y la
+acción correcta:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Código</th>
+<th>Significado</th>
+<th>Qué hacer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>131026</strong></td>
+<td>El número no existe en WhatsApp</td>
+<td>El sistema lo marca inválido y no reintenta. Nada que hacer a mano.</td>
+</tr>
+<tr>
+<td><strong>131048</strong></td>
+<td>Restricción de envíos del número (spam/bloqueos)</td>
+<td>El sistema pausa el número 1 hora solo.</td>
+</tr>
+<tr>
+<td><strong>131049</strong></td>
+<td>El <strong>destinatario</strong> llenó su cupo de mensajes de marketing (no es problema del número)</td>
+<td>El sistema marca ese mensaje como fallido y <strong>no le reintenta a ese contacto por 24h</strong> (lo que pide Meta). <strong>No pausa el número</strong> - los demás contactos siguen normal.</td>
+</tr>
+<tr>
+<td><strong>131050</strong></td>
+<td>El destinatario se dio de <strong>baja</strong> de marketing desde su WhatsApp</td>
+<td>El sistema lo marca como Baja solo (ver sección 4). No hay que hacer nada.</td>
+</tr>
+<tr>
+<td><strong>131064</strong></td>
+<td>La <strong>cuenta</strong> llegó a su límite por categorización de plantillas</td>
+<td>El sistema pausa el número. Avisar a soporte para revisar las categorías de las plantillas en Business Manager.</td>
+</tr>
+<tr>
+<td><strong>368</strong></td>
+<td>Cuenta bloqueada temporalmente</td>
+<td><strong>Parar TODO y revisar Business Manager.</strong> Avisar a soporte.</td>
+</tr>
+<tr>
+<td><strong>190</strong></td>
+<td>Token expirado</td>
+<td>Renovar el token (sección 6) antes de seguir.</td>
+</tr>
+<tr>
+<td><strong>132001</strong></td>
+<td>Plantilla no aprobada</td>
+<td>Revisar el estado de la plantilla en Meta. Solo se usan las aprobadas.</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>La mayoría de estos el sistema los maneja solo (pausa el número, marca inválido). Tu
+papel es reconocerlos si aparecen en un reporte y, en los que dicen &quot;parar&quot;, no forzar
+los envíos.</p>
+</blockquote>
+<hr />
+<h2 id="12-preguntas-frecuentes">12. Preguntas frecuentes</h2>
+<p><strong>¿Puedo escribir el nombre de una plantilla a mano en una campaña?</strong>
+No. El panel solo deja elegir plantillas que Meta ya aprobó. Es a propósito: evita mandar
+una plantilla no aprobada y que penalicen la cuenta.</p>
+<p><strong>Creé un botón de baja pero el sistema no da de baja a la gente. ¿Por qué?</strong>
+Casi seguro el título del botón no coincide con las palabras que el sistema entiende.
+Recuerda que al tocar un botón, WhatsApp responde con el título del botón. La baja se
+dispara solo con <code>STOP</code>, <code>BAJA</code>, <code>CANCELAR</code> o <code>NO</code> exactos (ver sección 4). Un botón &quot;No,
+gracias&quot; no sirve para baja. Si quieres otra palabra, pídesela a soporte.</p>
+<p><strong>¿El botón &quot;no por ahora&quot; da de baja al contacto?</strong>
+No. &quot;No por ahora&quot; es Pospuesto: solo pausa las campañas de WhatsApp un tiempo, después se
+le puede volver a escribir. La baja es otra cosa (permanente, palabras de la sección 4). No
+los confundas.</p>
+<p><strong>¿El SMS necesita que Meta apruebe algo?</strong>
+No. El SMS no pasa por Meta. Es texto plano que se escribe en el panel. Pero igual lleva
+identificación del remitente y opción de baja (sección 5).</p>
+<p><strong>¿Cada cuánto renuevo el token?</strong>
+Normalmente nunca: el System User Token no expira. Solo si ves el código 190 (token
+expirado) o alguien revocó los permisos. Sigue la sección 6.</p>
+<p><strong>Meta me rechazó una plantilla. ¿La vuelvo a mandar igual?</strong>
+No. Reenviar el mismo contenido rechazado baja la reputación de la cuenta. Cambia el
+texto o espera 24h.</p>
+<p><strong>¿Agregar más números me deja enviar el doble?</strong>
+No necesariamente. Desde 2025 el límite es por cuenta, no por número. Varios números
+comparten el tope diario. Sirven para redundancia y balanceo, no para multiplicar volumen.</p>
+<p><strong>Salió una alerta rara en Business Manager y no sé qué es.</strong>
+Anota el texto exacto y avisa a soporte antes de hacer nada. No improvises con la cuenta
+de Meta.</p>
+
+      </article>
+    </div>
+  </div>
+
+<script>
+  // Sidebar movil
+  (function () {
+    var sb = document.getElementById('sidebar');
+    var bd = document.querySelector('.backdrop');
+    function sync() {
+      var open = document.body.classList.contains('nav-open');
+      sb.classList.toggle('open', open);
+      bd.classList.toggle('show', open);
+    }
+    new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    document.querySelectorAll('.toc a').forEach(function (a) {
+      a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+    });
+
+    // Scrollspy: resalta la seccion visible
+    var links = {}, targets = [];
+    document.querySelectorAll('.toc a').forEach(function (a) {
+      var id = a.getAttribute('href').slice(1);
+      links[id] = a; var el = document.getElementById(id); if (el) targets.push(el);
+    });
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          Object.values(links).forEach(function (l) { l.classList.remove('active'); });
+          var a = links[e.target.id]; if (a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '0px 0px -75% 0px', threshold: 0 });
+    targets.forEach(function (t) { obs.observe(t); });
+  })();
+</script>
+</body>
+</html>

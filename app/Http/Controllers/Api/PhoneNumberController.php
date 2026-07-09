@@ -25,12 +25,17 @@ class PhoneNumberController extends Controller
 
     public function store(Request $request, PhoneNumberVerifier $verifier): JsonResponse
     {
+        // Los IDs de Meta son numéricos (15-16 dígitos típicamente). Validamos formato
+        // para atajar errores de dedo antes de gastar una llamada a Meta.
         $data = $request->validate([
             'display_name'    => 'required|string|max:255',
-            'phone_number_id' => 'required|string|max:64',
-            'waba_id'         => 'required|string|max:64',
-            'token'           => 'required|string',
-            'daily_limit'     => 'required|integer|min:1|max:1000000',
+            'phone_number_id' => ['required', 'string', 'regex:/^\d{5,20}$/'],
+            'waba_id'         => ['required', 'string', 'regex:/^\d{5,20}$/'],
+            'token'           => 'nullable|string|min:20',
+        ], [
+            'phone_number_id.regex' => 'El Phone number ID debe ser solo números (el ID que da Meta).',
+            'waba_id.regex'         => 'El WABA ID debe ser solo números (el ID que da Meta).',
+            'token.min'             => 'El token parece demasiado corto.',
         ]);
 
         if (PhoneNumber::where('phone_number_id', $data['phone_number_id'])->exists()) {
@@ -41,9 +46,22 @@ class PhoneNumberController extends Controller
             ], 422);
         }
 
+        // El token es a nivel WABA (el mismo para todos los números de la cuenta): si no lo
+        // pegan, reutilizamos el de otro número de la misma WABA. Usar el modelo (no ->value)
+        // para que el cast 'encrypted' lo descifre.
+        $existing = PhoneNumber::where('waba_id', $data['waba_id'])->first();
+        $token    = $data['token'] ?? $existing?->token;
+        if (! $token) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Pega el token: no hay otro número de esta cuenta (WABA) del cual reutilizarlo.',
+                'code'    => 'TOKEN_REQUIRED',
+            ], 422);
+        }
+
         // El sistema valida el número contra Meta ANTES de guardarlo: si el token o el
         // phone_number_id no sirven, no se crea la fila (nada de números fantasma).
-        $verify = $verifier->verify($data['phone_number_id'], $data['token']);
+        $verify = $verifier->verify($data['phone_number_id'], $token);
         if (! $verify['ok']) {
             return response()->json([
                 'status'  => 'error',
@@ -52,12 +70,14 @@ class PhoneNumberController extends Controller
             ], 422);
         }
 
+        // El límite diario real lo dicta Meta (por portfolio). Aquí solo guardamos un tope
+        // de warm-up conservador; no se lo pedimos al usuario.
         $phone = PhoneNumber::create([
             'display_name'    => $data['display_name'],
             'phone_number_id' => $data['phone_number_id'],
             'waba_id'         => $data['waba_id'],
-            'token'           => $data['token'],
-            'daily_limit'     => $data['daily_limit'],
+            'token'           => $token,
+            'daily_limit'     => 250,
             'is_active'       => true,
         ]);
 

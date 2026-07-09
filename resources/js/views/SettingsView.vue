@@ -57,7 +57,7 @@
                         <div class="pn-info">
                             <span class="pn-name">{{ n.display_name }}</span>
                             <span class="pn-meta">
-                                {{ n.daily_limit }} msg/día
+                                {{ n.daily_limit }} msj/día
                                 <template v-if="n.quality_rating"> · calidad {{ n.quality_rating }}</template>
                             </span>
                         </div>
@@ -82,14 +82,16 @@
                     </div>
                     <div class="form-group">
                         <label>Phone number ID (de Meta)</label>
-                        <InputText v-model="pnForm.phone_number_id" placeholder="1082360764952377" fluid />
+                        <InputText v-model="pnForm.phone_number_id" placeholder="1082360764952377" inputmode="numeric" fluid />
+                        <small>Solo números, tal como aparece en Meta (business.facebook.com).</small>
                     </div>
                     <div class="form-group">
                         <label>WABA ID (de Meta)</label>
-                        <InputText v-model="pnForm.waba_id" placeholder="1236630511398211" fluid />
+                        <InputText v-model="pnForm.waba_id" placeholder="1236630511398211" inputmode="numeric" fluid />
+                        <small>Solo números. Es el ID de la cuenta de WhatsApp Business.</small>
                     </div>
                     <div class="form-group">
-                        <label>Token (System User Token)</label>
+                        <label>Token (opcional)</label>
                         <Password
                             v-model="pnForm.token"
                             :feedback="false"
@@ -97,10 +99,7 @@
                             fluid
                             :input-props="{ autocomplete: 'one-time-code', name: 'wa-new-number-token' }"
                         />
-                    </div>
-                    <div class="form-group">
-                        <label>Límite diario inicial</label>
-                        <InputNumber v-model="pnForm.daily_limit" :min="1" :max="1000000" fluid style="max-width: 200px" />
+                        <small>Déjalo vacío si ya tienes números de esta misma cuenta (WABA): el sistema reutiliza el token existente. El límite diario lo pone Meta, no se configura aquí.</small>
                     </div>
                     <Button type="submit" label="Verificar y guardar" icon="pi pi-plus" :loading="addingNumber" :disabled="!pnFormValid" />
                 </form>
@@ -338,15 +337,16 @@ const saveResult  = ref(null);
 
 // ── Números de WhatsApp ──
 const phoneNumbers  = ref([]);
-const pnForm        = ref({ display_name: '', phone_number_id: '', waba_id: '', token: '', daily_limit: 250 });
+const pnForm        = ref({ display_name: '', phone_number_id: '', waba_id: '', token: '' });
 const addingNumber  = ref(false);
 const addResult     = ref(null);
 const verifyingId   = ref(null);
 const verifyResult  = ref(null);
 
+// El token es opcional (se reutiliza el de la WABA si ya hay números). El límite diario
+// no se pide: lo dicta Meta.
 const pnFormValid = computed(() =>
-    !!pnForm.value.display_name && !!pnForm.value.phone_number_id &&
-    !!pnForm.value.waba_id && !!pnForm.value.token && pnForm.value.daily_limit > 0,
+    !!pnForm.value.display_name && !!pnForm.value.phone_number_id && !!pnForm.value.waba_id,
 );
 
 const cooldownDays   = ref(null);
@@ -458,7 +458,7 @@ async function addNumber() {
     addResult.value    = res.status === 'ok' ? res : { error: res.message };
     addingNumber.value = false;
     if (res.status === 'ok') {
-        pnForm.value = { display_name: '', phone_number_id: '', waba_id: '', token: '', daily_limit: 250 };
+        pnForm.value = { display_name: '', phone_number_id: '', waba_id: '', token: '' };
         await loadPhoneNumbers();
     }
 }

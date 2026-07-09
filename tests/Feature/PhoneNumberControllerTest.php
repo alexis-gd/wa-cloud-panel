@@ -11,6 +11,8 @@ class PhoneNumberControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const TOKEN = 'EAA-system-user-token-abcdefghij'; // >= 20 chars
+
     private function fakeMetaOk(): void
     {
         Http::fake([
@@ -32,23 +34,24 @@ class PhoneNumberControllerTest extends TestCase
             'display_name'    => 'Número campañas 1',
             'phone_number_id' => '1082360764952377',
             'waba_id'         => '1236630511398211',
-            'token'           => 'EAA-secret-token',
-            'daily_limit'     => 250,
+            'token'           => self::TOKEN,
         ]);
 
         $response->assertStatus(201)
                  ->assertJsonPath('status', 'ok')
                  ->assertJsonPath('data.display_name', 'Número campañas 1')
                  ->assertJsonPath('data.is_active', true)
-                 ->assertJsonPath('data.quality_rating', 'GREEN');
+                 ->assertJsonPath('data.quality_rating', 'GREEN')
+                 ->assertJsonPath('data.daily_limit', 250); // límite de warm-up fijo, no lo pone el usuario
 
         // Nunca se filtra el token ni el phone_number_id en la respuesta.
-        $this->assertStringNotContainsString('EAA-secret-token', $response->getContent());
+        $this->assertStringNotContainsString(self::TOKEN, $response->getContent());
         $this->assertStringNotContainsString('1082360764952377', $response->getContent());
 
         $this->assertDatabaseHas('phone_numbers', [
             'phone_number_id' => '1082360764952377',
             'is_active'       => true,
+            'daily_limit'     => 250,
         ]);
     }
 
@@ -62,14 +65,25 @@ class PhoneNumberControllerTest extends TestCase
 
         $this->actingAsSuperAdmin()->postJson('/api/phone-numbers', [
             'display_name'    => 'Número malo',
-            'phone_number_id' => '999',
-            'waba_id'         => '888',
-            'token'           => 'bad-token',
-            'daily_limit'     => 250,
+            'phone_number_id' => '99999999999',
+            'waba_id'         => '88888888888',
+            'token'           => self::TOKEN,
         ])->assertStatus(422)
           ->assertJsonPath('code', 'META_VERIFY_FAILED');
 
-        $this->assertDatabaseMissing('phone_numbers', ['phone_number_id' => '999']);
+        $this->assertDatabaseMissing('phone_numbers', ['phone_number_id' => '99999999999']);
+    }
+
+    public function test_store_rechaza_phone_number_id_no_numerico(): void
+    {
+        $this->actingAsSuperAdmin()->postJson('/api/phone-numbers', [
+            'display_name'    => 'Malo',
+            'phone_number_id' => 'ABC123',
+            'waba_id'         => '1236630511398211',
+            'token'           => self::TOKEN,
+        ])->assertStatus(422);
+
+        $this->assertDatabaseMissing('phone_numbers', ['display_name' => 'Malo']);
     }
 
     public function test_store_rechaza_numero_duplicado(): void
@@ -81,10 +95,38 @@ class PhoneNumberControllerTest extends TestCase
             'display_name'    => 'Repetido',
             'phone_number_id' => '1082360764952377',
             'waba_id'         => '1236630511398211',
-            'token'           => 'EAA-token',
-            'daily_limit'     => 250,
+            'token'           => self::TOKEN,
         ])->assertStatus(422)
           ->assertJsonPath('code', 'DUPLICATE');
+    }
+
+    public function test_store_reutiliza_el_token_de_la_misma_waba(): void
+    {
+        $this->fakeMetaOk();
+        PhoneNumber::factory()->create([
+            'waba_id' => '1236630511398211',
+            'token'   => 'EAA-shared-waba-token-abcdefghij',
+        ]);
+
+        // Sin token en el body: se reutiliza el de la WABA existente.
+        $this->actingAsSuperAdmin()->postJson('/api/phone-numbers', [
+            'display_name'    => 'Segundo número',
+            'phone_number_id' => '2082360764952378',
+            'waba_id'         => '1236630511398211',
+        ])->assertStatus(201);
+
+        $created = PhoneNumber::where('phone_number_id', '2082360764952378')->first();
+        $this->assertSame('EAA-shared-waba-token-abcdefghij', $created->token);
+    }
+
+    public function test_store_exige_token_si_no_hay_numero_de_esa_waba(): void
+    {
+        $this->actingAsSuperAdmin()->postJson('/api/phone-numbers', [
+            'display_name'    => 'Número sin token',
+            'phone_number_id' => '3082360764952379',
+            'waba_id'         => '9999999999999999',
+        ])->assertStatus(422)
+          ->assertJsonPath('code', 'TOKEN_REQUIRED');
     }
 
     public function test_index_lista_sin_exponer_token_ni_ids_de_meta(): void
@@ -92,7 +134,7 @@ class PhoneNumberControllerTest extends TestCase
         PhoneNumber::factory()->create([
             'display_name'    => 'Número A',
             'phone_number_id' => '111222333',
-            'token'           => 'super-secret',
+            'token'           => 'super-secret-token-abcdefghij',
         ]);
 
         $response = $this->actingAsSuperAdmin()->getJson('/api/phone-numbers');
@@ -100,7 +142,7 @@ class PhoneNumberControllerTest extends TestCase
         $response->assertStatus(200)
                  ->assertJsonPath('data.0.display_name', 'Número A');
 
-        $this->assertStringNotContainsString('super-secret', $response->getContent());
+        $this->assertStringNotContainsString('super-secret-token-abcdefghij', $response->getContent());
         $this->assertStringNotContainsString('111222333', $response->getContent());
     }
 

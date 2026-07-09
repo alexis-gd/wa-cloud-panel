@@ -29,7 +29,7 @@ Si MIUI mata la app del gateway se pierden eventos. Dos comandos lo cubren (sche
   estado de los SMS en `sent` y los pasa a delivered/failed. Pull directo server-a-server.
 - **Entrantes** — `sms:reconcile-received` (cada hora): los recibidos viven en el teléfono y NO se
   pueden pollear; `SmsGatewayClient::requestInboxExport()` pide re-exportar los `sms:received` de las
-  últimas 24h vía `POST {url}/messages/inbox/export` (async, ⚠️ ruta a verificar en Swagger). Vuelven por el
+  últimas 24h vía `POST {url}/messages/inbox/export` (async, ruta confirmada en prod 2026-07-09). Vuelven por el
   mismo webhook y se **deduplican por `sms_inbound_messages.gateway_message_id`** (evita filas y
   opt-outs repetidos). El entrante en vivo también guarda ese id, así vivo y re-export comparten llave.
 - **Pool**: dejar `SMS_GATEWAY_DEVICE_ID` vacío para que el reconcile re-exporte de TODOS los devices.

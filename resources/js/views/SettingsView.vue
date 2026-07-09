@@ -23,8 +23,8 @@
                             :feedback="false"
                             toggle-mask
                             fluid
-                            autocomplete="off"
                             input-class="token-input"
+                            :input-props="{ autocomplete: 'one-time-code', autocorrect: 'off', autocapitalize: 'off', spellcheck: false, name: 'wa-token-paste' }"
                         />
                         <small>El token temporal dura ~24h. Para producción usa un System User Token (no expira).</small>
                     </div>

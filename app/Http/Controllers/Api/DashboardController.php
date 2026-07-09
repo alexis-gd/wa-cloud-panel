@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -13,6 +14,46 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    /**
+     * Capacidad real de envío por día. Meta limita POR PORTFOLIO (compartido por todos los
+     * números), así que NO se suma el daily_limit de cada número: el tope efectivo es el menor
+     * entre el límite del portfolio y la suma de los throttles por número. Si Meta aún no
+     * reportó el límite (o es ilimitado), cae a la suma por número.
+     */
+    private function dailySendCapacity(): int
+    {
+        $sumPerNumber = (int) PhoneNumber::where('is_active', true)->sum('daily_limit');
+        $portfolio    = $this->portfolioDailyLimit();
+
+        return $portfolio === null ? $sumPerNumber : min($portfolio, $sumPerNumber);
+    }
+
+    /**
+     * Límite del portfolio como número entero, parseado del Setting que llena phoneHealth
+     * (whatsapp_business_manager_messaging_limit). Formatos posibles: "TIER_250", "TIER_10K",
+     * "100000", "UNLIMITED". Devuelve null si no se conoce o es ilimitado.
+     */
+    private function portfolioDailyLimit(): ?int
+    {
+        $raw = Setting::get('wa_portfolio_daily_limit');
+        if (! $raw) {
+            return null;
+        }
+
+        $s = str_replace('TIER_', '', strtoupper(trim($raw)));
+        if (str_contains($s, 'UNLIMITED')) {
+            return null; // sin tope numérico
+        }
+
+        if (preg_match('/^(\d+(?:\.\d+)?)\s*([KM]?)$/', $s, $m)) {
+            $mult = $m[2] === 'K' ? 1000 : ($m[2] === 'M' ? 1000000 : 1);
+
+            return (int) round((float) $m[1] * $mult);
+        }
+
+        return null;
+    }
+
     // GET /api/dashboard/stats
     public function stats(): JsonResponse
     {
@@ -37,8 +78,8 @@ class DashboardController extends Controller
         // Días hábiles totales y restantes en el mes actual
         [$workingDaysTotal, $workingDaysRemaining] = $this->countWorkingDays($now);
 
-        // Capacidad = suma de daily_limit de números activos × días hábiles
-        $totalDailyLimit = (int) PhoneNumber::where('is_active', true)->sum('daily_limit');
+        // Capacidad = tope real de envío/día (portfolio compartido, no suma) × días hábiles
+        $totalDailyLimit = $this->dailySendCapacity();
         $capacity         = $totalDailyLimit * $workingDaysTotal;
         $pct              = $capacity > 0 ? min(100, round($monthlySent / $capacity * 100, 1)) : 0;
 
@@ -150,7 +191,7 @@ class DashboardController extends Controller
     {
         $tz              = 'America/Mexico_City';
         $now             = Carbon::now($tz);
-        $totalDailyLimit = (int) PhoneNumber::where('is_active', true)->sum('daily_limit');
+        $totalDailyLimit = $this->dailySendCapacity();
 
         $rangeStart = $now->copy()->subMonths(5)->startOfMonth()->utc();
         $rangeEnd   = $now->copy()->endOfDay()->utc();

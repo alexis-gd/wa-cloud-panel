@@ -245,6 +245,38 @@ class DashboardTest extends TestCase
         $this->assertGreaterThan(0, $wdTotal);
     }
 
+    public function test_stats_monthly_capacidad_respeta_el_limite_del_portfolio(): void
+    {
+        // 2 números × 250 = 500 sumado, pero el portfolio topa en 250 (compartido por todos).
+        PhoneNumber::factory()->count(2)->create(['is_active' => true, 'daily_limit' => 250]);
+        \App\Models\Setting::set('wa_portfolio_daily_limit', 'TIER_250');
+
+        $res = $this->actingAsOperator()->getJson('/api/dashboard/stats')->assertStatus(200);
+
+        // No suma (500): usa el tope real del portfolio (250).
+        $this->assertEquals(250, $res->json('data.monthly.daily_limit'));
+    }
+
+    public function test_stats_monthly_capacidad_suma_si_portfolio_desconocido(): void
+    {
+        PhoneNumber::factory()->count(2)->create(['is_active' => true, 'daily_limit' => 250]);
+        // Sin Setting de portfolio -> cae a la suma por número (500).
+
+        $res = $this->actingAsOperator()->getJson('/api/dashboard/stats')->assertStatus(200);
+
+        $this->assertEquals(500, $res->json('data.monthly.daily_limit'));
+    }
+
+    public function test_stats_monthly_capacidad_ilimitado_usa_la_suma(): void
+    {
+        PhoneNumber::factory()->count(2)->create(['is_active' => true, 'daily_limit' => 250]);
+        \App\Models\Setting::set('wa_portfolio_daily_limit', 'UNLIMITED');
+
+        $res = $this->actingAsOperator()->getJson('/api/dashboard/stats')->assertStatus(200);
+
+        $this->assertEquals(500, $res->json('data.monthly.daily_limit'));
+    }
+
     public function test_stats_monthly_pct_se_calcula_sobre_capacidad(): void
     {
         $phone = PhoneNumber::factory()->create(['is_active' => true, 'daily_limit' => 250]);

@@ -101,7 +101,7 @@ class SmsGatewayClient
      * llegan por el mismo POST /api/sms/webhook y el dedup por gateway_message_id evita repetir.
      * Es la red de seguridad si MIUI mató la app y se perdieron entrantes en vivo.
      *
-     * POST {baseUrl}/inbox/export  body {since, until, deviceId?} (ISO8601). Respuesta 202.
+     * POST {baseUrl}/messages/inbox/export  body {since, until, deviceId?} (ISO8601). Respuesta 202.
      * Async: solo dispara la exportación; no devuelve los mensajes.
      *
      * @return array{ok: bool, status: int, error: mixed}
@@ -115,7 +115,7 @@ class SmsGatewayClient
 
         $response = Http::withBasicAuth((string) $this->login, (string) $this->password)
             ->timeout($this->timeout)
-            ->post("{$this->baseUrl}/inbox/export", $body);
+            ->post("{$this->baseUrl}/messages/inbox/export", $body);
 
         if ($response->failed()) {
             Log::error('SMS gateway inbox export error', [

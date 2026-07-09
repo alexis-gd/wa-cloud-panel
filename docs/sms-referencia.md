@@ -162,7 +162,7 @@ lo recuperan sin depender del teléfono despierto:
 - **Estado saliente** — `sms:reconcile-status` (cada 10 min): pull directo del estado de los SMS en
   `sent` (`SmsGatewayClient::getState()` → delivered/failed).
 - **Entrantes** — `sms:reconcile-received` (cada hora): pide re-exportar los `sms:received` recientes
-  (`requestInboxExport()` → `POST {url}/inbox/export`, async). Vuelven por el mismo webhook y se
+  (`requestInboxExport()` → `POST {url}/messages/inbox/export`, async). Vuelven por el mismo webhook y se
   deduplican por `sms_inbound_messages.gateway_message_id`. Con pool, `SMS_GATEWAY_DEVICE_ID` vacío
   = re-exporta de todos los teléfonos.
 

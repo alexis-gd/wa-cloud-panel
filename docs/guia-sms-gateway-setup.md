@@ -174,8 +174,8 @@ El webhook lo entrega el TELÉFONO; si MIUI mata la app, se pierden eventos. Dos
   `sent` y los pasa a delivered/failed (pull server-a-server).
 - **Entrantes** (`sms:reconcile-received`, cada hora): los recibidos viven en el teléfono y NO se
   pueden pollear; el comando le pide re-exportar los `sms:received` de las últimas 24h vía
-  `POST {url}/inbox/export`. Vuelven por el mismo webhook y se deduplican por `gateway_message_id`.
-  ⚠️ **Verificar en Swagger** que la ruta de export es `POST /inbox/export` (igual que se verifica
+  `POST {url}/messages/inbox/export`. Vuelven por el mismo webhook y se deduplican por `gateway_message_id`.
+  ⚠️ **Verificar en Swagger** que la ruta de export es `POST /messages/inbox/export` (igual que se verifica
   `/messages` para el envío); si difiere, ajustar `SmsGatewayClient::requestInboxExport()`. Opcional:
   `SMS_GATEWAY_DEVICE_ID` en `.env` para pedir la re-exportación a un device concreto (vacío = todos).
 

@@ -119,8 +119,29 @@ class PhoneNumberControllerTest extends TestCase
         $this->assertSame('EAA-shared-waba-token-abcdefghij', $created->token);
     }
 
-    public function test_store_exige_token_si_no_hay_numero_de_esa_waba(): void
+    public function test_store_reutiliza_el_token_del_numero_activo_si_es_otra_waba(): void
     {
+        $this->fakeMetaOk();
+        PhoneNumber::factory()->create([
+            'is_active' => true,
+            'waba_id'   => '1111111111111111',
+            'token'     => 'EAA-account-token-abcdefghij',
+        ]);
+
+        // WABA distinta y sin token: cae al token del número activo (el de la cuenta).
+        $this->actingAsSuperAdmin()->postJson('/api/phone-numbers', [
+            'display_name'    => 'Número de otra WABA',
+            'phone_number_id' => '4082360764952380',
+            'waba_id'         => '2222222222222222',
+        ])->assertStatus(201);
+
+        $created = PhoneNumber::where('phone_number_id', '4082360764952380')->first();
+        $this->assertSame('EAA-account-token-abcdefghij', $created->token);
+    }
+
+    public function test_store_exige_token_de_cuenta_si_no_hay_ningun_numero(): void
+    {
+        // BD sin números: no hay token de cuenta del cual reutilizar.
         $this->actingAsSuperAdmin()->postJson('/api/phone-numbers', [
             'display_name'    => 'Número sin token',
             'phone_number_id' => '3082360764952379',

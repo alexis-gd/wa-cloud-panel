@@ -311,11 +311,13 @@ el **WABA ID** (se ven en business.facebook.com, en la configuración del númer
 
 1. En el panel, entra a **Configuración -> Números de WhatsApp** (solo soporte/superadmin; el
    operador no ve esta pantalla).
-2. Llena el formulario: un **nombre** para identificarlo, el **Phone number ID**, el **WABA ID**,
-   el **token** (el mismo System User Token de la cuenta) y el **límite diario inicial**.
+2. Llena el formulario: un **nombre** para identificarlo, el **Phone number ID** y el
+   **WABA ID** (ambos te los da Meta, son solo números). El **token** y el **límite diario**
+   NO se piden aquí: el sistema usa el token de la cuenta que ya configuraste en "Token de
+   acceso WhatsApp" y el límite lo pone Meta.
 3. Clic en **Verificar y guardar**. El sistema consulta a Meta para confirmar que el número
-   existe y está aprobado **antes** de guardarlo. Si Meta lo rechaza (token o ID incorrecto),
-   no se guarda y te dice el motivo.
+   existe y está aprobado **antes** de guardarlo. Si Meta lo rechaza (ID incorrecto o token
+   de la cuenta inválido), no se guarda y te dice el motivo.
 4. Ya guardado, aparece en la lista como **Activo** y entra al reparto de campañas.
 
 En la lista, cada número tiene un botón para **Verificar** (reconsultar su estado y calidad en

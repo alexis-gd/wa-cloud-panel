@@ -46,15 +46,17 @@ class PhoneNumberController extends Controller
             ], 422);
         }
 
-        // El token es a nivel WABA (el mismo para todos los números de la cuenta): si no lo
-        // pegan, reutilizamos el de otro número de la misma WABA. Usar el modelo (no ->value)
-        // para que el cast 'encrypted' lo descifre.
-        $existing = PhoneNumber::where('waba_id', $data['waba_id'])->first();
-        $token    = $data['token'] ?? $existing?->token;
+        // El token es a nivel cuenta (System User Token): no se pide en el alta. Se reutiliza
+        // el de otro número de la misma WABA; si no hay, el del número activo (el que gestiona
+        // el bloque "Token de acceso WhatsApp"). Usar el modelo (no ->value) para que el cast
+        // 'encrypted' lo descifre. Se acepta un token explícito por API pero la UI no lo manda.
+        $token = $data['token']
+            ?? PhoneNumber::where('waba_id', $data['waba_id'])->first()?->token
+            ?? PhoneNumber::where('is_active', true)->first()?->token;
         if (! $token) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Pega el token: no hay otro número de esta cuenta (WABA) del cual reutilizarlo.',
+                'message' => 'Configura primero el token de la cuenta en "Token de acceso WhatsApp".',
                 'code'    => 'TOKEN_REQUIRED',
             ], 422);
         }

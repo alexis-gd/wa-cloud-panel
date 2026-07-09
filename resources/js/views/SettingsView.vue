@@ -48,8 +48,9 @@
             <template #content>
                 <p class="pn-help">
                     Da de alta los números que envían campañas. Primero regístralos en Meta
-                    (Business Manager); aquí ingresas sus datos y el sistema los verifica contra
-                    Meta antes de guardarlos. El token es el mismo de la cuenta (System User Token).
+                    (Business Manager); aquí ingresas su ID y el sistema los verifica contra Meta
+                    antes de guardarlos. Usa el token de la cuenta que ya configuraste arriba (no
+                    lo vuelves a escribir) y el límite diario lo pone Meta.
                 </p>
 
                 <ul v-if="phoneNumbers.length" class="pn-list">
@@ -89,17 +90,6 @@
                         <label>WABA ID (de Meta)</label>
                         <InputText v-model="pnForm.waba_id" placeholder="1236630511398211" inputmode="numeric" fluid />
                         <small>Solo números. Es el ID de la cuenta de WhatsApp Business.</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Token (opcional)</label>
-                        <Password
-                            v-model="pnForm.token"
-                            :feedback="false"
-                            toggle-mask
-                            fluid
-                            :input-props="{ autocomplete: 'one-time-code', name: 'wa-new-number-token' }"
-                        />
-                        <small>Déjalo vacío si ya tienes números de esta misma cuenta (WABA): el sistema reutiliza el token existente. El límite diario lo pone Meta, no se configura aquí.</small>
                     </div>
                     <Button type="submit" label="Verificar y guardar" icon="pi pi-plus" :loading="addingNumber" :disabled="!pnFormValid" />
                 </form>
@@ -337,14 +327,14 @@ const saveResult  = ref(null);
 
 // ── Números de WhatsApp ──
 const phoneNumbers  = ref([]);
-const pnForm        = ref({ display_name: '', phone_number_id: '', waba_id: '', token: '' });
+const pnForm        = ref({ display_name: '', phone_number_id: '', waba_id: '' });
 const addingNumber  = ref(false);
 const addResult     = ref(null);
 const verifyingId   = ref(null);
 const verifyResult  = ref(null);
 
-// El token es opcional (se reutiliza el de la WABA si ya hay números). El límite diario
-// no se pide: lo dicta Meta.
+// El token no se pide: se reutiliza el de la cuenta (número activo / misma WABA). El límite
+// diario tampoco: lo dicta Meta.
 const pnFormValid = computed(() =>
     !!pnForm.value.display_name && !!pnForm.value.phone_number_id && !!pnForm.value.waba_id,
 );
@@ -458,7 +448,7 @@ async function addNumber() {
     addResult.value    = res.status === 'ok' ? res : { error: res.message };
     addingNumber.value = false;
     if (res.status === 'ok') {
-        pnForm.value = { display_name: '', phone_number_id: '', waba_id: '', token: '' };
+        pnForm.value = { display_name: '', phone_number_id: '', waba_id: '' };
         await loadPhoneNumbers();
     }
 }

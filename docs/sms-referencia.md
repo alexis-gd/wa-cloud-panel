@@ -156,6 +156,16 @@ Estados finales: `delivered`, `undelivered` (con ErrorCode), `failed` (con Error
 Después de **3 undelivered consecutivos** al mismo contacto → `contact.sms_blacklisted = true`.
 No afecta WhatsApp. Cada canal tiene su propio contador.
 
+### Redes de seguridad (reconcile) — gateway capcom6
+El webhook lo entrega el TELÉFONO; si la app muere, se pierden eventos. Dos comandos por scheduler
+lo recuperan sin depender del teléfono despierto:
+- **Estado saliente** — `sms:reconcile-status` (cada 10 min): pull directo del estado de los SMS en
+  `sent` (`SmsGatewayClient::getState()` → delivered/failed).
+- **Entrantes** — `sms:reconcile-received` (cada hora): pide re-exportar los `sms:received` recientes
+  (`requestInboxExport()` → `POST {url}/inbox/export`, async). Vuelven por el mismo webhook y se
+  deduplican por `sms_inbound_messages.gateway_message_id`. Con pool, `SMS_GATEWAY_DEVICE_ID` vacío
+  = re-exporta de todos los teléfonos.
+
 ---
 
 ## Cumplimiento legal SMS México

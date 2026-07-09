@@ -111,7 +111,7 @@ Estas son las demos visuales. El cliente no necesita saber los detalles técnico
 ### Bugs y mejoras UI (pendientes)
 
 - [ ] **Homologar botones (auditar)** — no urgente, pero no se pierde nada auditando: revisar inconsistencias entre vistas (ej. Contactos usa estilos distintos al editar y las pills/badges de tags varían) contra la tabla de `estilo-codigo.md`.
-- [x] **Responsive mobile** (hecho hace tiempo) — Dashboard y Contactos ya funcionan en móvil. Ver [[project_responsive_design]].
+- [ ] **Responsive mobile (REABIERTO 2026-07-09)** — solo **Panel (Dashboard)** y **Configuración** se adaptan bien. Desbordan a la derecha (scroll horizontal, columnas cortadas) en móvil (~429px): **Contactos, Campañas, Respuestas SMS, Conversaciones, Plantillas, Usuarios**. El fix viejo (`min-width:0` en `.main`) quitó el scroll de la página pero las **tablas internas** siguen sin caber. Falta: envolver tablas en `overflow-x:auto` o pasarlas a layout de tarjetas en móvil; las cards de stats y la de carga también se cortan. Ver [[project_responsive_design]].
 - [ ] **Pills de estado + tooltips (auditar)** — repaso opcional de tooltips/`helpContent` de estados en tablas; alinearlos con el comportamiento real. No se pierde nada auditando.
 - [ ] **Popovers de ayuda (auditar)** — repaso opcional de los `helpContent` en `AppLayout.vue` para alinearlos con cada entrega. No urgente.
 - [x] **Pantalla de login** (rediseñada hace tiempo) — split-panel navy/blanco full-viewport. Ver MEMORY (Frontend).

@@ -331,10 +331,11 @@ borrarlo).
 ### Qué es el warm-up
 
 Un número nuevo debe empezar con **poco volumen** e ir subiendo poco a poco - mandar miles de
-mensajes desde el día 1 es la vía más rápida a un bloqueo. Por eso, al darlo de alta, ponle un
-**límite diario inicial bajo** (por ejemplo 250) y súbelo con calma conforme mantenga buena
-calidad. Meta, por su parte, sube el **límite de la cuenta** de forma automática cuando envías
-con buena calidad (ver la nota de abajo).
+mensajes desde el día 1 es la vía más rápida a un bloqueo. **El sistema lo hace solo:** cada
+número nuevo arranca con un tope bajo y el sistema lo sube gradualmente cada día, según lo que
+fue enviando con buena calidad, hasta el límite que Meta le da a la cuenta. Además, el sistema
+**nunca envía más de lo que Meta permite** en total: si se llega al tope del día, frena y sigue
+al día siguiente. Tú no configuras ni aceleras nada - es la protección que evita el bloqueo.
 
 > Los primeros días el semáforo del número puede verse amarillo ("calidad pendiente"). Es normal.
 

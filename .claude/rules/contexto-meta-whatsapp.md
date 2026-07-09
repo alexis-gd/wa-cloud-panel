@@ -51,7 +51,10 @@ relacionada con Meta, envíos o plantillas.
 - El límite es **por Business Portfolio** (compartido por todos los números), vigente desde 7-oct-2025. Sube solo (~6h) si en 7d usaste >=50% del límite con calidad alta.
 - **Lo leemos SIN webhook ni polling:** `SettingsController::phoneHealth()` ya hace un GET al phone number para el semáforo; le agregamos el campo `whatsapp_business_manager_messaging_limit` a ese mismo GET, lo persiste en `Setting wa_portfolio_daily_limit` (+ `wa_portfolio_limit_updated_at`) y lo devuelve. Se refresca cada que se abre/refresca el semáforo del Panel. (Se descartó el webhook `business_capability_update` para no depender de suscribir un campo en Meta.)
 - El panel (Dashboard, semáforo) muestra "Límite de la cuenta (Meta)" desde ese dato.
-- **Pendiente/deuda:** `phone_numbers.daily_limit` sigue siendo el warm-up por-número (estático, del seed) y `DashboardController` aún **suma** por número para la capacidad mensual = sobreestima bajo el modelo portfolio. Ver [[project-tier-autoupdate-gap]].
+- **Warm-up automático + freno (implementado 2026-07-08):** `App\Services\WhatsApp\PortfolioLimit::daily()` parsea el límite del portfolio (helper reusable). 
+  - **Freno de cuenta:** `SendWhatsAppMessage` no envía si el total del día (todos los números) alcanzó el límite del portfolio → reencola para mañana. Nunca rebasa a Meta.
+  - **Warm-up:** comando `wa:warmup-numbers` (scheduler diario 05:00 CST) sube el `daily_limit` de cada número activo/no-pausado que usó >=50% de su límite ayer (criterio Meta), duplicando, topado por el límite del portfolio. No rampa si el portfolio es desconocido.
+  - **Capacidad del Dashboard:** `dailySendCapacity()` = `min(portfolio, suma por número)`, ya no sobreestima.
 
 ## Token de acceso — Reglas críticas
 

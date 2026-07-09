@@ -8,6 +8,7 @@ use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
 use App\Events\CampaignProgressUpdated;
+use App\Services\WhatsApp\PortfolioLimit;
 use App\Services\WhatsApp\TemplateBuilder;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Bus\Queueable;
@@ -176,6 +177,26 @@ class SendWhatsAppMessage implements ShouldQueue
             $nextWindow = now('America/Mexico_City')->addDay()->startOfDay()->addHours(9);
             $this->release($nextWindow->diffInSeconds(now()));
             return;
+        }
+
+        // ── Freno del portfolio: no enviar más del techo de la CUENTA (compartido por todos
+        //    los números). Meta lo impone por portfolio; lo respetamos antes de intentar para
+        //    no provocar rechazos (131048/131049). Si Meta aún no reportó el límite, no frena. ──
+        $portfolioCeiling = PortfolioLimit::daily();
+        if ($portfolioCeiling !== null) {
+            $sentTodayAll = MessageLog::whereBetween('sent_at', [$startOfDay, $endOfDay])
+                ->whereIn('status', ['sent', 'delivered', 'read'])
+                ->count();
+
+            if ($sentTodayAll >= $portfolioCeiling) {
+                Log::info('SendWhatsAppMessage: límite del portfolio alcanzado, reintentando mañana', [
+                    'sent_today_all'    => $sentTodayAll,
+                    'portfolio_ceiling' => $portfolioCeiling,
+                ]);
+                $nextWindow = now('America/Mexico_City')->addDay()->startOfDay()->addHours(9);
+                $this->release($nextWindow->diffInSeconds(now()));
+                return;
+            }
         }
 
         // ── Idempotencia: si ya existe un log pending para este contacto+campaña

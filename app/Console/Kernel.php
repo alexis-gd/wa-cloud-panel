@@ -35,6 +35,13 @@ class Kernel extends ConsoleKernel
             ->timezone('America/Mexico_City')
             ->withoutOverlapping();
 
+        // Warm-up automático: sube el daily_limit de los números según el uso de ayer,
+        // topado por el límite del portfolio. A las 5AM CST, antes de abrir envíos.
+        $schedule->command('wa:warmup-numbers')
+            ->dailyAt('05:00')
+            ->timezone('America/Mexico_City')
+            ->withoutOverlapping();
+
         // Vigila que el webhook SMS siga devolviendo eventos; alerta en la campana si no.
         $schedule->command('sms:monitor-webhook')
             ->everyFifteenMinutes()

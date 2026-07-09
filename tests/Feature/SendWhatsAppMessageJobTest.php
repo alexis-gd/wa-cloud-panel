@@ -315,6 +315,34 @@ class SendWhatsAppMessageJobTest extends TestCase
         ]);
     }
 
+    // ── Freno del portfolio ───────────────────────────────────────────────────
+
+    public function test_freno_del_portfolio_no_envia_si_se_alcanzo_el_techo(): void
+    {
+        Setting::set('wa_portfolio_daily_limit', 'TIER_250'); // techo de cuenta = 250
+
+        // 250 enviados hoy en OTRO número: el total de la CUENTA ya llegó al techo,
+        // aunque este número no haya enviado nada.
+        $otherPhone = PhoneNumber::factory()->create(['is_active' => true]);
+        MessageLog::factory()->count(250)->create([
+            'phone_number_id' => $otherPhone->id,
+            'status'          => 'sent',
+            'sent_at'         => now(),
+        ]);
+
+        $this->mock(WhatsAppClient::class, function ($mock) {
+            $mock->shouldReceive('post')->never();
+        });
+
+        try {
+            $this->makeJob()->handle(app(WhatsAppClient::class), app(TemplateBuilder::class));
+        } catch (\Error) {
+            // release() sin queue real
+        }
+
+        $this->assertEquals(0, $this->campaign->fresh()->sent_count);
+    }
+
     // ── Circuit breaker ───────────────────────────────────────────────────────
 
     public function test_circuit_breaker_numero_pausado_no_llama_post(): void

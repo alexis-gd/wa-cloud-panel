@@ -190,6 +190,58 @@ El webhook lo entrega el TELÉFONO; si MIUI mata la app, se pierden eventos. Dos
 
 ---
 
+## Agregar más teléfonos al pool (escalar de 1 a varios)
+
+El panel **no se toca**: reparte los SMS llamando al gateway, y el gateway reparte entre los
+teléfonos registrados (round-robin). Para sumar un chip solo das de alta el teléfono en el gateway.
+
+**Pasos (por cada teléfono nuevo):**
+1. Instalar la app **SMS Gateway for Android** en el teléfono nuevo (con su SIM y saldo).
+2. En la app: **Settings → Cloud server → API URL = `https://gw.prestamaz.site/api/mobile/v1`**.
+3. Poner el mismo **private token** que los demás (está en `config.yml` del gateway y en `CLAUDE.local.md`).
+   Así el teléfono se registra contra tu servidor, no contra el cloud público.
+4. Encender el switch **online** en la app. En unos segundos aparece como device nuevo en el gateway.
+5. **Blindaje MIUI/Android** (obligatorio, si no la app se muere sola): Autostart **ON**, batería
+   **"Sin restricciones"**, bloquear la app en "recientes", WiFi estable y **enchufado**.
+6. Verificar que quedó registrado:
+   ```bash
+   # en el VPS, contra el gateway
+   curl -s -u P3ID_H:CONTRASEÑA http://127.0.0.1:3000/api/3rdparty/v1/devices | jq
+   ```
+   Debe listar el device nuevo. A partir de ahí el gateway ya lo mete al round-robin solo.
+
+**Qué NO hay que hacer:** nada en el panel, ni en `.env`, ni migraciones. El reparto es del gateway.
+> Ojo con `SMS_GATEWAY_DEVICE_ID` en el `.env`: **déjalo vacío**. Si lo pones, el reconcile de
+> entrantes (`sms:reconcile-received`) solo le pediría respuestas a ESE teléfono. Vacío = a todos.
+> (La firma del webhook, si algún día se activa `SMS_WEBHOOK_SECRET`, sí hay que ponerla igual en
+> cada teléfono - vive en cada device.)
+
+---
+
+## ¿El problema es un chip o es la app? (cómo distinguir)
+
+Dos fallas distintas, se ven diferente. Regla rápida: **si NINGÚN SMS se entrega, es la app; si solo
+algunos, es un chip.**
+
+**Es la APP del gateway (se cayó / MIUI la mató) - afecta a TODOS:**
+- Señal en el panel: **Configuración → Salud del webhook SMS** marca caído (`no_hits`/`stale`), y salta
+  la alerta en la campanita (`sms:monitor-webhook`).
+- Ningún SMS pasa de **Enviado** a **Entregado**, y no entran respuestas nuevas.
+- Qué hacer: abrir la app en el teléfono, ponerla **online**, revisar el blindaje MIUI del paso 5.
+  El reconcile (`sms:reconcile-status` y `sms:reconcile-received`) recupera lo perdido al volver.
+
+**Es un CHIP/SIM (uno solo del pool) - los demás siguen normal:**
+- Los otros teléfonos siguen entregando; solo caen los envíos que tocaron ese chip.
+- Señales: sus SMS salen **Fallido** (`sms:failed`) o se quedan sin entregar; sube el contador de
+  rebotes concentrado. En el **dashboard del gateway** (o `GET /api/3rdparty/v1/devices`) ese device
+  aparece **offline** o sin actividad reciente.
+- Causas típicas: SIM sin saldo, sin señal/cobertura, chip bloqueado por la operadora (spam), o la
+  operadora topó los ~8 SMS/min por chip.
+- Qué hacer: prueba de envío manual desde ESE teléfono; revisar saldo y señal. Si la operadora bloqueó
+  el chip, cambiarlo - el resto del pool sigue enviando mientras tanto.
+
+---
+
 ## Troubleshooting
 
 | Síntoma | Causa probable | Qué revisar |

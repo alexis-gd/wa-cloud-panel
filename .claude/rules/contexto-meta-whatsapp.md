@@ -86,7 +86,7 @@ relacionada con Meta, envíos o plantillas.
 - **CAT promedio informativo es OBLIGATORIO por ley en México (CONDUSEF)** para publicidad financiera
   - Sin CAT, Meta puede rechazar la plantilla de servicios financieros
   - Formato: `CAT promedio informativo X% sin IVA`
-- Siempre incluir opt-out — preferiblemente como botón ("No, gracias") no solo texto
+- Siempre incluir la instrucción de baja EN EL TEXTO del cuerpo ("Responde STOP para dejar de recibir mensajes"). NO por botón: un botón "No, gracias" NO da de baja (los botón_reply no pasan por el check de opt-out; ver más abajo)
 - Solo mostrar plantillas con `status = approved` en el panel — nunca input libre
 - El panel nunca permite escribir nombre de plantilla a mano
 
@@ -113,7 +113,8 @@ relacionada con Meta, envíos o plantillas.
 
 ## Opt-out — Reglas inquebrantables
 
-- Palabras que disparan opt-out automático: STOP, NO, BAJA, CANCELAR, NO GRACIAS
+- Palabras que disparan opt-out (código `WebhookController::OPT_OUT_WORDS`): **STOP, BAJA, CANCELAR, NO** (match exacto del mensaje completo, en `handleTextMessage`). OJO: "NO GRACIAS" NO está en la lista real del código
+- **La baja NO llega por botón:** los `button_reply` van a `handleButtonReply`, que solo procesa "no por ahora" (snooze) y "me interesa" (interested). Un botón "No, gracias"/"Baja" NO da de baja. La baja real: (1) texto exacto de arriba, o (2) opt-out nativo de WhatsApp → error `131050`. Verificado contra la doc oficial de Meta (no exige botón, exige "dar opt-out y respetarlo"; el nativo lo cubre)
 - Opt-out es inmediato e irreversible por el cliente
 - Contactos con opt-out se marcan en BD, **no se eliminan** (auditoría)
 - Si alguien responde opt-out, nunca más se le envía — el sistema lo bloquea antes del envío

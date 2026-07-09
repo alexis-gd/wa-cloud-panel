@@ -80,19 +80,32 @@ algo salga mal.
 1. **Solo se envía a quien dio permiso.** Meta y la ley mexicana (LFPDPPP) exigen que el
    contacto haya autorizado recibir publicidad. Nunca cargar bases compradas o "frías"
    sin consentimiento.
-2. **Toda plantilla debe permitir darse de baja.** Es obligatorio por ley y Meta lo
-   revisa. Ojo con un detalle importante: **para que el sistema registre la baja, el
-   contacto tiene que responder una palabra exacta** (`BAJA`, `STOP`, `CANCELAR` o `NO`).
-   Un botón que diga "No, gracias" se ve bonito pero **no da de baja**, porque el sistema
-   no reconoce ese texto. La forma correcta de garantizar la baja está en la
-   [sección 4](#4-palabras-clave-que-el-sistema-entiende-lo-mas-importante). **No confundir la
-   baja con el botón "no por ahora": son cosas distintas** (ver el recuadro de abajo).
+2. **Toda plantilla de marketing DEBE incluir en su TEXTO cómo darse de baja.** Es obligatorio
+   por ley (LFPDPPP) y por la política de Meta. Pon en el **cuerpo del mensaje** una línea como
+   **"Responde STOP para dejar de recibir mensajes"**. El sistema da de baja cuando el contacto
+   **escribe** una de estas palabras: `STOP`, `BAJA`, `CANCELAR` o `NO` (ver
+   [sección 4](#4-palabras-clave-que-el-sistema-entiende-lo-mas-importante)). También cuenta el
+   opt-out **nativo** de WhatsApp (el usuario detiene el marketing desde la app; a nosotros nos
+   llega solo), pero eso **NO te exime** de poner la instrucción de texto. **No dependas de un
+   botón para la baja:** los botones de la plantilla solo sirven para "Me interesa" y "No por
+   ahora" (sección 3); un botón "No, gracias" o "Baja" **NO da de baja** (el sistema no lo procesa
+   como tal). **No confundir la baja con el botón "no por ahora": son cosas distintas** (ver el
+   recuadro de abajo).
 3. **La publicidad financiera lleva el CAT.** Por ley (CONDUSEF) toda promoción de
    préstamos debe mostrar el CAT promedio informativo. Sin él, Meta puede rechazar la
    plantilla. Formato exacto: `CAT promedio informativo 485.5% sin IVA`.
 4. **No se apura el crecimiento.** Un número nuevo empieza con pocos mensajes al día y
    sube solo (warm-up). Nunca intentar forzar más volumen del que el sistema permite:
    es la vía más rápida a un bloqueo.
+
+> ⚠️ **SÚPER IMPORTANTE - la línea de baja es TU responsabilidad.**
+> El panel y Meta **aprueban la plantilla aunque NO pongas** la línea "Responde STOP...". El
+> sistema **no te obliga** a escribirla. Por eso lo dejamos advertido aquí, negro sobre blanco:
+> **si la omites, es tu decisión y tu riesgo, no un fallo ni un olvido del sistema.**
+> - **Riesgo de omitirla:** multa por la ley de datos (**LFPDPPP**) y **bloqueo de la cuenta de
+>   WhatsApp por Meta** (ignorar/impedir la baja es de las causas más comunes de suspensión).
+> - **Regla simple:** toda plantilla de marketing lleva SIEMPRE, en el cuerpo, una línea de baja
+>   como *"Responde STOP para dejar de recibir mensajes"*. Sin excepción.
 
 > **Baja y "no por ahora" NO son lo mismo:**
 > - **Baja** = el contacto ya no quiere recibir NADA, nunca más. Es permanente y bloquea
@@ -131,22 +144,22 @@ muestra ya aprobadas.)
 | **Opción de baja** | Que el contacto pueda responder una palabra de baja (ver sección 4) | Obligatorio. Además es lo que hace que el sistema procese la baja de verdad. |
 | **Contenido** | Claro, sin promesas exageradas ni datos falsos | Meta rechaza contenido engañoso o "spam". |
 
-### Los botones de la plantilla (baja, posponer, interés)
+### Los botones de la plantilla (posponer, interés)
 
-Cuando el contacto toca un botón, **WhatsApp envía como respuesta el título del botón**.
-Por eso el título importa tanto: el sistema decide qué hacer según ese texto (sección 4).
+Cuando el contacto toca un botón, **WhatsApp envía como respuesta el título del botón**, y el
+sistema decide qué hacer. **Solo hay dos botones que el sistema entiende:**
 
-- **Botón de baja:** su título tiene que ser una palabra que el sistema reconozca como
-  baja (`BAJA` es la más clara). Un botón "No, gracias" **no funciona** porque ese texto
-  no está en la lista. Alternativa: dejar en el cuerpo del mensaje "Responde BAJA para no
-  recibir más".
 - **Botón de posponer ("no por ahora"):** su título debe contener **"no por ahora"**.
-  Esto activa el Pospuesto (pausa temporal de WhatsApp), NO la baja.
+  Activa el Pospuesto (pausa temporal de WhatsApp), NO la baja.
 - **Botón de interés:** su título debe contener **"me interesa"**. Marca al contacto como
   interesado y lo pasa a un agente.
 
-> No mezcles baja y "no por ahora": son dos botones y dos efectos distintos (ver el recuadro
-> de la sección 2).
+> **La baja NO se hace con un botón.** No existe un "botón de baja" que funcione: si pones un
+> botón "No, gracias" o "Baja", el sistema **no lo procesa como baja** y el contacto se queda
+> sin darse de baja (riesgo legal). La baja funciona por dos vías: (1) el contacto **escribe**
+> `STOP`/`BAJA`/`CANCELAR`/`NO`, y (2) el opt-out **nativo** de WhatsApp. Por eso la línea
+> **"Responde STOP para dejar de recibir mensajes" va SIEMPRE en el texto** (ver regla 2 de la
+> sección 2). No mezcles esto con "no por ahora": son cosas distintas.
 
 ### Por qué se rechaza una plantilla (y qué NO hacer)
 
@@ -177,15 +190,16 @@ Las causas más comunes de rechazo:
 ## 4. Palabras clave que el sistema entiende (lo más importante)
 
 **Esta es la sección más crítica de toda la guía.** El sistema reacciona a las respuestas
-de los contactos **solo si contienen ciertas palabras exactas**. Si creas una plantilla o
-un botón con OTRAS palabras, **el sistema no va a reaccionar** - la baja no se registra,
-el interés no se marca, el Pospuesto no se activa.
+de los contactos **solo si contienen ciertas palabras exactas**. Distinción clave: **la baja
+solo cuenta si el contacto ESCRIBE la palabra** (o usa el opt-out nativo de WhatsApp) -
+**nunca por un botón**. Los botones solo sirven para "Me interesa" y "No por ahora"; con otras
+palabras (o uno que pretenda dar baja) **el sistema no reacciona**.
 
 ### Qué entiende el sistema en WhatsApp
 
 | Acción del contacto | Palabras que el sistema entiende | Qué hace el sistema |
 |---|---|---|
-| **Pedir baja** | El mensaje es exactamente `STOP`, `BAJA`, `CANCELAR` o `NO` | Marca al contacto como Baja. Nunca se le vuelve a enviar (WhatsApp y SMS). Es permanente. |
+| **Pedir baja** | El contacto **escribe** (texto, no botón) exactamente `STOP`, `BAJA`, `CANCELAR` o `NO` | Marca al contacto como Baja. Nunca se le vuelve a enviar (WhatsApp y SMS). Es permanente. |
 | **Posponer** (botón) | El título del botón contiene **"no por ahora"** | Activa el Pospuesto: pausa las campañas de WhatsApp a ese contacto un tiempo. NO es baja. |
 | **Mostrar interés** (botón) | El título del botón contiene **"me interesa"** | Marca al contacto como interesado y lo pasa a un agente. |
 
@@ -206,13 +220,14 @@ el interés no se marca, el Pospuesto no se activa.
 
 ### La regla de oro
 
-> **Si creas una plantilla o un botón con una palabra distinta a las de estas tablas, el
-> sistema no reacciona.** Por ejemplo: un botón que diga "Quitarme" no da de baja; uno que
-> diga "Cuéntame más" no marca interés; uno que diga "Después" no pospone.
+> **Si creas un botón con una palabra distinta a las de estas tablas, el sistema no
+> reacciona.** Por ejemplo: un botón que diga "Cuéntame más" no marca interés; uno que
+> diga "Después" no pospone. Y **la baja no se hace con botón** (ver abajo).
 >
 > Por eso, al diseñar una plantilla:
-> - Para el botón de **baja**, el título debe ser una palabra de baja (`BAJA` es la más
->   clara), o deja en el mensaje "responde BAJA para no recibir más".
+> - Para la **baja**: **NO uses un botón** (no funciona). Deja SIEMPRE en el **texto** del
+>   mensaje "Responde STOP para dejar de recibir mensajes". El contacto se da de baja
+>   escribiéndolo, o desde el opt-out nativo de WhatsApp.
 > - Para el botón de **posponer**, el título debe contener **"no por ahora"**.
 > - Para el botón de **interés**, el título debe contener **"me interesa"**.
 >

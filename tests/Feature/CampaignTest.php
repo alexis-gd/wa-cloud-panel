@@ -179,6 +179,30 @@ class CampaignTest extends TestCase
              ->assertJsonPath('campaign.total_contacts', 4);
     }
 
+    public function test_logs_cuenta_excluidos_por_baja_del_segmento(): void
+    {
+        $this->actingAsOperator();
+
+        $tag      = Tag::create(['name' => 'Segmento X']);
+        $campaign = Campaign::factory()->create(['tag_id' => $tag->id, 'status' => 'completed']);
+
+        // 2 de baja + 1 activo, todos con el tag del segmento.
+        $opted1 = Contact::factory()->create(['status' => 'opted_out']);
+        $opted2 = Contact::factory()->create(['status' => 'opted_out']);
+        $active = Contact::factory()->create(['status' => 'active']);
+        $opted1->tags()->attach($tag->id);
+        $opted2->tags()->attach($tag->id);
+        $active->tags()->attach($tag->id);
+
+        // Una baja de OTRO segmento no debe contar.
+        $otherOpted = Contact::factory()->create(['status' => 'opted_out']);
+        $otherOpted->tags()->attach(Tag::create(['name' => 'Otro'])->id);
+
+        $this->getJson("/api/campaigns/{$campaign->id}/logs")
+             ->assertStatus(200)
+             ->assertJsonPath('stats.excluded_optout', 2);
+    }
+
     // ── Ver campaña ──────────────────────────────────────────────────────────
 
     public function test_show_campana_existente(): void

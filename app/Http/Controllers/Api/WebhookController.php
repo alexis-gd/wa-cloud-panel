@@ -241,16 +241,21 @@ class WebhookController extends Controller
             $conversation->created_at->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
         );
 
-        // Auto-asignar si el contacto aún no tiene ninguna asignación
-        if (! $contact->assignments()->exists()) {
-            $this->assignmentService->autoAssign($contact->id);
-        }
-
-        // Procesar intención del mensaje
+        // Procesar la intención del mensaje PRIMERO, para saber si fue una baja antes de asignar.
+        $optedOut = false;
         if ($messageType === 'button_reply') {
             $this->handleButtonReply($contact, $buttonId, $body);
         } else {
-            $this->handleTextMessage($contact, $body);
+            $optedOut = $this->handleTextMessage($contact, $body);
+        }
+
+        // Asignación de agente según la intención:
+        // - Baja: soltar la conversación (si tenía agente) - no hay a quién ni por qué atender.
+        // - Cualquier otra respuesta: auto-asignar en el primer inbound (genera chat y se atiende).
+        if ($optedOut) {
+            $this->assignmentService->unassign($contact->id);
+        } elseif (! $contact->assignments()->exists()) {
+            $this->assignmentService->autoAssign($contact->id);
         }
 
         Log::info('Webhook inbound procesado', [
@@ -276,7 +281,11 @@ class WebhookController extends Controller
         }
     }
 
-    private function handleTextMessage(Contact $contact, string $body): void
+    /**
+     * Procesa un mensaje de texto entrante. Devuelve true si fue una baja (opt-out), para que
+     * el llamador sepa que NO debe auto-asignar un agente a ese contacto.
+     */
+    private function handleTextMessage(Contact $contact, string $body): bool
     {
         // Comparar el mensaje completo (normalizado) con las palabras de opt-out.
         // Exigir mensaje exacto evita falsos positivos: "no me cae" no es opt-out, "NO" sí.
@@ -284,8 +293,11 @@ class WebhookController extends Controller
 
         if (in_array($normalized, self::OPT_OUT_WORDS, true)) {
             $contact->optOut('auto');
-            Log::info("Opt-out por texto '{$body}' — contacto {$contact->id}");
+            Log::info("Opt-out por texto '{$body}' - contacto {$contact->id}");
+            return true;
         }
+
+        return false;
     }
 
     private function createFailedDeliveryNotification(?MessageLog $log, ?int $errorCode): void

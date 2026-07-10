@@ -48,6 +48,32 @@ class SmsWebhookTest extends TestCase
         $this->assertSame(1, $contact->fresh()->sms_bounce_count);
     }
 
+    public function test_evento_failed_guarda_el_motivo_en_la_fila(): void
+    {
+        $log = $this->smsLog('SM-r1');
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:failed',
+            'payload' => ['messageId' => 'SM-r1', 'reason' => 'Sin saldo'],
+        ])->assertStatus(200);
+
+        $log->refresh();
+        $this->assertSame('failed', $log->status);
+        $this->assertSame('Sin saldo', $log->error_message); // el detalle ya no muestra "-"
+    }
+
+    public function test_evento_failed_sin_reason_pone_texto_generico(): void
+    {
+        $log = $this->smsLog('SM-r2');
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:failed',
+            'payload' => ['messageId' => 'SM-r2'],
+        ])->assertStatus(200);
+
+        $this->assertStringContainsString('gateway', mb_strtolower($log->fresh()->error_message));
+    }
+
     public function test_rebotes_no_bloquean_con_umbral_default_cero(): void
     {
         // Default: Setting sms_auto_blacklist_bounces = 0 → nunca bloquea (cliente blando con SMS).

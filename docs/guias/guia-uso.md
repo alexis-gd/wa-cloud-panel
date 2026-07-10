@@ -295,6 +295,18 @@ Una campaña es un **envío masivo** a un grupo de contactos.
 > ⚠️ NO ejecutes la misma campaña dos veces. Si quieres reenviar, crea una campaña nueva. **Por
 > qué:** ejecutarla otra vez volvería a mandar a los mismos y los saturaría.
 
+### Ver el detalle de una campaña
+
+Al abrir una campaña ves los totales (**Enviados**, **Fallidos**, **Descartados**, **Pendientes**)
+y una tabla contacto por contacto con su **Estado** y el **Motivo / Error**:
+- **Fallido:** ahora la columna Motivo muestra **por qué** falló (ej. lo que reportó la operadora
+  en un SMS), ya no un guion suelto.
+- **Descartado:** el sistema no se lo mandó a propósito (ej. ya lo recibió hoy, está en
+  enfriamiento, o es una baja). El motivo lo dice ahí.
+- **Excluidos por baja:** si en el segmento hay contactos de **baja**, arriba aparece un aviso
+  gris - *"N contactos del segmento no reciben por estar de baja"*. **Es solo informativo**: a
+  esos ni se les intenta enviar (es lo correcto), pero así sabes por qué el total no cuadra.
+
 ---
 
 ## 9. Conversaciones y agentes
@@ -339,6 +351,10 @@ un agente solo. El modo lo elige el administrador en **Configuración → Multi-
   naranja. El admin u operador la puede repartir a mano.
 - La asignación automática pasa **una sola vez** (en el primer mensaje). Después no se reasigna
   sola - se hace a mano si hace falta.
+- **Excepción - la baja NO asigna agente:** si la primera (o siguiente) respuesta del contacto es
+  una **baja** (STOP/BAJA/CANCELAR/NO), el sistema **no le asigna** agente, y si ya tenía uno lo
+  **suelta** (queda "Sin asignar"). Tiene sentido: a un contacto de baja **ya no se le puede
+  escribir**, así que no ocupa a nadie.
 
 **Cómo se lee la lista** (son dos cosas separadas: el estado y quién atiende):
 - Chip **"Sin asignar"** (naranja) - nadie la tiene todavía.

@@ -245,6 +245,14 @@
                     </div>
                 </div>
 
+                <!-- Info: contactos del segmento que no reciben por estar de baja (no se les envía) -->
+                <p v-if="detailStats?.excluded_optout > 0" class="excluded-note">
+                    <i class="pi pi-info-circle"></i>
+                    {{ detailStats.excluded_optout }} contacto{{ detailStats.excluded_optout === 1 ? '' : 's' }}
+                    del segmento no {{ detailStats.excluded_optout === 1 ? 'recibe' : 'reciben' }} por estar de
+                    <strong>baja</strong> - no se les intenta enviar (es lo correcto).
+                </p>
+
                 <!-- Aviso mensajes pendientes: cuándo reanudan -->
                 <div
                     v-if="detailStats?.pending > 0 && detailStats?.resumes_at && selectedCampaign?.status === 'running'"
@@ -277,7 +285,7 @@
                     <Column header="Motivo / Error">
                         <template #body="{ data }">
                             <span v-if="data.discard_reason" class="discard-reason">{{ discardLabel(data.discard_reason) }}</span>
-                            <span v-else-if="data.error_message" class="error-msg" :title="data.error_message">error Meta</span>
+                            <span v-else-if="data.error_message" class="error-msg" :title="data.error_message">{{ data.channel === 'sms' ? smsErrorText(data.error_message) : 'error Meta' }}</span>
                             <span v-else class="muted-cell">-</span>
                         </template>
                     </Column>
@@ -487,6 +495,14 @@ const logStatusSeverity = (s) => ({
     failed    : 'danger',
     discarded : 'warn',
 }[s] ?? 'secondary');
+
+// Motivo legible de un fallo SMS. El backend guarda el reason del gateway (texto plano) o,
+// en el path de envío, un JSON con {message}. Aquí lo normalizamos a algo mostrable.
+const smsErrorText = (raw) => {
+    if (!raw) return 'Falló el envío';
+    try { const o = JSON.parse(raw); return o.message || o.error || String(raw); }
+    catch { return String(raw); }
+};
 
 const discardLabel = (r) => ({
     cooldown   : 'Enfriamiento',
@@ -922,6 +938,20 @@ onUnmounted(() => {
     margin-bottom: 12px;
 }
 .resumes-notice .pi { font-size: .9rem; flex-shrink: 0; }
+
+.excluded-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--p-surface-100);
+    border-left: 3px solid var(--p-surface-400);
+    border-radius: 4px;
+    font-size: .82rem;
+    color: var(--p-text-muted-color);
+    margin-bottom: 12px;
+}
+.excluded-note .pi { font-size: .9rem; flex-shrink: 0; }
 
 .estimate-note {
     display: flex;

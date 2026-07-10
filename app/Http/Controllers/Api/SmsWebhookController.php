@@ -123,13 +123,20 @@ class SmsWebhookController extends Controller
             return;
         }
 
+        // El gateway manda el porqué en `reason`. Lo persistimos en la fila (no solo al log del
+        // server) para que el detalle de la campaña muestre el motivo, no un "-".
+        $reason = $payload['reason'] ?? null;
+
         $log = MessageLog::where('channel', 'sms')->where('wa_message_id', $messageId)->first();
-        $log?->updateStatus('failed');
+        $log?->update([
+            'status'        => 'failed',
+            'error_message' => $reason ?: 'El gateway reportó el envío como fallido (sin detalle)',
+        ]);
 
         Log::warning('SMS webhook: envío fallido', [
             'message_id' => $messageId,
             'log_id'     => $log?->id,
-            'reason'     => $payload['reason'] ?? null,
+            'reason'     => $reason,
         ]);
 
         // Rebote: a los 3 consecutivos se auto-bloquea el canal SMS (no afecta WhatsApp).

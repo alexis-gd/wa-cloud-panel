@@ -322,6 +322,13 @@ class CampaignController extends Controller
             ->where('status', 'discarded')
             ->count();
 
+        // Info-only (punto 4): contactos del segmento que están de BAJA (opted_out) y por eso
+        // NO se les envía - se filtran antes de despachar, así que no generan fila. Este contador
+        // les da visibilidad en el detalle. NO toca la cola ni la lógica de envío.
+        $excludedOptOut = Contact::where('status', 'opted_out')
+            ->when($campaign->tag_id, fn ($q) => $q->whereHas('tags', fn ($t) => $t->where('tags.id', $campaign->tag_id)))
+            ->count();
+
         // Para draft recalculamos el total en vivo: refleja imports/opt-outs hechos
         // después de crear la campaña. COUNT(*) indexado, costo trivial.
         $totalContacts = $campaign->status === 'draft'
@@ -374,6 +381,7 @@ class CampaignController extends Controller
                 'discarded' => $discardedCount,
                 'pending'   => $pending,
                 'resumes_at' => $resumesAt,
+                'excluded_optout' => $excludedOptOut,
             ],
             // sent_at se formatea en CST para que el frontend muestre la hora local de México,
             // no la hora UTC cruda (que diferiría hasta 6 horas de lo que el operador ve en su reloj).

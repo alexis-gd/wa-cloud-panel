@@ -51,7 +51,16 @@ class ReconcileSmsStatus extends Command
                 $log->updateStatus('delivered');
                 $updated++;
             } elseif ($state === 'failed') {
-                $log->updateStatus('failed');
+                // Persistir el motivo que reporte el gateway (si lo hay) para que el detalle
+                // de la campaña muestre el porqué, no un "-".
+                $reason = is_string($res['error'] ?? null)
+                    ? $res['error']
+                    : ($res['error']['message'] ?? null);
+
+                $log->update([
+                    'status'        => 'failed',
+                    'error_message' => $reason ?: 'El gateway reportó el envío como fallido (sin detalle)',
+                ]);
                 Contact::where('phone', $log->to_number)->first()?->registerSmsBounce();
                 $updated++;
             }

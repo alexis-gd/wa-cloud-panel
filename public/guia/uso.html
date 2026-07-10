@@ -512,6 +512,18 @@ minutos en salir todos).</li>
 <p>⚠️ NO ejecutes la misma campaña dos veces. Si quieres reenviar, crea una campaña nueva. <strong>Por
 qué:</strong> ejecutarla otra vez volvería a mandar a los mismos y los saturaría.</p>
 </blockquote>
+<h3 id="ver-el-detalle-de-una-campana">Ver el detalle de una campaña</h3>
+<p>Al abrir una campaña ves los totales (<strong>Enviados</strong>, <strong>Fallidos</strong>, <strong>Descartados</strong>, <strong>Pendientes</strong>)
+y una tabla contacto por contacto con su <strong>Estado</strong> y el <strong>Motivo / Error</strong>:</p>
+<ul>
+<li><strong>Fallido:</strong> ahora la columna Motivo muestra <strong>por qué</strong> falló (ej. lo que reportó la operadora
+en un SMS), ya no un guion suelto.</li>
+<li><strong>Descartado:</strong> el sistema no se lo mandó a propósito (ej. ya lo recibió hoy, está en
+enfriamiento, o es una baja). El motivo lo dice ahí.</li>
+<li><strong>Excluidos por baja:</strong> si en el segmento hay contactos de <strong>baja</strong>, arriba aparece un aviso
+gris - <em>&quot;N contactos del segmento no reciben por estar de baja&quot;</em>. <strong>Es solo informativo</strong>: a
+esos ni se les intenta enviar (es lo correcto), pero así sabes por qué el total no cuadra.</li>
+</ul>
 <hr />
 <h2 id="9-conversaciones-y-agentes">9. Conversaciones y agentes</h2>
 <p>Cuando un contacto responde a un WhatsApp, su mensaje aparece en <strong>Conversaciones</strong>.</p>
@@ -567,6 +579,10 @@ un agente solo. El modo lo elige el administrador en <strong>Configuración → 
 naranja. El admin u operador la puede repartir a mano.</li>
 <li>La asignación automática pasa <strong>una sola vez</strong> (en el primer mensaje). Después no se reasigna
 sola - se hace a mano si hace falta.</li>
+<li><strong>Excepción - la baja NO asigna agente:</strong> si la primera (o siguiente) respuesta del contacto es
+una <strong>baja</strong> (STOP/BAJA/CANCELAR/NO), el sistema <strong>no le asigna</strong> agente, y si ya tenía uno lo
+<strong>suelta</strong> (queda &quot;Sin asignar&quot;). Tiene sentido: a un contacto de baja <strong>ya no se le puede
+escribir</strong>, así que no ocupa a nadie.</li>
 </ul>
 <p><strong>Cómo se lee la lista</strong> (son dos cosas separadas: el estado y quién atiende):</p>
 <ul>

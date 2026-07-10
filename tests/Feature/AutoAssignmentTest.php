@@ -109,6 +109,38 @@ class AutoAssignmentTest extends TestCase
         ]);
     }
 
+    // ── Baja: no asigna / suelta la asignación ────────────────────────────────
+
+    public function test_baja_por_texto_no_asigna_agente(): void
+    {
+        User::factory()->create(['role' => 'agent', 'is_active' => true]);
+        $contact = $this->createContact();
+
+        // El primer mensaje es una baja: no tiene caso asignar un agente a quien se va.
+        $this->postWebhook($this->inboundPayload($contact->phone, 'STOP'))->assertStatus(200);
+
+        $this->assertSame('opted_out', $contact->fresh()->status);
+        $this->assertDatabaseMissing('conversation_assignments', ['contact_id' => $contact->id]);
+    }
+
+    public function test_baja_suelta_la_asignacion_existente(): void
+    {
+        $agent   = User::factory()->create(['role' => 'agent', 'is_active' => true]);
+        $contact = $this->createContact();
+
+        // Ya tenía agente (respondió algo antes); ahora se da de baja → se suelta.
+        ConversationAssignment::create([
+            'contact_id'  => $contact->id,
+            'user_id'     => $agent->id,
+            'assigned_at' => now(),
+        ]);
+
+        $this->postWebhook($this->inboundPayload($contact->phone, 'BAJA'))->assertStatus(200);
+
+        $this->assertSame('opted_out', $contact->fresh()->status);
+        $this->assertSame(0, ConversationAssignment::where('contact_id', $contact->id)->count());
+    }
+
     // ── Modo least_chats ──────────────────────────────────────────────────────
 
     public function test_least_chats_asigna_al_agente_con_menos_conversaciones(): void

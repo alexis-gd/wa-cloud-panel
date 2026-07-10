@@ -43,6 +43,20 @@ class AssignmentService
     }
 
     /**
+     * Suelta la conversación: borra las asignaciones del contacto para que quede "Sin asignar".
+     * Se usa cuando el contacto se da de baja - no tiene caso mantener un agente en un chat al
+     * que ya nunca se le podrá escribir. (`user_id` no admite null, así que se borra el registro.)
+     */
+    public function unassign(int $contactId): void
+    {
+        $deleted = ConversationAssignment::where('contact_id', $contactId)->delete();
+
+        if ($deleted) {
+            Log::info("Unassign: contacto {$contactId} liberado ({$deleted} asignación/es borradas)");
+        }
+    }
+
+    /**
      * Devuelve el agente con menos conversaciones actualmente asignadas.
      * "Actualmente asignado" = el agente es el responsable más reciente del contacto.
      */

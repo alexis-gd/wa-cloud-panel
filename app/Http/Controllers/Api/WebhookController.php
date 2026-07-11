@@ -93,7 +93,12 @@ class WebhookController extends Controller
                     $errorCode  = isset($errorData['code']) ? (int) $errorData['code'] : null;
                     $errorTitle = $errorData['title'] ?? null;
 
-                    $log?->updateStatus($status, $errorCode, $errorTitle);
+                    // Falla de entrega (post-envío): marca failed y corrige contadores si venía
+                    // contado como enviado (sent_count--, failed_count++). Ver MessageLog.
+                    $failAttrs = $errorCode !== null
+                        ? ['delivery_error_code' => $errorCode, 'delivery_error_title' => $errorTitle]
+                        : [];
+                    $log?->markDeliveryFailed($failAttrs);
 
                     Log::warning('Webhook: message delivery failed', [
                         'wa_message_id' => $waMessageId,

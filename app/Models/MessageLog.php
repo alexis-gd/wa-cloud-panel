@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class MessageLog extends Model
 {
@@ -146,5 +147,31 @@ class MessageLog extends Model
         }
 
         $this->update($data);
+    }
+
+    /**
+     * Marca el mensaje como FALLIDO por una falla de ENTREGA (post-envío: llega por webhook o
+     * reconcile, no al despachar). Corrige los contadores de la campaña si el mensaje YA venía
+     * contado como enviado (sent/delivered/read): sent_count--, failed_count++. Atómico.
+     *
+     * No ajusta si ya estaba failed (idempotente ante webhooks repetidos) ni si nunca se contó
+     * como enviado (pending/discarded). Los fallos AL DESPACHAR no pasan por aquí: el job ya
+     * incrementa failed_count por su cuenta.
+     *
+     * @param array<string,mixed> $attrs Campos extra a guardar (ej. error_message para SMS,
+     *                                    delivery_error_code/title para WhatsApp).
+     */
+    public function markDeliveryFailed(array $attrs = []): void
+    {
+        $wasCountedSent = in_array($this->status, ['sent', 'delivered', 'read'], true);
+
+        $this->update(array_merge(['status' => 'failed'], $attrs));
+
+        if ($wasCountedSent && $this->campaign_id) {
+            Campaign::whereKey($this->campaign_id)->update([
+                'sent_count'   => DB::raw('GREATEST(sent_count - 1, 0)'),
+                'failed_count' => DB::raw('failed_count + 1'),
+            ]);
+        }
     }
 }

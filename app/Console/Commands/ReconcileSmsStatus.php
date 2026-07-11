@@ -57,8 +57,9 @@ class ReconcileSmsStatus extends Command
                     ? $res['error']
                     : ($res['error']['message'] ?? null);
 
-                $log->update([
-                    'status'        => 'failed',
+                // Marca failed, guarda el motivo y corrige contadores de la campaña si venía
+                // contado como enviado (sent_count--, failed_count++). Ver MessageLog.
+                $log->markDeliveryFailed([
                     'error_message' => $reason ?: 'El gateway reportó el envío como fallido (sin detalle)',
                 ]);
                 Contact::where('phone', $log->to_number)->first()?->registerSmsBounce();

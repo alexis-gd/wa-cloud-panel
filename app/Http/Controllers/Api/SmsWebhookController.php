@@ -127,9 +127,10 @@ class SmsWebhookController extends Controller
         // server) para que el detalle de la campaña muestre el motivo, no un "-".
         $reason = $payload['reason'] ?? null;
 
+        // Falla de entrega (post-envío): marca failed, guarda el motivo y corrige los contadores
+        // de la campaña si el SMS venía contado como enviado (sent_count--, failed_count++).
         $log = MessageLog::where('channel', 'sms')->where('wa_message_id', $messageId)->first();
-        $log?->update([
-            'status'        => 'failed',
+        $log?->markDeliveryFailed([
             'error_message' => $reason ?: 'El gateway reportó el envío como fallido (sin detalle)',
         ]);
 

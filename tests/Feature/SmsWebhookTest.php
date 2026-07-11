@@ -48,6 +48,55 @@ class SmsWebhookTest extends TestCase
         $this->assertSame(1, $contact->fresh()->sms_bounce_count);
     }
 
+    public function test_falla_post_envio_corrige_contadores_de_la_campana(): void
+    {
+        // SMS ya despachado: contaba como enviado (sent_count=1). Luego el gateway lo reporta
+        // fallido → el detalle debe mostrar Fallidos 1, Enviados 0 (no quedarse en "-").
+        $campaign = \App\Models\Campaign::factory()->create([
+            'channel'      => 'sms',
+            'status'       => 'completed',
+            'sent_count'   => 1,
+            'failed_count' => 0,
+        ]);
+        MessageLog::create([
+            'channel'       => 'sms',
+            'to_number'     => '529991234567',
+            'wa_message_id' => 'SM-c1',
+            'campaign_id'   => $campaign->id,
+            'status'        => 'sent',
+            'sent_at'       => now(),
+        ]);
+
+        $this->postJson('/api/sms/webhook', [
+            'event'   => 'sms:failed',
+            'payload' => ['messageId' => 'SM-c1', 'reason' => 'Sin señal'],
+        ])->assertStatus(200);
+
+        $campaign->refresh();
+        $this->assertSame(0, $campaign->sent_count);   // ya no cuenta como enviado
+        $this->assertSame(1, $campaign->failed_count);  // ahora sí cuenta como fallido
+    }
+
+    public function test_falla_repetida_no_descuenta_doble(): void
+    {
+        // Idempotencia: dos webhooks 'failed' del mismo SMS no bajan sent_count dos veces.
+        $campaign = \App\Models\Campaign::factory()->create([
+            'channel' => 'sms', 'status' => 'completed', 'sent_count' => 1, 'failed_count' => 0,
+        ]);
+        MessageLog::create([
+            'channel' => 'sms', 'to_number' => '529991234567', 'wa_message_id' => 'SM-c2',
+            'campaign_id' => $campaign->id, 'status' => 'sent', 'sent_at' => now(),
+        ]);
+
+        $payload = ['event' => 'sms:failed', 'payload' => ['messageId' => 'SM-c2']];
+        $this->postJson('/api/sms/webhook', $payload)->assertStatus(200);
+        $this->postJson('/api/sms/webhook', $payload)->assertStatus(200);
+
+        $campaign->refresh();
+        $this->assertSame(0, $campaign->sent_count);
+        $this->assertSame(1, $campaign->failed_count); // solo 1, no 2
+    }
+
     public function test_evento_failed_guarda_el_motivo_en_la_fila(): void
     {
         $log = $this->smsLog('SM-r1');

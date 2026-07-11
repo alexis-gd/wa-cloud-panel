@@ -194,7 +194,7 @@ class CampaignController extends Controller
         if ($campaign->channel === 'whatsapp' && ! SendWindow::isOpen()) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Los envíos solo están permitidos de lunes a viernes entre 9:00 AM y 10:00 PM (hora México).',
+                'message' => 'Los envíos solo están permitidos de lunes a viernes entre 9:00 AM y 10:00 PM, hora del centro de México (CDMX, GMT-6).',
                 'code'    => 'OUTSIDE_SCHEDULE',
             ], 422);
         }
@@ -436,7 +436,7 @@ class CampaignController extends Controller
         if ($campaign->channel === 'whatsapp' && ! SendWindow::isOpen()) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Los envíos solo están permitidos de lunes a viernes entre 9:00 AM y 10:00 PM (hora México).',
+                'message' => 'Los envíos solo están permitidos de lunes a viernes entre 9:00 AM y 10:00 PM, hora del centro de México (CDMX, GMT-6).',
                 'code'    => 'OUTSIDE_SCHEDULE',
             ], 422);
         }

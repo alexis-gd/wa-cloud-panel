@@ -27,16 +27,16 @@
 
 ## 2. Horario de envíos (R1 - modo demo)
 
-- [ ] **`Setting schedule_bypass` = `0`** (o inexistente) en la BD de prod. Comando:
+- [x] **`Setting schedule_bypass` = `0`** (o inexistente) en la BD de prod. **Hecho 2026-07-11: prod en 0.**
+      Confirmar que NADIE dejó el modo demo abierto: con `schedule_bypass=1` se envía a cualquier hora
+      (fuera de 9-22h L-V) → riesgo de reportes de spam en Meta. Comando:
       ```bash
       php artisan tinker
       \App\Models\Setting::set('schedule_bypass','0');
       ```
-- [ ] Confirmar que NADIE dejó el modo demo abierto. Con `schedule_bypass=1` se envía a
-      cualquier hora (fuera de 9-22h L-V) → riesgo de reportes de spam en Meta.
-- [ ] (El guardia de horario ahora también vive en el job `SendWhatsAppMessage`, así que el
-      worker 24/7 de Supervisor ya no puede enviar fuera de ventana. No requiere acción, solo
-      no encender el bypass.)
+
+> Nota (no requiere acción): el guardia de horario también vive en el job `SendWhatsAppMessage`, así
+> que el worker 24/7 de Supervisor no puede enviar fuera de ventana. Solo hay que no encender el bypass.
 
 ## 3. Configuración de entorno (`.env` de prod)
 
@@ -44,8 +44,9 @@
 - [ ] **`APP_DEBUG=false`** ✅ (ya está). NUNCA `true` en prod (expone stack traces).
 - [ ] **`LOG_LEVEL`** → bajar de `debug` a **`warning`** (o `info`). En `debug` llena disco y
       puede loguear payloads sensibles.
-- [ ] **`SMS_WEBHOOK_SECRET`** → **poner** un secreto (igual a la Signing Key del teléfono en
+- [x] **`SMS_WEBHOOK_SECRET`** → **poner** un secreto (igual a la Signing Key del teléfono en
       el gateway). Vacío = el webhook SMS acepta cualquier POST sin firma (opt-outs/entrantes falsos).
+      **Hecho 2026-07-11: secreto configurado en panel + gateway y probado end-to-end (delivered + STOP).**
 - [ ] **`MAIL_*`** → si el panel manda correo (reset de contraseña), configurar SMTP real.
       Hoy apunta a `mailpit`/`hello@example.com` (dev).
 - [ ] `QUEUE_CONNECTION=database`, `BROADCAST_DRIVER=pusher` ✅ (ya están).

@@ -431,6 +431,16 @@ class CampaignController extends Controller
             ], 422);
         }
 
+        // Misma puerta de horario que execute() - solo WhatsApp. El job igual frena de fondo
+        // fuera de ventana, pero aquí avisamos al operador en vez de encolar jobs que esperarían.
+        if ($campaign->channel === 'whatsapp' && ! SendWindow::isOpen()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Los envíos solo están permitidos de lunes a viernes entre 9:00 AM y 10:00 PM (hora México).',
+                'code'    => 'OUTSIDE_SCHEDULE',
+            ], 422);
+        }
+
         $pending = $campaign->total_contacts - $campaign->sent_count - $campaign->failed_count;
 
         if ($pending <= 0) {

@@ -411,6 +411,26 @@ class CampaignDetailTest extends TestCase
              ->assertJsonPath('code', 'NO_PENDING');
     }
 
+    public function test_retry_pending_rechaza_fuera_de_horario(): void
+    {
+        $campaign = Campaign::factory()->create([
+            'phone_number_id' => $this->phone->id,
+            'channel'         => 'whatsapp',
+            'status'          => 'running',
+            'total_contacts'  => 2,
+            'sent_count'      => 0,
+            'failed_count'    => 0,
+        ]);
+
+        // Sábado 12:00 CST - fuera de ventana (el setUp fija miércoles; aquí lo movemos)
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-07-11 12:00:00', 'America/Mexico_City'));
+
+        $this->actingAsOperator()
+             ->postJson("/api/campaigns/{$campaign->id}/retry-pending")
+             ->assertStatus(422)
+             ->assertJsonPath('code', 'OUTSIDE_SCHEDULE');
+    }
+
     public function test_retry_pending_despacha_solo_contactos_sin_log(): void
     {
         \Illuminate\Support\Facades\Queue::fake();

@@ -74,7 +74,7 @@
                 </div>
                 <div class="field">
                     <label>Correo electrónico</label>
-                    <InputText v-model="form.email" type="email" placeholder="ana@prestamas.mx" fluid />
+                    <InputText v-model="form.email" type="email" placeholder="ana@prestamaz.mx" fluid />
                 </div>
                 <div class="field">
                     <label>Contraseña</label>

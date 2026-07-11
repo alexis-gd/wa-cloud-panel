@@ -37,7 +37,7 @@
                             <label for="email">Correo electrónico</label>
                             <IconField>
                                 <InputIcon class="pi pi-envelope" />
-                                <InputText id="email" v-model="email" type="email" placeholder="usuario@prestamas.mx"
+                                <InputText id="email" v-model="email" type="email" placeholder="usuario@prestamaz.mx"
                                     fluid :disabled="loading" @keyup.enter="submit" />
                             </IconField>
                         </div>

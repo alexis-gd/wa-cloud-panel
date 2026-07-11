@@ -24,7 +24,7 @@ Lo que la guía de abajo describe en general; así quedó en el VPS `sender.pres
 6. **Webhook (✅ funcionando)**: registrados los 4 eventos vía 3rdparty API apuntando a
    `https://sender.prestamaz.site/api/sms/webhook`. `sms:sent`/`sms:delivered` actualizan el status
    (→ "Entregado"), `sms:received` con STOP marca opt-out. Payload real: estados usan `messageId`;
-   entrantes usan `sender` (no `phoneNumber`). Firma HMAC opcional (`SMS_WEBHOOK_SECRET`, ver §Webhook).
+   entrantes usan `sender` (no `phoneNumber`). Firma HMAC ACTIVA (`SMS_WEBHOOK_SECRET`, ver §Webhook).
    - ⚠️ **GOTCHA CLAVE**: al registrar/cambiar webhooks, el **teléfono NO los usa hasta re-sincronizar
      su lista**. Los entrega el teléfono, y sincroniza la lista del servidor solo al **reiniciar la app /
      reconectar Cloud server**. Si registras webhooks y no llegan, **reinicia la app del teléfono**.
@@ -161,11 +161,59 @@ en ese archivo. Alternativa robusta: cambiar a la librería oficial
 En el servidor gateway (panel de admin del gateway o su API de webhooks), registra:
 - **URL**: `https://sender.prestamaz.site/api/sms/webhook`
 - **Eventos**: `sms:sent`, `sms:delivered`, `sms:failed`, `sms:received`
-- **Firma**: si el gateway firma con HMAC, usa el mismo valor de `SMS_WEBHOOK_SECRET`. Si no,
-  deja `SMS_WEBHOOK_SECRET` vacío (el webhook no exigirá firma — solo para pruebas).
 
 Sin webhook los SMS se marcan `sent` pero nunca `delivered`/`failed`, y el STOP por SMS no marca
 opt-out automático.
+
+### Firma HMAC (`SMS_WEBHOOK_SECRET`) — ACTIVA en prod
+
+El panel valida cada webhook: header `X-Signature = HMAC-SHA256(body + X-Timestamp, secret)`, con
+`X-Timestamp` dentro de ±5 min (anti-replay → **el reloj del teléfono debe estar en hora**). Ver
+[`SmsWebhookController::signatureValid()`](../app/Http/Controllers/Api/SmsWebhookController.php).
+
+> ⚠️ **Regla de oro:** el secreto se pone en el panel **y** en el gateway **a la vez**. Si lo pones
+> solo en el panel, el gateway manda sin firma válida → el panel rechaza TODO con **403** → se caen
+> `delivered`/`failed` y, peor, el **STOP no marca la baja** (obligatorio por ley). Vacío = no valida
+> (solo para pruebas locales).
+
+**Montarlo (probado en prod):**
+
+1. Generar el secreto en el VPS:
+   ```bash
+   openssl rand -hex 32
+   ```
+2. Panel — en el `.env` del VPS: `SMS_WEBHOOK_SECRET=<secreto>`, luego:
+   ```bash
+   php artisan config:cache && sudo supervisorctl restart wa-queue:*
+   ```
+3. Gateway — poner el **signing key = el mismo secreto** en la config del webhook (Swagger
+   `https://gw.prestamaz.site/` o la app del teléfono → Webhooks). **La firma vive por device: si
+   hay varios teléfonos, ponerla en cada uno.**
+
+**Probar el panel solo (sin el gateway), firmando a mano:**
+```bash
+SECRET="<secreto>"
+BODY='{"event":"sms:delivered","payload":{"id":"test-1","phoneNumber":"+52..."}}'
+TS=$(date +%s)
+SIG=$(printf '%s%s' "$BODY" "$TS" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $2}')
+curl -s -o /dev/null -w "%{http_code}\n" -X POST https://sender.prestamaz.site/api/sms/webhook \
+  -H "Content-Type: application/json" -H "X-Signature: $SIG" -H "X-Timestamp: $TS" -d "$BODY"
+```
+`200` = firma correcta aceptada. Cambia una letra al `SECRET` y repite → debe dar `403`.
+
+**Diagnóstico si el inbound no llega** (revisar los timestamps de salud):
+```bash
+php artisan tinker --execute="echo 'hit='.App\Models\Setting::get('sms_webhook_last_hit_at').PHP_EOL.'rejected='.App\Models\Setting::get('sms_webhook_last_rejected_at').PHP_EOL.'ok='.App\Models\Setting::get('sms_webhook_last_at');"
+```
+Si `rejected` es reciente y `ok` viejo → firma mal (el secreto no coincide entre panel y gateway).
+El semáforo de **Configuración → SMS** muestra lo mismo: *"Llegan eventos pero se rechazan por firma"*.
+
+**Recuperar respuestas perdidas** mientras la firma estuvo mal (viven en el teléfono):
+```bash
+php artisan sms:reconcile-received
+```
+Re-exporta los `sms:received` de las últimas 24h por el mismo webhook (ya con firma OK) y deduplica
+por `gateway_message_id`. Corre solo cada hora; se puede disparar a mano.
 
 ### Redes de seguridad si el webhook no llega (app del gateway muerta por MIUI)
 El webhook lo entrega el TELÉFONO; si MIUI mata la app, se pierden eventos. Dos comandos lo cubren
@@ -212,8 +260,8 @@ teléfonos registrados (round-robin). Para sumar un chip solo das de alta el tel
 **Qué NO hay que hacer:** nada en el panel, ni en `.env`, ni migraciones. El reparto es del gateway.
 > Ojo con `SMS_GATEWAY_DEVICE_ID` en el `.env`: **déjalo vacío**. Si lo pones, el reconcile de
 > entrantes (`sms:reconcile-received`) solo le pediría respuestas a ESE teléfono. Vacío = a todos.
-> (La firma del webhook, si algún día se activa `SMS_WEBHOOK_SECRET`, sí hay que ponerla igual en
-> cada teléfono - vive en cada device.)
+> La firma del webhook (`SMS_WEBHOOK_SECRET`) está ACTIVA: hay que ponerla igual en cada teléfono
+> nuevo - vive en cada device (ver §Firma HMAC).
 
 ---
 

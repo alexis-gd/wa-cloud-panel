@@ -32,6 +32,7 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | [docs/sms-sim-propia-analisis.md](docs/sms-sim-propia-analisis.md) | Análisis SMS por SIM propia (Android gateway) vs proveedor: legal, económico, riesgos |
 | [docs/guia-twilio-setup.md](docs/guia-twilio-setup.md) | ⚠️ Referencia (NO elegido): setup Twilio. Evaluado pero se optó por SIM propia |
 | [docs/calendario-entregas.md](docs/calendario-entregas.md) | Entregas al cliente + checklist de desarrollo por etapa + backlog técnico |
+| [docs/checklist-produccion-cliente.md](docs/checklist-produccion-cliente.md) | Corte staging→cliente: qué cambiar (WABA/número, `.env`, horario, seeds) antes de datos reales |
 | [docs/testing.md](docs/testing.md) | Guía PHPUnit, tipos de tests, mocks, convenciones |
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |
 | [docs/limpieza-y-seeds.md](docs/limpieza-y-seeds.md) | Seeders (`migrate:fresh --seed`) + comando `db:clean-demo` + receta para dejar prod limpio para el cliente |

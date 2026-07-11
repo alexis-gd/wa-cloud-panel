@@ -91,7 +91,7 @@ class ContactController extends Controller
         $lastSentMapFor = function (string $channel) use ($phones): array {
             return MessageLog::whereIn('to_number', $phones)
                 ->where('channel', $channel)
-                ->where('status', 'sent')
+                ->whereIn('status', ['sent', 'delivered', 'read'])
                 ->groupBy('to_number')
                 ->select('to_number', DB::raw('MAX(sent_at) as last_sent'))
                 ->pluck('last_sent', 'to_number')
@@ -276,10 +276,10 @@ class ContactController extends Controller
             ->whereIn('status', ['sent', 'delivered', 'read'])
             ->exists();
 
-        // Cooldown: último 'sent' dentro de la ventana (mínimo 7, default 30 días)
+        // Cooldown: último envío real (sent/delivered/read) dentro de la ventana (mínimo 7, default 30 días)
         $cooldownDays   = max(7, (int) Setting::get('cooldown_days', 30));
         $lastSent       = MessageLog::where('to_number', $phone)
-            ->where('status', 'sent')
+            ->whereIn('status', ['sent', 'delivered', 'read'])
             ->latest('sent_at')
             ->value('sent_at');
         $cooldownActive = false;

@@ -95,7 +95,7 @@ class SendSmsMessage implements ShouldQueue
         $cooldownDays = max(7, (int) Setting::get('cooldown_days', 30));
         $lastSent     = MessageLog::where('to_number', $contact->phone)
             ->where('channel', 'sms')
-            ->where('status', 'sent')
+            ->whereIn('status', ['sent', 'delivered', 'read'])
             ->latest('sent_at')
             ->value('sent_at');
 

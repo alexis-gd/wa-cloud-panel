@@ -40,17 +40,16 @@
 
 ## 3. Configuración de entorno (`.env` de prod)
 
-- [ ] **`APP_ENV=production`** ✅ (ya está).
-- [ ] **`APP_DEBUG=false`** ✅ (ya está). NUNCA `true` en prod (expone stack traces).
-- [ ] **`LOG_LEVEL`** → bajar de `debug` a **`warning`** (o `info`). En `debug` llena disco y
-      puede loguear payloads sensibles.
+- [x] **`APP_ENV=production`** (ya está).
+- [x] **`APP_DEBUG=false`** (ya está). NUNCA `true` en prod (expone stack traces).
+- [x] **`LOG_LEVEL`** = `warning`. **Hecho 2026-07-11: bajado de `debug`.**
 - [x] **`SMS_WEBHOOK_SECRET`** → **poner** un secreto (igual a la Signing Key del teléfono en
       el gateway). Vacío = el webhook SMS acepta cualquier POST sin firma (opt-outs/entrantes falsos).
       **Hecho 2026-07-11: secreto configurado en panel + gateway y probado end-to-end (delivered + STOP).**
 - [ ] **`MAIL_*`** → si el panel manda correo (reset de contraseña), configurar SMTP real.
-      Hoy apunta a `mailpit`/`hello@example.com` (dev).
-- [ ] `QUEUE_CONNECTION=database`, `BROADCAST_DRIVER=pusher` ✅ (ya están).
-- [ ] `APP_URL` y `VITE_PUSHER_HOST` = `sender.prestamaz.site` ✅.
+      Hoy apunta a `mailpit`/`hello@example.com` (dev). Pendiente (confirmar si el panel usa correo).
+- [x] `QUEUE_CONNECTION=database`, `BROADCAST_DRIVER=pusher` (ya están).
+- [x] `APP_URL` y `VITE_PUSHER_HOST` = `sender.prestamaz.site`.
 
 ## 4. Datos / cuentas de prueba
 

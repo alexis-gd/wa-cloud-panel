@@ -9,11 +9,11 @@ use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
-use App\Models\Setting;
 use App\Models\SmsTemplate;
 use App\Models\Tag;
 use App\Models\WaTemplate;
 use App\Services\PhoneNumberSelector;
+use App\Services\WhatsApp\SendWindow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -186,22 +186,17 @@ class CampaignController extends Controller
 
         // ── Verificar ventana horaria 9AM-10PM CST (L-V) — SOLO WhatsApp ──
         // SMS no tiene horario forzado: el cliente elige cuándo (ver contexto-sms).
-        // "Modo demo" (Setting schedule_bypass=1) permite ejecutar fuera de horario
-        // para pruebas/demos. Default apagado — en operación real NUNCA se enciende
-        // (enviar fuera de horario a números reales puede generar reportes de spam).
-        if ($campaign->channel === 'whatsapp') {
-            $scheduleBypass = Setting::get('schedule_bypass', '0') === '1';
-            $now     = now('America/Mexico_City');
-            $hour    = (int) $now->format('G');
-            $weekday = (int) $now->format('N'); // 1=Lunes, 7=Domingo
-
-            if (! $scheduleBypass && ($weekday > 5 || $hour < 9 || $hour >= 22)) {
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => 'Los envíos solo están permitidos de lunes a viernes entre 9:00 AM y 10:00 PM (hora México).',
-                    'code'    => 'OUTSIDE_SCHEDULE',
-                ], 422);
-            }
+        // La ventana la resuelve SendWindow (misma fuente que el job de envío). El "modo
+        // demo" (Setting schedule_bypass=1) la abre para pruebas; default apagado — en
+        // operación real NUNCA se enciende (enviar fuera de horario puede generar reportes
+        // de spam en Meta). El guardia real vive además en el job, por si la cola avanza
+        // fuera de hora (worker 24/7).
+        if ($campaign->channel === 'whatsapp' && ! SendWindow::isOpen()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Los envíos solo están permitidos de lunes a viernes entre 9:00 AM y 10:00 PM (hora México).',
+                'code'    => 'OUTSIDE_SCHEDULE',
+            ], 422);
         }
 
         $contactsQuery = Contact::active();

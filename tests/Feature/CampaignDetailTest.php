@@ -32,6 +32,10 @@ class CampaignDetailTest extends TestCase
             'sent_count'      => 1,
             'failed_count'    => 1,
         ]);
+
+        // Reloj dentro de la ventana de envío (miércoles 12:00 CST): algunos tests corren
+        // el job real y el guardia de horario reencolaría fuera de ventana.
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-07-08 12:00:00', 'America/Mexico_City'));
     }
 
     private function createLog(string $status, ?string $discardReason = null): MessageLog

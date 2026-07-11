@@ -168,6 +168,10 @@ class MarkUnreachableContactsTest extends TestCase
         ]);
         $contact = Contact::factory()->create(['phone' => '521111111118', 'status' => 'unreachable']);
 
+        // Dentro de la ventana de envío para que el job llegue al descarte por unreachable
+        // (el guardia de horario reencolaría antes fuera de hora).
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-07-08 12:00:00', 'America/Mexico_City'));
+
         $this->mock(WhatsAppClient::class, fn ($mock) => $mock->shouldReceive('post')->never());
 
         $job = new SendWhatsAppMessage(

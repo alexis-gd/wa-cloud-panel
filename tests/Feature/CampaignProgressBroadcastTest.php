@@ -21,6 +21,15 @@ class CampaignProgressBroadcastTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Reloj dentro de la ventana de envío (miércoles 12:00 CST): los tests corren el
+        // job real, que fuera de ventana reencolaría en vez de enviar.
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-07-08 12:00:00', 'America/Mexico_City'));
+    }
+
     private function makeJob(Campaign $campaign, Contact $contact, PhoneNumber $phone): SendWhatsAppMessage
     {
         return new SendWhatsAppMessage(

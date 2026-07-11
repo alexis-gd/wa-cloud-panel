@@ -37,6 +37,10 @@ class SendWhatsAppMessageJobTest extends TestCase
             'phone_number_id' => $this->phone->id,
             'status'          => 'running',
         ]);
+
+        // Fijar el reloj dentro de la ventana de envío (miércoles 12:00 CST) para que
+        // el guardia de horario del job no reencole y los tests no dependan del reloj real.
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-07-08 12:00:00', 'America/Mexico_City'));
     }
 
     private function mockSuccessfulClient(): void
@@ -59,6 +63,40 @@ class SendWhatsAppMessageJobTest extends TestCase
             languageCode:  'en_US',
             bodyVars:      [],
         );
+    }
+
+    // ── Ventana de envío (guardia de horario en el job) ─────────────────────────
+
+    public function test_fuera_de_ventana_no_envia_ni_registra(): void
+    {
+        // Sábado 12:00 CST — fuera de ventana (solo L-V). El cliente no debe llamarse.
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-07-11 12:00:00', 'America/Mexico_City'));
+        $this->mock(WhatsAppClient::class, fn ($mock) => $mock->shouldReceive('post')->never());
+
+        $this->makeJob()->handle(app(WhatsAppClient::class), app(TemplateBuilder::class));
+
+        // No se registró envío ni se movieron contadores: el job se reencoló.
+        $this->assertDatabaseCount('message_log', 0);
+        $this->assertDatabaseHas('campaigns', [
+            'id'           => $this->campaign->id,
+            'sent_count'   => 0,
+            'failed_count' => 0,
+        ]);
+    }
+
+    public function test_fuera_de_ventana_con_modo_demo_si_envia(): void
+    {
+        Setting::set('schedule_bypass', '1');
+        // Domingo 3AM — fuera de ventana, pero el modo demo la abre.
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-07-12 03:00:00', 'America/Mexico_City'));
+        $this->mockSuccessfulClient();
+
+        $this->makeJob()->handle(app(WhatsAppClient::class), app(TemplateBuilder::class));
+
+        $this->assertDatabaseHas('campaigns', [
+            'id'         => $this->campaign->id,
+            'sent_count' => 1,
+        ]);
     }
 
     // ── Dedup ─────────────────────────────────────────────────────────────────
@@ -136,6 +174,39 @@ class SendWhatsAppMessageJobTest extends TestCase
             app(TemplateBuilder::class),
         );
 
+        $this->assertDatabaseHas('campaigns', [
+            'id'           => $this->campaign->id,
+            'failed_count' => 1,
+            'sent_count'   => 0,
+        ]);
+    }
+
+    public function test_cooldown_cuenta_mensajes_entregados_no_solo_sent(): void
+    {
+        // Regresión: un mensaje que llegó a 'delivered'/'read' (el webhook cambió el status
+        // desde 'sent') DEBE seguir contando para el cooldown. Antes solo miraba 'sent', así
+        // que en cuanto Meta confirmaba entrega el cooldown se saltaba y reenviaba al día siguiente.
+        Setting::set('cooldown_days', '30');
+
+        MessageLog::create([
+            'phone_number_id' => $this->phone->id,
+            'to_number'       => $this->contact->phone,
+            'template_name'   => 'hello_world',
+            'language_code'   => 'en_US',
+            'body_vars'       => [],
+            'status'          => 'delivered', // entregado hace 15 días
+            'sent_at'         => now()->subDays(15),
+        ]);
+
+        $this->mock(WhatsAppClient::class, fn ($mock) => $mock->shouldReceive('post')->never());
+
+        $this->makeJob()->handle(app(WhatsAppClient::class), app(TemplateBuilder::class));
+
+        $this->assertDatabaseHas('message_log', [
+            'to_number'      => $this->contact->phone,
+            'status'         => 'discarded',
+            'discard_reason' => 'cooldown',
+        ]);
         $this->assertDatabaseHas('campaigns', [
             'id'           => $this->campaign->id,
             'failed_count' => 1,

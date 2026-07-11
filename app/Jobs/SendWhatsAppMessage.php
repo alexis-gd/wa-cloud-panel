@@ -9,6 +9,7 @@ use App\Models\PhoneNumber;
 use App\Models\Setting;
 use App\Events\CampaignProgressUpdated;
 use App\Services\WhatsApp\PortfolioLimit;
+use App\Services\WhatsApp\SendWindow;
 use App\Services\WhatsApp\TemplateBuilder;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Bus\Queueable;
@@ -57,6 +58,20 @@ class SendWhatsAppMessage implements ShouldQueue
             Log::info('SendWhatsAppMessage: campaña pausada, descartando job silenciosamente', [
                 'campaign_id' => $this->campaignId,
             ]);
+            return;
+        }
+
+        // ── Ventana de envío: L-V 9AM-10PM CST. Fuera de hora, reencolar hasta la
+        //    próxima apertura. Va aquí (no solo en el despacho) para que el horario se
+        //    respete aunque el worker corra 24/7 por Supervisor: cubre campañas grandes
+        //    que cruzan las 22:00 con cola pendiente. El modo demo (schedule_bypass) lo salta. ──
+        if (! SendWindow::isOpen()) {
+            $next = SendWindow::nextOpening();
+            Log::info('SendWhatsAppMessage: fuera de ventana de envío, reencolando hasta la próxima apertura', [
+                'contact_id'   => $this->contactId,
+                'next_opening' => $next->toDateTimeString(),
+            ]);
+            $this->release($next->diffInSeconds(now()));
             return;
         }
 
@@ -144,7 +159,7 @@ class SendWhatsAppMessage implements ShouldQueue
         $cooldownDays = max(7, (int) Setting::get('cooldown_days', 30));
         $lastSent     = MessageLog::where('to_number', $contact->phone)
             ->where('channel', 'whatsapp')
-            ->where('status', 'sent')
+            ->whereIn('status', ['sent', 'delivered', 'read'])
             ->latest('sent_at')
             ->value('sent_at');
 

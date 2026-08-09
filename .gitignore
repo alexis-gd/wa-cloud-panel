@@ -18,4 +18,5 @@ yarn-error.log
 /.idea
 /.vscode
 CLAUDE.local.md
+/.claude/settings.json
 /.claude/settings.local.json

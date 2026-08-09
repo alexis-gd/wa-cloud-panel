@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\WaTemplate;
@@ -126,6 +127,31 @@ class TemplateController extends Controller
             'to'            => 'required|string',
             'body_vars'     => 'array',
         ]);
+
+        // La prueba es un mensaje REAL: se cobra, gasta cupo del día y deja al contacto en
+        // cooldown. Se salta dedup/cooldown/horario a propósito (para eso es), pero NUNCA la
+        // baja: enviar marketing a quien pidió STOP viola la política de Meta y la ley. El
+        // desplegable del panel ya solo lista contactos activos; esto cierra el endpoint y la
+        // ventana en que esa lista quedó vieja.
+        $contact = Contact::where('phone', $data['to'])->first();
+
+        if (! $contact) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Ese número no está en tus contactos. Elige uno de la lista.',
+                'code'    => 'CONTACT_NOT_FOUND',
+            ], 422);
+        }
+
+        if ($contact->status !== 'active') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $contact->status === 'opted_out'
+                    ? 'Ese contacto pidió su baja. No se le puede enviar, ni siquiera una prueba.'
+                    : 'Ese contacto no está activo, no se le puede enviar.',
+                'code'    => 'CONTACT_NOT_SENDABLE',
+            ], 422);
+        }
 
         $phone = PhoneNumber::where('is_active', true)->firstOrFail();
 

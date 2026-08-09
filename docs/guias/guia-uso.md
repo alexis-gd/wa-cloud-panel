@@ -114,6 +114,12 @@ Al entrar ves un resumen de todo. De arriba a abajo:
 - **Enviar mensaje de prueba** *(solo administrador)* - prueba una plantilla con un contacto
   antes de lanzar la campaña. El operador no ve este botón.
 
+> **La prueba es un mensaje real.** Sale por el número de la empresa igual que una campaña:
+> gasta cupo del día, Meta lo cobra en la factura de la cuenta, y el contacto queda en
+> **enfriamiento**, o sea que no podrá recibir campañas hasta que pase ese periodo. Usa
+> siempre el mismo número de pruebas, y que no esté en los segmentos de tus campañas reales.
+> A quien pidió su baja el sistema no le envía ni siquiera una prueba.
+
 > ⚠️ Si el semáforo está en **ROJO** o dice **PAUSADO**, NO ejecutes campañas. El sistema se
 > pausó solo para proteger la cuenta. Avisa a soporte. (Ver
 > [¿Qué hago si...?](#14-que-hago-si-como-reaccionar))

@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Contact;
+use App\Models\PhoneNumber;
 use App\Models\WaTemplate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class TemplateTest extends TestCase
@@ -97,6 +100,68 @@ class TemplateTest extends TestCase
                  'to'            => '529231311146',
              ])
              ->assertStatus(403);
+    }
+
+    // ── Envío de prueba: es un mensaje real, respeta la baja ─────────────────
+    // Se salta dedup/cooldown/horario a propósito (para eso es una prueba), pero nunca la
+    // baja: mandarle marketing a quien pidió STOP viola la política de Meta y la ley.
+
+    public function test_prueba_rechaza_contacto_dado_de_baja(): void
+    {
+        Http::fake();
+        PhoneNumber::factory()->create(['is_active' => true]);
+        Contact::factory()->create(['phone' => '529231311146', 'status' => 'opted_out']);
+
+        $response = $this->actingAsAdmin()
+             ->postJson('/api/templates/send-test', [
+                 'template_name' => 'hello_world',
+                 'language_code' => 'en_US',
+                 'to'            => '529231311146',
+             ])
+             ->assertStatus(422)
+             ->assertJsonPath('code', 'CONTACT_NOT_SENDABLE');
+
+        $this->assertStringContainsString('baja', $response->json('message'));
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('message_log', 0);
+    }
+
+    public function test_prueba_rechaza_numero_que_no_es_contacto(): void
+    {
+        Http::fake();
+        PhoneNumber::factory()->create(['is_active' => true]);
+
+        $this->actingAsAdmin()
+             ->postJson('/api/templates/send-test', [
+                 'template_name' => 'hello_world',
+                 'language_code' => 'en_US',
+                 'to'            => '529999999999',
+             ])
+             ->assertStatus(422)
+             ->assertJsonPath('code', 'CONTACT_NOT_FOUND');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_prueba_envia_a_contacto_activo(): void
+    {
+        Http::fake([
+            'graph.facebook.com/*' => Http::response([
+                'messages' => [['id' => 'wamid.TEST']],
+            ], 200),
+        ]);
+        PhoneNumber::factory()->create(['is_active' => true]);
+        Contact::factory()->create(['phone' => '529231311146', 'status' => 'active']);
+
+        $this->actingAsAdmin()
+             ->postJson('/api/templates/send-test', [
+                 'template_name' => 'hello_world',
+                 'language_code' => 'en_US',
+                 'to'            => '529231311146',
+             ])
+             ->assertStatus(200);
+
+        $this->assertDatabaseCount('message_log', 1);
     }
 
     // ── Visibilidad de plantillas (solo superadmin) ──────────────────────────

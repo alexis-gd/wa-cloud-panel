@@ -159,6 +159,16 @@
     <!-- Dialog: Enviar mensaje de prueba -->
     <Dialog v-model:visible="showTestDialog" header="Enviar mensaje de prueba" :modal="true" :style="{ width: '400px' }">
       <div class="test-form">
+        <div class="test-notice">
+          <i class="pi pi-info-circle" />
+          <span>Es un mensaje real, igual que el de una campaña.</span>
+          <HelpPopover
+            title="Qué pasa al enviar una prueba"
+            :items="testHelpItems"
+            warning="El contacto quedará en enfriamiento: no podrá recibir campañas durante ese periodo."
+            tip="Usa siempre el mismo número de pruebas, y que no esté en los segmentos de tus campañas reales."
+          />
+        </div>
         <div class="form-group">
           <label>Plantilla</label>
           <code class="tpl-chip">{{ selected?.name }}</code>
@@ -220,6 +230,7 @@ import SelectButton  from 'primevue/selectbutton';
 import InputText     from 'primevue/inputtext';
 import Message       from 'primevue/message';
 import SmsTemplatesPanel from '../components/SmsTemplatesPanel.vue';
+import HelpPopover       from '../components/HelpPopover.vue';
 
 const toast   = useToast();
 const confirm = useConfirm();
@@ -247,6 +258,17 @@ const contactOptions  = ref([]);
 const loadingContacts = ref(false);
 
 const templateVarLabels = computed(() => extractVarLabels(selected.value?.body_text));
+
+// La prueba no es gratis ni inocua: sale por el mismo número, gasta cupo y congela al contacto.
+// Sin monto a propósito: el precio lo fija Meta por país y categoría, y cambia.
+const testHelpItems = [
+    { icon: 'pi-send',         label: 'Es real',      text: 'sale por el número de la empresa, igual que una campaña. El contacto lo recibe en su WhatsApp.' },
+    { icon: 'pi-gauge',        label: 'Gasta cupo',   text: 'cuenta dentro del límite de mensajes del día.' },
+    { icon: 'pi-clock',        label: 'Enfriamiento', text: 'el contacto queda en espera y no recibirá campañas hasta que pase el periodo configurado.' },
+    { icon: 'pi-receipt',      label: 'Se factura',   text: 'Meta la cobra como cualquier mensaje de campaña y aparece en la factura de la cuenta.' },
+    { icon: 'pi-comments',     label: 'Si responde',  text: 'la conversación de las siguientes 24 horas no gasta cupo ni se cobra aparte.' },
+    { icon: 'pi-ban',          label: 'Bajas',        text: 'un contacto que pidió su baja nunca aparece aquí y el sistema rechaza el envío.' },
+];
 
 const alertTemplates = computed(() =>
   templates.value.filter(t =>
@@ -506,6 +528,18 @@ function statusSeverity(s) {
 
 /* Dialog: enviar prueba */
 .test-form     { display: flex; flex-direction: column; gap: 4px; }
+.test-notice {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--p-surface-100);
+    color: var(--p-text-muted-color);
+    font-size: .8rem;
+}
+.test-notice .pi-info-circle { color: var(--p-primary-500); }
 .form-group    { margin-bottom: 10px; }
 .form-group label { display: block; font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 4px; }
 .tpl-chip  {

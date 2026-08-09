@@ -137,9 +137,10 @@
               <div v-for="btn in selected.buttons" :key="btn.text" class="wa-btn">↩ {{ btn.text }}</div>
             </template>
           </div>
-          <!-- Info extra -->
-          <div v-if="selected.rejection_reason" class="preview-rejection">
-            <strong>Rechazada:</strong> {{ selected.rejection_reason }}
+          <!-- Motivo del rechazo: solo si de verdad está rechazada. El estado ya se ve en la
+               tabla, así que aquí solo aporta el motivo. -->
+          <div v-if="selected.status === 'rejected'" class="preview-rejection">
+            <strong>Motivo del rechazo:</strong> {{ selected.rejection_reason || 'Meta no indicó un motivo.' }}
           </div>
 
           <!-- Imagen del encabezado: la que Meta guarda es solo vista previa, no la entrega -->
@@ -181,7 +182,8 @@
               />
             </div>
           </div>
-          <!-- Enviar prueba - solo admin/superadmin -->
+          <!-- Enviar prueba - solo admin/superadmin. Sin la imagen local el mensaje saldría
+               fallido (Meta no entrega la URL de su CDN), así que ni se ofrece. -->
           <Button
             v-if="selected.status === 'approved' && isAdmin"
             label="Enviar prueba"
@@ -189,6 +191,8 @@
             size="small"
             severity="secondary"
             class="test-btn"
+            :disabled="selected.needs_image"
+            v-tooltip.top="selected.needs_image ? 'Sube la imagen del encabezado para poder probar esta plantilla' : null"
             @click="openTestDialog"
           />
         </div>

@@ -185,6 +185,12 @@ Las causas más comunes de rechazo:
 3. Solo las **Aprobadas** aparecerán para elegir al crear una campaña. Las demás no se
    pueden usar (a propósito).
 
+> **Sincronizar deja el panel igual a Meta.** Además de bajar las nuevas y actualizar estados,
+> **retira** las que ya no existen en la cuenta de WhatsApp (porque se borraron en Meta o
+> porque se cambió de cuenta). Si el aviso dice "N retiradas", es eso: plantillas que ya no
+> se pueden usar y por eso desaparecen de la lista. No borra nada en Meta, solo en el panel,
+> y las campañas ya enviadas conservan su historial.
+
 ---
 
 ## 4. Palabras clave que el sistema entiende (lo más importante)

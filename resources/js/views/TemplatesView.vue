@@ -269,7 +269,16 @@ async function syncTemplates() {
   const res = await api.syncTemplates();
   if (res.status === 'ok') {
     templates.value = res.data;
-    toast.add({ severity: 'success', summary: `${res.synced} plantillas sincronizadas`, life: 3000 });
+    // El sync espeja lo que hay en Meta: si una plantilla se borró allá, aquí también se quita.
+    const retiradas = res.removed
+      ? `${res.removed} retirada${res.removed === 1 ? '' : 's'} (ya no están en Meta)`
+      : null;
+    toast.add({
+      severity : 'success',
+      summary  : `${res.synced} plantillas sincronizadas`,
+      detail   : retiradas,
+      life     : 4000,
+    });
   } else {
     toast.add({ severity: 'error', summary: 'Error al sincronizar', detail: res.message, life: 5000 });
   }

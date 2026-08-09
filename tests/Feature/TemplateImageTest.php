@@ -196,6 +196,25 @@ class TemplateImageTest extends TestCase
              ->assertStatus(201);
     }
 
+    public function test_no_deja_probar_una_plantilla_a_la_que_le_falta_la_imagen(): void
+    {
+        \Illuminate\Support\Facades\Http::fake();
+        PhoneNumber::factory()->create(['is_active' => true]);
+        \App\Models\Contact::factory()->create(['phone' => '529231311146', 'status' => 'active']);
+        $tpl = $this->templateWithImageHeader('promo_sin_img_prueba');
+
+        $this->actingAsAdmin()
+             ->postJson('/api/templates/send-test', [
+                 'template_name' => $tpl->name,
+                 'language_code' => 'es_MX',
+                 'to'            => '529231311146',
+             ])
+             ->assertStatus(422)
+             ->assertJsonPath('code', 'TEMPLATE_IMAGE_MISSING');
+
+        \Illuminate\Support\Facades\Http::assertNothingSent();
+    }
+
     /** El envío debe preferir el archivo local sobre la URL del CDN de Meta, sea jpg o png. */
     public function test_el_envio_usa_la_imagen_local_tambien_en_png(): void
     {

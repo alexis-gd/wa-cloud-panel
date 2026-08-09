@@ -153,6 +153,18 @@ class TemplateController extends Controller
             ], 422);
         }
 
+        // Misma red de seguridad que en campañas: sin la imagen local, Meta no entrega el
+        // mensaje. El botón ya sale deshabilitado, esto cierra el endpoint.
+        $template = WaTemplate::where('name', $data['template_name'])->first();
+
+        if ($template?->needs_image) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Esta plantilla lleva imagen y todavía no se ha subido. Súbela antes de probarla.',
+                'code'    => 'TEMPLATE_IMAGE_MISSING',
+            ], 422);
+        }
+
         $phone = PhoneNumber::where('is_active', true)->firstOrFail();
 
         // Regla #2: crear log ANTES de llamar a la API

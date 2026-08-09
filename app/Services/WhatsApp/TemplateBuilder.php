@@ -6,6 +6,8 @@ use App\Models\WaTemplate;
 
 class TemplateBuilder
 {
+    public function __construct(private readonly TemplateImage $image = new TemplateImage()) {}
+
     /**
      * Construye el payload JSON para enviar una plantilla aprobada por Meta.
      * Incluye el componente header (IMAGE/TEXT) si la plantilla lo tiene.
@@ -66,17 +68,12 @@ class TemplateBuilder
         return $payload;
     }
 
+    /**
+     * Prefiere el archivo local (jpg o png) sobre la URL que Meta guardó al sincronizar: la del
+     * CDN de Meta es de vista previa y no se entrega, así que el fallback es el último recurso.
+     */
     private function resolveImageUrl(string $templateName, ?string $fallback): ?string
     {
-        $localPath = public_path("storage/templates/{$templateName}.jpg");
-
-        if (file_exists($localPath)) {
-            $base = rtrim(config('services.whatsapp.media_base_url', ''), '/');
-            if ($base) {
-                return "{$base}/storage/templates/{$templateName}.jpg";
-            }
-        }
-
-        return $fallback;
+        return $this->image->url($templateName) ?? $fallback;
     }
 }

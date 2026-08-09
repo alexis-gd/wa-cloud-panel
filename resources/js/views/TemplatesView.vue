@@ -75,6 +75,7 @@
               <td>
                 <code class="tpl-name">{{ t.name }}</code>
                 <Tag v-if="t.is_hidden" value="Oculta" severity="secondary" class="hidden-tag" />
+                <Tag v-if="t.needs_image" value="Falta imagen" severity="danger" class="hidden-tag" />
               </td>
               <td><Tag :value="statusLabel(t.status)" :severity="statusSeverity(t.status)" /></td>
               <td>
@@ -115,8 +116,8 @@
 
         <div v-else class="wa-preview">
           <div class="wa-bubble">
-            <!-- Header imagen -->
-            <img v-if="selected.header_image_url" :src="selected.header_image_url" class="wa-header-img" />
+            <!-- Header imagen: se prefiere la local, que es la que Meta sí entrega -->
+            <img v-if="selected.image_url || selected.header_image_url" :src="selected.image_url || selected.header_image_url" class="wa-header-img" />
             <div v-else-if="selected.header_type === 'IMAGE'" class="wa-header-placeholder">
               <i class="pi pi-image"></i>
             </div>
@@ -140,6 +141,46 @@
           <div v-if="selected.rejection_reason" class="preview-rejection">
             <strong>Rechazada:</strong> {{ selected.rejection_reason }}
           </div>
+
+          <!-- Imagen del encabezado: la que Meta guarda es solo vista previa, no la entrega -->
+          <div v-if="isAdmin && selected.header_type === 'IMAGE'" class="img-manager">
+            <p class="img-manager-title">
+              Imagen del encabezado
+              <HelpPopover
+                title="Por qué se sube aquí"
+                :items="imageHelpItems"
+                warning="Sin esta imagen la plantilla no se puede usar en campañas."
+              />
+            </p>
+
+            <Message v-if="selected.needs_image" severity="warn" class="img-missing">
+              Falta la imagen. Súbela para poder usar esta plantilla.
+            </Message>
+
+            <input
+              ref="imageInput"
+              type="file"
+              accept=".jpg,.jpeg,.png"
+              class="img-input"
+              @change="uploadImage"
+            />
+            <div class="img-actions">
+              <Button
+                :label="selected.image_url ? 'Reemplazar imagen' : 'Subir imagen'"
+                icon="pi pi-upload"
+                size="small"
+                :loading="uploadingImage"
+                @click="imageInput?.click()"
+              />
+              <Button
+                v-if="selected.image_url"
+                label="Quitar"
+                icon="pi pi-trash"
+                text severity="danger" size="small"
+                @click="removeImage"
+              />
+            </div>
+          </div>
           <!-- Enviar prueba - solo admin/superadmin -->
           <Button
             v-if="selected.status === 'approved' && isAdmin"
@@ -159,6 +200,16 @@
     <!-- Dialog: Enviar mensaje de prueba -->
     <Dialog v-model:visible="showTestDialog" header="Enviar mensaje de prueba" :modal="true" :style="{ width: '400px' }">
       <div class="test-form">
+        <div class="test-notice">
+          <i class="pi pi-info-circle" />
+          <span>Es un mensaje real, igual que el de una campaña.</span>
+          <HelpPopover
+            title="Qué pasa al enviar una prueba"
+            :items="testHelpItems"
+            warning="El contacto quedará en enfriamiento: no podrá recibir campañas durante ese periodo."
+            tip="Usa siempre el mismo número de pruebas, y que no esté en los segmentos de tus campañas reales."
+          />
+        </div>
         <div class="form-group">
           <label>Plantilla</label>
           <code class="tpl-chip">{{ selected?.name }}</code>
@@ -220,6 +271,7 @@ import SelectButton  from 'primevue/selectbutton';
 import InputText     from 'primevue/inputtext';
 import Message       from 'primevue/message';
 import SmsTemplatesPanel from '../components/SmsTemplatesPanel.vue';
+import HelpPopover       from '../components/HelpPopover.vue';
 
 const toast   = useToast();
 const confirm = useConfirm();
@@ -248,6 +300,26 @@ const loadingContacts = ref(false);
 
 const templateVarLabels = computed(() => extractVarLabels(selected.value?.body_text));
 
+const imageInput     = ref(null);
+const uploadingImage = ref(false);
+
+const imageHelpItems = [
+    { icon: 'pi-image',   label: 'Por qué',    text: 'la imagen que guarda Meta al aprobar la plantilla solo sirve de vista previa; al enviar no la entrega.' },
+    { icon: 'pi-upload',  label: 'Qué subir',  text: 'la misma imagen que registraste en Meta, en JPG o PNG y de menos de 5 MB.' },
+    { icon: 'pi-check',   label: 'Cuándo',     text: 'una sola vez por plantilla. Si la cambias en Meta, reemplázala aquí también.' },
+];
+
+// La prueba no es gratis ni inocua: sale por el mismo número, gasta cupo y congela al contacto.
+// Sin monto a propósito: el precio lo fija Meta por país y categoría, y cambia.
+const testHelpItems = [
+    { icon: 'pi-send',         label: 'Es real',      text: 'sale por el número de la empresa, igual que una campaña. El contacto lo recibe en su WhatsApp.' },
+    { icon: 'pi-gauge',        label: 'Gasta cupo',   text: 'cuenta dentro del límite de mensajes del día.' },
+    { icon: 'pi-clock',        label: 'Enfriamiento', text: 'el contacto queda en espera y no recibirá campañas hasta que pase el periodo configurado.' },
+    { icon: 'pi-receipt',      label: 'Se factura',   text: 'Meta la cobra como cualquier mensaje de campaña y aparece en la factura de la cuenta.' },
+    { icon: 'pi-comments',     label: 'Si responde',  text: 'la conversación de las siguientes 24 horas no gasta cupo ni se cobra aparte.' },
+    { icon: 'pi-ban',          label: 'Bajas',        text: 'un contacto que pidió su baja nunca aparece aquí y el sistema rechaza el envío.' },
+];
+
 const alertTemplates = computed(() =>
   templates.value.filter(t =>
     t.status === 'rejected' || t.status === 'paused' ||
@@ -269,11 +341,59 @@ async function syncTemplates() {
   const res = await api.syncTemplates();
   if (res.status === 'ok') {
     templates.value = res.data;
-    toast.add({ severity: 'success', summary: `${res.synced} plantillas sincronizadas`, life: 3000 });
+    // El sync espeja lo que hay en Meta: si una plantilla se borró allá, aquí también se quita.
+    const retiradas = res.removed
+      ? `${res.removed} retirada${res.removed === 1 ? '' : 's'} (ya no están en Meta)`
+      : null;
+    toast.add({
+      severity : 'success',
+      summary  : `${res.synced} plantillas sincronizadas`,
+      detail   : retiradas,
+      life     : 4000,
+    });
   } else {
     toast.add({ severity: 'error', summary: 'Error al sincronizar', detail: res.message, life: 5000 });
   }
   syncing.value = false;
+}
+
+async function uploadImage(event) {
+  const file = event.target.files?.[0];
+  if (!file || !selected.value) return;
+
+  uploadingImage.value = true;
+  const res = await api.uploadTemplateImage(selected.value.id, file);
+  uploadingImage.value = false;
+  event.target.value = ''; // permite volver a elegir el mismo archivo
+
+  if (res.status === 'ok') {
+    applyImageResult(res.data);
+    toast.add({ severity: 'success', summary: 'Imagen guardada', life: 3000 });
+  } else {
+    // Los errores de validación de Laravel vienen en `errors`, no en `message`.
+    const detail = res.errors?.image?.[0] ?? res.message ?? 'No se pudo subir la imagen';
+    toast.add({ severity: 'error', summary: 'Error al subir', detail, life: 5000 });
+  }
+}
+
+async function removeImage() {
+  if (!selected.value) return;
+
+  const res = await api.deleteTemplateImage(selected.value.id);
+
+  if (res.status === 'ok') {
+    applyImageResult(res.data);
+    toast.add({ severity: 'success', summary: 'Imagen quitada', life: 3000 });
+  } else {
+    toast.add({ severity: 'error', summary: 'Error al quitar la imagen', detail: res.message, life: 5000 });
+  }
+}
+
+/** Refleja el nuevo estado de la imagen en la fila y en la vista previa, sin recargar todo. */
+function applyImageResult(data) {
+  const row = templates.value.find(t => t.id === data.id);
+  if (row) Object.assign(row, { image_url: data.image_url, needs_image: data.needs_image });
+  if (selected.value?.id === data.id) Object.assign(selected.value, { image_url: data.image_url, needs_image: data.needs_image });
 }
 
 function selectTemplate(t) {
@@ -496,7 +616,37 @@ function statusSeverity(s) {
 .test-btn { width: 100%; margin-top: 10px; }
 
 /* Dialog: enviar prueba */
+.img-manager {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--p-surface-200);
+}
+.img-manager-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 0 6px;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--p-text-color);
+}
+.img-missing  { margin-bottom: 8px; font-size: .78rem; }
+.img-input    { display: none; }
+.img-actions  { display: flex; gap: 6px; flex-wrap: wrap; }
+
 .test-form     { display: flex; flex-direction: column; gap: 4px; }
+.test-notice {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--p-surface-100);
+    color: var(--p-text-muted-color);
+    font-size: .8rem;
+}
+.test-notice .pi-info-circle { color: var(--p-primary-500); }
 .form-group    { margin-bottom: 10px; }
 .form-group label { display: block; font-size: .82rem; color: var(--p-text-muted-color); margin-bottom: 4px; }
 .tpl-chip  {

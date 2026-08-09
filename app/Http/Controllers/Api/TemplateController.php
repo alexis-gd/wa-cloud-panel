@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Console\Commands\SyncWhatsAppTemplates;
 use App\Http\Controllers\Controller;
+use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\WaTemplate;
 use App\Services\WhatsApp\TemplateBuilder;
+use App\Services\WhatsApp\TemplateSync;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 
 class TemplateController extends Controller
 {
@@ -83,11 +83,11 @@ class TemplateController extends Controller
     }
 
     // POST /api/templates/sync — sincroniza desde Meta API
-    public function sync(Request $request): JsonResponse
+    public function sync(Request $request, TemplateSync $sync): JsonResponse
     {
-        $exitCode = Artisan::call('wa:sync-templates');
+        $result = $sync->run();
 
-        if ($exitCode !== 0) {
+        if (! $result['ok']) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Error al sincronizar con Meta. Revisa que el token sea válido.',
@@ -97,9 +97,12 @@ class TemplateController extends Controller
         $templates = $this->visibleQuery($request)->orderBy('created_at', 'desc')->get();
 
         return response()->json([
-            'status' => 'ok',
-            'data'   => $templates,
-            'synced' => $templates->count(),
+            'status'  => 'ok',
+            'data'    => $templates,
+            'synced'  => $result['synced'],
+            // Plantillas que estaban en el panel pero ya no existen en la cuenta de Meta: el
+            // sync las retira para que el operador no vea plantillas fantasma.
+            'removed' => $result['removed'],
         ]);
     }
 
@@ -124,6 +127,31 @@ class TemplateController extends Controller
             'to'            => 'required|string',
             'body_vars'     => 'array',
         ]);
+
+        // La prueba es un mensaje REAL: se cobra, gasta cupo del día y deja al contacto en
+        // cooldown. Se salta dedup/cooldown/horario a propósito (para eso es), pero NUNCA la
+        // baja: enviar marketing a quien pidió STOP viola la política de Meta y la ley. El
+        // desplegable del panel ya solo lista contactos activos; esto cierra el endpoint y la
+        // ventana en que esa lista quedó vieja.
+        $contact = Contact::where('phone', $data['to'])->first();
+
+        if (! $contact) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Ese número no está en tus contactos. Elige uno de la lista.',
+                'code'    => 'CONTACT_NOT_FOUND',
+            ], 422);
+        }
+
+        if ($contact->status !== 'active') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $contact->status === 'opted_out'
+                    ? 'Ese contacto pidió su baja. No se le puede enviar, ni siquiera una prueba.'
+                    : 'Ese contacto no está activo, no se le puede enviar.',
+                'code'    => 'CONTACT_NOT_SENDABLE',
+            ], 422);
+        }
 
         $phone = PhoneNumber::where('is_active', true)->firstOrFail();
 

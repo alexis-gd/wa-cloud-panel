@@ -114,6 +114,12 @@ Al entrar ves un resumen de todo. De arriba a abajo:
 - **Enviar mensaje de prueba** *(solo administrador)* - prueba una plantilla con un contacto
   antes de lanzar la campaña. El operador no ve este botón.
 
+> **La prueba es un mensaje real.** Sale por el número de la empresa igual que una campaña:
+> gasta cupo del día, Meta lo cobra en la factura de la cuenta, y el contacto queda en
+> **enfriamiento**, o sea que no podrá recibir campañas hasta que pase ese periodo. Usa
+> siempre el mismo número de pruebas, y que no esté en los segmentos de tus campañas reales.
+> A quien pidió su baja el sistema no le envía ni siquiera una prueba.
+
 > ⚠️ Si el semáforo está en **ROJO** o dice **PAUSADO**, NO ejecutes campañas. El sistema se
 > pausó solo para proteger la cuenta. Avisa a soporte. (Ver
 > [¿Qué hago si...?](#14-que-hago-si-como-reaccionar))
@@ -483,6 +489,7 @@ Guía rápida de reacción. Si algo se ve raro, busca aquí antes de asustarte.
 | **Alerta de "problema con los SMS"** | El sistema no recibe confirmaciones de SMS | Avisa a soporte (es tema del teléfono que manda los SMS). |
 | **Un contacto dice que no le llegó el mensaje** | Puede no tener WhatsApp, o estar Pospuesto / en Enfriamiento | Búscalo en Contactos y mira su estado de entregabilidad. |
 | **Quiero mandar una plantilla nueva y no aparece** | Solo salen plantillas aprobadas por Meta | El administrador debe crearla y esperar aprobación. Ver **Guía Meta**. |
+| **Me dice que la plantilla "lleva imagen y no se ha subido"** | La plantilla usa imagen de encabezado y falta cargarla en el panel | El administrador la sube en Plantillas. Sin ella los mensajes saldrían fallidos, por eso el sistema frena la campaña. |
 | **Un agente ya no trabaja aquí** | Sus conversaciones quedan con él asignadas | Admin u operador las reasigna a otro agente con "Asignar a agente". |
 
 > Todo lo que diga "avisa a soporte" o "ver Guía Meta" son cosas que resuelve quien administra

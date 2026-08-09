@@ -364,14 +364,15 @@ const qualityClass = computed(() => ({
     'quality-unknown': !['GREEN','YELLOW','RED'].includes(healthData.value.quality_rating),
 }));
 
-// Límite del portfolio que Meta reporta por webhook (compartido por todos los números).
-// "UNLIMITED" -> "Ilimitado"; numérico -> con separador de miles.
+// Límite del portfolio que reporta Meta (compartido por todos los números).
+// El backend ya lo manda resuelto en portfolio_limit_daily, aquí solo se formatea: parsear
+// el crudo aquí borraba el sufijo ("TIER_2K" -> "2" en vez de 2,000).
 const portfolioLimitLabel = computed(() => {
-    const raw = healthData.value.portfolio_limit;
+    const raw   = healthData.value.portfolio_limit;
+    const daily = healthData.value.portfolio_limit_daily;
     if (!raw) return '…';
-    const digits = String(raw).replace(/\D/g, '');
-    if (!digits) return 'Ilimitado';
-    return Number(digits).toLocaleString('es-MX');
+    if (String(raw).toUpperCase().includes('UNLIMITED')) return 'Ilimitado';
+    return daily ? Number(daily).toLocaleString('es-MX') : String(raw);
 });
 
 const statusSeverity = (status) => ({

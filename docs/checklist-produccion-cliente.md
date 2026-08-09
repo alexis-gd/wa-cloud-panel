@@ -9,21 +9,41 @@
 
 ---
 
-## 1. Cuenta y número de Meta (WABA del cliente)
+## 1. Cuenta y número de Meta (WABA del cliente) - ✅ HECHO 2026-08-09
 
-- [ ] **`WA_PHONE_ID`** en `.env` → cambiar del sandbox `1082360764952377` al **Phone ID del cliente**.
-- [ ] **`WA_WABA_ID`** → cambiar de `1236630511398211` al **WABA ID del cliente**.
-- [ ] **`WA_TOKEN`** → System User Token **del cliente** (sin expiración). Verificar permisos
-      `whatsapp_business_messaging` + `whatsapp_business_management`.
-- [ ] **`WA_APP_SECRET`** y **`WA_WEBHOOK_VERIFY_TOKEN`** → los de la app de Meta del cliente.
-- [ ] El número en BD (`phone_numbers`) apunta al del cliente. Re-seed o alta por el panel
-      (Configuración → Números). El token vive cifrado en `phone_numbers.token`.
-- [ ] **Business Verification** del cliente aprobada en Meta (3-10 días hábiles). Sin esto, Tier 1 (250/día).
-- [ ] Webhook de Meta apuntando a `https://sender.prestamaz.site/api/webhook` con el
-      `WA_WEBHOOK_VERIFY_TOKEN` nuevo. Suscripciones: `messages`, `message_template_status_update`.
-- [ ] Plantillas aprobadas en el WABA del cliente (`prestamaz_interes_v1` u otras). Categoría **Marketing**, `es_MX`, con CAT y baja en el texto.
-- [ ] Imagen de header subida: `public/storage/templates/prestamaz_interes_v1.jpg` y `WA_MEDIA_BASE_URL=https://sender.prestamaz.site`.
-- [ ] Número de campañas = **SIM dedicada nueva**, NUNCA el número oficial del cliente (669-101-0211).
+> Datos finales: portafolio `prestamazmzt` (`business_id 1025563076289753`), app **`PRESTAMAZ-SENDER`**
+> (`2145308996407972`), system user **`panelsender`**, WABA **`prestamaz sofom`** = `923331644153132`,
+> número `+52 669 252 2844` = phone id `1346603205191948`.
+> El cliente borró y recreó WABAs varias veces durante el alta: **si algo no cuadra, releer los IDs en
+> Business Manager antes de tocar el `.env`** - los de arriba mueren si vuelve a borrar la cuenta.
+
+- [x] **`WA_PHONE_ID`** = `1346603205191948`.
+- [x] **`WA_WABA_ID`** = `923331644153132`. Ojo: es el único que usa `wa:sync-templates`; si queda
+      apuntando a otra WABA, el panel sincroniza plantillas de la cuenta equivocada **sin dar error**.
+- [x] **`WA_TOKEN`** → System User Token de `panelsender`, sin expiración, con
+      `whatsapp_business_messaging` + `whatsapp_business_management`. Verificar con
+      `GET /v22.0/me?fields=id,name` (debe responder `panelsender`).
+- [x] **`WA_APP_SECRET`** → el de `PRESTAMAZ-SENDER` (Configuración de la app → Básica).
+      **`WA_WEBHOOK_VERIFY_TOKEN`** no cambia: lo inventamos nosotros, Meta solo lo repite.
+- [x] Número en BD (`phone_numbers`) = `prestamaz sofom`, activo. `Sandbox Prestamaz` y
+      `prestamaz beta` quedaron **inactivos, no borrados** (conservan su historial).
+- [ ] **Business Verification**: 🟠 **en revisión** desde 2026-08-02. Mientras, el portafolio está en
+      `TIER_2K` (2,000 usuarios únicos/24h, compartidos por toda la cuenta).
+- [x] Webhook `https://sender.prestamaz.site/api/webhook` verificado, con `messages` y
+      `message_template_status_update` suscritos. **Además** la WABA debe estar suscrita a la app:
+      `GET /{waba_id}/subscribed_apps` tiene que listar `PRESTAMAZ-SENDER` (si no,
+      `POST /{waba_id}/subscribed_apps`). Sin eso el registro del número falla con `code 100 / subcode 33`.
+- [x] **App publicada** (modo Activo). Requisito: URL de política de privacidad
+      (`https://prestamaz.mx/aviso-de-privacidad`), icono y categoría. **Sin publicar, el webhook solo
+      recibe eventos de prueba** - no llegan entregas ni respuestas reales.
+- [x] Plantilla `prestamaz_demo_v1` (Marketing, `es_MX`, con CAT y baja en el cuerpo) aprobada en la
+      WABA del cliente. Las plantillas **no se heredan** entre WABAs: hay que recrearlas.
+- [x] Imagen de header: `storage/app/public/templates/prestamaz_demo_v1.jpg` (el archivo debe llamarse
+      **igual que la plantilla**) + `WA_MEDIA_BASE_URL=https://sender.prestamaz.site`. Si falta, el envío
+      cae a la URL `scontent.whatsapp.net` que Meta **no entrega** y todo sale `failed`.
+- [x] Número de campañas = SIM dedicada, NO el número oficial del cliente (669-101-0211).
+- [x] Validado end-to-end en prod (2026-08-09): plantilla enviada a dos números, imagen y botones OK,
+      estados `enviado → entregado → leído`, entrante → conversación.
 
 ## 2. Horario de envíos (R1 - modo demo)
 

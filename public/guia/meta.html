@@ -393,6 +393,38 @@ sus estados.</li>
 <li>Solo las <strong>Aprobadas</strong> aparecerán para elegir al crear una campaña. Las demás no se
 pueden usar (a propósito).</li>
 </ol>
+<blockquote>
+<p><strong>Sincronizar deja el panel igual a Meta.</strong> Además de bajar las nuevas y actualizar estados,
+<strong>retira</strong> las que ya no existen en la cuenta de WhatsApp (porque se borraron en Meta o
+porque se cambió de cuenta). Si el aviso dice &quot;N retiradas&quot;, es eso: plantillas que ya no
+se pueden usar y por eso desaparecen de la lista. No borra nada en Meta, solo en el panel,
+y las campañas ya enviadas conservan su historial.</p>
+</blockquote>
+<h3 id="si-la-plantilla-lleva-imagen-hay-un-paso-mas">Si la plantilla lleva imagen: hay un paso más</h3>
+<p>Una plantilla con imagen de encabezado <strong>necesita que subas esa imagen también en el panel</strong>.
+No es un capricho: la imagen que Meta guarda al aprobar la plantilla sirve para la vista
+previa, pero <strong>Meta no la entrega</strong> al enviar. Si falta la imagen del panel, todos los
+mensajes de esa campaña salen fallidos.</p>
+<p><strong>Cómo se hace:</strong> panel -&gt; <strong>Plantillas</strong> -&gt; selecciona la plantilla -&gt; abajo de la vista
+previa, <strong>Subir imagen</strong>. Sube <strong>la misma imagen</strong> que registraste en Meta (JPG o PNG, menos
+de 5 MB). Una sola vez por plantilla.</p>
+<p><strong>Cómo saber si falta:</strong> en la lista, la plantilla trae la etiqueta roja <strong>&quot;Falta imagen&quot;</strong>.
+Mientras la tenga, el sistema <strong>no deja crear campañas</strong> con ella - te lo dice al intentarlo.
+Es a propósito: mejor frenar la campaña que mandarla y que falle contacto por contacto.</p>
+<blockquote>
+<p>Si cambias la imagen en Meta, reemplázala también en el panel. Deben ser la misma: Meta
+aprueba un contenido y el sistema debe entregar ese mismo.</p>
+</blockquote>
+<h3 id="el-flujo-completo-de-una-plantilla-de-principio-a-fin">El flujo completo de una plantilla, de principio a fin</h3>
+<ol>
+<li><strong>Crearla en Meta</strong> (Administrador de WhatsApp) con las reglas de arriba.</li>
+<li><strong>Esperar la aprobación</strong> (hasta 24h). Queda &quot;En revisión&quot; y luego &quot;Aprobada&quot;.</li>
+<li><strong>Sincronizar</strong> en el panel (Plantillas -&gt; Sincronizar con Meta).</li>
+<li><strong>Subir la imagen</strong> en el panel, si la plantilla lleva encabezado de imagen.</li>
+<li><strong>Probarla</strong> con el botón &quot;Enviar prueba&quot; a un número propio. Recuerda que la prueba es un
+mensaje real: se cobra y deja a ese contacto en enfriamiento.</li>
+<li><strong>Usarla en una campaña</strong>.</li>
+</ol>
 <hr />
 <h2 id="4-palabras-clave-que-el-sistema-entiende-lo-mas-importante">4. Palabras clave que el sistema entiende (lo más importante)</h2>
 <p><strong>Esta es la sección más crítica de toda la guía.</strong> El sistema reacciona a las respuestas
@@ -629,7 +661,8 @@ Varios números bajo la misma cuenta <strong>comparten</strong> el tope diario -
 redundancia y balanceo, pero no multiplica el volumen total. Meta sube este límite solo
 cuando la cuenta manda con buena calidad. El panel muestra el límite actual de la cuenta en
 el semáforo del Panel (&quot;Límite de la cuenta (Meta)&quot;), que se refresca cada vez que abres o
-actualizas el Panel - soporte no tiene que tocar nada.</p>
+actualizas el Panel, y además una vez al día por su cuenta - así, si Meta sube el límite,
+el sistema lo aprovecha aunque nadie entre al panel. Soporte no tiene que tocar nada.</p>
 <hr />
 <h2 id="9-agregar-un-numero-de-prueba-sandbox">9. Agregar un número de prueba (sandbox)</h2>
 <p><strong>Cuándo se necesita:</strong> en la cuenta de pruebas, un compañero no recibe los mensajes de

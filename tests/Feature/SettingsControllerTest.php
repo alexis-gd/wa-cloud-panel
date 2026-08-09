@@ -68,6 +68,48 @@ class SettingsControllerTest extends TestCase
         $this->assertNotNull(\App\Models\Setting::get('wa_portfolio_limit_updated_at'));
     }
 
+    /**
+     * El front no debe parsear el crudo de Meta: antes lo hacía con una regex que se comía el
+     * sufijo y "TIER_2K" salía como "2" en la tarjeta "Límite de la cuenta".
+     */
+    public function test_phone_health_devuelve_el_limite_del_portfolio_ya_resuelto(): void
+    {
+        PhoneNumber::factory()->create(['is_active' => true, 'paused_until' => null]);
+
+        Http::fake([
+            'graph.facebook.com/*' => Http::response([
+                'quality_rating'                            => 'GREEN',
+                'account_mode'                              => 'LIVE',
+                'whatsapp_business_manager_messaging_limit' => 'TIER_2K',
+            ], 200),
+        ]);
+
+        $this->actingAsSuperAdmin()
+             ->getJson('/api/settings/phone-health')
+             ->assertStatus(200)
+             ->assertJsonPath('data.portfolio_limit', 'TIER_2K')
+             ->assertJsonPath('data.portfolio_limit_daily', 2000);
+    }
+
+    public function test_phone_health_resuelve_el_limite_ilimitado_al_tope_de_seguridad(): void
+    {
+        PhoneNumber::factory()->create(['is_active' => true, 'paused_until' => null]);
+
+        Http::fake([
+            'graph.facebook.com/*' => Http::response([
+                'quality_rating'                            => 'GREEN',
+                'account_mode'                              => 'LIVE',
+                'whatsapp_business_manager_messaging_limit' => 'UNLIMITED',
+            ], 200),
+        ]);
+
+        $this->actingAsSuperAdmin()
+             ->getJson('/api/settings/phone-health')
+             ->assertStatus(200)
+             ->assertJsonPath('data.portfolio_limit', 'UNLIMITED')
+             ->assertJsonPath('data.portfolio_limit_daily', \App\Services\WhatsApp\PortfolioLimit::UNLIMITED_CAP);
+    }
+
     public function test_phone_health_incluye_sent_today_correcto(): void
     {
         $phone = PhoneNumber::factory()->create(['is_active' => true]);

@@ -403,7 +403,8 @@ Varios números bajo la misma cuenta **comparten** el tope diario - agregar núm
 redundancia y balanceo, pero no multiplica el volumen total. Meta sube este límite solo
 cuando la cuenta manda con buena calidad. El panel muestra el límite actual de la cuenta en
 el semáforo del Panel ("Límite de la cuenta (Meta)"), que se refresca cada vez que abres o
-actualizas el Panel - soporte no tiene que tocar nada.
+actualizas el Panel, y además una vez al día por su cuenta - así, si Meta sube el límite,
+el sistema lo aprovecha aunque nadie entre al panel. Soporte no tiene que tocar nada.
 
 ---
 

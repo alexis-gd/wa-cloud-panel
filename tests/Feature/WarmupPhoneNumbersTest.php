@@ -17,18 +17,36 @@ class WarmupPhoneNumbersTest extends TestCase
     /** Calidad que Meta reportará en el test actual. Default GREEN (número sano). */
     protected string $qualityRating = 'GREEN';
 
+    /** Límite del portfolio que Meta reportará. null = Meta no manda el campo. */
+    protected ?string $portfolioLimit = null;
+
     protected function setUp(): void
     {
         parent::setUp();
-        // Un solo stub que lee la propiedad al momento de la request, así fakeQuality()
-        // cambia la respuesta sin apilar stubs (donde el primero gana y opaca al resto).
-        Http::fake(['*' => fn () => Http::response(['quality_rating' => $this->qualityRating], 200)]);
+        // Un solo stub que lee las propiedades al momento de la request, así fakeQuality() y
+        // fakePortfolioLimit() cambian la respuesta sin apilar stubs (donde el primero gana
+        // y opaca al resto).
+        Http::fake(['*' => function () {
+            $body = ['quality_rating' => $this->qualityRating];
+
+            if ($this->portfolioLimit !== null) {
+                $body['whatsapp_business_manager_messaging_limit'] = $this->portfolioLimit;
+            }
+
+            return Http::response($body, 200);
+        }]);
     }
 
     /** Ajusta el quality_rating que Meta devolverá para este test. */
     private function fakeQuality(string $rating): void
     {
         $this->qualityRating = $rating;
+    }
+
+    /** Ajusta el límite del portfolio que Meta devolverá para este test. */
+    private function fakePortfolioLimit(string $limit): void
+    {
+        $this->portfolioLimit = $limit;
     }
 
     /** Crea N mensajes "enviados" ayer (mediodía CST) para el número. */
@@ -161,5 +179,48 @@ class WarmupPhoneNumbersTest extends TestCase
         $this->artisan('wa:warmup-numbers')->assertSuccessful();
 
         $this->assertEquals(500, $phone->fresh()->daily_limit); // UNKNOWN no bloquea el warm-up
+    }
+
+    // ── Refresco del límite del portfolio ────────────────────────────────────
+    // Antes solo se refrescaba al abrir el panel (`phoneHealth`): si Meta subía el tier y
+    // nadie entraba, el warm-up quedaba topado en el límite viejo desperdiciando capacidad.
+
+    public function test_refresca_el_limite_del_portfolio_con_lo_que_reporta_meta(): void
+    {
+        Setting::set('wa_portfolio_daily_limit', 'TIER_1K'); // lo que sabíamos hasta ayer
+        $this->fakePortfolioLimit('TIER_10K');               // Meta ya subió el tier
+        $phone = PhoneNumber::factory()->create(['is_active' => true, 'daily_limit' => 1000]);
+        $this->sentYesterday($phone, 800);
+
+        $this->artisan('wa:warmup-numbers')->assertSuccessful();
+
+        $this->assertEquals('TIER_10K', Setting::get('wa_portfolio_daily_limit'));
+        // Con el techo viejo (1000) se habría quedado en 1000; con el nuevo puede duplicar.
+        $this->assertEquals(2000, $phone->fresh()->daily_limit);
+    }
+
+    public function test_arranca_el_warm_up_la_primera_vez_que_meta_reporta_el_limite(): void
+    {
+        $this->fakePortfolioLimit('TIER_2K'); // sin Setting previo: nadie abrió el panel aún
+        $phone = PhoneNumber::factory()->create(['is_active' => true, 'daily_limit' => 250]);
+        $this->sentYesterday($phone, 200);
+
+        $this->artisan('wa:warmup-numbers')->assertSuccessful();
+
+        $this->assertEquals('TIER_2K', Setting::get('wa_portfolio_daily_limit'));
+        $this->assertEquals(500, $phone->fresh()->daily_limit);
+    }
+
+    public function test_no_borra_el_limite_conocido_si_meta_no_manda_el_campo(): void
+    {
+        Setting::set('wa_portfolio_daily_limit', 'TIER_2K');
+        // $portfolioLimit sigue null: Meta responde sin el campo.
+        $phone = PhoneNumber::factory()->create(['is_active' => true, 'daily_limit' => 250]);
+        $this->sentYesterday($phone, 200);
+
+        $this->artisan('wa:warmup-numbers')->assertSuccessful();
+
+        $this->assertEquals('TIER_2K', Setting::get('wa_portfolio_daily_limit'));
+        $this->assertEquals(500, $phone->fresh()->daily_limit);
     }
 }

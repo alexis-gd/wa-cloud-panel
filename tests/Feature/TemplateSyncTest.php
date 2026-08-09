@@ -72,6 +72,36 @@ class TemplateSyncTest extends TestCase
         $this->assertEquals(2, WaTemplate::count());
     }
 
+    /**
+     * Meta manda `rejected_reason: "NONE"` cuando la plantilla NO está rechazada. Guardarlo
+     * tal cual hacía que el panel mostrara "Rechazada: NONE" en plantillas aprobadas.
+     */
+    public function test_no_guarda_none_como_motivo_de_rechazo(): void
+    {
+        PhoneNumber::factory()->create(['is_active' => true]);
+
+        $this->fakeMeta([
+            $this->metaTemplate('aprobada') + ['rejected_reason' => 'NONE'],
+        ]);
+
+        app(TemplateSync::class)->run();
+
+        $this->assertNull(WaTemplate::where('name', 'aprobada')->value('rejection_reason'));
+    }
+
+    public function test_conserva_el_motivo_cuando_si_esta_rechazada(): void
+    {
+        PhoneNumber::factory()->create(['is_active' => true]);
+
+        $this->fakeMeta([
+            $this->metaTemplate('rechazada', 'es_MX', 'REJECTED') + ['rejected_reason' => 'ABUSIVE_CONTENT'],
+        ]);
+
+        app(TemplateSync::class)->run();
+
+        $this->assertEquals('ABUSIVE_CONTENT', WaTemplate::where('name', 'rechazada')->value('rejection_reason'));
+    }
+
     public function test_no_borra_nada_si_meta_falla(): void
     {
         PhoneNumber::factory()->create(['is_active' => true]);

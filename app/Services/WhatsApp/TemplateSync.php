@@ -48,9 +48,15 @@ class TemplateSync
         $keep   = [];
 
         foreach ($fetched['templates'] as $tpl) {
-            $status          = strtolower($tpl['status'] ?? '');
-            $qualityScore    = data_get($tpl, 'quality_score.score');
+            $status       = strtolower($tpl['status'] ?? '');
+            $qualityScore = data_get($tpl, 'quality_score.score');
+
+            // Meta manda "NONE" cuando la plantilla NO está rechazada. Guardarlo tal cual hacía
+            // que el panel mostrara "Rechazada: NONE" en plantillas aprobadas.
             $rejectionReason = $tpl['rejected_reason'] ?? null;
+            $rejectionReason = in_array(strtoupper((string) $rejectionReason), ['', 'NONE'], true)
+                ? null
+                : $rejectionReason;
 
             WaTemplate::updateOrCreate(
                 ['name' => $tpl['name'], 'language_code' => $tpl['language']],

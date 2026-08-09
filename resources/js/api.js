@@ -121,6 +121,21 @@ export const api = {
 
     syncTemplates: () => request('/templates/sync', { method: 'POST' }),
 
+    // Imagen de encabezado de la plantilla: va como multipart, sin Content-Type manual
+    // (el navegador pone el boundary). Accept json para que los 422 lleguen como JSON.
+    uploadTemplateImage: (id, file) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        const token = getToken();
+        return fetch(`${BASE}/templates/${id}/image`, {
+            method  : 'POST',
+            headers : { 'Accept': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+            body    : formData,
+        }).then(r => r.json());
+    },
+
+    deleteTemplateImage: (id) => request(`/templates/${id}/image`, { method: 'DELETE' }),
+
     sendTest: (payload) => request('/templates/send-test', {
         method : 'POST',
         body   : JSON.stringify(payload),

@@ -94,6 +94,17 @@ class CampaignController extends Controller
             ], 422);
         }
 
+        // Plantilla con imagen y sin archivo local = Meta no entrega ninguno de los mensajes
+        // (la URL del CDN de Meta es de vista previa). Se frena aquí en vez de dejar que la
+        // campaña salga y falle contacto por contacto.
+        if ($template->needs_image) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Esta plantilla lleva imagen y todavía no se ha subido. Ve a Plantillas y súbela antes de usarla.',
+                'code'    => 'TEMPLATE_IMAGE_MISSING',
+            ], 422);
+        }
+
         $phone = PhoneNumber::where('is_active', true)->first();
         if (! $phone) {
             return response()->json([

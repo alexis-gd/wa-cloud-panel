@@ -191,6 +191,34 @@ Las causas más comunes de rechazo:
 > se pueden usar y por eso desaparecen de la lista. No borra nada en Meta, solo en el panel,
 > y las campañas ya enviadas conservan su historial.
 
+### Si la plantilla lleva imagen: hay un paso más
+
+Una plantilla con imagen de encabezado **necesita que subas esa imagen también en el panel**.
+No es un capricho: la imagen que Meta guarda al aprobar la plantilla sirve para la vista
+previa, pero **Meta no la entrega** al enviar. Si falta la imagen del panel, todos los
+mensajes de esa campaña salen fallidos.
+
+**Cómo se hace:** panel -> **Plantillas** -> selecciona la plantilla -> abajo de la vista
+previa, **Subir imagen**. Sube **la misma imagen** que registraste en Meta (JPG o PNG, menos
+de 5 MB). Una sola vez por plantilla.
+
+**Cómo saber si falta:** en la lista, la plantilla trae la etiqueta roja **"Falta imagen"**.
+Mientras la tenga, el sistema **no deja crear campañas** con ella - te lo dice al intentarlo.
+Es a propósito: mejor frenar la campaña que mandarla y que falle contacto por contacto.
+
+> Si cambias la imagen en Meta, reemplázala también en el panel. Deben ser la misma: Meta
+> aprueba un contenido y el sistema debe entregar ese mismo.
+
+### El flujo completo de una plantilla, de principio a fin
+
+1. **Crearla en Meta** (Administrador de WhatsApp) con las reglas de arriba.
+2. **Esperar la aprobación** (hasta 24h). Queda "En revisión" y luego "Aprobada".
+3. **Sincronizar** en el panel (Plantillas -> Sincronizar con Meta).
+4. **Subir la imagen** en el panel, si la plantilla lleva encabezado de imagen.
+5. **Probarla** con el botón "Enviar prueba" a un número propio. Recuerda que la prueba es un
+   mensaje real: se cobra y deja a ese contacto en enfriamiento.
+6. **Usarla en una campaña**.
+
 ---
 
 ## 4. Palabras clave que el sistema entiende (lo más importante)

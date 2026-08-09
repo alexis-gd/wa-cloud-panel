@@ -489,6 +489,7 @@ Guía rápida de reacción. Si algo se ve raro, busca aquí antes de asustarte.
 | **Alerta de "problema con los SMS"** | El sistema no recibe confirmaciones de SMS | Avisa a soporte (es tema del teléfono que manda los SMS). |
 | **Un contacto dice que no le llegó el mensaje** | Puede no tener WhatsApp, o estar Pospuesto / en Enfriamiento | Búscalo en Contactos y mira su estado de entregabilidad. |
 | **Quiero mandar una plantilla nueva y no aparece** | Solo salen plantillas aprobadas por Meta | El administrador debe crearla y esperar aprobación. Ver **Guía Meta**. |
+| **Me dice que la plantilla "lleva imagen y no se ha subido"** | La plantilla usa imagen de encabezado y falta cargarla en el panel | El administrador la sube en Plantillas. Sin ella los mensajes saldrían fallidos, por eso el sistema frena la campaña. |
 | **Un agente ya no trabaja aquí** | Sus conversaciones quedan con él asignadas | Admin u operador las reasigna a otro agente con "Asignar a agente". |
 
 > Todo lo que diga "avisa a soporte" o "ver Guía Meta" son cosas que resuelve quien administra

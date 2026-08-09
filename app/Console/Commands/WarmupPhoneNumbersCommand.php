@@ -31,8 +31,16 @@ class WarmupPhoneNumbersCommand extends Command
 
     public function handle(WhatsAppClient $client): int
     {
+        $numbers = PhoneNumber::where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('paused_until')->orWhere('paused_until', '<', now()))
+            ->get();
+
+        // Una sola consulta a Meta por número que trae calidad Y límite del portfolio. Antes el
+        // límite solo se refrescaba cuando alguien abría el panel (`phoneHealth`), así que un
+        // tier nuevo podía tardar días en aprovecharse. Ahora el warm-up se entera solo.
+        $qualities = $this->fetchFromMeta($client, $numbers);
+
         // Sin límite de portfolio conocido no rampamos: crecer a ciegas podría rebasar a Meta.
-        // En cuanto phoneHealth reporte el límite (producción), el warm-up arranca solo.
         if (! PortfolioLimit::isKnown()) {
             $this->info('Límite del portfolio aún desconocido (Meta no lo ha reportado). Sin warm-up.');
 
@@ -45,17 +53,13 @@ class WarmupPhoneNumbersCommand extends Command
         $yStart = now($tz)->subDay()->startOfDay()->utc();
         $yEnd   = now($tz)->subDay()->endOfDay()->utc();
 
-        $numbers = PhoneNumber::where('is_active', true)
-            ->where(fn ($q) => $q->whereNull('paused_until')->orWhere('paused_until', '<', now()))
-            ->get();
-
         $raised  = 0;
         $lowered = 0;
 
         foreach ($numbers as $number) {
             // Calidad suave de Meta primero: recula ANTES de considerar techo/uso, para que
             // un número en RED baje aunque ya esté en el techo o no haya enviado nada.
-            $quality = $this->quality($client, $number);
+            $quality = $qualities[$number->id] ?? 'UNKNOWN';
 
             if ($quality === 'RED') {
                 $before = $number->daily_limit;
@@ -104,17 +108,33 @@ class WarmupPhoneNumbersCommand extends Command
     }
 
     /**
-     * Lee el quality_rating del número desde Meta (GREEN | YELLOW | RED | UNKNOWN). Tolerante:
-     * si Meta falla, devuelve UNKNOWN para no penalizar el número por un error transitorio.
+     * Consulta Meta una vez por número: devuelve el quality_rating indexado por id de número
+     * (GREEN | YELLOW | RED | UNKNOWN) y, de paso, persiste el límite del portfolio que viene
+     * en la misma respuesta. Tolerante: si Meta falla para un número, ese queda UNKNOWN para
+     * no penalizarlo por un error transitorio.
+     *
+     * @param  \Illuminate\Support\Collection<int, PhoneNumber>  $numbers
+     * @return array<int, string>
      */
-    private function quality(WhatsAppClient $client, PhoneNumber $number): string
+    private function fetchFromMeta(WhatsAppClient $client, $numbers): array
     {
-        $res = $client->get($number->phone_number_id, $number->token, ['fields' => 'quality_rating']);
+        $qualities = [];
 
-        if (! $res['ok']) {
-            return 'UNKNOWN';
+        foreach ($numbers as $number) {
+            $res = $client->get($number->phone_number_id, $number->token, [
+                'fields' => 'quality_rating,whatsapp_business_manager_messaging_limit',
+            ]);
+
+            if (! $res['ok']) {
+                $qualities[$number->id] = 'UNKNOWN';
+                continue;
+            }
+
+            $qualities[$number->id] = strtoupper((string) ($res['body']['quality_rating'] ?? 'UNKNOWN'));
+
+            PortfolioLimit::remember($res['body']['whatsapp_business_manager_messaging_limit'] ?? null);
         }
 
-        return strtoupper((string) ($res['body']['quality_rating'] ?? 'UNKNOWN'));
+        return $qualities;
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
+use App\Services\WhatsApp\PortfolioLimit;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -104,11 +105,7 @@ class SettingsController extends Controller
         // reporta en esta misma llamada. El campo viejo `messaging_limit_tier` está deprecado;
         // el vigente es `whatsapp_business_manager_messaging_limit` (TIER_250/2000/.../UNLIMITED).
         // Lo persistimos aquí (sin webhook ni polling): se refresca cada que se abre el semáforo.
-        $portfolioLimit = $meta['whatsapp_business_manager_messaging_limit'] ?? null;
-        if ($portfolioLimit !== null && $portfolioLimit !== '') {
-            Setting::set('wa_portfolio_daily_limit', $portfolioLimit);
-            Setting::set('wa_portfolio_limit_updated_at', now()->toIso8601String());
-        }
+        PortfolioLimit::remember($meta['whatsapp_business_manager_messaging_limit'] ?? null);
 
         return response()->json([
             'status' => 'ok',
@@ -120,7 +117,11 @@ class SettingsController extends Controller
                 'daily_limit'    => $phone->daily_limit,
                 // Límite del PORTFOLIO (compartido por todos los números). Se lee de Meta en
                 // esta llamada; devolvemos el último conocido. Null si Meta aún no lo reporta.
-                'portfolio_limit'            => Setting::get('wa_portfolio_daily_limit'),
+                // `portfolio_limit` va crudo como lo manda Meta ("TIER_2K", "UNLIMITED") y
+                // `portfolio_limit_daily` ya resuelto a entero: el front solo formatea, no
+                // parsea (antes duplicaba la lógica en JS y se comía el sufijo K -> mostraba 2).
+                'portfolio_limit'            => PortfolioLimit::raw(),
+                'portfolio_limit_daily'      => PortfolioLimit::daily(),
                 'portfolio_limit_updated_at' => Setting::get('wa_portfolio_limit_updated_at'),
                 'sent_today'     => MessageLog::where('phone_number_id', $phone->id)
                                         ->whereBetween('sent_at', [

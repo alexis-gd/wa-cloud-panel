@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\SmsTemplateController;
 use App\Http\Controllers\Api\SmsWebhookController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TemplateController;
+use App\Http\Controllers\Api\TemplateImageController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WebhookController;
 use Illuminate\Support\Facades\DB;
@@ -129,6 +130,9 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::post('/templates/send-test',  [TemplateController::class, 'sendTest']);
         Route::post('/templates',            [TemplateController::class, 'store']);
+        // Imagen de encabezado: es un archivo en disco, no un campo de la plantilla.
+        Route::post('/templates/{id}/image',   [TemplateImageController::class, 'store']);
+        Route::delete('/templates/{id}/image', [TemplateImageController::class, 'destroy']);
         Route::post('/templates/sync',       [TemplateController::class, 'sync']);
         Route::put('/templates/{id}',        [TemplateController::class, 'update']);
         Route::delete('/templates/{id}',     [TemplateController::class, 'destroy']);

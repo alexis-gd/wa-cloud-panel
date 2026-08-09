@@ -17,9 +17,27 @@ class PortfolioLimit
 
     private const KEY = 'wa_portfolio_daily_limit';
 
+    private const KEY_UPDATED_AT = 'wa_portfolio_limit_updated_at';
+
     public static function raw(): ?string
     {
         return Setting::get(self::KEY);
+    }
+
+    /**
+     * Guarda el límite tal como lo reporta Meta. Punto único de escritura: lo usan tanto
+     * `phoneHealth()` (cuando alguien abre el semáforo) como `wa:warmup-numbers` (a diario),
+     * así el tier se refresca aunque nadie entre al panel. Ignora valores vacíos para no
+     * borrar el último bueno si Meta no manda el campo en alguna respuesta.
+     */
+    public static function remember(?string $raw): void
+    {
+        if ($raw === null || $raw === '') {
+            return;
+        }
+
+        Setting::set(self::KEY, $raw);
+        Setting::set(self::KEY_UPDATED_AT, now()->toIso8601String());
     }
 
     /** True si Meta ya reportó un límite (aunque sea "UNLIMITED"). */

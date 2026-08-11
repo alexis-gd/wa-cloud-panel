@@ -330,12 +330,15 @@ class ContactController extends Controller
         $extension = strtolower($file->getClientOriginalExtension());
 
         try {
-            if ($extension === 'csv') {
-                $spreadsheet = IOFactory::load($path, \PhpOffice\PhpSpreadsheet\Reader\Csv::class);
-            } else {
-                $spreadsheet = IOFactory::load($path);
-            }
-        } catch (\Exception $e) {
+            // El archivo temporal de PHP no tiene extensión, así que el lector se elige por la
+            // extensión ORIGINAL. Antes se pasaba la clase del lector como 2do argumento de
+            // `load()`, pero ahí va un `int $flags`: cualquier CSV moría con TypeError -> 500.
+            $reader = $extension === 'csv'
+                ? IOFactory::createReader('Csv')
+                : IOFactory::createReaderForFile($path);
+
+            $spreadsheet = $reader->load($path);
+        } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'No se pudo leer el archivo: ' . $e->getMessage(),
             ], 422);
@@ -399,8 +402,10 @@ class ContactController extends Controller
                 continue;
             }
 
-            // Verificar duplicado
-            if (Contact::where('phone', $normalized)->exists()) {
+            // Verificar duplicado. `withTrashed()` es indispensable: `phone` tiene índice UNIQUE,
+            // así que un contacto borrado (soft delete) sigue ocupando el número. Sin esto, el
+            // insert reventaba con error de llave duplicada y tumbaba toda la importación.
+            if (Contact::withTrashed()->where('phone', $normalized)->exists()) {
                 $summary['duplicates']++;
                 continue;
             }

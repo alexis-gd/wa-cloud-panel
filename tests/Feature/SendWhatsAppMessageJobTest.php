@@ -538,4 +538,49 @@ class SendWhatsAppMessageJobTest extends TestCase
         $this->assertTrue($this->phone->isPaused());
         $this->assertEqualsWithDelta(1440, now()->diffInMinutes($this->phone->paused_until), 2);
     }
+
+    // ── Personalización por contacto ({nombre}) ────────────────────────────────
+
+    private function makeJobWithVars(array $bodyVars, int $contactId): SendWhatsAppMessage
+    {
+        return new SendWhatsAppMessage(
+            contactId:     $contactId,
+            campaignId:    $this->campaign->id,
+            phoneNumberId: $this->phone->id,
+            templateName:  'promo',
+            languageCode:  'es_MX',
+            bodyVars:      $bodyVars,
+        );
+    }
+
+    /**
+     * La campaña guarda `{nombre}` una sola vez, pero cada contacto debe recibir el suyo: la
+     * sustitución ocurre en el job, no al crear la campaña.
+     */
+    public function test_cada_contacto_recibe_su_propio_nombre(): void
+    {
+        $this->mockSuccessfulClient();
+
+        $ana  = Contact::factory()->create(['phone' => '521111111111', 'status' => 'active', 'name' => 'ANA MARIA LOPEZ']);
+        $luis = Contact::factory()->create(['phone' => '522222222222', 'status' => 'active', 'name' => 'luis']);
+
+        $this->makeJobWithVars(['{nombre}'], $ana->id)->handle(app(WhatsAppClient::class), app(TemplateBuilder::class));
+        $this->makeJobWithVars(['{nombre}'], $luis->id)->handle(app(WhatsAppClient::class), app(TemplateBuilder::class));
+
+        // El log guarda lo que de verdad se mandó, no el marcador.
+        $this->assertEquals(['Ana'],  MessageLog::where('to_number', $ana->phone)->first()->body_vars);
+        $this->assertEquals(['Luis'], MessageLog::where('to_number', $luis->phone)->first()->body_vars);
+    }
+
+    public function test_contacto_sin_nombre_recibe_el_respaldo(): void
+    {
+        $this->mockSuccessfulClient();
+
+        $anonimo = Contact::factory()->create(['phone' => '523333333333', 'status' => 'active', 'name' => null]);
+
+        $this->makeJobWithVars(['{nombre}'], $anonimo->id)->handle(app(WhatsAppClient::class), app(TemplateBuilder::class));
+
+        // Nunca una variable vacía: Meta rechazaría el mensaje.
+        $this->assertEquals(['cliente'], MessageLog::where('to_number', $anonimo->phone)->first()->body_vars);
+    }
 }

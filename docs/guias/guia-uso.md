@@ -279,6 +279,32 @@ Una campaña es un **envío masivo** a un grupo de contactos.
 > ellos aprobaron. Y en SMS, la plantilla ya trae el "responde STOP para baja" que exige la ley.
 > Escribir a mano se saltaría esas reglas y podría costar una multa o una suspensión.
 
+### Saludar a cada contacto por su nombre
+
+Si la plantilla tiene variables, al crear la campaña te aparecen para llenarlas. **Lo que
+escribas ahí le llega igual a todos.** Si pones "Joseph", los mil contactos reciben "Hola
+Joseph".
+
+Para que cada quien reciba **su** nombre, usa el botón 👤 que está junto a la variable: pone el
+texto `{nombre}`, y el sistema lo cambia por el nombre de cada contacto en el momento de enviar.
+
+Cómo lo resuelve el sistema:
+
+| Nombre en la base | Lo que recibe |
+|---|---|
+| `JUAN PEREZ GARCIA` | Juan |
+| `josé luis` | José |
+| vacío, un número o basura | cliente |
+
+Usa **solo el primer nombre** y lo escribe con mayúscula inicial, porque los archivos de Excel
+suelen venir en mayúsculas o con el nombre completo, y "Hola JUAN PEREZ GARCIA" se lee mal.
+
+> ⚠️ **Nunca queda vacío**: si el contacto no tiene nombre, se manda "cliente". Es a propósito -
+> WhatsApp rechaza el mensaje si una variable va en blanco, y perderías toda la campaña.
+
+> 💡 Redacta la plantilla pensando en ese caso: "Hola {{1}}, le saludamos de Prestamaz" funciona
+> igual de bien con "Juan" que con "cliente".
+
 > 💡 **SMS y horario**: a diferencia de WhatsApp, el SMS lo mandas cuando quieras. Si lo haces
 > entre 11 de la noche y 7 de la mañana, el sistema te avisa (no te bloquea): enviar de
 > madrugada suele generar más bajas. Tú decides.

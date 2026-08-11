@@ -7,6 +7,7 @@ use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\WaTemplate;
+use App\Services\WhatsApp\MessagePersonalizer;
 use App\Services\WhatsApp\TemplateBuilder;
 use App\Services\WhatsApp\TemplateSync;
 use App\Services\WhatsApp\WhatsAppClient;
@@ -167,16 +168,20 @@ class TemplateController extends Controller
 
         $phone = PhoneNumber::where('is_active', true)->firstOrFail();
 
+        // La prueba resuelve {nombre} igual que una campaña: así el admin ve exactamente lo
+        // que va a recibir el contacto, no el marcador.
+        $bodyVars = (new MessagePersonalizer())->resolve($data['body_vars'] ?? [], $contact);
+
         // Regla #2: crear log ANTES de llamar a la API
         $log = MessageLog::logSend(
             $phone->id,
             $data['to'],
             $data['template_name'],
             $data['language_code'],
-            $data['body_vars'] ?? []
+            $bodyVars
         );
 
-        $payload  = $this->builder->build($data['to'], $data['template_name'], $data['language_code'], $data['body_vars'] ?? []);
+        $payload  = $this->builder->build($data['to'], $data['template_name'], $data['language_code'], $bodyVars);
         $response = $this->client->post($phone->phone_number_id, $phone->token, $payload);
 
         $log->updateFromResponse($response);

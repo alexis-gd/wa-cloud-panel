@@ -16,6 +16,35 @@ function authHeaders() {
     };
 }
 
+/**
+ * Lee la respuesta de una subida de archivo sin reventar.
+ *
+ * Cuando el archivo excede el tope del servidor, quien corta es nginx o PHP, no Laravel: la
+ * respuesta llega en HTML (413) y `res.json()` lanza una excepción. Sin esto, el `await` nunca
+ * resolvía y el botón se quedaba girando sin decir nada.
+ */
+async function parseUpload(res) {
+    if (res.status === 413) {
+        return {
+            status  : 'error',
+            message : 'El archivo es demasiado pesado para el servidor. Usa uno más ligero o pide a soporte que suba el límite.',
+            code    : 'PAYLOAD_TOO_LARGE',
+        };
+    }
+
+    const contentType = res.headers.get('content-type') ?? '';
+
+    if (!contentType.includes('application/json')) {
+        return { status: 'error', message: `Error del servidor (${res.status})` };
+    }
+
+    try {
+        return await res.json();
+    } catch {
+        return { status: 'error', message: `Error del servidor (${res.status})` };
+    }
+}
+
 async function request(path, options = {}) {
     const res = await fetch(`${BASE}${path}`, {
         headers: authHeaders(),
@@ -131,7 +160,7 @@ export const api = {
             method  : 'POST',
             headers : { 'Accept': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
             body    : formData,
-        }).then(r => r.json());
+        }).then(parseUpload);
     },
 
     deleteTemplateImage: (id) => request(`/templates/${id}/image`, { method: 'DELETE' }),
@@ -187,9 +216,9 @@ export const api = {
         const token = getToken();
         return fetch(`${BASE}/contacts/upload`, {
             method  : 'POST',
-            headers : token ? { 'Authorization': `Bearer ${token}` } : {},
+            headers : { 'Accept': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
             body    : formData,
-        }).then(r => r.json());
+        }).then(parseUpload);
     },
 
     optOutContact: (id) => request(`/contacts/${id}/opt-out`, { method: 'POST' }),

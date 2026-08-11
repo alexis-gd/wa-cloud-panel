@@ -8,6 +8,7 @@ use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
 use App\Events\CampaignProgressUpdated;
+use App\Services\WhatsApp\MessagePersonalizer;
 use App\Services\WhatsApp\PortfolioLimit;
 use App\Services\WhatsApp\SendWindow;
 use App\Services\WhatsApp\TemplateBuilder;
@@ -232,17 +233,21 @@ class SendWhatsAppMessage implements ShouldQueue
             return;
         }
 
+        // Resolver {nombre} con los datos de ESTE contacto. Se hace antes del log para que el
+        // historial guarde lo que de verdad se mandó, no la plantilla con el marcador.
+        $bodyVars = (new MessagePersonalizer())->resolve($this->bodyVars, $contact);
+
         // ── Crear log ANTES de llamar a la API ──
         $log = MessageLog::logSend(
             $this->phoneNumberId,
             $contact->phone,
             $this->templateName,
             $this->languageCode,
-            $this->bodyVars,
+            $bodyVars,
             $this->campaignId,
         );
 
-        $payload  = $builder->build($contact->phone, $this->templateName, $this->languageCode, $this->bodyVars);
+        $payload  = $builder->build($contact->phone, $this->templateName, $this->languageCode, $bodyVars);
         $response = $client->post($phoneNumber->phone_number_id, $phoneNumber->token, $payload);
 
         $log->updateFromResponse($response);

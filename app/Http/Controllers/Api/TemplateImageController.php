@@ -31,6 +31,20 @@ class TemplateImageController extends Controller
             ], 422);
         }
 
+        // PHP descarta el archivo ANTES de que Laravel lo valide si supera `upload_max_filesize`.
+        // Sin este chequeo la respuesta sería "Elige una imagen", que despista: el usuario sí
+        // eligió una. Aquí se le dice el motivo real y cuál es el tope que manda.
+        $file = $request->file('image');
+
+        if ($file !== null && ! $file->isValid() && in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'La imagen supera el límite de subida del servidor (' . ini_get('upload_max_filesize')
+                    . '). Usa una más ligera o pide a soporte que suba ese límite.',
+                'code'    => 'UPLOAD_LIMIT_EXCEEDED',
+            ], 422);
+        }
+
         $request->validate([
             'image' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:' . TemplateImage::MAX_KB],
         ], [

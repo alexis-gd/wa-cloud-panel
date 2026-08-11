@@ -366,9 +366,16 @@ async function uploadImage(event) {
   if (!file || !selected.value) return;
 
   uploadingImage.value = true;
-  const res = await api.uploadTemplateImage(selected.value.id, file);
-  uploadingImage.value = false;
-  event.target.value = ''; // permite volver a elegir el mismo archivo
+  let res;
+  try {
+    res = await api.uploadTemplateImage(selected.value.id, file);
+  } catch {
+    // Red de red: si la petición ni siquiera llega (sin conexión), el botón no se queda girando.
+    res = { status: 'error', message: 'No se pudo contactar al servidor.' };
+  } finally {
+    uploadingImage.value = false;
+    event.target.value = ''; // permite volver a elegir el mismo archivo
+  }
 
   if (res.status === 'ok') {
     applyImageResult(res.data);

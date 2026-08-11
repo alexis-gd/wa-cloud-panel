@@ -220,6 +220,11 @@ server {
 
     index index.php;
 
+    # Subidas: imagen de plantilla (tope de Meta 5 MB) y Excel de contactos.
+    # El default de nginx es 1M: con eso, un banner normal ya falla con 413 antes de
+    # llegar a Laravel, y la respuesta ni siquiera es JSON.
+    client_max_body_size 8M;
+
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
@@ -242,6 +247,28 @@ sudo ln -s /etc/nginx/sites-available/wa-cloud-panel /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
+
+### Límites de subida en PHP (obligatorio)
+
+Los defaults de PHP-FPM (`upload_max_filesize=2M`) son **más bajos** que el tope de 5 MB que
+acepta Meta para la imagen de una plantilla. Sin subirlos, PHP descarta el archivo antes de que
+Laravel lo vea.
+
+```bash
+# Ver los valores actuales
+php -i | grep -E "upload_max_filesize|post_max_size"
+
+# Subirlos (ajusta la versión de PHP si no es 8.2)
+sudo sed -i 's/^upload_max_filesize = .*/upload_max_filesize = 8M/' /etc/php/8.2/fpm/php.ini
+sudo sed -i 's/^post_max_size = .*/post_max_size = 8M/'             /etc/php/8.2/fpm/php.ini
+sudo systemctl restart php8.2-fpm
+
+# Verificar (php -i lee el ini de CLI, que es otro archivo; este mira el de FPM)
+php -c /etc/php/8.2/fpm/php.ini -i | grep -E "upload_max_filesize|post_max_size"
+```
+
+Se dejan en **8M**, un poco arriba del tope de Meta, para que quien rechace el archivo sea la
+validación del panel (mensaje claro en español) y no nginx con un 413 en HTML.
 
 > SSL lo maneja el proxy inverso de Joseph (Nginx edge) — no se necesita Certbot en esta VM.
 

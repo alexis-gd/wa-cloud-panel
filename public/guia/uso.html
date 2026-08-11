@@ -488,6 +488,45 @@ no mandes a todos por error. Puedes elegir &quot;Todos los contactos activos&quo
 ellos aprobaron. Y en SMS, la plantilla ya trae el &quot;responde STOP para baja&quot; que exige la ley.
 Escribir a mano se saltaría esas reglas y podría costar una multa o una suspensión.</p>
 </blockquote>
+<h3 id="saludar-a-cada-contacto-por-su-nombre">Saludar a cada contacto por su nombre</h3>
+<p>Si la plantilla tiene variables, al crear la campaña te aparecen para llenarlas. <strong>Lo que
+escribas ahí le llega igual a todos.</strong> Si pones &quot;Joseph&quot;, los mil contactos reciben &quot;Hola
+Joseph&quot;.</p>
+<p>Para que cada quien reciba <strong>su</strong> nombre, usa el botón 👤 que está junto a la variable: pone el
+texto <code>{nombre}</code>, y el sistema lo cambia por el nombre de cada contacto en el momento de enviar.</p>
+<p>Cómo lo resuelve el sistema:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Nombre en la base</th>
+<th>Lo que recibe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>JUAN PEREZ GARCIA</code></td>
+<td>Juan</td>
+</tr>
+<tr>
+<td><code>josé luis</code></td>
+<td>José</td>
+</tr>
+<tr>
+<td>vacío, un número o basura</td>
+<td>cliente</td>
+</tr>
+</tbody>
+</table></div>
+<p>Usa <strong>solo el primer nombre</strong> y lo escribe con mayúscula inicial, porque los archivos de Excel
+suelen venir en mayúsculas o con el nombre completo, y &quot;Hola JUAN PEREZ GARCIA&quot; se lee mal.</p>
+<blockquote>
+<p>⚠️ <strong>Nunca queda vacío</strong>: si el contacto no tiene nombre, se manda &quot;cliente&quot;. Es a propósito -
+WhatsApp rechaza el mensaje si una variable va en blanco, y perderías toda la campaña.</p>
+</blockquote>
+<blockquote>
+<p>💡 Redacta la plantilla pensando en ese caso: &quot;Hola {{1}}, le saludamos de Prestamaz&quot; funciona
+igual de bien con &quot;Juan&quot; que con &quot;cliente&quot;.</p>
+</blockquote>
 <blockquote>
 <p>💡 <strong>SMS y horario</strong>: a diferencia de WhatsApp, el SMS lo mandas cuando quieras. Si lo haces
 entre 11 de la noche y 7 de la mañana, el sistema te avisa (no te bloquea): enviar de

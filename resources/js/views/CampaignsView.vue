@@ -139,7 +139,22 @@
                     <div v-for="(varName, i) in templateVarLabels" :key="i" class="var-row">
                         <span class="var-label">{{ varName }}</span>
                         <InputText v-model="form.bodyVars[i]" :placeholder="varName" fluid />
+                        <Button
+                            icon="pi pi-user"
+                            text
+                            size="small"
+                            v-tooltip.top="'Usar el nombre de cada contacto'"
+                            @click="insertNameToken(i)"
+                        />
                     </div>
+                    <small class="var-hint">
+                        Lo que escribas aquí se manda igual a todos. Usa el botón
+                        <i class="pi pi-user" /> para poner
+                        <code>{nombre}</code> y que cada contacto reciba el suyo.
+                        <span v-if="usesNameToken">
+                            Quien no tenga nombre en la base recibirá <strong>cliente</strong>.
+                        </span>
+                    </small>
                 </template>
                 <div v-else-if="form.channel === 'whatsapp' && form.template && varCount === 0" class="field-label mt">
                     <small class="no-templates">Esta plantilla no tiene variables.</small>
@@ -448,6 +463,18 @@ function extractVarLabels(bodyText) {
 
 const templateVarLabels = computed(() => extractVarLabels(form.value.template?.body_text ?? ''));
 const varCount = computed(() => templateVarLabels.value.length);
+
+// Marcador que el backend resuelve por contacto al enviar (MessagePersonalizer).
+const NAME_TOKEN = '{nombre}';
+const usesNameToken = computed(() =>
+    (form.value.bodyVars ?? []).some(v => String(v ?? '').toLowerCase().includes(NAME_TOKEN)),
+);
+
+function insertNameToken(i) {
+    const current = form.value.bodyVars[i] ?? '';
+    if (current.toLowerCase().includes(NAME_TOKEN)) return;
+    form.value.bodyVars[i] = current ? `${current} ${NAME_TOKEN}` : NAME_TOKEN;
+}
 
 const canSave = computed(() => {
     if (form.value.name.trim() === '') return false;
@@ -805,6 +832,18 @@ onUnmounted(() => {
     font-size: .85rem;
     color: var(--p-text-muted-color);
     min-width: 36px;
+}
+.var-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: .75rem;
+    line-height: 1.4;
+    color: var(--p-text-muted-color);
+}
+.var-hint code {
+    background: var(--p-surface-100);
+    padding: 1px 4px;
+    border-radius: 4px;
 }
 
 .no-templates {

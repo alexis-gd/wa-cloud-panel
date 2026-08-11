@@ -352,6 +352,22 @@ muestra ya aprobadas.)</p>
 </tr>
 </tbody>
 </table></div>
+<h3 id="variables-usa-quotnumeroquot-no-quotnombrequot">Variables: usa &quot;Número&quot;, no &quot;Nombre&quot;</h3>
+<p>Si la plantilla lleva variables (para saludar por su nombre, por ejemplo), Meta pregunta el
+<strong>Tipo de variable</strong>:</p>
+<ul>
+<li><strong>Número</strong> -&gt; genera <code>{{1}}</code>, <code>{{2}}</code>. ✅ <strong>Es la que hay que usar.</strong></li>
+<li><strong>Nombre</strong> -&gt; genera <code>{{user_name}}</code>. ❌ El panel <strong>no</strong> puede enviarla: los mensajes con
+variables nombradas viajan en otro formato y todos fallarían.</li>
+</ul>
+<p>Reglas de Meta para las variables: van numeradas y en orden, no pueden ir al principio ni al
+final del texto, y al someter la plantilla hay que dar un <strong>valor de ejemplo</strong> (algo corto y
+real, como <code>Joseph</code>).</p>
+<blockquote>
+<p>Para que cada contacto reciba <strong>su</strong> nombre, el operador pone <code>{nombre}</code> al llenar la variable
+en la campaña. Eso se explica en la guía de uso; aquí solo importa que la variable exista y
+sea del tipo Número.</p>
+</blockquote>
 <h3 id="los-botones-de-la-plantilla-posponer-interes">Los botones de la plantilla (posponer, interés)</h3>
 <p>Cuando el contacto toca un botón, <strong>WhatsApp envía como respuesta el título del botón</strong>, y el
 sistema decide qué hacer. <strong>Solo hay dos botones que el sistema entiende:</strong></p>

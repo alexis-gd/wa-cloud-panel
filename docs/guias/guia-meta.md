@@ -144,6 +144,23 @@ muestra ya aprobadas.)
 | **Opción de baja** | Que el contacto pueda responder una palabra de baja (ver sección 4) | Obligatorio. Además es lo que hace que el sistema procese la baja de verdad. |
 | **Contenido** | Claro, sin promesas exageradas ni datos falsos | Meta rechaza contenido engañoso o "spam". |
 
+### Variables: usa "Número", no "Nombre"
+
+Si la plantilla lleva variables (para saludar por su nombre, por ejemplo), Meta pregunta el
+**Tipo de variable**:
+
+- **Número** -> genera `{{1}}`, `{{2}}`. ✅ **Es la que hay que usar.**
+- **Nombre** -> genera `{{user_name}}`. ❌ El panel **no** puede enviarla: los mensajes con
+  variables nombradas viajan en otro formato y todos fallarían.
+
+Reglas de Meta para las variables: van numeradas y en orden, no pueden ir al principio ni al
+final del texto, y al someter la plantilla hay que dar un **valor de ejemplo** (algo corto y
+real, como `Joseph`).
+
+> Para que cada contacto reciba **su** nombre, el operador pone `{nombre}` al llenar la variable
+> en la campaña. Eso se explica en la guía de uso; aquí solo importa que la variable exista y
+> sea del tipo Número.
+
 ### Los botones de la plantilla (posponer, interés)
 
 Cuando el contacto toca un botón, **WhatsApp envía como respuesta el título del botón**, y el

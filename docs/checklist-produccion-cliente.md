@@ -89,7 +89,22 @@
 - [ ] `SMS_WEBHOOK_SECRET` puesto (ver punto 3).
 - [ ] Teléfono(s) del pool registrados en el gateway, con Autostart ON y batería sin restricción (MIUI).
 
-## 6. Verificación final
+## 6. Límites de subida del servidor
+
+Aplica a la imagen de plantilla (tope de Meta: 5 MB) y al Excel de contactos. Los defaults son
+**más bajos** que eso, así que sin tocarlos el archivo se corta antes de llegar a Laravel.
+
+- [ ] **nginx**: `client_max_body_size 8M;` dentro del `server {}` (default: **1M**).
+      Verificar: `grep -r client_max_body_size /etc/nginx/`
+- [ ] **PHP-FPM**: `upload_max_filesize = 8M` y `post_max_size = 8M` (defaults: **2M** y 8M).
+      Verificar: `php -i | grep -E "upload_max_filesize|post_max_size"`
+- [ ] Reiniciar: `sudo systemctl reload nginx && sudo systemctl restart php8.2-fpm`
+- [ ] Probar subiendo una imagen de ~3 MB en **Plantillas**. Debe guardarse, no dar 413.
+
+> Detectado el 2026-08-09: el VPS tenía `upload_max_filesize = 2M`, así que cualquier imagen de
+> plantilla arriba de 2 MB fallaba aunque el panel dijera que acepta 5 MB.
+
+## 7. Verificación final
 
 - [ ] `php artisan config:cache` + `route:cache` tras cambiar `.env` (los caches viejos leen valores viejos).
 - [ ] Health check: `curl -fsS https://sender.prestamaz.site/api/health`.

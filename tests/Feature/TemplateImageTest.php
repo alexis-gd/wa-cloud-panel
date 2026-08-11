@@ -100,6 +100,27 @@ class TemplateImageTest extends TestCase
              ->assertJsonValidationErrors('image');
     }
 
+    /**
+     * Si el archivo supera `upload_max_filesize`, PHP lo descarta y Laravel solo ve que "falta"
+     * la imagen. El mensaje debe decir el motivo real, no "Elige una imagen".
+     */
+    public function test_avisa_cuando_el_servidor_corta_la_subida_por_tamano(): void
+    {
+        $tpl  = $this->templateWithImageHeader();
+        $temp = tempnam(sys_get_temp_dir(), 'img');
+
+        $descartadoPorPhp = new UploadedFile($temp, 'enorme.jpg', 'image/jpeg', UPLOAD_ERR_INI_SIZE, true);
+
+        $response = $this->actingAsAdmin()
+             ->post("/api/templates/{$tpl->id}/image", ['image' => $descartadoPorPhp], ['Accept' => 'application/json'])
+             ->assertStatus(422)
+             ->assertJsonPath('code', 'UPLOAD_LIMIT_EXCEEDED');
+
+        $this->assertStringContainsString('límite de subida del servidor', $response->json('message'));
+
+        @unlink($temp);
+    }
+
     public function test_rechaza_plantillas_sin_encabezado_de_imagen(): void
     {
         $tpl = WaTemplate::factory()->create(['header_type' => 'TEXT']);

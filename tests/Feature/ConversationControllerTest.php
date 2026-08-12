@@ -41,6 +41,22 @@ class ConversationControllerTest extends TestCase
         });
     }
 
+    /** Crea un mensaje entrante con fecha fija (Conversation no tiene factory). */
+    private function inbound(int $contactId, string $body, \Illuminate\Support\Carbon $at): void
+    {
+        $conv = new Conversation([
+            'contact_id'   => $contactId,
+            'direction'    => 'inbound',
+            'message_type' => 'text',
+            'body'         => $body,
+            'status'       => 'received',
+            'window_open'  => true,
+        ]);
+        $conv->created_at = $at;
+        $conv->updated_at = $at;
+        $conv->save();
+    }
+
     /** Crea un mensaje inbound reciente para abrir la ventana de 24h. */
     private function openWindow(): void
     {
@@ -210,6 +226,63 @@ class ConversationControllerTest extends TestCase
     public function test_index_sin_autenticacion_devuelve_401(): void
     {
         $this->getJson('/api/conversations')->assertStatus(401);
+    }
+
+    /**
+     * Regresión: el último mensaje se cargaba con `->limit(1)` sobre el hasMany, y en un eager
+     * load eso limita la consulta ENTERA a una fila. Resultado: solo un contacto de toda la
+     * lista traía vista previa y fecha; el resto salía en blanco y sin poder ordenarse.
+     */
+    public function test_index_devuelve_el_ultimo_mensaje_de_cada_contacto(): void
+    {
+        $ana  = Contact::factory()->create(['phone' => '529000000010', 'name' => 'Ana']);
+        $luis = Contact::factory()->create(['phone' => '529000000011', 'name' => 'Luis']);
+
+        $this->inbound($ana->id,  'Mensaje de Ana',  now()->subMinutes(30));
+        $this->inbound($luis->id, 'Mensaje de Luis', now()->subMinutes(10));
+
+        $data = collect($this->actingAsOperator()->getJson('/api/conversations')->json('data'));
+
+        $this->assertEquals('Mensaje de Ana',  $data->firstWhere('id', $ana->id)['last_message']);
+        $this->assertEquals('Mensaje de Luis', $data->firstWhere('id', $luis->id)['last_message']);
+    }
+
+    /** El más reciente arriba, como en WhatsApp. */
+    public function test_index_ordena_por_ultimo_mensaje_mas_reciente(): void
+    {
+        $viejo   = Contact::factory()->create(['phone' => '529000000020']);
+        $reciente = Contact::factory()->create(['phone' => '529000000021']);
+
+        $this->inbound($viejo->id,    'Hace dos dias', now()->subDays(2));
+        $this->inbound($reciente->id, 'Hace un rato',  now()->subMinutes(5));
+
+        $ids = collect($this->actingAsOperator()->getJson('/api/conversations')->json('data'))
+            ->pluck('id')
+            ->all();
+
+        $this->assertEquals($reciente->id, $ids[0]);
+        $this->assertLessThan(
+            array_search($viejo->id, $ids, true),
+            array_search($reciente->id, $ids, true),
+            'El contacto con el mensaje más reciente debe ir antes que el viejo'
+        );
+    }
+
+    /** Un mensaje nuevo mueve al contacto al principio, sin importar dónde estaba. */
+    public function test_index_sube_al_contacto_cuando_llega_un_mensaje_nuevo(): void
+    {
+        $otro = Contact::factory()->create(['phone' => '529000000030']);
+        $this->inbound($otro->id, 'Mensaje del otro', now()->subMinutes(1));
+
+        $this->createOldInbound(); // $this->contact queda hasta abajo (inbound de hace 25h)
+
+        $ids = collect($this->actingAsOperator()->getJson('/api/conversations')->json('data'))->pluck('id')->all();
+        $this->assertEquals($otro->id, $ids[0]);
+
+        $this->inbound($this->contact->id, 'Ya me interesa', now());
+
+        $ids = collect($this->actingAsOperator()->getJson('/api/conversations')->json('data'))->pluck('id')->all();
+        $this->assertEquals($this->contact->id, $ids[0]);
     }
 
     // ── GET /api/conversations/{id} ───────────────────────────────────────────

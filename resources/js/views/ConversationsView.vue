@@ -447,7 +447,9 @@ function formatDate(iso) {
   display: grid;
   grid-template-columns: 260px 1fr 220px;
   gap: 0;
-  height: calc(100vh - 56px - 48px); /* topbar + padding content */
+  /* dvh (no vh): en móvil la barra del navegador hace que 100vh sea MAYOR que lo visible,
+     y la barra de responder queda debajo del borde de la pantalla. */
+  height: calc(100dvh - 56px - 48px); /* topbar + padding del content */
   border: 1px solid var(--p-content-border-color);
   border-radius: 12px;
   overflow: hidden;
@@ -457,13 +459,14 @@ function formatDate(iso) {
 /* Sidebar */
 .conv-sidebar  { display: flex; flex-direction: column; border-right: 1px solid var(--p-content-border-color); }
 .sidebar-header {
+  flex-shrink: 0;
   padding: 14px 16px;
   border-bottom: 1px solid var(--p-content-border-color);
   display: flex; align-items: center; justify-content: space-between;
 }
 .sidebar-title  { font-weight: 700; font-size: .95rem; }
 .sidebar-count  { font-size: .75rem; color: var(--p-text-muted-color); }
-.sidebar-list   { flex: 1; overflow-y: auto; }
+.sidebar-list   { flex: 1; min-height: 0; overflow-y: auto; }
 .sidebar-empty  { padding: 24px 16px; text-align: center; font-size: .82rem; color: var(--p-text-muted-color); }
 
 .sidebar-item {
@@ -511,7 +514,11 @@ function formatDate(iso) {
 }
 .chat-empty-icon { font-size: 3rem; }
 
+/* flex-shrink:0 en cabecera y barra de escritura: sin esto, cuando el chat no cabe a lo alto
+   (muchas respuestas rápidas, pantalla corta) el navegador las encoge para dar espacio a los
+   mensajes, y como .conv-chat tiene overflow:hidden, la barra de responder desaparecía. */
 .chat-header {
+  flex-shrink: 0;
   padding: 12px 20px;
   border-bottom: 1px solid var(--p-content-border-color);
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -521,7 +528,7 @@ function formatDate(iso) {
 .chat-phone  { display: block; font-size: .75rem; color: var(--p-text-muted-color); }
 .chat-badges { display: flex; gap: 6px; flex-wrap: wrap; }
 
-.chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: var(--p-surface-50); }
+.chat-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: var(--p-surface-50); }
 .chat-loading  { text-align: center; color: var(--p-text-muted-color); font-size: .82rem; }
 
 .msg-row     { display: flex; }
@@ -537,6 +544,7 @@ function formatDate(iso) {
 .msg-status{ font-size: .7rem; }
 
 .chat-input-area {
+  flex-shrink: 0;
   padding: 12px 16px;
   border-top: 1px solid var(--p-content-border-color);
   background: var(--p-content-background);
@@ -594,7 +602,7 @@ function formatDate(iso) {
    Sin selección se ve la lista; al elegir un chat se ve la conversación
    (con botón atrás). El panel de info/agentes se oculta en móvil. */
 @media (max-width: 768px) {
-  .conv-page { grid-template-columns: 1fr; height: calc(100vh - 56px - 32px); }
+  .conv-page { grid-template-columns: 1fr; height: calc(100dvh - 56px - 32px); }
   .conv-chat, .conv-info { display: none; }
   .conv-page--detail .conv-sidebar { display: none; }
   .conv-page--detail .conv-chat    { display: flex; }

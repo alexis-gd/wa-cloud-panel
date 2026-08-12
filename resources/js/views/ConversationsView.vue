@@ -446,6 +446,11 @@ function formatDate(iso) {
 .conv-page {
   display: grid;
   grid-template-columns: 260px 1fr 220px;
+  /* minmax(0, 1fr) + min-height:0 en las columnas: por defecto una celda de grid no se encoge
+     por debajo de su contenido, así que con muchas conversaciones la fila crecía más alto que
+     .conv-page, la columna del chat se estiraba con ella y la barra de responder quedaba fuera
+     de vista (recortada por el overflow:hidden). Se veía como "desaparece la barra". */
+  grid-template-rows: minmax(0, 1fr);
   gap: 0;
   /* dvh (no vh): en móvil la barra del navegador hace que 100vh sea MAYOR que lo visible,
      y la barra de responder queda debajo del borde de la pantalla. */
@@ -457,7 +462,7 @@ function formatDate(iso) {
 }
 
 /* Sidebar */
-.conv-sidebar  { display: flex; flex-direction: column; border-right: 1px solid var(--p-content-border-color); }
+.conv-sidebar  { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--p-content-border-color); }
 .sidebar-header {
   flex-shrink: 0;
   padding: 14px 16px;
@@ -506,7 +511,7 @@ function formatDate(iso) {
 .assign--other      { background: var(--p-surface-200); color: var(--p-text-muted-color); }
 
 /* Chat */
-.conv-chat  { display: flex; flex-direction: column; overflow: hidden; }
+.conv-chat  { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 
 .chat-empty {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -565,7 +570,7 @@ function formatDate(iso) {
 .input-hint { font-size: .7rem; color: var(--p-text-muted-color); margin: 4px 0 0; }
 
 /* Panel info */
-.conv-info  { display: flex; flex-direction: column; border-left: 1px solid var(--p-content-border-color); overflow-y: auto; }
+.conv-info  { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--p-content-border-color); overflow-y: auto; }
 .info-section { padding: 16px; border-bottom: 1px solid var(--p-content-border-color); }
 .info-section--grow { flex: 1; }
 .info-title  { font-size: .8rem; font-weight: 700; color: var(--p-text-muted-color); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 10px; }

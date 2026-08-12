@@ -30,9 +30,12 @@ class ConversationController extends Controller
                     ->where('direction', 'inbound')
                     ->where('created_at', '>=', now()->subHours(24)),
             ])
+            // `latestConversation` es un `latestOfMany`, no un `limit(1)` sobre el hasMany: con
+            // limit, el eager load devolvía UNA fila para toda la consulta y el resto de los
+            // contactos quedaba sin último mensaje (sin vista previa y sin fecha para ordenar).
             ->with([
-                'conversations' => fn ($q) => $q->latest()->limit(1),
-                'assignments'   => fn ($q) => $q->latest('assigned_at')->limit(1)->with('user:id,name'),
+                'latestConversation',
+                'assignments' => fn ($q) => $q->latest('assigned_at')->limit(1)->with('user:id,name'),
             ]);
 
         // Agentes solo ven conversaciones que tienen asignadas
@@ -51,8 +54,8 @@ class ConversationController extends Controller
                 'phone'           => $c->phone,
                 'status'          => $c->status,
                 'snoozed_until'   => $c->snoozed_until,
-                'last_message'    => $c->conversations->first()?->body,
-                'last_message_at' => $c->conversations->first()?->created_at,
+                'last_message'    => $c->latestConversation?->body,
+                'last_message_at' => $c->latestConversation?->created_at,
                 'window_open'     => (bool) $c->window_open,
                 'assigned_to'     => $c->assignments->first()?->user
                     ? ['id' => $c->assignments->first()->user->id, 'name' => $c->assignments->first()->user->name]

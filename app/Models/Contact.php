@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Contact extends Model
@@ -154,6 +155,19 @@ class Contact extends Model
     public function conversations(): HasMany
     {
         return $this->hasMany(Conversation::class);
+    }
+
+    /**
+     * Último mensaje del contacto, para la vista previa y el orden de la lista.
+     *
+     * Va como relación aparte a propósito: cargar `conversations` con `->limit(1)` en un
+     * eager load **no** da "uno por contacto", limita la consulta entera a una sola fila, así
+     * que todos los demás contactos se quedaban sin último mensaje (sin vista previa y sin
+     * fecha con la cual ordenar). `latestOfMany()` sí resuelve uno por contacto.
+     */
+    public function latestConversation(): HasOne
+    {
+        return $this->hasOne(Conversation::class)->latestOfMany();
     }
 
     public function tags(): BelongsToMany

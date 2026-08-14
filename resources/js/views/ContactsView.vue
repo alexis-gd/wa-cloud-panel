@@ -467,23 +467,26 @@ const isBlockedStatus = (s) => ['opted_out', 'invalid', 'unreachable'].includes(
 // ── Eje WhatsApp ──────────────────────────────────────────────
 const waDeliverLabel = (c) => {
     if (isBlockedStatus(c.status)) return 'No recibe';
-    if (c.snooze_active)   return 'Pospuesto';
-    if (c.sent_today)      return 'Enviado hoy';
-    if (c.cooldown_active) return 'Enfriamiento';
+    if (c.snooze_active)      return 'Pospuesto';
+    if (c.wa_marketing_hold)  return 'En espera (Meta)';
+    if (c.sent_today)         return 'Enviado hoy';
+    if (c.cooldown_active)    return 'Enfriamiento';
     return 'Disponible';
 };
 
 const waDeliverSeverity = (c) => {
     if (isBlockedStatus(c.status)) return 'danger';
-    if (c.snooze_active)   return 'secondary';
-    if (c.sent_today)      return 'info';
-    if (c.cooldown_active) return 'warn';
+    if (c.snooze_active)      return 'secondary';
+    if (c.wa_marketing_hold)  return 'warn';
+    if (c.sent_today)         return 'info';
+    if (c.cooldown_active)    return 'warn';
     return 'success';
 };
 
 const waDeliverTooltip = (c) => {
     if (isBlockedStatus(c.status)) return 'WhatsApp: no recibe (contacto dado de baja, inválido o inalcanzable)';
     if (c.snooze_active)   return `WhatsApp: pospuesto${c.snooze_until ? ` hasta ${c.snooze_until}` : ''} - el contacto pidió "No por ahora"`;
+    if (c.wa_marketing_hold) return `WhatsApp: en espera${c.wa_marketing_hold_until_label ? ` hasta ${c.wa_marketing_hold_until_label}` : ''} - el contacto alcanzó su tope de mensajes de marketing y Meta pide esperar 24 horas`;
     if (c.sent_today)      return 'WhatsApp: ya recibió un mensaje hoy (no se le reenvía el mismo día)';
     if (c.cooldown_active) return `WhatsApp: en enfriamiento${c.cooldown_until ? ` hasta ${c.cooldown_until}` : ''} - no se le envía hasta que pase`;
     return 'WhatsApp: disponible - le puede llegar una campaña ahora';

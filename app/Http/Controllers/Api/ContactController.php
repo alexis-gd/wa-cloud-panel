@@ -142,7 +142,17 @@ class ContactController extends Controller
             $contact->setAttribute('sent_today', $waSentToday);
             $contact->setAttribute('cooldown_active', $waCooldownActive);
             $contact->setAttribute('cooldown_until', $waCooldownUntil);
-            $contact->setAttribute('deliverable', ! $waBlocked && ! $snoozeActive && ! $waSentToday && ! $waCooldownActive);
+            // Hold de 24h del error 131049 (tope de marketing POR USUARIO). El job ya lo
+            // respeta y descarta; sin esto la lista decía "Disponible" y el operador no
+            // entendía por qué su campaña descartaba a ese contacto.
+            $marketingHold      = $contact->isWaMarketingHoldActive();
+            $marketingHoldUntil = $marketingHold
+                ? $contact->wa_marketing_hold_until->setTimezone('America/Mexico_City')->format('Y-m-d H:i')
+                : null;
+
+            $contact->setAttribute('wa_marketing_hold', $marketingHold);
+            $contact->setAttribute('wa_marketing_hold_until_label', $marketingHoldUntil);
+            $contact->setAttribute('deliverable', ! $waBlocked && ! $snoozeActive && ! $marketingHold && ! $waSentToday && ! $waCooldownActive);
 
             // Eje SMS (nuevos, para el segundo tag de Entregabilidad).
             // El snooze NO entra aquí: es por canal (solo WhatsApp). Ver contexto-sms.

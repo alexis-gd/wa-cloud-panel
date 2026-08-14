@@ -13,6 +13,7 @@ use App\Models\SmsTemplate;
 use App\Models\Tag;
 use App\Models\WaTemplate;
 use App\Services\PhoneNumberSelector;
+use App\Services\WhatsApp\DeliveryReason;
 use App\Services\WhatsApp\SendWindow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -317,9 +318,18 @@ class CampaignController extends Controller
         // simplePaginate hace 1 sola query (SELECT ... LIMIT 51) en vez de 2.
         // El índice idx_logs_campaign_sent cubre (campaign_id, sent_at) y hace
         // que ORDER BY sent_at DESC LIMIT 50 sea instantáneo aunque haya 200k filas.
+        // Filtro por estado: el operador necesita ver "solo los fallidos" sin recorrer
+        // 50 filas por página. 'discarded' es un status más, no un filtro aparte.
+        $status = $request->string('status')->toString();
+
         $logs = MessageLog::where('campaign_id', $id)
+            ->when(
+                in_array($status, ['sent', 'delivered', 'read', 'failed', 'discarded'], true),
+                fn ($q) => $q->where('status', $status),
+            )
             ->orderByDesc('sent_at')
-            ->simplePaginate(50, ['*'], 'page', $request->integer('page', 1));
+            ->simplePaginate(50, ['*'], 'page', $request->integer('page', 1))
+            ->appends($request->only('status'));
 
         // Stats: sent y pending vienen de los contadores del campaign (sin query extra).
         // Solo consultamos discarded porque no tiene contador propio en la tabla campaigns.
@@ -391,9 +401,17 @@ class CampaignController extends Controller
             ],
             // sent_at se formatea en CST para que el frontend muestre la hora local de México,
             // no la hora UTC cruda (que diferiría hasta 6 horas de lo que el operador ve en su reloj).
-            'data'      => collect($logs->items())->map(fn ($log) => array_merge($log->toArray(), [
-                'sent_at' => $log->sent_at?->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
-            ]))->values(),
+            // `reason` viene ya traducido del backend (DeliveryReason): antes el front leía
+            // solo `error_message` y las fallas de ENTREGA (webhook) salían como un guion.
+            'data'      => collect($logs->items())->map(function ($log) {
+                $reason = DeliveryReason::forLog($log);
+
+                return array_merge($log->toArray(), [
+                    'sent_at'       => $log->sent_at?->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
+                    'reason'        => $reason['short']  ?? null,
+                    'reason_detail' => $reason['detail'] ?? null,
+                ]);
+            })->values(),
             'has_more'  => $logs->hasMorePages(),
             'next_page' => $logs->hasMorePages() ? ($request->integer('page', 1) + 1) : null,
             'prev_page' => $request->integer('page', 1) > 1 ? ($request->integer('page', 1) - 1) : null,

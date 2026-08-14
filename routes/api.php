@@ -99,15 +99,20 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // Conversaciones (chat con contactos) — admin, operator y agent
     Route::middleware('role:admin,operator,agent')->group(function () {
         Route::get('/conversations',                            [ConversationController::class, 'index']);
-        Route::get('/conversations/{contactId}',               [ConversationController::class, 'show']);
-        Route::post('/conversations/{contactId}/messages',     [ConversationController::class, 'send']);
-        Route::post('/conversations/{contactId}/claim',        [ConversationController::class, 'claim']);
+        // whereNumber: sin esto, /conversations/assignable-users entraría por {contactId}
+        // (se registra antes) y acabaría en show('assignable-users').
+        Route::get('/conversations/{contactId}',               [ConversationController::class, 'show'])->whereNumber('contactId');
+        Route::post('/conversations/{contactId}/messages',     [ConversationController::class, 'send'])->whereNumber('contactId');
+        Route::post('/conversations/{contactId}/claim',        [ConversationController::class, 'claim'])->whereNumber('contactId');
         Route::get('/quick-replies',                           [ConversationController::class, 'quickReplies']);
     });
 
     // Asignación de conversaciones — solo admin y operator
     Route::middleware('role:admin,operator')->group(function () {
-        Route::post('/conversations/{contactId}/assign', [ConversationController::class, 'assign']);
+        // Quien puede asignar necesita saber a quién: el desplegable se llenaba con /users,
+        // que es solo admin, y al operador le salía vacío.
+        Route::get('/conversations/assignable-users',     [ConversationController::class, 'assignableUsers']);
+        Route::post('/conversations/{contactId}/assign', [ConversationController::class, 'assign'])->whereNumber('contactId');
     });
 
     // Quick replies — solo admin puede crear/eliminar

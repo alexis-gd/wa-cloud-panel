@@ -343,6 +343,10 @@ export const api = {
     // ── Users ─────────────────────────────────────────────────────────────────
     users: () => request('/users'),
 
+    // A quién se le puede asignar una conversación. Va aparte de `users()` porque esa ruta es
+    // solo admin: al operador le respondía 403 y el desplegable de asignar salía vacío.
+    assignableUsers: () => request('/conversations/assignable-users'),
+
     createUser: (payload) => request('/users', {
         method : 'POST',
         body   : JSON.stringify(payload),

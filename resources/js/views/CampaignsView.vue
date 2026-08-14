@@ -284,6 +284,24 @@
                     Solo las campañas nuevas mostrarán la tabla completa.
                 </div>
 
+                <!-- Filtro por estado: ver de un jalón solo los fallidos o los descartados -->
+                <div class="logs-filter">
+                    <Select
+                        v-model="detailStatusFilter"
+                        :options="logStatusOptions"
+                        option-label="label"
+                        option-value="value"
+                        placeholder="Todos los estados"
+                        size="small"
+                        class="logs-filter-select"
+                        @change="loadDetailLogs(selectedCampaign.id, 1)"
+                    />
+                    <small class="logs-filter-hint">
+                        <strong>Fallido</strong>: salió pero no llegó ·
+                        <strong>Descartado</strong>: el sistema no lo envió (no se cobra)
+                    </small>
+                </div>
+
                 <!-- Tabla de logs -->
                 <div class="table-scroll">
                 <DataTable :value="detailLogs" :loading="detailLoading" size="small" stripedRows class="logs-table">
@@ -299,8 +317,12 @@
                     </Column>
                     <Column header="Motivo / Error">
                         <template #body="{ data }">
-                            <span v-if="data.discard_reason" class="discard-reason">{{ discardLabel(data.discard_reason) }}</span>
-                            <span v-else-if="data.error_message" class="error-msg" :title="data.error_message">{{ data.channel === 'sms' ? smsErrorText(data.error_message) : 'error Meta' }}</span>
+                            <!-- El backend manda el motivo ya traducido (DeliveryReason). -->
+                            <span
+                                v-if="data.reason"
+                                :class="data.discard_reason ? 'discard-reason' : 'error-msg'"
+                                :title="data.reason_detail"
+                            >{{ data.reason }}</span>
                             <span v-else class="muted-cell">-</span>
                         </template>
                     </Column>
@@ -401,6 +423,17 @@ const detailNextPage    = ref(null);
 const detailPrevPage    = ref(null);
 const detailStats       = ref(null);
 const detailLoading     = ref(false);
+// Filtro de la tabla de detalle. null = todos. Se manda al backend, no se filtra en el
+// cliente: la tabla viene paginada de 50 en 50.
+const detailStatusFilter = ref(null);
+const logStatusOptions = [
+    { label: 'Todos los estados', value: null },
+    { label: 'Enviados',    value: 'sent' },
+    { label: 'Entregados',  value: 'delivered' },
+    { label: 'Leídos',      value: 'read' },
+    { label: 'Fallidos',    value: 'failed' },
+    { label: 'Descartados', value: 'discarded' },
+];
 const pausing           = ref(false);
 const retrying          = ref(false);
 
@@ -694,6 +727,7 @@ async function openDetail(campaign) {
     detailNextPage.value    = null;
     detailPrevPage.value    = null;
     showDetail.value        = true;
+    detailStatusFilter.value = null;
     await loadDetailLogs(campaign.id, 1);
 }
 
@@ -701,7 +735,9 @@ async function openDetail(campaign) {
 // de la tabla al recargar. Las cargas manuales (abrir modal, paginar) sí muestran loading.
 async function loadDetailLogs(campaignId, page = 1, { silent = false } = {}) {
     if (! silent) detailLoading.value = true;
-    const res = await api.campaignLogs(campaignId, { page });
+    const params = { page };
+    if (detailStatusFilter.value) params.status = detailStatusFilter.value;
+    const res = await api.campaignLogs(campaignId, params);
     if (res.status === 'ok') {
         // Actualizar selectedCampaign con datos frescos del servidor (elimina datos rancios del listado)
         if (res.campaign) {
@@ -963,6 +999,15 @@ onUnmounted(() => {
 .phone-code { font-size: .8rem; }
 .discard-reason { color: var(--p-orange-700); font-size: .8rem; }
 .error-msg { color: var(--p-red-600); font-size: .8rem; cursor: help; }
+.logs-filter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.logs-filter-select { min-width: 180px; }
+.logs-filter-hint   { font-size: .72rem; color: var(--p-text-muted-color); }
 
 .resumes-notice {
     display: flex;

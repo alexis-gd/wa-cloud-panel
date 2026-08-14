@@ -211,8 +211,16 @@ disponible en uno y en pausa en el otro:
 - 🟢 **Disponible** - se le puede enviar.
 - ⚪ **Pospuesto** - pidió "No por ahora", no se le manda hasta la fecha.
 - 🟠 **Enfriamiento** - recibió hace poco, se espera un tiempo para no saturarlo.
+- 🟠 **En espera (Meta)** - el contacto llegó a su tope de mensajes de marketing y WhatsApp pide
+  esperar 24 horas. Al pasar el tiempo vuelve solo a Disponible. Ver abajo.
 - 🔵 **Enviado hoy** - ya recibió hoy, no se le reenvía el mismo día.
 - 🔴 **No recibe** - bloqueado en ese canal (baja / inválido / inalcanzable).
+
+> **"En espera (Meta)" no es culpa nuestra ni del número.** WhatsApp le pone un tope a **cada
+> persona** de cuánta publicidad recibe, sumando **todas las empresas** que le escriben, no solo
+> nosotros. Cuando alguien llega a su tope, ese mensaje no se entrega y WhatsApp pide esperar
+> 24 horas. El sistema lo respeta solo: si lo metes en una campaña antes, lo descarta. **Insistir
+> antes de tiempo es contraproducente** - WhatsApp lo bloquea 24 horas más.
 
 > Un contacto puede estar **Activo** pero **Pospuesto**, en **Enfriamiento** o **Enviado hoy**. Es
 > normal - solo significa que ahorita no se le envía para no saturarlo. (Ver
@@ -331,10 +339,14 @@ suelen venir en mayúsculas o con el nombre completo, y "Hola JUAN PEREZ GARCIA"
 
 Al abrir una campaña ves los totales (**Enviados**, **Fallidos**, **Descartados**, **Pendientes**)
 y una tabla contacto por contacto con su **Estado** y el **Motivo / Error**:
-- **Fallido:** ahora la columna Motivo muestra **por qué** falló (ej. lo que reportó la operadora
-  en un SMS), ya no un guion suelto.
+- **Fallido:** salió, pero no llegó. La columna Motivo dice **por qué** en español (ej.
+  *"El destinatario alcanzó su límite de mensajes de marketing"*). Pasa el cursor encima para
+  ver el detalle completo. **Un fallido no se cobra:** WhatsApp solo cobra lo entregado.
 - **Descartado:** el sistema no se lo mandó a propósito (ej. ya lo recibió hoy, está en
-  enfriamiento, o es una baja). El motivo lo dice ahí.
+  enfriamiento, o es una baja). El motivo lo dice ahí. Tampoco se cobra.
+- **Filtro de estados:** arriba de la tabla puedes ver **solo los fallidos**, solo los
+  descartados, etc. Sirve para revisar de un jalón qué pasó con una campaña grande sin ir
+  página por página.
 - **Excluidos por baja:** si en el segmento hay contactos de **baja**, arriba aparece un aviso
   gris - *"N contactos del segmento no reciben por estar de baja"*. **Es solo informativo**: a
   esos ni se les intenta enviar (es lo correcto), pero así sabes por qué el total no cuadra.

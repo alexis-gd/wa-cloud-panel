@@ -228,6 +228,48 @@ class ConversationControllerTest extends TestCase
         $this->getJson('/api/conversations')->assertStatus(401);
     }
 
+    // ── GET /api/conversations/assignable-users ───────────────────────────────
+    // Regresión: el desplegable "Asignar a" se llenaba con GET /users, que es solo admin.
+    // El operador (que SÍ puede asignar) recibía 403 y el selector salía vacío.
+
+    public function test_operator_puede_ver_a_quien_asignar(): void
+    {
+        $response = $this->actingAsOperator()
+            ->getJson('/api/conversations/assignable-users')
+            ->assertStatus(200)
+            ->assertJsonPath('status', 'ok');
+
+        $this->assertNotEmpty($response->json('data'), 'El operador debe recibir usuarios para asignar');
+    }
+
+    public function test_assignable_users_no_expone_correo_ni_rol(): void
+    {
+        $primero = $this->actingAsOperator()
+            ->getJson('/api/conversations/assignable-users')
+            ->json('data.0');
+
+        $this->assertEqualsCanonicalizing(['id', 'name'], array_keys($primero));
+    }
+
+    public function test_agent_no_puede_ver_a_quien_asignar(): void
+    {
+        $this->actingAsAgent()
+            ->getJson('/api/conversations/assignable-users')
+            ->assertStatus(403);
+    }
+
+    /** La ruta no debe colisionar con /conversations/{contactId}. */
+    public function test_assignable_users_no_se_confunde_con_el_detalle_de_una_conversacion(): void
+    {
+        $data = $this->actingAsOperator()
+            ->getJson('/api/conversations/assignable-users')
+            ->assertStatus(200)
+            ->json('data');
+
+        // El detalle devolvería 'contact'/'messages'; esto debe ser una lista de usuarios.
+        $this->assertIsList($data);
+    }
+
     /**
      * Regresión: el último mensaje se cargaba con `->limit(1)` sobre el hasMany, y en un eager
      * load eso limita la consulta ENTERA a una fila. Resultado: solo un contacto de toda la

@@ -339,7 +339,7 @@ async function refreshOpenChat(scroll = false) {
 }
 
 async function loadUsers() {
-  const res = await api.users();
+  const res = await api.assignableUsers();
   if (res.status === 'ok') users.value = res.data ?? [];
 }
 

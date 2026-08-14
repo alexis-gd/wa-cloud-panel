@@ -67,6 +67,24 @@ class ConversationController extends Controller
         return response()->json(['status' => 'ok', 'data' => $contacts]);
     }
 
+    /**
+     * GET /api/conversations/assignable-users — a quién se le puede pasar una conversación.
+     *
+     * Existe porque el desplegable de "Asignar a" se llenaba con `GET /users`, que es solo
+     * admin: al operador le respondía 403 y el selector salía en "No available options",
+     * aunque el backend sí le permite asignar. Devuelve únicamente id y nombre - nada de
+     * correos ni roles, que no hacen falta para asignar.
+     */
+    public function assignableUsers(): JsonResponse
+    {
+        $users = User::where('is_active', true)
+            ->whereIn('role', ['admin', 'operator', 'agent']) // fuera superadmin: es cuenta de soporte
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return response()->json(['status' => 'ok', 'data' => $users]);
+    }
+
     // POST /api/conversations/{contactId}/assign — asignar a un agente (admin/operator)
     public function assign(Request $request, int $contactId): JsonResponse
     {

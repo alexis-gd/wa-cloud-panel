@@ -14,6 +14,7 @@ use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
 use App\Services\AssignmentService;
+use App\Services\WhatsApp\DeliveryReason;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
@@ -24,18 +25,6 @@ class WebhookController extends Controller
     // Palabras que disparan opt-out permanente (coincidencia exacta de palabra completa, case-insensitive)
     private const OPT_OUT_WORDS = ['STOP', 'BAJA', 'CANCELAR', 'NO'];
 
-    private const DELIVERY_ERROR_MESSAGES = [
-        131049 => 'El destinatario alcanzó su límite de mensajes de marketing. No es un problema del número.',
-        131050 => 'El destinatario se dio de baja de mensajes de marketing en WhatsApp.',
-        131048 => 'Entrega pausada por límite de envíos. Se reanudará automáticamente.',
-        131064 => 'Cuenta pausada por categorización de plantillas. Se reanudará automáticamente.',
-        131026 => 'El mensaje no pudo ser entregado al destinatario.',
-        368    => 'Cuenta temporalmente restringida por Meta.',
-        132001 => 'La plantilla no está aprobada en Meta.',
-        132007 => 'La plantilla infringe una política de WhatsApp.',
-        132015 => 'La plantilla está pausada por baja calidad.',
-        132016 => 'La plantilla se desactivó de forma permanente por baja calidad.',
-    ];
 
     public function __construct(private readonly AssignmentService $assignmentService) {}
 
@@ -311,7 +300,7 @@ class WebhookController extends Controller
             return;
         }
 
-        $humanMessage = self::DELIVERY_ERROR_MESSAGES[$errorCode] ?? 'Error de entrega desconocido.';
+        $humanMessage = DeliveryReason::DELIVERY_ERRORS[$errorCode] ?? 'Error de entrega desconocido.';
 
         $contact     = Contact::where('phone', $log->to_number)->first();
         $contactDesc = $contact

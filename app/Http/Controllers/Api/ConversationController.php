@@ -35,7 +35,10 @@ class ConversationController extends Controller
             // contactos quedaba sin último mensaje (sin vista previa y sin fecha para ordenar).
             ->with([
                 'latestConversation',
-                'assignments' => fn ($q) => $q->latest('assigned_at')->limit(1)->with('user:id,name'),
+                // `latestAssignment` es un `latestOfMany`, no un `limit(1)` sobre el hasMany:
+                // con limit, el eager load devolvía UNA fila para toda la consulta y el resto
+                // de los contactos salía "Sin asignar" aunque tuvieran agente.
+                'latestAssignment.user:id,name',
             ]);
 
         // Agentes solo ven conversaciones que tienen asignadas
@@ -57,8 +60,8 @@ class ConversationController extends Controller
                 'last_message'    => $c->latestConversation?->body,
                 'last_message_at' => $c->latestConversation?->created_at,
                 'window_open'     => (bool) $c->window_open,
-                'assigned_to'     => $c->assignments->first()?->user
-                    ? ['id' => $c->assignments->first()->user->id, 'name' => $c->assignments->first()->user->name]
+                'assigned_to'     => $c->latestAssignment?->user
+                    ? ['id' => $c->latestAssignment->user->id, 'name' => $c->latestAssignment->user->name]
                     : null,
             ])
             ->sortByDesc('last_message_at')
@@ -144,9 +147,11 @@ class ConversationController extends Controller
         $contact = Contact::findOrFail($contactId);
 
         // Asignación actual (más reciente) para que el panel derecho la muestre y se
-        // sincronice en vivo al refetch el chat.
+        // sincronice en vivo al refetch el chat. Ordena por `id`, igual que el listado y el
+        // filtro por agente: `assigned_at` guarda al segundo y dos reasignaciones seguidas
+        // empatan, así que el detalle podía mostrar un agente distinto al de la lista.
         $currentAssignment = $contact->assignments()
-            ->latest('assigned_at')
+            ->latest('id')
             ->with('user:id,name')
             ->first()?->user;
 

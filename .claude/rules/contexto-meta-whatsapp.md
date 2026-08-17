@@ -113,7 +113,7 @@ relacionada con Meta, envíos o plantillas.
 
 ## Opt-out — Reglas inquebrantables
 
-- Palabras que disparan opt-out (código `WebhookController::OPT_OUT_WORDS`): **STOP, BAJA, CANCELAR, NO** (match exacto del mensaje completo, en `handleTextMessage`). OJO: "NO GRACIAS" NO está en la lista real del código
+- Palabras que disparan opt-out (código `App\Services\OptOutWords::WORDS`, compartido por WhatsApp y SMS): **STOP, DAR DE BAJA** (match exacto del mensaje completo, tolerando acentos, mayusculas, espacios de mas y punto final). **`NO`, `BAJA` y `CANCELAR` se retiraron el 2026-08-17**: `NO` dio de baja a un contacto que ya habia aceptado y solo contestaba la pregunta de un agente; `BAJA` y `CANCELAR` salieron por decision del cliente. El SMS suma ademas las palabras de operadora (`STOPALL`, `UNSUBSCRIBE`, `CANCEL`, `END`, `QUIT`)
 - **La baja NO llega por botón:** los `button_reply` van a `handleButtonReply`, que solo procesa "no por ahora" (snooze) y "me interesa" (interested). Un botón "No, gracias"/"Baja" NO da de baja. La baja real: (1) texto exacto de arriba, o (2) opt-out nativo de WhatsApp → error `131050`. Verificado contra la doc oficial de Meta (no exige botón, exige "dar opt-out y respetarlo"; el nativo lo cubre)
 - Opt-out es inmediato e irreversible por el cliente
 - Contactos con opt-out se marcan en BD, **no se eliminan** (auditoría)
@@ -187,7 +187,7 @@ La calidad baja cuando: usuarios bloquean el número, mensajes masivos no leído
 ## Causas comunes de suspensión de cuenta
 
 1. Enviar sin consentimiento previo del destinatario
-2. Ignorar respuestas de opt-out (STOP/NO/BAJA/CANCELAR)
+2. Ignorar respuestas de opt-out (STOP / DAR DE BAJA)
 3. Warm-up agresivo (subir límites antes de tiempo)
 4. Contenido engañoso o promesas falsas en plantillas
 5. Auto-responder a cualquier mensaje entrante (patrón de bot/spam)

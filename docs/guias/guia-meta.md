@@ -83,7 +83,7 @@ algo salga mal.
 2. **Toda plantilla de marketing DEBE incluir en su TEXTO cómo darse de baja.** Es obligatorio
    por ley (LFPDPPP) y por la política de Meta. Pon en el **cuerpo del mensaje** una línea como
    **"Responde STOP para dejar de recibir mensajes"**. El sistema da de baja cuando el contacto
-   **escribe** una de estas palabras: `STOP`, `BAJA`, `CANCELAR` o `NO` (ver
+   **escribe** una de estas frases: `STOP` o `DAR DE BAJA` (ver
    [sección 4](#4-palabras-clave-que-el-sistema-entiende-lo-mas-importante)). También cuenta el
    opt-out **nativo** de WhatsApp (el usuario detiene el marketing desde la app; a nosotros nos
    llega solo), pero eso **NO te exime** de poner la instrucción de texto. **No dependas de un
@@ -109,7 +109,7 @@ algo salga mal.
 
 > **Baja y "no por ahora" NO son lo mismo:**
 > - **Baja** = el contacto ya no quiere recibir NADA, nunca más. Es permanente y bloquea
->   los dos canales (WhatsApp y SMS). Palabras: `BAJA`, `STOP`, `CANCELAR`, `NO`.
+>   los dos canales (WhatsApp y SMS). Palabras: `STOP`, `DAR DE BAJA`.
 > - **Pospuesto ("no por ahora")** = el contacto no dice que no para siempre, solo "ahorita
 >   no". Pausa las campañas de WhatsApp un tiempo y luego se le puede volver a escribir.
 >   Se activa con un botón cuyo título contenga "no por ahora".
@@ -174,7 +174,7 @@ sistema decide qué hacer. **Solo hay dos botones que el sistema entiende:**
 > **La baja NO se hace con un botón.** No existe un "botón de baja" que funcione: si pones un
 > botón "No, gracias" o "Baja", el sistema **no lo procesa como baja** y el contacto se queda
 > sin darse de baja (riesgo legal). La baja funciona por dos vías: (1) el contacto **escribe**
-> `STOP`/`BAJA`/`CANCELAR`/`NO`, y (2) el opt-out **nativo** de WhatsApp. Por eso la línea
+> `STOP` o `DAR DE BAJA`, y (2) el opt-out **nativo** de WhatsApp. Por eso la línea
 > **"Responde STOP para dejar de recibir mensajes" va SIEMPRE en el texto** (ver regla 2 de la
 > sección 2). No mezcles esto con "no por ahora": son cosas distintas.
 
@@ -250,7 +250,7 @@ palabras (o uno que pretenda dar baja) **el sistema no reacciona**.
 
 | Acción del contacto | Palabras que el sistema entiende | Qué hace el sistema |
 |---|---|---|
-| **Pedir baja** | El contacto **escribe** (texto, no botón) exactamente `STOP`, `BAJA`, `CANCELAR` o `NO` | Marca al contacto como Baja. Nunca se le vuelve a enviar (WhatsApp y SMS). Es permanente. |
+| **Pedir baja** | El contacto **escribe** (texto, no botón) exactamente `STOP` o `DAR DE BAJA` | Marca al contacto como Baja. Nunca se le vuelve a enviar (WhatsApp y SMS). Es permanente. |
 | **Posponer** (botón) | El título del botón contiene **"no por ahora"** | Activa el Pospuesto: pausa las campañas de WhatsApp a ese contacto un tiempo. NO es baja. |
 | **Mostrar interés** (botón) | El título del botón contiene **"me interesa"** | Marca al contacto como interesado y lo pasa a un agente. |
 
@@ -263,7 +263,7 @@ palabras (o uno que pretenda dar baja) **el sistema no reacciona**.
 
 | Acción del contacto | Palabras que el sistema entiende | Qué hace el sistema |
 |---|---|---|
-| **Pedir baja** | El mensaje es exactamente `STOP`, `BAJA`, `CANCELAR` o `NO` | Marca al contacto como Baja (bloquea ambos canales). |
+| **Pedir baja** | El mensaje es exactamente `STOP` o `DAR DE BAJA` | Marca al contacto como Baja (bloquea ambos canales). |
 | **Mostrar interés** | El mensaje es `SI`, `INFO` o `INFORMACION` | Marca interés y lo pasa a un agente. |
 
 > El SMS no tiene botones (es texto plano), así que en SMS solo cuentan las palabras que el
@@ -299,8 +299,8 @@ de cumplimiento.
 - **Identifica al remitente.** Empieza con "Prestamaz te informa:" o similar. El contacto
   debe saber quién le escribe.
 - **Incluye la opción de baja al final.** Texto recomendado: `Responde STOP para no recibir más`.
-  Es obligatorio por ley. (Recuerda: el sistema da de baja con `STOP`, `BAJA`, `CANCELAR`
-  o `NO` - ver sección 4.)
+  Es obligatorio por ley. (Recuerda: el sistema da de baja con `STOP` o `DAR DE BAJA`
+  - ver sección 4.)
 - **Cuida el largo.** 160 caracteres = 1 SMS. Más de eso se parte en 2 o 3 segmentos (y
   cuesta más). El panel te avisa cuántos segmentos son.
 - **No pongas contenido prohibido:** nada político, religioso, engañoso ni ilegal.
@@ -565,7 +565,7 @@ una plantilla no aprobada y que penalicen la cuenta.
 **Creé un botón de baja pero el sistema no da de baja a la gente. ¿Por qué?**
 Casi seguro el título del botón no coincide con las palabras que el sistema entiende.
 Recuerda que al tocar un botón, WhatsApp responde con el título del botón. La baja se
-dispara solo con `STOP`, `BAJA`, `CANCELAR` o `NO` exactos (ver sección 4). Un botón "No,
+dispara solo con `STOP` o `DAR DE BAJA` exactos (ver sección 4). Un botón "No,
 gracias" no sirve para baja. Si quieres otra palabra, pídesela a soporte.
 
 **¿El botón "no por ahora" da de baja al contacto?**

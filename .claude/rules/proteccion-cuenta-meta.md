@@ -18,7 +18,7 @@
 | Hacer llamadas directas a `graph.facebook.com` fuera de `WhatsAppClient::post()` | Sin rate limiting ni logging | Siempre pasar por el cliente centralizado |
 | Guardar o loguear el token completo | Exposición de credenciales | Loguear máximo últimos 4 caracteres |
 | Enviar fuera de 9AM-10PM CST L-V | Posible reporte de spam | El scheduler lo impide — no bypasear |
-| Ignorar un opt-out (STOP/NO/BAJA/CANCELAR) | Ban + violación de políticas | Marcar inmediatamente, nunca más enviar |
+| Ignorar un opt-out (STOP / DAR DE BAJA) | Ban + violación de políticas | Marcar inmediatamente, nunca más enviar |
 | Usar el número oficial del cliente para campañas | Riesgo sobre número principal | Solo usar número dedicado de API |
 
 ---

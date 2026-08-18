@@ -148,6 +148,72 @@ class OptOutWordsTest extends TestCase
         $this->artisan('contacts:undo-optout', ['--word' => 'STOP'])->assertFailed();
     }
 
+    /**
+     * El caso real: el contacto mandó "No" y enseguida "Aún no". Buscando solo el ÚLTIMO
+     * mensaje quedaba fuera, porque el último era "Aún no".
+     */
+    public function test_encuentra_al_que_dijo_no_y_luego_escribio_otra_cosa(): void
+    {
+        $contact = $this->contactoDadoDeBajaPor('No');
+        $this->mensajeEntrante($contact, 'Aún no');
+
+        $this->artisan('contacts:undo-optout', ['--word' => 'NO'])
+            ->expectsConfirmation('¿Reactivar 1 contacto(s)?', 'yes')
+            ->assertSuccessful();
+
+        $this->assertSame('active', $contact->fresh()->status);
+    }
+
+    public function test_no_reactiva_si_tambien_escribio_una_palabra_vigente(): void
+    {
+        $contact = $this->contactoDadoDeBajaPor('No');
+        $this->mensajeEntrante($contact, 'STOP');
+
+        $this->artisan('contacts:undo-optout', ['--word' => 'NO'])->assertSuccessful();
+
+        $this->assertSame('opted_out', $contact->fresh()->status);
+    }
+
+    // ── Reactivacion por numero (auditoria manual) ───────────────────────────
+
+    public function test_phone_reactiva_los_numeros_indicados(): void
+    {
+        $ana  = $this->contactoDadoDeBajaPor('No');
+        $jose = $this->contactoDadoDeBajaPor('Aún no');
+        $rosa = $this->contactoDadoDeBajaPor('Nel');
+
+        $this->artisan('contacts:undo-optout', [
+            '--phone' => "{$ana->phone},{$jose->phone},{$rosa->phone}",
+        ])->expectsConfirmation('¿Reactivar 3 contacto(s)?', 'yes')->assertSuccessful();
+
+        foreach ([$ana, $jose, $rosa] as $contact) {
+            $this->assertSame('active', $contact->fresh()->status);
+            $this->assertNull($contact->fresh()->opted_out_at);
+        }
+    }
+
+    public function test_phone_no_toca_a_los_que_no_van_en_la_lista(): void
+    {
+        $reactivar = $this->contactoDadoDeBajaPor('No');
+        $legitimo  = $this->contactoDadoDeBajaPor('STOP');
+
+        $this->artisan('contacts:undo-optout', ['--phone' => $reactivar->phone])
+            ->expectsConfirmation('¿Reactivar 1 contacto(s)?', 'yes')
+            ->assertSuccessful();
+
+        $this->assertSame('active',    $reactivar->fresh()->status);
+        $this->assertSame('opted_out', $legitimo->fresh()->status);
+    }
+
+    public function test_phone_avisa_si_el_numero_no_esta_de_baja(): void
+    {
+        $activo = Contact::factory()->create(['status' => 'active']);
+
+        $this->artisan('contacts:undo-optout', ['--phone' => $activo->phone])
+            ->expectsOutputToContain('no está de baja')
+            ->assertSuccessful();
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private function contactoDadoDeBajaPor(string $texto): Contact
@@ -158,6 +224,13 @@ class OptOutWordsTest extends TestCase
             'opted_out_source' => 'auto',
         ]);
 
+        $this->mensajeEntrante($contact, $texto);
+
+        return $contact;
+    }
+
+    private function mensajeEntrante(Contact $contact, string $texto): void
+    {
         Conversation::create([
             'contact_id'   => $contact->id,
             'direction'    => 'inbound',
@@ -166,8 +239,6 @@ class OptOutWordsTest extends TestCase
             'status'       => 'received',
             'window_open'  => true,
         ]);
-
-        return $contact;
     }
 
     private function textoEntrante(string $phone, string $texto): array

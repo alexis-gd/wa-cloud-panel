@@ -217,3 +217,47 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
   - Motivo real del punto: en el corte del cliente (2026-08-09) dos pruebas dejaron dos números congelados 7 días sin que nada lo avisara.
 - [x] **`wa:sync-templates` debe limpiar las plantillas que ya no están en la WABA.** Hoy solo hace `updateOrCreate`, nunca borra ([`SyncWhatsAppTemplates`](../app/Console/Commands/SyncWhatsAppTemplates.php)). Al conectar la cuenta del cliente (2026-08-09) el panel siguió mostrando las plantillas de la WABA anterior y hubo que entrar por SSH a correr `WaTemplate::query()->delete()` - el cliente no puede hacer eso. Alcance: tras sincronizar, borrar (o marcar como obsoletas) las filas cuyo `name`+`language_code` no vino en la respuesta de Meta para el `WA_WABA_ID` actual. Es seguro: `campaigns.template_name` es string, no FK. Considerar avisar en la UI cuántas se quitaron.
 - [x] **Guía: cómo crear plantillas, con sección de plantillas con imagen.** `guia-meta.md` (sección 3) explica cómo crearlas en Meta pero **no** menciona que una plantilla con imagen necesita además subir el archivo en el panel. Documentar el flujo completo de punta a punta: crear en Meta → esperar aprobación → sincronizar → subir imagen en el panel → recién ahí usarla en campañas. Depende del punto anterior.
+
+---
+
+### Tanda de bugs de operación (2026-08-17, ✅ en prod, v0.30.10)
+
+> Cuatro ramas apiladas, **565 tests verdes** (1,509 assertions, 20 nuevos). No hubo migraciones.
+> Los tres primeros puntos los reportó el cliente operando de verdad, no salieron de una revisión
+> de código. El cuarto lo destapó su auditoría manual de los contactos afectados.
+
+- [x] **Las asignaciones "se borraban" al asignar otra conversación.** El listado cargaba las
+  asignaciones con `->limit(1)` sobre un `hasMany`, que **no** da "una por contacto": limita la
+  consulta entera a una fila. De toda la lista un solo contacto salía con agente y el resto
+  "Sin asignar", así que asignar un segundo chat parecía soltar el primero. **El dato nunca se
+  perdió** - `conversation_assignments` siempre permitió N contactos por agente. Arreglado con
+  `Contact::latestAssignment()` (`latestOfMany`), gemela de `latestConversation`, que ya había
+  sufrido este mismo bug. De paso se unificó el desempate: había **tres** criterios distintos
+  para "la asignación actual" (`assigned_at` en el listado y en el detalle, `MAX(id)` en el
+  filtro por agente), y `assigned_at` guarda al segundo, así que dos reasignaciones seguidas
+  empataban y el listado podía discrepar del filtro. Ahora todo desempata por `id`.
+- [x] **`NO` daba de baja permanente por accidente.** Un contacto que ya había apretado "Me
+  interesa" contestó `No` a la pregunta de un agente ("¿ya cuenta con la aplicación?") y el
+  sistema lo bloqueó para siempre, además de soltarle el agente. `NO` es la respuesta natural a
+  cualquier pregunta de sí/no: como palabra de baja era una trampa desde que existen agentes
+  conversando. **Lista nueva acordada con el cliente: `STOP` y `DAR DE BAJA`** (`BAJA` y
+  `CANCELAR` también salieron). El cumplimiento no se debilita: quedan dos frases inequívocas
+  más el opt-out nativo de WhatsApp (error `131050`). La lista estaba **duplicada** en
+  `WebhookController` y `SmsWebhookController` con normalización distinta (solo el lado SMS
+  quitaba acentos) → se centralizó en `App\Services\OptOutWords`, que ahora tolera acentos,
+  mayúsculas, espacios de más y punto final, siempre exigiendo el mensaje completo.
+- [x] **Comando `contacts:undo-optout`** para reactivar a quien quedó de baja por una palabra
+  retirada. Solo toca bajas `auto`, nunca las manuales ni las de Meta, y se niega a revertir una
+  palabra que siga vigente. `--phone` acepta lista con comas y salta la búsqueda por palabra
+  (cuando una persona ya auditó las conversaciones, la heurística estorba). **No recupera el
+  agente asignado**: el opt-out borra esas filas (lo arregla el punto de historial de asignación
+  del backlog).
+- [x] **Estados internos visibles al operador en inglés.** El panel derecho de Conversaciones
+  mostraba `opted_out` crudo, Usuarios no mapeaba `superadmin`, y los dos Excel exportaban
+  `active`/`delivered`/`whatsapp` tal cual - archivos que abre el cliente. Nuevo
+  `App\Services\StatusLabels` para lo que sale por los exports. Dos huecos silenciosos de paso:
+  Campañas nunca mapeó `cancelled` (está en el enum desde la migración original) y Plantillas no
+  mapeaba los estados menos comunes de Meta (`pending_deletion`, `in_appeal`...). El Excel de
+  mensajes gana columna **Canal**, y sus fechas ahora se convierten a hora de México: se
+  escribían crudas en UTC, así que un envío de las 9 de la noche aparecía como de las 3 de la
+  mañana del día siguiente.

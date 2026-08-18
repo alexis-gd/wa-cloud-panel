@@ -35,17 +35,29 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 
 ---
 
+## Reportes en Excel
+
+- [ ] **Contactos**: botón Exportar → el Estado dice Activo/Baja/Inválido/Inalcanzable y la Fuente dice Excel/Manual/API, nunca el valor interno. El encabezado dice "Pospuesto hasta", no "Snooze"
+- [ ] **Mensajes**: botón ↓ del Panel → trae columna **Canal** (WhatsApp/SMS) y el Estado en español (Enviado/Entregado/Leído/Fallido)
+- [ ] **Fechas en hora de México**: comparar la hora de un envío en el Excel contra la que muestra el Panel → deben coincidir. Se escribían en UTC (6 horas adelantadas, y cerca de medianoche cambiaba el día)
+
+---
+
 ## Conversaciones
 
 - [ ] **Happy path**: contacto responde → aparece en lista → agente selecciona → ve historial → responde texto libre → mensaje llega al celular
 - [ ] **Ventana cerrada**: contacto no responde en 24h → campo de texto deshabilitado → chip "Cerrada" en lista
-- [ ] **Opt-out por texto**: contacto escribe "STOP" → estado cambia a `opted_out` → chip "Baja" → campo de texto bloqueado con aviso
+- [ ] **Opt-out por texto**: contacto escribe "STOP" (o "DAR DE BAJA") → estado cambia a `opted_out` → chip "Baja" → campo de texto bloqueado con aviso
+- [ ] **"NO" ya NO da de baja** (regresión de 2026-08-17): contacto responde "No", "no gracias" o "aún no" → sigue `active`, conserva su agente. Igual con "BAJA" y "CANCELAR" sueltas, que se retiraron de la lista
+- [ ] **Estado del contacto en español**: abrir un chat → panel derecho → "Estado" dice Activo / Baja / Inválido / Inalcanzable, nunca `active` ni `opted_out`
 - [ ] **Snooze por botón**: contacto hace clic en botón "No por ahora" de plantilla → snooze activado (NO opt-out) → chip "Snooze"
 - [ ] **Auto-asignación (least_chats)**: llega mensaje nuevo de contacto sin asignar → agente con menos conversaciones activas recibe la asignación
 - [ ] **Auto-asignación (first_available)**: cambiar modo a `first_available` → llega mensaje → va al primer agente activo
 - [ ] **Sin agentes activos**: todos los agentes en `is_active = false` → llega mensaje → conversación queda "Sin asignar" (chip naranja)
 - [ ] **Claim**: agente hace clic en "Tomar conversación" → queda asignada a él → aparece barra verde en su lista
 - [ ] **Reasignar**: admin cambia asignación de agente A a agente B → agente A ya no la ve en su lista
+- [ ] **Un agente con varias conversaciones** (regresión de 2026-08-17): asignar el MISMO agente a 3 chats distintos → los 3 conservan su insignia en el listado. Antes solo uno salía asignado y los demás caían a "Sin asignar", como si asignar uno soltara los otros
+- [ ] **Listado y detalle coinciden**: reasignar dos veces seguidas (mismo minuto) → el agente que muestra la fila del listado es el mismo que muestra el panel derecho al abrir el chat
 - [ ] **No reasignar en mensajes siguientes**: contacto ya asignado envía otro mensaje → la asignación no cambia
 - [ ] **Respuestas rápidas**: clic en chip de respuesta rápida → carga texto → se envía → aparece en historial
 - [ ] **Filtro por rol agente**: agente solo ve sus conversaciones asignadas, no las de otros agentes

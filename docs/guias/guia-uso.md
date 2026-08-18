@@ -516,10 +516,13 @@ qué:
 
 ## 13. Reportes en Excel
 
-| Reporte | Cómo bajarlo |
-|---|---|
-| **Contactos** | Contactos → botón **Exportar Excel** |
-| **Mensajes** | Panel → botón ↓ en "Últimos mensajes" |
+| Reporte | Cómo bajarlo | Qué trae |
+|---|---|---|
+| **Contactos** | Contactos → botón **Exportar Excel** | Teléfono, nombre, estado, de dónde salió el contacto, hasta cuándo está pospuesto y cuándo se dio de alta. |
+| **Mensajes** | Panel → botón ↓ en "Últimos mensajes" | Los últimos 10,000 envíos: canal (WhatsApp o SMS), número que envió, destino, plantilla, estado de entrega y fecha. |
+
+Los dos archivos vienen en español y con la hora del Centro (CDMX), la misma que ves en el
+panel. Los puedes abrir en Excel o en Google Sheets tal cual.
 
 ---
 

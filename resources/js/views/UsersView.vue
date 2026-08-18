@@ -183,8 +183,18 @@ const canSave = computed(() =>
     form.value.role
 );
 
-const roleLabel = (r) => ({ admin: 'Admin', operator: 'Operador', agent: 'Agente' }[r] ?? r);
-const roleSeverity = (r) => ({ admin: 'danger', operator: 'info', agent: 'secondary' }[r] ?? 'secondary');
+const roleLabel = (r) => ({
+    superadmin: 'Superadmin',
+    admin     : 'Admin',
+    operator  : 'Operador',
+    agent     : 'Agente',
+}[r] ?? r);
+const roleSeverity = (r) => ({
+    superadmin: 'contrast',
+    admin     : 'danger',
+    operator  : 'info',
+    agent     : 'secondary',
+}[r] ?? 'secondary');
 
 async function loadUsers() {
     loading.value = true;

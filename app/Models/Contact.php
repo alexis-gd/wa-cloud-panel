@@ -180,9 +180,26 @@ class Contact extends Model
         return $this->hasMany(ConversationAssignment::class);
     }
 
+    /**
+     * Agente responsable ahora mismo, para el listado de conversaciones.
+     *
+     * Va como relación aparte por la misma razón que `latestConversation`: cargar
+     * `assignments` con `->limit(1)` en un eager load limita la consulta **entera** a una
+     * fila, así que un solo contacto de toda la lista salía con agente y el resto
+     * "Sin asignar" - parecía que asignar una conversación soltaba la anterior.
+     *
+     * El desempate es por `id`, no por `assigned_at`: la columna guarda al segundo y dos
+     * reasignaciones seguidas empatan. `id` es además el criterio que ya usaban el filtro
+     * por agente y `AssignmentService`, así que listado, detalle y filtro coinciden.
+     */
+    public function latestAssignment(): HasOne
+    {
+        return $this->hasOne(ConversationAssignment::class)->latestOfMany('id');
+    }
+
     public function currentAssignment(): ?ConversationAssignment
     {
-        return $this->assignments()->latest('assigned_at')->first();
+        return $this->assignments()->latest('id')->first();
     }
 
     public function scopeActive($query)

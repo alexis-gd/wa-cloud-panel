@@ -499,11 +499,34 @@ function renderBody(text) {
     .replace(/\n/g, '<br>');
 }
 
+// Estados que devuelve Meta para una plantilla. Se incluyen los menos comunes
+// (pending_deletion, in_appeal, limit_exceeded) porque el sincronizador los guarda tal cual
+// y antes salían crudos en inglés en la tabla.
 function statusLabel(s) {
-  return { approved: 'Aprobada', rejected: 'Rechazada', pending: 'Pendiente', paused: 'Pausada', disabled: 'Desactivada' }[s] ?? s;
+  return {
+    approved       : 'Aprobada',
+    rejected       : 'Rechazada',
+    pending        : 'Pendiente',
+    paused         : 'Pausada',
+    disabled       : 'Desactivada',
+    in_appeal      : 'En apelación',
+    pending_deletion: 'Por eliminar',
+    deleted        : 'Eliminada',
+    limit_exceeded : 'Límite excedido',
+  }[s] ?? s;
 }
 function statusSeverity(s) {
-  return { approved: 'success', rejected: 'danger', pending: 'warn', paused: 'warn', disabled: 'secondary' }[s] ?? 'secondary';
+  return {
+    approved       : 'success',
+    rejected       : 'danger',
+    pending        : 'warn',
+    paused         : 'warn',
+    disabled       : 'secondary',
+    in_appeal      : 'warn',
+    pending_deletion: 'secondary',
+    deleted        : 'secondary',
+    limit_exceeded : 'danger',
+  }[s] ?? 'secondary';
 }
 </script>
 

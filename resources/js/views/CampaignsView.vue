@@ -522,12 +522,14 @@ watch(() => form.value.template, () => {
     form.value.bodyVars = Array(varCount.value).fill('');
 });
 
+// `cancelled` existe en el enum de la tabla campaigns y no estaba mapeado: salía crudo.
 const statusLabel = (s) => ({
     draft     : 'Borrador',
     running   : 'Ejecutando',
     paused    : 'Pausada',
     completed : 'Finalizada',
     done      : 'Finalizada',
+    cancelled : 'Cancelada',
 }[s] ?? s);
 
 const statusSeverity = (s) => ({
@@ -536,6 +538,7 @@ const statusSeverity = (s) => ({
     paused    : 'warn',
     completed : 'success',
     done      : 'success',
+    cancelled : 'danger',
 }[s] ?? 'secondary');
 
 const logStatusLabel = (s) => ({

@@ -23,7 +23,7 @@ class UndoTextOptOutCommand extends Command
 {
     protected $signature = 'contacts:undo-optout
                             {--word=NO : Palabra que causó la baja falsa (NO, BAJA, CANCELAR)}
-                            {--phone= : Revertir un solo contacto por su número}
+                            {--phone= : Números concretos, separados por coma. Salta la búsqueda por palabra}
                             {--dry-run : Solo mostrar a quién afectaría, sin tocar nada}';
 
     protected $description = 'Reactiva contactos dados de baja por una palabra que ya no cuenta como baja';
@@ -33,19 +33,29 @@ class UndoTextOptOutCommand extends Command
 
     public function handle(): int
     {
-        $palabra = OptOutWords::normalize((string) $this->option('word'));
-        $dryRun  = (bool) $this->option('dry-run');
+        $dryRun = (bool) $this->option('dry-run');
 
-        if (in_array($palabra, OptOutWords::WORDS, true)) {
-            $this->error("'{$palabra}' sigue siendo una palabra de baja válida. No se revierte.");
+        // Con --phone manda la auditoría humana: alguien ya revisó esas conversaciones una por
+        // una y decidió. Buscar la palabra ahí sobraría y además falla en casos reales: un
+        // contacto que escribió "No" y enseguida "Aún no" no queda ligado a una sola palabra.
+        if ($this->option('phone')) {
+            $afectados = $this->buscarPorTelefono();
+            $origen    = 'los números indicados';
+        } else {
+            $palabra = OptOutWords::normalize((string) $this->option('word'));
 
-            return self::FAILURE;
+            if (in_array($palabra, OptOutWords::WORDS, true)) {
+                $this->error("'{$palabra}' sigue siendo una palabra de baja válida. No se revierte.");
+
+                return self::FAILURE;
+            }
+
+            $afectados = $this->buscarPorPalabra($palabra);
+            $origen    = "la palabra '{$palabra}'";
         }
 
-        $afectados = $this->buscarAfectados($palabra);
-
         if ($afectados->isEmpty()) {
-            $this->info("Sin contactos dados de baja por '{$palabra}'. Nada que hacer.");
+            $this->info("Sin contactos de baja por {$origen}. Nada que hacer.");
 
             return self::SUCCESS;
         }
@@ -87,33 +97,69 @@ class UndoTextOptOutCommand extends Command
     }
 
     /**
-     * Contactos de baja automática cuyo último entrante justo antes de la baja fue esa palabra.
+     * Contactos nombrados a mano. Se exige que estén de baja, pero no se revisa qué palabra la
+     * causó: eso ya lo verificó una persona.
      *
      * @return Collection<int, Contact>
      */
-    private function buscarAfectados(string $palabra): Collection
+    private function buscarPorTelefono(): Collection
     {
-        $query = Contact::where('status', 'opted_out')
-            ->where('opted_out_source', 'auto')
-            ->whereNotNull('opted_out_at');
+        $numeros = collect(explode(',', (string) $this->option('phone')))
+            ->map(fn (string $n) => trim($n))
+            ->filter()
+            ->map(fn (string $n) => Contact::normalizePhone($n) ?? $n);
 
-        if ($phone = $this->option('phone')) {
-            $query->where('phone', Contact::normalizePhone($phone) ?? $phone);
+        $contactos = Contact::whereIn('phone', $numeros)->get();
+
+        foreach ($numeros as $numero) {
+            $contacto = $contactos->firstWhere('phone', $numero);
+
+            if (! $contacto) {
+                $this->warn("{$numero}: no existe en la base.");
+            } elseif ($contacto->status !== 'opted_out') {
+                $this->warn("{$numero}: no está de baja (está '{$contacto->status}'). Se omite.");
+            }
         }
 
-        return $query->get()->filter(
-            fn (Contact $c) => $this->laBajaLaDisparo($c, $palabra),
-        )->values();
+        return $contactos->where('status', 'opted_out')->values();
     }
 
+    /**
+     * Contactos de baja automática con esa palabra entre sus mensajes del momento de la baja.
+     *
+     * @return Collection<int, Contact>
+     */
+    private function buscarPorPalabra(string $palabra): Collection
+    {
+        return Contact::where('status', 'opted_out')
+            ->where('opted_out_source', 'auto')
+            ->whereNotNull('opted_out_at')
+            ->get()
+            ->filter(fn (Contact $c) => $this->laBajaLaDisparo($c, $palabra))
+            ->values();
+    }
+
+    /**
+     * Revisa TODOS los entrantes alrededor de la baja, no solo el último.
+     *
+     * Mirar solo el último no sirve: el caso que originó esto mandó "No" y enseguida "Aún no",
+     * así que el último mensaje no era la palabra que disparó la baja. Y si entre esos mensajes
+     * hay una palabra de baja que **sigue vigente**, la baja es legítima y no se toca.
+     */
     private function laBajaLaDisparo(Contact $contact, string $palabra): bool
     {
-        $mensaje = Conversation::where('contact_id', $contact->id)
-            ->where('direction', 'inbound')
-            ->where('created_at', '<=', $contact->opted_out_at->copy()->addSeconds(self::VENTANA_SEGUNDOS))
-            ->latest('created_at')
-            ->value('body');
+        $desde = $contact->opted_out_at->copy()->subSeconds(self::VENTANA_SEGUNDOS);
+        $hasta = $contact->opted_out_at->copy()->addSeconds(self::VENTANA_SEGUNDOS);
 
-        return $mensaje !== null && OptOutWords::normalize($mensaje) === $palabra;
+        $mensajes = Conversation::where('contact_id', $contact->id)
+            ->where('direction', 'inbound')
+            ->whereBetween('created_at', [$desde, $hasta])
+            ->pluck('body');
+
+        if ($mensajes->contains(fn (?string $m) => OptOutWords::matches((string) $m))) {
+            return false;
+        }
+
+        return $mensajes->contains(fn (?string $m) => OptOutWords::normalize((string) $m) === $palabra);
     }
 }

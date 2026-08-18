@@ -14,6 +14,7 @@ use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
 use App\Services\AssignmentService;
+use App\Services\OptOutWords;
 use App\Services\WhatsApp\DeliveryReason;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -22,9 +23,8 @@ use Illuminate\Support\Facades\Log;
 
 class WebhookController extends Controller
 {
-    // Palabras que disparan opt-out permanente (coincidencia exacta de palabra completa, case-insensitive)
-    private const OPT_OUT_WORDS = ['STOP', 'BAJA', 'CANCELAR', 'NO'];
-
+    // Las palabras que dan de baja viven en App\Services\OptOutWords: son una regla legal
+    // y de política de Meta, y tienen que ser las mismas en WhatsApp y en SMS.
 
     public function __construct(private readonly AssignmentService $assignmentService) {}
 
@@ -281,11 +281,9 @@ class WebhookController extends Controller
      */
     private function handleTextMessage(Contact $contact, string $body): bool
     {
-        // Comparar el mensaje completo (normalizado) con las palabras de opt-out.
-        // Exigir mensaje exacto evita falsos positivos: "no me cae" no es opt-out, "NO" sí.
-        $normalized = strtoupper(trim($body));
-
-        if (in_array($normalized, self::OPT_OUT_WORDS, true)) {
+        // Comparar el mensaje completo con las palabras de baja. Exigir el mensaje entero
+        // evita falsos positivos: "no quiero dar de baja mi crédito" no es una baja.
+        if (OptOutWords::matches($body)) {
             $contact->optOut('auto');
             Log::info("Opt-out por texto '{$body}' - contacto {$contact->id}");
             return true;

@@ -14,7 +14,7 @@
 7. El cliente **no ve ni edita** tokens, Phone IDs, ni configuración de Meta.
 8. El selector de plantillas **solo muestra aprobadas** (`status = 'approved'`). Nunca permitir escribir nombres a mano.
 9. **Warm-up automático** — el sistema impone límites diarios, el cliente no puede subirlos.
-10. **Opt-out inmediato** — si responden STOP/NO/BAJA/CANCELAR, bloquear y nunca más enviar.
+10. **Opt-out inmediato** - si responden STOP o DAR DE BAJA, bloquear y nunca más enviar. La lista vive en `App\Services\OptOutWords`, compartida por WhatsApp y SMS.
 11. **Horario forzado** — el scheduler solo corre L-V 7AM-10PM CST. Sin override manual.
 
 ## Datos sensibles

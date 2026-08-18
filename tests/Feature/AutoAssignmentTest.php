@@ -135,7 +135,7 @@ class AutoAssignmentTest extends TestCase
             'assigned_at' => now(),
         ]);
 
-        $this->postWebhook($this->inboundPayload($contact->phone, 'BAJA'))->assertStatus(200);
+        $this->postWebhook($this->inboundPayload($contact->phone, 'DAR DE BAJA'))->assertStatus(200);
 
         $this->assertSame('opted_out', $contact->fresh()->status);
         $this->assertSame(0, ConversationAssignment::where('contact_id', $contact->id)->count());

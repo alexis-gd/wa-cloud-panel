@@ -51,7 +51,7 @@ CampaignController ──── channel: whatsapp | sms
 | Proveedor | Meta Cloud API directa | Twilio (o SMS Masivos) |
 | Contenido | Plantillas aprobadas por Meta | Texto plano (160 chars/segmento) |
 | Horario | FORZADO L-V 7AM-10PM CST | Sin restricción legal (advertencia nocturna) |
-| Opt-out | STOP/NO/BAJA → webhook Meta | STOP/CANCEL/END → Twilio error 21610 |
+| Opt-out | STOP / DAR DE BAJA → webhook Meta | STOP/CANCEL/END → Twilio error 21610 |
 | Warm-up | Obligatorio (500 → 10K → 100K/día) | No aplica, sin límite de warm-up |
 | Delivery report | Meta webhook: sent/delivered/read/failed | Twilio StatusCallback: queued/sent/delivered/undelivered/failed |
 | Lectura | Sí (status "read") | No detectable |
@@ -99,7 +99,7 @@ Qué es por canal y qué es cross-channel:
 | **Dedup diario** (1 msj/día por contacto) | **por canal** | un WhatsApp hoy NO frena el SMS de hoy |
 | **Cooldown** (`Setting cooldown_days`, mín 7) | **por canal** | cada canal cuenta el suyo |
 | **Snooze** ("No por ahora") | **por canal (solo WhatsApp)** | nace de un botón WA; SMS no lo respeta |
-| **Opt-out** (STOP/BAJA / `status=opted_out`) | **cross-channel** | una baja bloquea AMBOS (legal) |
+| **Opt-out** (STOP / DAR DE BAJA / `status=opted_out`) | **cross-channel** | una baja bloquea AMBOS (legal) |
 | **Blacklist** por rebotes | **cross-channel** para opt-out, propio de SMS para rebotes | ver `registerSmsBounce()` |
 
 Cada job filtra su propio canal: `->where('channel', 'whatsapp'|'sms')` en `SendWhatsAppMessage`

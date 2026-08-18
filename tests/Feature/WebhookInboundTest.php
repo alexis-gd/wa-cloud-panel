@@ -61,10 +61,14 @@ class WebhookInboundTest extends TestCase
         ]);
     }
 
+    /**
+     * Lista acordada con el cliente. `BAJA`, `CANCELAR` y `NO` se retiraron: ver
+     * `App\Services\OptOutWords` y `OptOutWordsTest`, que verifica que ya no dan de baja.
+     */
     public static function optOutWords(): array
     {
         return [
-            ['STOP'], ['stop'], ['Baja'], ['BAJA'], ['CANCELAR'], ['NO'],
+            ['STOP'], ['stop'], ['DAR DE BAJA'], ['dar de baja'], ['Dar de Baja'],
         ];
     }
 

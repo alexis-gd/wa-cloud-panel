@@ -23,7 +23,7 @@ Un mensaje con 30+ días en `sent` jamás llegará. Eso elimina falsos positivos
 | Status | Causa | Reversible | Se excluye de campañas |
 |---|---|---|---|
 | `active` | Normal | — | No |
-| `opted_out` | Respondió STOP/NO/BAJA/CANCELAR | No | Sí |
+| `opted_out` | Respondió STOP o DAR DE BAJA | No | Sí |
 | `invalid` | Meta devolvió error `131026` | No | Sí |
 | **`unreachable`** | **2+ mensajes viejos nunca entregados** | **Sí (admin manual)** | **Sí** |
 

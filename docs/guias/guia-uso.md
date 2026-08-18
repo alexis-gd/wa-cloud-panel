@@ -396,7 +396,7 @@ un agente solo. El modo lo elige el administrador en **Configuración → Multi-
 - La asignación automática pasa **una sola vez** (en el primer mensaje). Después no se reasigna
   sola - se hace a mano si hace falta.
 - **Excepción - la baja NO asigna agente:** si la primera (o siguiente) respuesta del contacto es
-  una **baja** (STOP/BAJA/CANCELAR/NO), el sistema **no le asigna** agente, y si ya tenía uno lo
+  una **baja** (STOP o DAR DE BAJA), el sistema **no le asigna** agente, y si ya tenía uno lo
   **suelta** (queda "Sin asignar"). Tiene sentido: a un contacto de baja **ya no se le puede
   escribir**, así que no ocupa a nadie.
 
@@ -431,7 +431,7 @@ Cada fila muestra:
 - **Msgs** - cuántas veces respondió.
 - **Acción** - una etiqueta:
   - **"Interesado"** (verde) si respondió **SÍ** o **INFO** - es tu prospecto, dale seguimiento.
-  - **"Baja automática"** (roja) si respondió **STOP** o **BAJA** - ya lo dimos de baja de SMS.
+  - **"Baja automática"** (roja) si respondió **STOP** o **DAR DE BAJA** - ya lo dimos de baja de SMS.
 
 **Herramientas:** buscar por número/nombre/texto, filtrar (Todas / Interesados / Bajas), y el
 botón ↻ para traer las más recientes.
@@ -442,16 +442,25 @@ botón ↻ para traer las más recientes.
 
 Cuando un contacto responde con una de estas palabras exactas:
 
-**STOP · BAJA · CANCELAR · NO**
+**STOP · DAR DE BAJA**
 
-El sistema lo da de **baja** automáticamente y nunca más le envía por ese medio. Esto es
-**irreversible**.
+El sistema lo da de **baja** automáticamente y nunca más le envía por ese medio.
+
+El mensaje tiene que ser **solo** esa frase. No importan mayúsculas, acentos, espacios de
+más ni el punto final: "Dar de baja." cuenta igual que "DAR DE BAJA". Pero una frase que
+la contiene, como *"no quiero dar de baja mi crédito"*, **no** da de baja.
+
+> **Ojo, esto cambió (agosto 2026).** Antes también daban de baja las palabras `NO`, `BAJA`
+> y `CANCELAR`. Se retiraron porque causaban bajas falsas: un contacto que ya había dicho
+> "Me interesa" contestó **"No"** a la pregunta de un agente y el sistema lo bloqueó para
+> siempre. Si te toca ver un contacto que quedó de baja por error de esos, avisa a soporte:
+> lo puede reactivar.
 
 ### Importante: la baja NO funciona igual en los dos canales
 
 Depende de **por dónde** pidió la baja:
 
-| El contacto dijo STOP/BAJA por... | ¿Qué se bloquea? |
+| El contacto dijo STOP / DAR DE BAJA por... | ¿Qué se bloquea? |
 |---|---|
 | **WhatsApp** (o le diste "Dar de baja" a mano) | **Los dos canales**: ya no recibe WhatsApp NI SMS. |
 | **SMS** | **Solo SMS**: deja de recibir SMS, pero **sigue recibiendo WhatsApp**. |
@@ -507,10 +516,13 @@ qué:
 
 ## 13. Reportes en Excel
 
-| Reporte | Cómo bajarlo |
-|---|---|
-| **Contactos** | Contactos → botón **Exportar Excel** |
-| **Mensajes** | Panel → botón ↓ en "Últimos mensajes" |
+| Reporte | Cómo bajarlo | Qué trae |
+|---|---|---|
+| **Contactos** | Contactos → botón **Exportar Excel** | Teléfono, nombre, estado, de dónde salió el contacto, hasta cuándo está pospuesto y cuándo se dio de alta. |
+| **Mensajes** | Panel → botón ↓ en "Últimos mensajes" | Los últimos 10,000 envíos: canal (WhatsApp o SMS), número que envió, destino, plantilla, estado de entrega y fecha. |
+
+Los dos archivos vienen en español y con la hora del Centro (CDMX), la misma que ves en el
+panel. Los puedes abrir en Excel o en Google Sheets tal cual.
 
 ---
 

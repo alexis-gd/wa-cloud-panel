@@ -11,6 +11,7 @@ use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\Setting;
 use App\Models\SmsInboundMessage;
+use App\Services\OptOutWords;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
@@ -22,15 +23,15 @@ use Illuminate\Support\Facades\Log;
  * Sus eventos son sms:sent | sms:delivered | sms:failed | sms:received. El mapeo a la lógica
  * de auto-protección (contexto-sms) es:
  *   - sms:failed   → rebote SMS (3 consecutivos ⇒ sms_blocked)
- *   - sms:received → si el texto es STOP/BAJA/CANCELAR/NO ⇒ opt-out SMS
+ *   - sms:received → si el texto es una palabra de baja (OptOutWords) ⇒ opt-out SMS
  *
  * Opt-out es CROSS-CHANNEL en el envío (un opt-out WA bloquea SMS), pero un STOP recibido
  * por SMS marca sms_opt_out sin tocar el status WA (el usuario pidió baja de SMS, no de WA).
  */
 class SmsWebhookController extends Controller
 {
-    // Mismas palabras que el webhook de WhatsApp (coincidencia exacta, case-insensitive).
-    private const OPT_OUT_WORDS = ['STOP', 'BAJA', 'CANCELAR', 'NO', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'];
+    // Las palabras de baja viven en App\Services\OptOutWords, compartidas con el webhook de
+    // WhatsApp. Aquí se piden también las de las operadoras (UNSUBSCRIBE, QUIT...).
 
     // Respuestas que marcan interés (match exacto). Sirven para que el operador ubique
     // rápido al prospecto en la lista agrupada. No dispara ninguna acción automática:
@@ -163,23 +164,13 @@ class SmsWebhookController extends Controller
     // 'interested', y cualquier otra cosa es null. Ignora acentos y mayúsculas.
     private function classifyReply(string $message): ?string
     {
-        $word = $this->normalizeWord($message);
-
-        if (in_array($word, self::OPT_OUT_WORDS, true)) {
+        if (OptOutWords::matches($message, includeCarrierWords: true)) {
             return 'opt_out';
         }
-        if (in_array($word, self::INTERESTED_WORDS, true)) {
+        if (in_array(OptOutWords::normalize($message), self::INTERESTED_WORDS, true)) {
             return 'interested';
         }
         return null;
-    }
-
-    // Normaliza a mayúsculas sin acentos para comparar contra las listas de palabras.
-    private function normalizeWord(string $message): string
-    {
-        $upper = mb_strtoupper(trim($message), 'UTF-8');
-
-        return strtr($upper, ['Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U']);
     }
 
     private function handleInbound(array $payload): void

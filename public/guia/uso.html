@@ -639,7 +639,7 @@ naranja. El admin u operador la puede repartir a mano.</li>
 <li>La asignación automática pasa <strong>una sola vez</strong> (en el primer mensaje). Después no se reasigna
 sola - se hace a mano si hace falta.</li>
 <li><strong>Excepción - la baja NO asigna agente:</strong> si la primera (o siguiente) respuesta del contacto es
-una <strong>baja</strong> (STOP/BAJA/CANCELAR/NO), el sistema <strong>no le asigna</strong> agente, y si ya tenía uno lo
+una <strong>baja</strong> (STOP o DAR DE BAJA), el sistema <strong>no le asigna</strong> agente, y si ya tenía uno lo
 <strong>suelta</strong> (queda &quot;Sin asignar&quot;). Tiene sentido: a un contacto de baja <strong>ya no se le puede
 escribir</strong>, así que no ocupa a nadie.</li>
 </ul>
@@ -674,7 +674,7 @@ veces, haz clic en la fila para ver todos sus mensajes.</p>
 <li><strong>Acción</strong> - una etiqueta:
 <ul>
 <li><strong>&quot;Interesado&quot;</strong> (verde) si respondió <strong>SÍ</strong> o <strong>INFO</strong> - es tu prospecto, dale seguimiento.</li>
-<li><strong>&quot;Baja automática&quot;</strong> (roja) si respondió <strong>STOP</strong> o <strong>BAJA</strong> - ya lo dimos de baja de SMS.</li>
+<li><strong>&quot;Baja automática&quot;</strong> (roja) si respondió <strong>STOP</strong> o <strong>DAR DE BAJA</strong> - ya lo dimos de baja de SMS.</li>
 </ul>
 </li>
 </ul>
@@ -683,15 +683,24 @@ botón ↻ para traer las más recientes.</p>
 <hr />
 <h2 id="11-bajas-contactos-que-piden-no-recibir-mas">11. Bajas: contactos que piden no recibir más</h2>
 <p>Cuando un contacto responde con una de estas palabras exactas:</p>
-<p><strong>STOP · BAJA · CANCELAR · NO</strong></p>
-<p>El sistema lo da de <strong>baja</strong> automáticamente y nunca más le envía por ese medio. Esto es
-<strong>irreversible</strong>.</p>
+<p><strong>STOP · DAR DE BAJA</strong></p>
+<p>El sistema lo da de <strong>baja</strong> automáticamente y nunca más le envía por ese medio.</p>
+<p>El mensaje tiene que ser <strong>solo</strong> esa frase. No importan mayúsculas, acentos, espacios de
+más ni el punto final: &quot;Dar de baja.&quot; cuenta igual que &quot;DAR DE BAJA&quot;. Pero una frase que
+la contiene, como <em>&quot;no quiero dar de baja mi crédito&quot;</em>, <strong>no</strong> da de baja.</p>
+<blockquote>
+<p><strong>Ojo, esto cambió (agosto 2026).</strong> Antes también daban de baja las palabras <code>NO</code>, <code>BAJA</code>
+y <code>CANCELAR</code>. Se retiraron porque causaban bajas falsas: un contacto que ya había dicho
+&quot;Me interesa&quot; contestó <strong>&quot;No&quot;</strong> a la pregunta de un agente y el sistema lo bloqueó para
+siempre. Si te toca ver un contacto que quedó de baja por error de esos, avisa a soporte:
+lo puede reactivar.</p>
+</blockquote>
 <h3 id="importante-la-baja-no-funciona-igual-en-los-dos-canales">Importante: la baja NO funciona igual en los dos canales</h3>
 <p>Depende de <strong>por dónde</strong> pidió la baja:</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
-<th>El contacto dijo STOP/BAJA por...</th>
+<th>El contacto dijo STOP / DAR DE BAJA por...</th>
 <th>¿Qué se bloquea?</th>
 </tr>
 </thead>
@@ -803,19 +812,24 @@ reglas (enfriamiento, pospuesto, enviado hoy). No es un error: es el sistema cui
 <tr>
 <th>Reporte</th>
 <th>Cómo bajarlo</th>
+<th>Qué trae</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>Contactos</strong></td>
 <td>Contactos → botón <strong>Exportar Excel</strong></td>
+<td>Teléfono, nombre, estado, de dónde salió el contacto, hasta cuándo está pospuesto y cuándo se dio de alta.</td>
 </tr>
 <tr>
 <td><strong>Mensajes</strong></td>
 <td>Panel → botón ↓ en &quot;Últimos mensajes&quot;</td>
+<td>Los últimos 10,000 envíos: canal (WhatsApp o SMS), número que envió, destino, plantilla, estado de entrega y fecha.</td>
 </tr>
 </tbody>
 </table></div>
+<p>Los dos archivos vienen en español y con la hora del Centro (CDMX), la misma que ves en el
+panel. Los puedes abrir en Excel o en Google Sheets tal cual.</p>
 <hr />
 <h2 id="14-que-hago-si-como-reaccionar">14. ¿Qué hago si...? (cómo reaccionar)</h2>
 <p>Guía rápida de reacción. Si algo se ve raro, busca aquí antes de asustarte.</p>

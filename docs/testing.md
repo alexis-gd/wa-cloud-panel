@@ -16,7 +16,7 @@
 | Etapa | Feature tests | Unit tests |
 |---|---|---|
 | 1 | health, templates auth, webhook verify, campaigns CRUD, scheduler horario | WhatsAppClient mock, TemplateBuilder JSON, circuit breaker lógica |
-| 2 | opt-out STOP/NO/BAJA bloquea envíos, lista negra activa, dashboard stats | WebhookProcessor delivery receipts, métricas agregadas |
+| 2 | opt-out (STOP / DAR DE BAJA) bloquea envíos, lista negra activa, dashboard stats | WebhookProcessor delivery receipts, métricas agregadas |
 | 3 | multi-número balanceo, export CSV válido, inbound almacena | Algoritmo round-robin balanceo |
 
 ## Flujo de trabajo obligatorio

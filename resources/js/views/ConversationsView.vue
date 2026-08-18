@@ -110,7 +110,7 @@
         <div class="info-rows">
           <div class="info-row"><span class="info-lbl">Nombre</span><span class="info-val">{{ selected.name || '-' }}</span></div>
           <div class="info-row"><span class="info-lbl">Teléfono</span><span class="info-val">{{ selected.phone }}</span></div>
-          <div class="info-row"><span class="info-lbl">Estado</span><span class="info-val">{{ selected.status }}</span></div>
+          <div class="info-row"><span class="info-lbl">Estado</span><span class="info-val">{{ contactStatusLabel(selected.status) }}</span></div>
           <div v-if="selected.snoozed_until" class="info-row">
             <span class="info-lbl">Pospuesto</span>
             <span class="info-val info-val--warn">{{ formatDate(selected.snoozed_until) }}</span>
@@ -223,6 +223,20 @@ function lifecycleOf(c) {
 
 function lifecycleTag(c) {
   return LIFECYCLE[lifecycleOf(c)];
+}
+
+// ── Estado del contacto (identidad, no de la conversacion) ───────────────────
+// Es el `contacts.status` de la BD. Viaja en ingles porque es un identificador; aqui se
+// traduce para el panel de info, donde antes salia crudo ("opted_out").
+const CONTACT_STATUS = {
+  active     : 'Activo',
+  opted_out  : 'Baja',
+  invalid    : 'Inválido',
+  unreachable: 'Inalcanzable',
+};
+
+function contactStatusLabel(status) {
+  return CONTACT_STATUS[status] ?? status;
 }
 
 // ── Asignacion (separada del estado) ─────────────────────────────────────────

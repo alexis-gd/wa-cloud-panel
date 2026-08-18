@@ -154,7 +154,7 @@ Es advertencia, no bloqueo. El cliente decide.
 > entró en vigor el **21-mar-2025**. La supervisión y sanciones pasaron a la **Secretaría
 > Anticorrupción y Buen Gobierno** (desapareció el INAI). Exige consentimiento para marketing y que
 > el titular pueda **revocar su consentimiento en cualquier momento** (el responsable DEBE dar el
-> medio para revocar). **Conclusión:** el **opt-out (STOP/BAJA) es obligatorio y NO se quita**,
+> medio para revocar). **Conclusión:** el **opt-out (STOP / DAR DE BAJA) es obligatorio y NO se quita**,
 > aunque el cliente sea blando con SMS — la multa la carga el cliente (responsable de los datos), y
 > es el propósito del sistema (a prueba de errores del cliente). No somos abogados; el cliente debe
 > confirmarlo con su asesor legal.
@@ -169,7 +169,7 @@ Es advertencia, no bloqueo. El cliente decide.
 ### Manejo de números SMS diferenciado (decisión del cliente, aprobado — IMPLEMENTADO)
 El cliente es **blando con SMS**: usa SIM propia barata, NO le interesa cuidar la reputación del número.
 Por eso el manejo de números SMS se separa del de WhatsApp:
-- **Opt-out (STOP) → bloqueo permanente de SMS**: se queda (legal, ver arriba). No negociable.
+- **Opt-out (STOP / DAR DE BAJA) → bloqueo permanente de SMS**: se queda (legal, ver arriba). No negociable. Palabras en `App\Services\OptOutWords` (+ las de operadora: STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT).
 - **Auto-blacklist por rebotes → configurable, apagado por default** (`Setting sms_auto_blacklist_bounces = 0`).
   El contador de rebotes sigue (para reporte) pero NO bloquea salvo umbral > 0. "No suma fallas."
   Editable en Configuración (solo superadmin) vía `GET/PUT /api/settings/sms-auto-blacklist`.
@@ -200,7 +200,7 @@ Por eso el manejo de números SMS se separa del de WhatsApp:
 > práctica, el "snooze de WhatsApp".
 >
 > **Lo que SIGUE siendo cross-channel** (no se tocó): el **opt-out** y el **blacklist**.
-> Una baja (STOP/BAJA) o un `status = opted_out` bloquea AMBOS canales — es regla legal/seguridad.
+> Una baja (STOP / DAR DE BAJA) o un `status = opted_out` bloquea AMBOS canales - es regla legal/seguridad.
 
 ### Dedup por canal
 Antes de enviar por un canal, verificar solo ese canal:

@@ -399,6 +399,96 @@ terminar te avisa al instante:
 <li>Escribe el nombre (opcional) y clic en <strong>Guardar</strong>. El botón solo se activa si el número es
 válido y no existe.</li>
 </ol>
+<h3 id="buscar-muchos-numeros-de-golpe-pegar-una-lista">Buscar muchos números de golpe (pegar una lista)</h3>
+<p>Cuando traes una lista de números en Excel y quieres ver solo esos:</p>
+<ol>
+<li>Copia la columna de números en Excel.</li>
+<li>Pégala <strong>directo en el buscador</strong> de Contactos. Al detectar más de un número, el panel
+entiende que es una lista y filtra por ella (no la trata como texto de búsqueda).
+<ul>
+<li>También puedes usar el botón <strong>Pegar lista</strong>, que abre un recuadro grande para pegar.</li>
+</ul>
+</li>
+<li>Arriba de la tabla aparece el resumen del pegado:
+<ul>
+<li><strong>Cuántos números</strong> estás filtrando.</li>
+<li><strong>Cuántos no están dados de alta</strong> en el sistema, con el botón <strong>Copiar faltantes</strong>
+para llevártelos y darlos de alta o revisarlos.</li>
+<li><strong>Cuántos tenían formato inválido</strong> (no se pudieron leer como teléfono).</li>
+</ul>
+</li>
+<li>Para volver a la lista completa, clic en <strong>Quitar filtro</strong>.</li>
+</ol>
+<p>Detalles útiles:</p>
+<ul>
+<li>Sirve pegar separado por <strong>salto de línea, tabulador, coma o espacio</strong>. También acepta
+números con <code>+</code>, guiones o paréntesis, y con solo 10 dígitos (el sistema pone el 52).</li>
+<li>Los números repetidos se cuentan <strong>una sola vez</strong>.</li>
+<li>Se pueden pegar hasta <strong>5,000 números</strong> de una vez.</li>
+<li>El pegado <strong>manda sobre el buscador de texto</strong>: si hay lista pegada, el texto se ignora.
+Los demás filtros (estado, tag, entregabilidad) <strong>sí</strong> se aplican encima de la lista.</li>
+</ul>
+<h3 id="filtrar-por-entregabilidad">Filtrar por entregabilidad</h3>
+<p>El selector <strong>Entregabilidad</strong> busca por el estado de la columna del mismo nombre, y siempre
+dice <strong>de qué canal</strong> habla, porque cada canal lleva su propia cuenta:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>WhatsApp</th>
+<th>SMS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Disponible - WhatsApp</td>
+<td>Disponible - SMS</td>
+</tr>
+<tr>
+<td>Enviado hoy - WhatsApp</td>
+<td>Enviado hoy - SMS</td>
+</tr>
+<tr>
+<td>Enfriamiento - WhatsApp</td>
+<td>Enfriamiento - SMS</td>
+</tr>
+<tr>
+<td>Pospuesto - WhatsApp</td>
+<td>-</td>
+</tr>
+<tr>
+<td>En espera (Meta) - WhatsApp</td>
+<td>-</td>
+</tr>
+<tr>
+<td>No recibe - WhatsApp</td>
+<td>No recibe - SMS</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>⚠️ <strong>Enfriamiento - WhatsApp</strong> no es lo mismo que <strong>Enfriamiento - SMS</strong>. Un contacto puede
+estar en enfriamiento de SMS y disponible en WhatsApp al mismo tiempo. <strong>Pospuesto</strong> y
+<strong>En espera (Meta)</strong> solo existen en WhatsApp.</p>
+</blockquote>
+<p>Se pueden <strong>marcar varios estados a la vez</strong> y se suman. Ejemplos:</p>
+<ul>
+<li><strong>Enviado hoy - WhatsApp</strong> + <strong>Enfriamiento - WhatsApp</strong> → todos los que ahorita no reciben
+WhatsApp por haberlo recibido hace poco.</li>
+<li><strong>Disponible - WhatsApp</strong> + <strong>Disponible - SMS</strong> → los que reciben por cualquiera de los dos canales.</li>
+</ul>
+<p>El filtro se combina con los demás (estado, tag, lista pegada): esos se aplican encima.</p>
+<p>Uso típico: antes de lanzar una campaña de WhatsApp, filtra <strong>Disponible - WhatsApp</strong> para ver
+a cuántos les va a llegar de verdad.</p>
+<h3 id="cuantos-registros-ver-por-pagina">Cuántos registros ver por página</h3>
+<p>Debajo de cada tabla hay un selector <strong>Mostrar</strong>: <code>10</code>, <code>20</code>, <code>50</code>, <code>100</code>, <code>250</code>, <code>500</code> y <code>Todos</code>.
+Sirve igual en Contactos, Campañas, Respuestas SMS y la lista de mensajes del Panel.</p>
+<ul>
+<li>Al cambiar el número, la tabla vuelve a la <strong>página 1</strong>.</li>
+<li><strong>Todos</strong> trae hasta <strong>5,000 registros</strong>. Si tu filtro da más, verás el aviso
+<em>&quot;Mostrando 5,000 de N - afina el filtro o usa Exportar&quot;</em>: el navegador no aguanta dibujar
+cientos de miles de filas de golpe. Para llevarte la lista completa usa <strong>Exportar (.xlsx)</strong>.</li>
+<li>Con listas grandes (500 o más) la tabla tarda un poco más en dibujarse. Es normal.</li>
+</ul>
 <h3 id="los-estados-de-un-contacto">Los estados de un contacto</h3>
 <p>La tabla tiene dos columnas de estado. El ícono <strong>?</strong> junto al título las explica.</p>
 <p><strong>Estado</strong> (quién es el contacto):</p>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SmsInboundMessage;
+use App\Support\PageSize;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -53,14 +54,15 @@ class SmsInboundController extends Controller
 
         // Página de contactos, ordenados por su última respuesta (offset/limit manual:
         // paginate() sobre GROUP BY cuenta mal el total).
-        $pageNum = max(1, $request->integer('page', 1));
+        $pageNum  = max(1, $request->integer('page', 1));
+        $perPage  = PageSize::from($request, self::PER_PAGE);
 
         $pageContactIds = (clone $base)
             ->selectRaw('contact_id, MAX(received_at) as last_at')
             ->groupBy('contact_id')
             ->orderByDesc('last_at')
-            ->offset(($pageNum - 1) * self::PER_PAGE)
-            ->limit(self::PER_PAGE)
+            ->offset(($pageNum - 1) * $perPage)
+            ->limit($perPage)
             ->pluck('contact_id');
 
         // Todas las respuestas de esos contactos (respetando el filtro q), más reciente primero.
@@ -107,9 +109,12 @@ class SmsInboundController extends Controller
             'status' => 'ok',
             'data'   => $data,
             'meta'   => [
-                'total'    => $totalGroups,
-                'page'     => $pageNum,
-                'per_page' => self::PER_PAGE,
+                'total'     => $totalGroups,
+                'page'      => $pageNum,
+                'per_page'  => $perPage,
+                'pages'     => (int) max(1, ceil($totalGroups / $perPage)),
+                'capped'    => PageSize::wasCapped($request, $totalGroups),
+                'cap_limit' => PageSize::ALL_CAP,
             ],
         ]);
     }

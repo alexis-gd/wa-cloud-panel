@@ -20,3 +20,7 @@ yarn-error.log
 CLAUDE.local.md
 /.claude/settings.json
 /.claude/settings.local.json
+
+# Scripts de prueba local (no van al repo)
+/qa-seed.php
+/qa-clean.php

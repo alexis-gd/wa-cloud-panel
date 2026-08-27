@@ -177,6 +177,48 @@ de envíos (9AM). Sin contención de BD con los jobs de campaña.
 
 Ver plan de implementación completo en [`docs/plan-unreachable.md`](plan-unreachable.md).
 
+### Por qué `POST /api/contacts/search` y no un GET con muchos parámetros
+
+El operador copia una columna de Excel y pega cientos de números en el buscador de Contactos
+(el caso real que reportó el cliente fueron 500 de golpe). 500 números son ~6.5 KB de query
+string y 2,000 pasan de 25 KB: nginx corta con **414 URI Too Long** antes de que Laravel se
+entere, y el error no dice nada útil. Por eso el pegado viaja en el body.
+
+`index()` (GET) y `search()` (POST) comparten `respondWithPage()`, que arma los filtros una
+sola vez. Nunca duplicar filtros en uno de los dos: se separan y el operador ve resultados
+distintos según por dónde entró.
+
+El parseo del pegado vive en `App\Services\Contacts\PhoneListParser`. El espacio es ambiguo
+(separa números, pero Excel también lo mete dentro de uno), así que el parser corre dos veces
+- una cortando por espacios y otra solo por saltos de línea - y gana la que rescata más
+números válidos.
+
+### Entregabilidad: dos clases que deben cambiar juntas
+
+| Clase | Para qué | Cuándo corre |
+|---|---|---|
+| `Services\Contacts\DeliverabilityBadges` | **Mostrar** las etiquetas de la fila | Después de paginar, 2 queries agregadas por página |
+| `Services\Contacts\DeliverabilityFilter` | **Filtrar** por esos estados | Dentro del query, con `EXISTS` sobre `message_log` |
+
+Las dos codifican la misma precedencia (`No recibe > Pospuesto > En espera (Meta) > Enviado hoy
+> Enfriamiento > Disponible` en WhatsApp; sin snooze ni hold en SMS). Si una cambia y la otra
+no, el operador filtra "Enfriamiento" y ve filas rotuladas "Enviado hoy".
+
+El filtro obligó a un índice nuevo: `idx_logs_to_channel_status_sent` sobre
+`message_log (to_number, channel, status, sent_at)`. Los índices previos no llevaban `channel`,
+así que el `EXISTS` por canal tenía que leer todas las filas del número y descartar.
+
+### Tamaño de página: `App\Support\PageSize`
+
+El selector "Mostrar" (10/20/50/100/250/500/Todos) lo resuelve un solo helper, usado por
+Contactos, Campañas, Panel-mensajes y Respuestas SMS. Dos reglas:
+
+- Un `per_page` fuera del catálogo **cae al default** del endpoint. Un `per_page=999999` a mano
+  no tumba el servidor.
+- **"Todos" tiene tope duro** (`PageSize::ALL_CAP` = 5,000). Con 200k contactos el JSON pesa
+  decenas de MB y el navegador se cuelga al renderizar. La respuesta trae `capped` y el front
+  muestra "Mostrando 5,000 de N - afina el filtro o usa Exportar".
+
 ---
 
 ## Comandos artisan usados (referencia)

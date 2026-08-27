@@ -64,6 +64,9 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
         // Contactos
         Route::get('/contacts',              [ContactController::class, 'index']);
+        // Misma lista que el GET, pero con el pegado masivo de numeros en el body:
+        // cientos de numeros no caben en un query string (nginx corta con 414).
+        Route::post('/contacts/search',      [ContactController::class, 'search']);
         Route::get('/contacts/stats',        [ContactController::class, 'stats']);
         Route::get('/contacts/check',        [ContactController::class, 'check']);
         Route::post('/contacts',             [ContactController::class, 'store']);

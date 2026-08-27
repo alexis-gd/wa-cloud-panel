@@ -74,7 +74,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.30.10</span>
+                <span class="version">v0.31.0</span>
             </div>
         </aside>
 
@@ -298,6 +298,9 @@ const helpContent = {
             { icon: 'pi-refresh',       label: 'Reactivar',  text: 'Solo admin: el botón Reactivar aparece en contactos Inalcanzables (3 mensajes seguidos sin entregarse). Los vuelve a Activo si hay evidencia de que el número volvió a ser alcanzable. Filtra por "Inalcanzables" para encontrarlos. Las bajas e inválidos NO se reactivan.' },
             { icon: 'pi-trash',         label: 'Eliminar',   text: 'El bote de basura (solo admin) quita el contacto de listas y campañas - para limpiar pruebas/basura. Es recuperable y no afecta las stats de bajas.' },
             { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora, POR CANAL: dos etiquetas, una de WhatsApp y otra de SMS (Disponible, Pospuesto, Enfriamiento, Enviado hoy o No recibe). Cada canal cuenta lo suyo, puede estar disponible en uno y en enfriamiento en el otro. Distinta del Estado.' },
+            { icon: 'pi-filter',        label: 'Filtrar por entregabilidad', text: 'El selector Entregabilidad busca por esos mismos estados y siempre dice de que canal habla: "Enfriamiento - WhatsApp" no es lo mismo que "Enfriamiento - SMS". Se pueden marcar varios estados y se suman. Pospuesto y En espera (Meta) solo existen en WhatsApp.' },
+            { icon: 'pi-list',          label: 'Pegar lista', text: 'Copia una columna de numeros de Excel y pegala en el buscador (o usa el boton "Pegar lista"): el panel filtra por esa lista y te dice cuantos no estan dados de alta, con un boton para copiarlos. Hasta 5,000 numeros por pegado.' },
+            { icon: 'pi-table',         label: 'Cuantos ver', text: 'El selector "Mostrar" debajo de la tabla cambia cuantos registros se ven (10 a 500, o Todos). "Todos" trae hasta 5,000; si el filtro da mas, avisa y conviene usar Exportar.' },
             { icon: 'pi-mobile',        label: 'Baja SMS',   text: 'Chip rojo bajo el Estado cuando el contacto NO recibe SMS (pidió baja por SMS, bloqueado o número inválido). Es independiente del Estado de WhatsApp: puede estar Activo para WhatsApp y con Baja SMS. Filtra con "Solo bajas SMS".' },
             { icon: 'pi-tag',           label: 'Tags masivos', text: 'Marca varios contactos con las casillas y usa la barra superior para asignar un tag a todos a la vez.' },
             { icon: 'pi-download',      label: 'Exportar',   text: 'Descarga la lista actual de contactos en Excel.' },

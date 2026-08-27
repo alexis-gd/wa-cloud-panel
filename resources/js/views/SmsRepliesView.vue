@@ -36,11 +36,6 @@
                 <DataTable
                     :value="rows"
                     :loading="loading"
-                    paginator
-                    :rows="30"
-                    :total-records="total"
-                    lazy
-                    @page="onPage"
                     v-model:expandedRows="expandedRows"
                     data-key="contact_id"
                 >
@@ -94,6 +89,18 @@
                     </template>
                 </DataTable>
                 </div>
+
+                <TablePaginator
+                    :page="page"
+                    :total-pages="pages"
+                    :total="total"
+                    :per-page="perPage"
+                    :capped="capped"
+                    :cap-limit="capLimit"
+                    item-label="contactos con respuesta"
+                    @update:page="goToPage"
+                    @update:per-page="changePageSize"
+                />
             </template>
         </Card>
     </div>
@@ -110,6 +117,7 @@ import DataTable    from 'primevue/datatable';
 import Column       from 'primevue/column';
 import Tag          from 'primevue/tag';
 import { api }      from '../api.js';
+import TablePaginator from '../components/TablePaginator.vue';
 import { initEcho } from '../echo.js';
 
 const toast = useToast();
@@ -117,6 +125,11 @@ const toast = useToast();
 const rows         = ref([]);
 const total        = ref(0);
 const page         = ref(1);
+const pages        = ref(1);
+// Tamaño de página elegido por el operador (número o 'all'). Ver TablePaginator.
+const perPage      = ref(30);
+const capped       = ref(false);
+const capLimit     = ref(5000);
 const loading      = ref(false);
 const q            = ref('');
 const actionFilter = ref(null);
@@ -139,12 +152,16 @@ async function load() {
     loading.value = true;
     const res = await api.smsInbound({
         page: page.value,
+        per_page: perPage.value,
         ...(q.value ? { q: q.value } : {}),
         ...(actionFilter.value ? { action: actionFilter.value } : {}),
     });
     if (res.status === 'ok') {
-        rows.value  = res.data;
-        total.value = res.meta.total;
+        rows.value    = res.data;
+        total.value   = res.meta.total;
+        pages.value   = res.meta.pages ?? 1;
+        capped.value  = !!res.meta.capped;
+        capLimit.value = res.meta.cap_limit ?? 5000;
     }
     loading.value = false;
 }
@@ -154,8 +171,15 @@ function reload() {
     load();
 }
 
-function onPage(e) {
-    page.value = e.page + 1;
+function goToPage(p) {
+    page.value = p;
+    load();
+}
+
+// Cambiar el tamaño siempre reinicia a la página 1.
+function changePageSize(size) {
+    perPage.value = size;
+    page.value    = 1;
     load();
 }
 

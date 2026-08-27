@@ -234,14 +234,18 @@
                         <span class="empty-msg">Sin mensajes aún</span>
                     </template>
                 </DataTable>
-                <div class="logs-pagination" v-if="logsMeta">
-                    <Button icon="pi pi-chevron-left" text severity="secondary" size="small"
-                        :disabled="logsMeta.page <= 1" @click="loadMessages(logsMeta.page - 1)" />
-                    <span class="logs-page-info">{{ logsMeta.page }} / {{ logsMeta.pages }}</span>
-                    <Button icon="pi pi-chevron-right" text severity="secondary" size="small"
-                        :disabled="logsMeta.page >= logsMeta.pages" @click="loadMessages(logsMeta.page + 1)" />
-                    <span class="logs-total">{{ logsMeta.total }} mensajes</span>
-                </div>
+                <TablePaginator
+                    v-if="logsMeta"
+                    :page="logsMeta.page"
+                    :total-pages="logsMeta.pages"
+                    :total="logsMeta.total"
+                    :per-page="logsPerPage"
+                    :capped="!!logsMeta.capped"
+                    :cap-limit="logsMeta.cap_limit"
+                    item-label="mensajes"
+                    @update:page="loadMessages"
+                    @update:per-page="changeLogsPageSize"
+                />
             </template>
         </Card>
     </div>
@@ -257,6 +261,7 @@ import Column    from 'primevue/column';
 import Tag       from 'primevue/tag';
 import Chart     from 'primevue/chart';
 import { api }          from '../api.js';
+import TablePaginator   from '../components/TablePaginator.vue';
 import { useFeatures }  from '../features.js';
 import { initEcho }     from '../echo.js';
 
@@ -264,6 +269,8 @@ import { initEcho }     from '../echo.js';
 const logs             = ref([]);
 const { isEnabled } = useFeatures();
 const logsMeta         = ref(null);
+// Tamaño de página elegido por el operador (número o 'all'). Ver TablePaginator.
+const logsPerPage      = ref(10);
 const logsStatusFilter = ref(null);
 const stats            = ref({});
 const contacts         = ref({});
@@ -405,9 +412,15 @@ async function loadStats() {
     }
 }
 
+// Cambiar el tamaño siempre reinicia a la página 1.
+function changeLogsPageSize(size) {
+    logsPerPage.value = size;
+    loadMessages(1);
+}
+
 async function loadMessages(page = 1) {
     loadingLogs.value = true;
-    const params = { page, per_page: 10 };
+    const params = { page, per_page: logsPerPage.value };
     if (logsStatusFilter.value) params.status = logsStatusFilter.value;
     const res = await api.dashboardMessages(params);
     if (res.status === 'ok') {
@@ -640,9 +653,6 @@ onUnmounted(() => {
 .mt-2      { margin-top: 8px; }
 
 .logs-filter-row { display: flex; gap: 8px; margin-bottom: 8px; }
-.logs-pagination { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: .82rem; }
-.logs-page-info  { padding: 0 4px; }
-.logs-total      { color: var(--p-text-muted-color); margin-left: 8px; }
 
 @media (max-width: 900px) {
     .stats-row { grid-template-columns: repeat(2, 1fr); }

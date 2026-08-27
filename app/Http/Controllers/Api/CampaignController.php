@@ -15,6 +15,7 @@ use App\Models\WaTemplate;
 use App\Services\PhoneNumberSelector;
 use App\Services\WhatsApp\DeliveryReason;
 use App\Services\WhatsApp\SendWindow;
+use App\Support\PageSize;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -38,19 +39,22 @@ class CampaignController extends Controller
     }
 
     // GET /api/campaigns
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $campaigns = Campaign::with(['phoneNumber', 'smsTemplate:id,name'])
             ->orderByDesc('created_at')
-            ->paginate(20);
+            ->paginate(PageSize::from($request, 20));
 
         return response()->json([
             'status' => 'ok',
             'data'   => $campaigns->items(),
             'meta'   => [
-                'total'    => $campaigns->total(),
-                'page'     => $campaigns->currentPage(),
-                'per_page' => $campaigns->perPage(),
+                'total'     => $campaigns->total(),
+                'page'      => $campaigns->currentPage(),
+                'per_page'  => $campaigns->perPage(),
+                'pages'     => $campaigns->lastPage(),
+                'capped'    => PageSize::wasCapped($request, $campaigns->total()),
+                'cap_limit' => PageSize::ALL_CAP,
             ],
         ]);
     }

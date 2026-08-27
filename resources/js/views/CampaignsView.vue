@@ -79,16 +79,18 @@
                 </div>
 
                 <!-- Paginación -->
-                <div class="pagination" v-if="meta">
-                    <Button icon="pi pi-chevron-left" text severity="secondary"
-                        :disabled="meta.page <= 1"
-                        @click="loadCampaigns(meta.page - 1)" />
-                    <span>Página {{ meta.page }} de {{ Math.ceil(meta.total / meta.per_page) }}</span>
-                    <Button icon="pi pi-chevron-right" text severity="secondary"
-                        :disabled="meta.page >= Math.ceil(meta.total / meta.per_page)"
-                        @click="loadCampaigns(meta.page + 1)" />
-                    <span class="total-count">{{ meta.total }} campañas</span>
-                </div>
+                <TablePaginator
+                    v-if="meta"
+                    :page="meta.page"
+                    :total-pages="meta.pages"
+                    :total="meta.total"
+                    :per-page="perPage"
+                    :capped="!!meta.capped"
+                    :cap-limit="meta.cap_limit"
+                    item-label="campañas"
+                    @update:page="loadCampaigns"
+                    @update:per-page="changePageSize"
+                />
             </template>
         </Card>
 
@@ -398,6 +400,7 @@ import Select        from 'primevue/select';
 import SelectButton  from 'primevue/selectbutton';
 import ConfirmDialog from 'primevue/confirmdialog';
 import { api }       from '../api.js';
+import TablePaginator from '../components/TablePaginator.vue';
 import { initEcho }  from '../echo.js';
 
 const confirm = useConfirm();
@@ -581,9 +584,18 @@ function progressPct(count, total) {
     return Math.min(100, Math.round((count / total) * 100));
 }
 
+// Tamaño de página elegido por el operador (número o 'all'). Ver TablePaginator.
+const perPage = ref(20);
+
+// Cambiar el tamaño siempre reinicia a la página 1.
+function changePageSize(size) {
+    perPage.value = size;
+    loadCampaigns(1);
+}
+
 async function loadCampaigns(page = 1) {
     loading.value = true;
-    const data       = await api.campaigns({ page });
+    const data       = await api.campaigns({ page, per_page: perPage.value });
     campaigns.value  = data.data ?? [];
     meta.value       = data.meta ?? null;
     loading.value    = false;

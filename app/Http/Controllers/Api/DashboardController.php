@@ -7,6 +7,7 @@ use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Services\WhatsApp\PortfolioLimit;
+use App\Support\PageSize;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -99,7 +100,7 @@ class DashboardController extends Controller
             $query->where('phone_number_id', (int) $request->phone_number_id);
         }
 
-        $paginated = $query->paginate((int) $request->input('per_page', 20));
+        $paginated = $query->paginate(PageSize::from($request, 20));
 
         $items = collect($paginated->items())->map(fn (MessageLog $log) => array_merge(
             $log->toArray(),
@@ -112,8 +113,10 @@ class DashboardController extends Controller
             'meta'   => [
                 'total'    => $paginated->total(),
                 'page'     => $paginated->currentPage(),
-                'per_page' => $paginated->perPage(),
-                'pages'    => $paginated->lastPage(),
+                'per_page'  => $paginated->perPage(),
+                'pages'     => $paginated->lastPage(),
+                'capped'    => PageSize::wasCapped($request, $paginated->total()),
+                'cap_limit' => PageSize::ALL_CAP,
             ],
         ]);
     }

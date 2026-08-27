@@ -194,6 +194,70 @@ Para un prospecto suelto (un referido, una llamada):
 3. Escribe el nombre (opcional) y clic en **Guardar**. El botón solo se activa si el número es
    válido y no existe.
 
+### Buscar muchos números de golpe (pegar una lista)
+
+Cuando traes una lista de números en Excel y quieres ver solo esos:
+
+1. Copia la columna de números en Excel.
+2. Pégala **directo en el buscador** de Contactos. Al detectar más de un número, el panel
+   entiende que es una lista y filtra por ella (no la trata como texto de búsqueda).
+   - También puedes usar el botón **Pegar lista**, que abre un recuadro grande para pegar.
+3. Arriba de la tabla aparece el resumen del pegado:
+   - **Cuántos números** estás filtrando.
+   - **Cuántos no están dados de alta** en el sistema, con el botón **Copiar faltantes**
+     para llevártelos y darlos de alta o revisarlos.
+   - **Cuántos tenían formato inválido** (no se pudieron leer como teléfono).
+4. Para volver a la lista completa, clic en **Quitar filtro**.
+
+Detalles útiles:
+
+- Sirve pegar separado por **salto de línea, tabulador, coma o espacio**. También acepta
+  números con `+`, guiones o paréntesis, y con solo 10 dígitos (el sistema pone el 52).
+- Los números repetidos se cuentan **una sola vez**.
+- Se pueden pegar hasta **5,000 números** de una vez.
+- El pegado **manda sobre el buscador de texto**: si hay lista pegada, el texto se ignora.
+  Los demás filtros (estado, tag, entregabilidad) **sí** se aplican encima de la lista.
+
+### Filtrar por entregabilidad
+
+El selector **Entregabilidad** busca por el estado de la columna del mismo nombre, y siempre
+dice **de qué canal** habla, porque cada canal lleva su propia cuenta:
+
+| WhatsApp | SMS |
+|---|---|
+| Disponible - WhatsApp | Disponible - SMS |
+| Enviado hoy - WhatsApp | Enviado hoy - SMS |
+| Enfriamiento - WhatsApp | Enfriamiento - SMS |
+| Pospuesto - WhatsApp | - |
+| En espera (Meta) - WhatsApp | - |
+| No recibe - WhatsApp | No recibe - SMS |
+
+> ⚠️ **Enfriamiento - WhatsApp** no es lo mismo que **Enfriamiento - SMS**. Un contacto puede
+> estar en enfriamiento de SMS y disponible en WhatsApp al mismo tiempo. **Pospuesto** y
+> **En espera (Meta)** solo existen en WhatsApp.
+
+Se pueden **marcar varios estados a la vez** y se suman. Ejemplos:
+
+- **Enviado hoy - WhatsApp** + **Enfriamiento - WhatsApp** → todos los que ahorita no reciben
+  WhatsApp por haberlo recibido hace poco.
+- **Disponible - WhatsApp** + **Disponible - SMS** → los que reciben por cualquiera de los dos canales.
+
+El filtro se combina con los demás (estado, tag, lista pegada): esos se aplican encima.
+
+Uso típico: antes de lanzar una campaña de WhatsApp, filtra **Disponible - WhatsApp** para ver
+a cuántos les va a llegar de verdad.
+
+### Cuántos registros ver por página
+
+Debajo de cada tabla hay un selector **Mostrar**: `10`, `20`, `50`, `100`, `250`, `500` y `Todos`.
+Sirve igual en Contactos, Campañas, Respuestas SMS y la lista de mensajes del Panel.
+
+- Al cambiar el número, la tabla vuelve a la **página 1**.
+- **Todos** trae hasta **5,000 registros**. Si tu filtro da más, verás el aviso
+  *"Mostrando 5,000 de N - afina el filtro o usa Exportar"*: el navegador no aguanta dibujar
+  cientos de miles de filas de golpe. Para llevarte la lista completa usa **Exportar (.xlsx)**.
+- Con listas grandes (500 o más) la tabla tarda un poco más en dibujarse. Es normal.
+
 ### Los estados de un contacto
 
 La tabla tiene dos columnas de estado. El ícono **?** junto al título las explica.

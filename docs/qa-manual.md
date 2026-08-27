@@ -32,6 +32,16 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Opt-out manual**: eliminar contacto desde UI → se marca `opted_out`, NO se borra de BD
 - [ ] **Filtro por tag**: aplicar filtro `?tag_id=X` → solo aparecen contactos de ese tag
 - [ ] **Asignar/quitar tags**: asignar múltiples tags a un contacto → se guardan correctamente → quitarlos → se eliminan
+- [ ] **Pegado masivo**: copiar una columna de ~500 números de Excel y pegarla en el buscador → filtra por esa lista, aparece el chip con encontrados / no dados de alta / inválidos
+- [ ] **Pegado con formato**: pegar números escritos `52 923 111 1111` (espacios dentro), uno por línea → los reconoce, `invalid = 0`
+- [ ] **Copiar faltantes**: con números que no existen, botón "Copiar faltantes" → deja la lista en el portapapeles
+- [ ] **Quitar filtro del pegado**: botón "Quitar filtro" → vuelve la lista completa
+- [ ] **Pegado + filtros**: con lista pegada, aplicar estado/tag/entregabilidad → filtra dentro de la lista, no fuera
+- [ ] **Filtro entregabilidad por canal**: "Enfriamiento - WhatsApp" y "Enfriamiento - SMS" devuelven conjuntos distintos para un contacto que solo recibió SMS
+- [ ] **Precedencia del filtro**: un contacto que recibió hoy sale en "Enviado hoy", NO en "Enfriamiento" (la etiqueta de la fila debe coincidir con el filtro)
+- [ ] **Selector Mostrar**: cambiar a 250/500 → la tabla trae esa cantidad y vuelve a la página 1
+- [ ] **Mostrar = Todos**: con más de 5,000 resultados → muestra 5,000 y el aviso "Mostrando 5,000 de N"
+- [ ] **Selector en otras pantallas**: Campañas, Respuestas SMS y Últimos mensajes del Panel tienen el mismo selector y responden igual
 
 ---
 

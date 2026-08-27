@@ -201,6 +201,15 @@ export const api = {
         return request(`/contacts?${qs}`);
     },
 
+    /**
+     * Misma lista que `contacts`, pero por POST: el pegado masivo de números va en el body.
+     * Cientos de números no caben en un query string (nginx corta con 414 antes de Laravel).
+     */
+    contactsSearch: (payload = {}) => request('/contacts/search', {
+        method : 'POST',
+        body   : JSON.stringify(payload),
+    }),
+
     contactStats: () => request('/contacts/stats'),
 
     checkContact: (phone) => request(`/contacts/check?phone=${encodeURIComponent(phone)}`),

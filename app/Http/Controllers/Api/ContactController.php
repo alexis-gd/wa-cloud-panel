@@ -6,6 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\Setting;
+use App\Services\Contacts\DeliverabilityBadges;
+use App\Services\Contacts\DeliverabilityFilter;
+use App\Services\Contacts\PhoneListParser;
+use App\Support\PageSize;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -20,18 +24,60 @@ class ContactController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        return $this->respondWithPage($request);
+    }
+
+    /**
+     * Misma lista que index(), pero recibiendo el pegado masivo de números en el body.
+     * POST /api/contacts/search
+     *
+     * Va por POST y no por GET a propósito: el operador copia una columna de Excel y pega
+     * cientos de números. 500 números son ~6.5 KB de query string y 2,000 pasan de 25 KB -
+     * nginx corta con 414 antes de que Laravel se entere. En el body no hay ese techo.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $request->validate([
+            'phones_raw'     => 'nullable|string|max:200000',
+            'status'         => 'nullable|string',
+            'q'              => 'nullable|string|max:255',
+            'tag_id'         => 'nullable|integer',
+            'deliverability' => 'nullable',
+        ]);
+
+        $paste = $request->filled('phones_raw')
+            ? PhoneListParser::parse((string) $request->input('phones_raw'))
+            : null;
+
+        return $this->respondWithPage($request, $paste);
+    }
+
+    /**
+     * Arma la página de contactos con los filtros del request. Compartido por index() y
+     * search() para que GET y POST no se separen nunca.
+     *
+     * @param  array|null  $paste  Resultado de PhoneListParser cuando hubo pegado masivo.
+     */
+    private function respondWithPage(Request $request, ?array $paste = null): JsonResponse
+    {
         $query = Contact::with('tags:id,name,slug')->orderByDesc('id');
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        if ($request->filled('q')) {
+        // El pegado masivo manda sobre el buscador de texto: si el operador pegó una lista,
+        // lo que quiere ver es exactamente esa lista.
+        if ($paste !== null) {
+            // Lista vacía tras normalizar -> whereIn([]) devuelve 0 filas, que es lo correcto
+            // (pegó puros números inválidos); el resumen del pegado se lo explica.
+            $query->whereIn('phone', $paste['phones']);
+        } elseif ($request->filled('q')) {
             $term = $request->input('q');
             $query->where(function ($q) use ($term) {
                 $q->where('phone', 'like', "%{$term}%")
                   ->orWhere('name',  'like', "%{$term}%");
             });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
         }
 
         if ($request->filled('tag_id')) {
@@ -48,119 +94,51 @@ class ContactController extends Controller
             });
         }
 
-        $contacts = $query->paginate(50);
+        // Filtro por entregabilidad, por canal (Enfriamiento WhatsApp != Enfriamiento SMS).
+        // Acumulativo: varios estados elegidos se suman (OR).
+        DeliverabilityFilter::apply(
+            $query,
+            DeliverabilityFilter::normalize($request->input('deliverability'))
+        );
+
+        $contacts = $query->paginate(PageSize::from($request, 50));
 
         // Agregar estado de entregabilidad (cooldown / enviado hoy) a cada contacto.
         // Batch: 2 queries por página, no una por fila (seguro a escala de 200k).
-        $this->attachDeliverability($contacts->getCollection());
+        DeliverabilityBadges::attach($contacts->getCollection());
 
-        return response()->json($contacts);
+        // Se conserva la forma cruda del paginator (current_page/last_page/total): el front
+        // ya la consume. Solo se suma el aviso de recorte de "Todos" y el resumen del pegado.
+        return response()->json(array_merge($contacts->toArray(), [
+            'capped'    => PageSize::wasCapped($request, $contacts->total()),
+            'cap_limit' => PageSize::ALL_CAP,
+            'paste'     => $paste === null ? null : $this->pasteSummary($paste),
+        ]));
     }
 
     /**
-     * Anexa a cada contacto de la página su estado de entregabilidad:
-     * sent_today, cooldown_active, cooldown_until, deliverable.
-     * Hace 2 queries agregadas sobre message_log para toda la página (sin N+1).
+     * Resumen del pegado masivo para el chip de la pantalla: cuántos se pegaron, cuántos
+     * quedaron fuera por formato y cuáles NO están dados de alta en el sistema.
+     *
+     * Los faltantes se calculan sobre TODA la base, sin los demás filtros: "no está en el
+     * sistema" es distinto de "no pasó el filtro de estado".
      */
-    private function attachDeliverability($contacts): void
+    private function pasteSummary(array $paste): array
     {
-        if ($contacts->isEmpty()) {
-            return;
-        }
+        $existing = Contact::whereIn('phone', $paste['phones'])->pluck('phone')->all();
+        $missing  = array_values(array_diff($paste['phones'], $existing));
 
-        $phones = $contacts->pluck('phone')->all();
-
-        $startOfDay = now('America/Mexico_City')->startOfDay()->utc();
-        $endOfDay   = now('America/Mexico_City')->endOfDay()->utc();
-
-        // Dedup y cooldown son POR CANAL (igual que los jobs SendWhatsAppMessage/SendSmsMessage):
-        // un SMS enviado hoy no pone a WhatsApp "en cooldown" y viceversa. Por eso calculamos
-        // los sets de "enviado hoy" y "ultimo envio" filtrando por canal.
-        $sentTodaySetFor = function (string $channel) use ($phones, $startOfDay, $endOfDay): array {
-            return array_flip(
-                MessageLog::whereIn('to_number', $phones)
-                    ->where('channel', $channel)
-                    ->whereBetween('sent_at', [$startOfDay, $endOfDay])
-                    ->whereIn('status', ['sent', 'delivered', 'read'])
-                    ->distinct()
-                    ->pluck('to_number')
-                    ->all()
-            );
-        };
-
-        $lastSentMapFor = function (string $channel) use ($phones): array {
-            return MessageLog::whereIn('to_number', $phones)
-                ->where('channel', $channel)
-                ->whereIn('status', ['sent', 'delivered', 'read'])
-                ->groupBy('to_number')
-                ->select('to_number', DB::raw('MAX(sent_at) as last_sent'))
-                ->pluck('last_sent', 'to_number')
-                ->all();
-        };
-
-        $waSentTodaySet  = $sentTodaySetFor('whatsapp');
-        $waLastSentMap   = $lastSentMapFor('whatsapp');
-        $smsSentTodaySet = $sentTodaySetFor('sms');
-        $smsLastSentMap  = $lastSentMapFor('sms');
-
-        $cooldownDays = max(7, (int) Setting::get('cooldown_days', 30));
-
-        // Devuelve [activo(bool), hasta(string|null)] segun el ultimo envio del canal.
-        $cooldownState = function (?string $lastSent) use ($cooldownDays): array {
-            if ($lastSent && now()->diffInDays($lastSent) < $cooldownDays) {
-                return [true, Carbon::parse($lastSent)
-                    ->addDays($cooldownDays)
-                    ->setTimezone('America/Mexico_City')
-                    ->format('Y-m-d')];
-            }
-            return [false, null];
-        };
-
-        foreach ($contacts as $contact) {
-            // Eje WhatsApp: la identidad del contacto (opted_out/invalid/unreachable) bloquea WA.
-            $waBlocked = in_array($contact->status, ['opted_out', 'invalid', 'unreachable'], true);
-            // Eje SMS: opt-out es cross-channel (una baja bloquea ambos), mas las banderas propias
-            // de SMS. Un "invalid/unreachable" de WhatsApp NO implica que el SMS falle.
-            $smsBlocked = $contact->status === 'opted_out'
-                || $contact->sms_opt_out || $contact->sms_blocked || $contact->sms_invalid;
-
-            $snoozeActive = $contact->isSnoozeActive();
-            $snoozeUntil  = $snoozeActive
-                ? $contact->snoozed_until->setTimezone('America/Mexico_City')->format('Y-m-d')
-                : null;
-
-            $waSentToday = isset($waSentTodaySet[$contact->phone]);
-            [$waCooldownActive, $waCooldownUntil] = $cooldownState($waLastSentMap[$contact->phone] ?? null);
-
-            $smsSentToday = isset($smsSentTodaySet[$contact->phone]);
-            [$smsCooldownActive, $smsCooldownUntil] = $cooldownState($smsLastSentMap[$contact->phone] ?? null);
-
-            $contact->setAttribute('snooze_active', $snoozeActive);
-            $contact->setAttribute('snooze_until', $snoozeUntil);
-
-            // Genericos = eje WhatsApp (retrocompatibles: el front viejo y /contacts/check los usaban).
-            $contact->setAttribute('sent_today', $waSentToday);
-            $contact->setAttribute('cooldown_active', $waCooldownActive);
-            $contact->setAttribute('cooldown_until', $waCooldownUntil);
-            // Hold de 24h del error 131049 (tope de marketing POR USUARIO). El job ya lo
-            // respeta y descarta; sin esto la lista decía "Disponible" y el operador no
-            // entendía por qué su campaña descartaba a ese contacto.
-            $marketingHold      = $contact->isWaMarketingHoldActive();
-            $marketingHoldUntil = $marketingHold
-                ? $contact->wa_marketing_hold_until->setTimezone('America/Mexico_City')->format('Y-m-d H:i')
-                : null;
-
-            $contact->setAttribute('wa_marketing_hold', $marketingHold);
-            $contact->setAttribute('wa_marketing_hold_until_label', $marketingHoldUntil);
-            $contact->setAttribute('deliverable', ! $waBlocked && ! $snoozeActive && ! $marketingHold && ! $waSentToday && ! $waCooldownActive);
-
-            // Eje SMS (nuevos, para el segundo tag de Entregabilidad).
-            // El snooze NO entra aquí: es por canal (solo WhatsApp). Ver contexto-sms.
-            $contact->setAttribute('sms_sent_today', $smsSentToday);
-            $contact->setAttribute('sms_cooldown_active', $smsCooldownActive);
-            $contact->setAttribute('sms_cooldown_until', $smsCooldownUntil);
-            $contact->setAttribute('sms_deliverable', ! $smsBlocked && ! $smsSentToday && ! $smsCooldownActive);
-        }
+        return [
+            'pasted'          => $paste['pasted'],
+            'valid'           => $paste['valid'],
+            'invalid'         => $paste['invalid'],
+            'invalid_samples' => $paste['invalid_samples'],
+            'truncated'       => $paste['truncated'],
+            'max_phones'      => PhoneListParser::MAX_PHONES,
+            'found'           => count($existing),
+            'missing_count'   => count($missing),
+            'missing'         => array_slice($missing, 0, PhoneListParser::MAX_MISSING_LISTED),
+        ];
     }
 
     /**

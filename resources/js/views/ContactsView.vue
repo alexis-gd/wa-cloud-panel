@@ -83,12 +83,70 @@
                 </span>
             </template>
             <template #content>
+                <!-- Fila 1: buscador y sus acciones. Fila 2: los filtros de columna.
+                     Iban todos juntos y con 4 selects se apretaban hasta cortar el texto. -->
                 <div class="filter-row">
-                    <InputText v-model="search" placeholder="Buscar teléfono o nombre..." @keyup.enter="loadContacts(1)" fluid />
-                    <Select v-model="filter" :options="filterOptions" option-label="label" option-value="value" placeholder="Todos" @change="loadContacts(1)" />
-                    <Select v-model="tagFilter" :options="tagFilterOptions" option-label="label" option-value="value" placeholder="Todos los tags" @change="loadContacts(1)" style="min-width: 160px" />
-                    <Select v-model="smsFilter" :options="smsFilterOptions" option-label="label" option-value="value" placeholder="SMS: todos" @change="loadContacts(1)" style="min-width: 150px" />
+                    <InputText
+                        v-model="search"
+                        placeholder="Buscar teléfono o nombre (o pega una lista de números)"
+                        @keyup.enter="loadContacts(1)"
+                        @paste="onSearchPaste"
+                        fluid
+                    />
                     <Button icon="pi pi-search" severity="secondary" @click="loadContacts(1)" />
+                    <Button label="Pegar lista" icon="pi pi-list" severity="secondary" @click="openPaste" />
+                </div>
+
+                <div class="filter-row filter-row-selects">
+                    <Select v-model="filter" :options="filterOptions" option-label="label" option-value="value" placeholder="Todos los estados" @change="loadContacts(1)" />
+                    <Select v-model="tagFilter" :options="tagFilterOptions" option-label="label" option-value="value" placeholder="Todos los tags" @change="loadContacts(1)" />
+                    <Select v-model="smsFilter" :options="smsFilterOptions" option-label="label" option-value="value" placeholder="SMS: todos" @change="loadContacts(1)" />
+                    <MultiSelect
+                        v-model="deliverFilter"
+                        :options="deliverFilterOptions"
+                        option-label="label"
+                        option-value="value"
+                        option-group-label="label"
+                        option-group-children="items"
+                        placeholder="Entregabilidad: todas"
+                        :max-selected-labels="1"
+                        selected-items-label="{0} estados"
+                        :show-toggle-all="false"
+                        show-clear
+                        @change="loadContacts(1)"
+                    />
+                </div>
+
+                <!-- Resumen del pegado masivo de números -->
+                <div v-if="pasteSummary" class="paste-bar">
+                    <i class="pi pi-list paste-icon"></i>
+                    <span class="paste-main">
+                        Filtrando <strong>{{ pasteSummary.valid }}</strong>
+                        número{{ pasteSummary.valid === 1 ? '' : 's' }} pegado{{ pasteSummary.valid === 1 ? '' : 's' }}
+                        <template v-if="pasteSummary.found !== pasteSummary.valid">
+                            · <strong>{{ pasteSummary.found }}</strong> en el sistema
+                        </template>
+                    </span>
+                    <span v-if="pasteSummary.missing_count" class="paste-warn">
+                        {{ pasteSummary.missing_count }} no está{{ pasteSummary.missing_count === 1 ? '' : 'n' }} dado{{ pasteSummary.missing_count === 1 ? '' : 's' }} de alta
+                    </span>
+                    <Button
+                        v-if="pasteSummary.missing_count"
+                        label="Copiar faltantes"
+                        icon="pi pi-copy"
+                        size="small"
+                        severity="secondary"
+                        text
+                        @click="copyMissing"
+                    />
+                    <span v-if="pasteSummary.invalid" class="paste-warn">
+                        {{ pasteSummary.invalid }} con formato inválido
+                        <i class="pi pi-question-circle" v-tooltip.top="invalidSamplesTooltip" style="cursor:help"></i>
+                    </span>
+                    <span v-if="pasteSummary.truncated" class="paste-warn">
+                        Solo se tomaron los primeros {{ pasteSummary.max_phones }}
+                    </span>
+                    <Button label="Quitar filtro" icon="pi pi-times" size="small" text severity="secondary" @click="clearPaste" />
                 </div>
 
                 <!-- Barra de acción masiva (aparece al seleccionar contactos) -->
@@ -252,12 +310,18 @@
                 </div>
 
                 <!-- Paginación -->
-                <div class="pagination" v-if="meta">
-                    <Button icon="pi pi-chevron-left" text severity="secondary" :disabled="meta.current_page <= 1" @click="loadContacts(meta.current_page - 1)" />
-                    <span>Página {{ meta.current_page }} de {{ meta.last_page }}</span>
-                    <Button icon="pi pi-chevron-right" text severity="secondary" :disabled="meta.current_page >= meta.last_page" @click="loadContacts(meta.current_page + 1)" />
-                    <span class="total-count">{{ meta.total }} contactos</span>
-                </div>
+                <TablePaginator
+                    v-if="meta"
+                    :page="meta.current_page"
+                    :total-pages="meta.last_page"
+                    :total="meta.total"
+                    :per-page="perPage"
+                    :capped="!!meta.capped"
+                    :cap-limit="meta.cap_limit"
+                    item-label="contactos"
+                    @update:page="loadContacts"
+                    @update:per-page="changePageSize"
+                />
             </template>
         </Card>
     </div>
@@ -292,6 +356,21 @@
         <template #footer>
             <Button label="Cancelar" text @click="tagsDialog = false" />
             <Button label="Guardar" :loading="savingTags" @click="saveTags" />
+        </template>
+    </Dialog>
+
+    <!-- Dialog pegar lista de números -->
+    <Dialog v-model:visible="pasteDialog" header="Pegar lista de números" modal style="width: 520px">
+        <p class="paste-hint">
+            Pega aquí la columna de números que copiaste de Excel. Se aceptan separados por
+            salto de línea, tabulador, coma o espacio. El sistema los normaliza solo (agrega el 52)
+            y te dice cuáles no están dados de alta.
+        </p>
+        <Textarea v-model="pasteDraft" rows="10" placeholder="529231234567&#10;9231234568&#10;..." fluid autofocus />
+        <small class="field-hint">Máximo {{ maxPastePhones }} números por pegado.</small>
+        <template #footer>
+            <Button label="Cancelar" text @click="pasteDialog = false" />
+            <Button label="Filtrar" :disabled="!pasteDraft.trim()" @click="applyPasteDraft" />
         </template>
     </Dialog>
 
@@ -364,12 +443,14 @@ import Button        from 'primevue/button';
 import InputText     from 'primevue/inputtext';
 import Select        from 'primevue/select';
 import MultiSelect   from 'primevue/multiselect';
+import Textarea     from 'primevue/textarea';
 import DataTable     from 'primevue/datatable';
 import Column        from 'primevue/column';
 import Tag           from 'primevue/tag';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Dialog        from 'primevue/dialog';
 import { api }       from '../api.js';
+import TablePaginator from '../components/TablePaginator.vue';
 
 const confirm = useConfirm();
 const toast   = useToast();
@@ -389,11 +470,22 @@ const bulkBusy = computed(() => bulkAction.value !== null);
 
 const contacts     = ref([]);
 const meta         = ref(null);
+// Tamaño de página elegido por el operador (número o 'all'). Ver TablePaginator.
+const perPage      = ref(50);
 const contactStats = ref(null);
 const search       = ref('');
 const filter       = ref('');
 const tagFilter    = ref(null);
 const smsFilter    = ref('');
+// Acumulativo: el operador puede marcar varios estados y se suman (OR en el backend).
+const deliverFilter = ref([]);
+
+// Pegado masivo: el texto crudo que pegó el operador y el resumen que devolvió el backend.
+const pasteRaw     = ref('');
+const pasteSummary = ref(null);
+const pasteDialog  = ref(false);
+const pasteDraft   = ref('');
+const maxPastePhones = 5000;
 const loading      = ref(false);
 const uploadFile   = ref(null);
 const uploading    = ref(false);
@@ -440,6 +532,31 @@ const filterOptions = [
 const smsFilterOptions = [
     { label: 'SMS: todos',     value: '' },
     { label: 'Solo bajas SMS', value: 'blocked' },
+];
+
+// Entregabilidad POR CANAL: cada canal lleva su propio enfriamiento y "enviado hoy", así que
+// las opciones dicen de qué canal hablan. Mismas etiquetas que los tags de la tabla.
+const deliverFilterOptions = [
+    {
+        label: 'WhatsApp',
+        items: [
+            { label: 'Disponible - WhatsApp',       value: 'wa_available' },
+            { label: 'Enviado hoy - WhatsApp',      value: 'wa_sent_today' },
+            { label: 'Enfriamiento - WhatsApp',     value: 'wa_cooldown' },
+            { label: 'Pospuesto - WhatsApp',        value: 'wa_snoozed' },
+            { label: 'En espera (Meta) - WhatsApp', value: 'wa_hold' },
+            { label: 'No recibe - WhatsApp',        value: 'wa_blocked' },
+        ],
+    },
+    {
+        label: 'SMS',
+        items: [
+            { label: 'Disponible - SMS',   value: 'sms_available' },
+            { label: 'Enviado hoy - SMS',  value: 'sms_sent_today' },
+            { label: 'Enfriamiento - SMS', value: 'sms_cooldown' },
+            { label: 'No recibe - SMS',    value: 'sms_blocked' },
+        ],
+    },
 ];
 
 const statusLabel = (status) => ({
@@ -528,7 +645,11 @@ const tableHelp =
     + 'otra de SMS (icono de celular). Cada canal cuenta su propio enfriamiento y "enviado hoy", así '
     + 'que un contacto puede estar Disponible en WhatsApp y en Enfriamiento en SMS al mismo tiempo. '
     + 'Estados: Disponible, Pospuesto (pidió "No por ahora"), Enfriamiento (recibió hace poco), '
-    + 'Enviado hoy (ya recibió hoy) o No recibe (bloqueado en ese canal).';
+    + 'Enviado hoy (ya recibió hoy) o No recibe (bloqueado en ese canal). '
+    + 'El filtro "Entregabilidad" de arriba busca por esos mismos estados, y siempre dice de qué '
+    + 'canal habla: "Enfriamiento - WhatsApp" no es lo mismo que "Enfriamiento - SMS". Se pueden '
+    + 'marcar varios a la vez y se suman: marcar "Enviado hoy - WhatsApp" y "Enfriamiento - WhatsApp" '
+    + 'trae los dos grupos juntos.';
 
 // Baja de SMS - eje SEPARADO del Estado (que es WhatsApp). Un contacto puede estar
 // Activo para WhatsApp y a la vez bloqueado para SMS. Precedencia: opt-out → bloqueado → inválido.
@@ -560,17 +681,98 @@ const optOutTooltip = (contact) => {
 
 async function loadContacts(page = 1) {
     loading.value = true;
-    const params = { page };
-    if (filter.value)    params.status = filter.value;
-    if (search.value)    params.q      = search.value;
-    if (tagFilter.value) params.tag_id = tagFilter.value;
+    const params = { page, per_page: perPage.value };
+    if (filter.value)        params.status         = filter.value;
+    if (search.value)        params.q              = search.value;
+    if (tagFilter.value)     params.tag_id         = tagFilter.value;
+    if (deliverFilter.value?.length) params.deliverability = deliverFilter.value.join(',');
     if (smsFilter.value === 'blocked') params.sms_blocked = 1;
 
-    const data      = await api.contacts(params);
-    contacts.value  = data.data ?? [];
-    meta.value      = data;
-    loading.value   = false;
+    // Con lista pegada la petición va por POST: cientos de números no caben en la URL
+    // (nginx corta con 414). Mismo filtro, mismo formato de respuesta.
+    const data = pasteRaw.value
+        ? await api.contactsSearch({ ...params, phones_raw: pasteRaw.value })
+        : await api.contacts(params);
+
+    contacts.value     = data.data ?? [];
+    meta.value         = data;
+    pasteSummary.value = data.paste ?? null;
+    loading.value      = false;
     loadStats();
+}
+
+// ── Pegado masivo de números ────────────────────────────────────────────────
+// El operador copia una columna de Excel y la pega en el buscador. Un pegado con más de un
+// número no es una búsqueda de texto: es una lista para filtrar.
+function looksLikeList(text) {
+    const tokens = text.trim().split(/[\s,;|]+/).filter(Boolean);
+    return tokens.length > 1 && tokens.filter(t => /\d/.test(t)).length > 1;
+}
+
+function onSearchPaste(event) {
+    const text = event.clipboardData?.getData('text') ?? '';
+    if (!looksLikeList(text)) return;   // pegado normal: se comporta como siempre
+
+    event.preventDefault();
+    search.value = '';
+    applyPaste(text);
+}
+
+function applyPaste(text) {
+    pasteRaw.value = text;
+    loadContacts(1);
+}
+
+function openPaste() {
+    pasteDraft.value  = pasteRaw.value;
+    pasteDialog.value = true;
+}
+
+function applyPasteDraft() {
+    pasteDialog.value = false;
+    applyPaste(pasteDraft.value);
+}
+
+function clearPaste() {
+    pasteRaw.value     = '';
+    pasteDraft.value   = '';
+    pasteSummary.value = null;
+    loadContacts(1);
+}
+
+const invalidSamplesTooltip = computed(() => {
+    const samples = pasteSummary.value?.invalid_samples ?? [];
+    return samples.length
+        ? `No se pudieron leer como teléfono: ${samples.join(', ')}`
+        : 'No se pudieron leer como teléfono (formato México: 10 dígitos)';
+});
+
+async function copyMissing() {
+    const missing = pasteSummary.value?.missing ?? [];
+    if (!missing.length) return;
+
+    try {
+        await navigator.clipboard.writeText(missing.join('\n'));
+        toast.add({
+            severity : 'success',
+            summary  : 'Copiado',
+            detail   : `${missing.length} número(s) que no están en el sistema`,
+            life     : 3000,
+        });
+    } catch {
+        toast.add({
+            severity : 'warn',
+            summary  : 'No se pudo copiar',
+            detail   : 'Tu navegador bloqueó el portapapeles. Selecciona y copia a mano.',
+            life     : 4000,
+        });
+    }
+}
+
+// Cambiar el tamaño de página siempre reinicia a la página 1: la 7 de 10 no existe en 500.
+function changePageSize(size) {
+    perPage.value = size;
+    loadContacts(1);
 }
 
 async function loadStats() {
@@ -848,6 +1050,24 @@ onMounted(() => { loadContacts(); loadTags(); });
 
 .filter-row    { display: flex; gap: 8px; }
 
+/* Los selects toman su ancho natural (~190px) y NO se estiran: llenar la fila entera solo
+   deja aire dentro de cada caja. Se envuelven a la siguiente linea si no caben. */
+.filter-row-selects {
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+.filter-row-selects :deep(.p-select),
+.filter-row-selects :deep(.p-multiselect) {
+    flex: 0 1 190px;
+    min-width: 170px;
+}
+
+/* Los botones del buscador no se encogen ni parten el texto en dos lineas. */
+.filter-row :deep(.p-button) {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
 .bulk-bar {
     display: flex;
     align-items: center;
@@ -867,14 +1087,22 @@ onMounted(() => { loadContacts(); loadTags(); });
 .deliver-cell :deep(.ch-sms) { color: var(--p-blue-500); }
 .empty-msg     { color: var(--p-text-muted-color); font-size: .85rem; }
 
-.pagination {
+.paste-bar {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
-    margin-top: 12px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: var(--p-surface-100);
     font-size: .85rem;
 }
-.total-count { color: var(--p-text-muted-color); margin-left: 8px; }
+.paste-icon { color: var(--p-primary-500); }
+.paste-main { color: var(--p-text-color); }
+.paste-warn { color: var(--p-orange-600, #c2410c); }
+.paste-hint { margin: 0 0 10px; font-size: .85rem; color: var(--p-text-muted-color); }
+
 .export-row  { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .row-actions { display: flex; gap: 2px; align-items: center; }
 
@@ -915,6 +1143,9 @@ onMounted(() => { loadContacts(); loadTags(); });
     .stat-num   { font-size: 1.5rem; }
     .upload-row { flex-direction: column; align-items: stretch; }
     .filter-row { flex-wrap: wrap; }
+    /* En móvil cada filtro ocupa toda la línea; media pantalla los deja ilegibles. */
+    .filter-row-selects :deep(.p-select),
+    .filter-row-selects :deep(.p-multiselect) { flex: 1 1 100%; }
     .bulk-bar   { flex-wrap: wrap; }
     /* Botones de acción apilados y a todo el ancho (no pegados ni cortados). */
     .export-row               { flex-direction: column; align-items: stretch; }

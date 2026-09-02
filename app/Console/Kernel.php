@@ -42,6 +42,15 @@ class Kernel extends ConsoleKernel
             ->timezone('America/Mexico_City')
             ->withoutOverlapping();
 
+        // Alta de contactos nuevos desde el API del cliente, una vez al dia. A las 4AM CST:
+        // antes del warm-up (5AM) y de la ventana de envios (9AM), asi los contactos que
+        // entren ya estan disponibles para las campanas del dia. Si el API no responde, el
+        // comando falla solo y no arrastra al resto del scheduler.
+        $schedule->command('contactos:sincronizar')
+            ->dailyAt('04:00')
+            ->timezone('America/Mexico_City')
+            ->withoutOverlapping();
+
         // Vigila que el webhook SMS siga devolviendo eventos; alerta en la campana si no.
         $schedule->command('sms:monitor-webhook')
             ->everyFifteenMinutes()

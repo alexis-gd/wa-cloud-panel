@@ -154,6 +154,24 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 
 ---
 
+## Sincronización de contactos desde el API del cliente (C1)
+
+> Requiere que el cliente abra el firewall y dé puerto y ruta. Sin eso solo se puede
+> verificar que los comandos existen y fallan con un mensaje claro.
+
+- [ ] **Diagnóstico**: `php artisan contactos:probar-api` muestra la config, y sin URL avisa que falta `SYNC_API_URL`
+- [ ] **Sin contraseña visible**: la salida del diagnóstico NUNCA imprime la contraseña
+- [ ] **Campos**: con el API conectado, el diagnóstico lista los campos que llegan
+- [ ] **Modo seco**: `contactos:sincronizar --dry-run` reporta cuántos daría de alta y NO escribe nada
+- [ ] **Alta**: `contactos:sincronizar` da de alta solo los nuevos, con `source = api`
+- [ ] **No pisa**: un contacto que ya existe conserva su nombre del panel
+- [ ] **Respeta la baja**: un contacto `opted_out` que viene en el API NO se reactiva
+- [ ] **Etiqueta**: con `SYNC_TAG` puesto, los nuevos quedan con esa etiqueta
+- [ ] **API caído**: si no responde, el comando falla con mensaje claro y no deja nada a medias
+- [ ] **Scheduler**: `php artisan schedule:list` muestra `contactos:sincronizar` a las 04:00
+
+---
+
 ## API de contactados (S1)
 
 - [ ] **Sin llave**: `GET /api/contacted?date=...` sin `X-API-Key` → 401

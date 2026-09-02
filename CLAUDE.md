@@ -33,6 +33,7 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | [docs/guia-twilio-setup.md](docs/guia-twilio-setup.md) | ⚠️ Referencia (NO elegido): setup Twilio. Evaluado pero se optó por SIM propia |
 | [docs/calendario-entregas.md](docs/calendario-entregas.md) | Entregas al cliente + checklist de desarrollo por etapa + backlog técnico |
 | [docs/checklist-produccion-cliente.md](docs/checklist-produccion-cliente.md) | Corte staging→cliente: qué cambiar (WABA/número, `.env`, horario, seeds) antes de datos reales |
+| [docs/sincronizacion-contactos.md](docs/sincronizacion-contactos.md) | Cron diario que consume el API del cliente y da de alta contactos nuevos. Config por `.env`, comandos `contactos:probar-api` y `contactos:sincronizar` |
 | [docs/api-contactados.md](docs/api-contactados.md) | API pública `GET /api/contacted` (X-API-Key): a quién contactamos en una fecha o rango. Para el sistema externo del cliente |
 | [docs/testing.md](docs/testing.md) | Guía PHPUnit, tipos de tests, mocks, convenciones |
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |

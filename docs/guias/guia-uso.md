@@ -554,6 +554,30 @@ El historial muestra, del movimiento más reciente al más viejo:
 Si intentas reasignar al mismo agente que ya la tiene, el sistema lo rechaza: así el historial
 no se llena de movimientos que no movieron nada.
 
+### Reporte de agentes
+
+En el menú hay una pantalla **Reporte de agentes** (operador y administrador; el agente no la
+ve, no debe ver la carga de sus compañeros). Muestra cuántas conversaciones lleva cada quien.
+
+Trae **dos números** porque "cuántas conversaciones tiene" se puede entender de dos formas:
+
+| Columna | Qué es |
+|---|---|
+| **Recibidas en el periodo** | Las que se le asignaron entre las fechas del filtro. Responde al filtro de fecha. |
+| **Abiertas ahora** | Las que tiene a su cargo en este momento. **No cambia con el filtro de fecha.** |
+
+> Un agente puede haber recibido 12 hoy y tener 40 abiertas: arrastra conversaciones de días
+> anteriores que nadie ha cerrado ni reasignado. Por eso van las dos columnas.
+
+Filtros: **Desde**, **Hasta** y **Agente**. El botón **Hoy** vuelve al día de hoy. Al entrar,
+la pantalla ya muestra el día de hoy sin que tengas que elegir nada.
+
+Los botones **Descargar Excel** y **Descargar PDF** bajan exactamente la tabla que estás
+viendo, con los filtros aplicados. El nombre del archivo lleva el periodo.
+
+Quien aparece: todos los que pueden atender conversaciones (agentes, operadores y
+administradores), **aunque estén en cero**. Un agente en cero también es información.
+
 ## 10. Respuestas SMS
 
 Los SMS que te responden aparecen en **Respuestas SMS** (en el menú).

@@ -83,6 +83,22 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 
 ---
 
+### Reporte de agentes (P1)
+
+- [ ] **Visibilidad**: aparece en el menú para operador y admin; el agente NO lo ve (y la API le responde 403)
+- [ ] **Por defecto**: al entrar muestra el día de hoy sin tocar nada
+- [ ] **Recibidas**: asignar un chat hoy → sube en "Recibidas en el periodo"; con filtro de ayer, no aparece
+- [ ] **Abiertas ahora**: un chat asignado hace un mes cuenta en "Abiertas ahora" aunque el filtro sea de hoy
+- [ ] **Reasignada**: al pasar un chat de Ana a Beto, Ana conserva la "recibida" pero pierde la "abierta"
+- [ ] **Sin asignar**: soltar un chat → deja de contarle a su agente en "Abiertas ahora"
+- [ ] **Agentes en cero**: un agente sin conversaciones aparece con 0, no desaparece
+- [ ] **Filtro por agente**: deja una sola fila
+- [ ] **Excel**: descarga, abre bien y trae los mismos números que la pantalla
+- [ ] **PDF**: descarga, abre bien, con el periodo en el encabezado y los totales al pie
+- [ ] **Filtros en la descarga**: filtrar por agente y descargar → el archivo trae solo a ese agente
+
+---
+
 ### Reasignación e historial (P2)
 
 - [ ] **Reasignar**: pasar una conversación de un agente a otro → el agente viejo deja de verla, el nuevo la ve

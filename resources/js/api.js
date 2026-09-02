@@ -374,6 +374,37 @@ export const api = {
     // solo admin: al operador le respondía 403 y el desplegable de asignar salía vacío.
     assignableUsers: () => request('/conversations/assignable-users'),
 
+    // ── Reporte de conversaciones por agente ─────────────────────────────────
+    agentReport: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return request(`/reports/agent-conversations?${qs}`);
+    },
+
+    /**
+     * Descarga el reporte (xlsx o pdf). Va por fetch y no por un <a href> porque la ruta
+     * necesita el token de Sanctum en la cabecera, y un enlace normal no la manda.
+     */
+    downloadAgentReport: async (params = {}) => {
+        const token = localStorage.getItem('wa_token');
+        const qs    = new URLSearchParams(params).toString();
+        const res   = await fetch(`${BASE}/reports/agent-conversations/export?${qs}`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        });
+
+        if (!res.ok) return false;
+
+        const blob     = await res.blob();
+        const url      = URL.createObjectURL(blob);
+        const filename = res.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1]
+                         ?? `reporte.${params.format === 'pdf' ? 'pdf' : 'xlsx'}`;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        return true;
+    },
+
     createUser: (payload) => request('/users', {
         method : 'POST',
         body   : JSON.stringify(payload),

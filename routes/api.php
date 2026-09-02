@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AgentReportController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\CampaignController;
@@ -123,6 +124,11 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
     // Asignación de conversaciones — solo admin y operator
     Route::middleware('role:admin,operator')->group(function () {
+        // Reporte de conversaciones por agente: de operador hacia arriba (el agente no ve
+        // la carga de sus companeros).
+        Route::get('/reports/agent-conversations',        [AgentReportController::class, 'index']);
+        Route::get('/reports/agent-conversations/export', [AgentReportController::class, 'export']);
+
         // Quien puede asignar necesita saber a quién: el desplegable se llenaba con /users,
         // que es solo admin, y al operador le salía vacío.
         Route::get('/conversations/assignable-users',     [ConversationController::class, 'assignableUsers']);

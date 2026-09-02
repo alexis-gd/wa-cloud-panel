@@ -38,6 +38,10 @@
                     <i class="pi pi-inbox" />
                     <span>Respuestas SMS</span>
                 </RouterLink>
+                <RouterLink v-if="!isAgent() && isEnabled('feature_conversations')" to="/reports/agents" class="nav-item" :class="{ active: route.path === '/reports/agents' }" @click="sidebarOpen = false">
+                    <i class="pi pi-chart-bar" />
+                    <span>Reporte de agentes</span>
+                </RouterLink>
                 <RouterLink v-if="!isAgent() && isEnabled('feature_tags')" to="/tags" class="nav-item" :class="{ active: route.path === '/tags' }" @click="sidebarOpen = false">
                     <i class="pi pi-tags" />
                     <span>Etiquetas</span>
@@ -77,7 +81,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.35.0</span>
+                <span class="version">v0.36.0</span>
             </div>
         </aside>
 
@@ -266,6 +270,7 @@ const pageTitles = {
     '/'               : 'Panel',
     '/contacts'       : 'Contactos',
     '/tags'           : 'Etiquetas',
+    '/reports/agents' : 'Reporte de agentes',
     '/campaigns'      : 'Campañas',
     '/sms-replies'    : 'Respuestas SMS',
     '/conversations'  : 'Conversaciones',
@@ -290,6 +295,14 @@ const helpContent = {
             { icon: 'pi-bolt',          label: 'En vivo',     text: 'El tablero se actualiza solo con la actividad (semáforo, cifras, últimos mensajes) mientras corren las campañas. No hace falta recargar. El histórico por mes se carga una vez.' },
         ],
         warning: 'Si el semáforo está ROJO o PAUSADO, no ejecutar campañas hasta que se revise.',
+    },
+    '/reports/agents': {
+        title: 'Reporte de agentes',
+        items: [
+            { icon: 'pi-chart-bar', label: 'Que mide',   text: 'Cuantas conversaciones lleva cada quien. Solo lo ven operador y administrador; el agente no ve la carga de sus companeros.' },
+            { icon: 'pi-calendar',  label: 'Dos numeros', text: '"Recibidas en el periodo" son las que se le asignaron entre las fechas del filtro. "Abiertas ahora" es la foto de este momento y NO cambia con el filtro: un agente puede haber recibido 12 hoy y tener 40 abiertas porque arrastra de dias anteriores.' },
+            { icon: 'pi-download',  label: 'Descargas',  text: 'Los botones bajan la MISMA tabla que ves, con los filtros aplicados, en Excel o PDF.' },
+        ],
     },
     '/tags': {
         title: 'Etiquetas',

@@ -345,44 +345,64 @@ temporal, el sistema lo reintenta solo cuando se levanta.</p>
 <h2 id="6-contactos">6. Contactos</h2>
 <p>Aquí vive tu base de prospectos. Entra a <strong>Contactos</strong> en el menú.</p>
 <h3 id="importar-desde-excel">Importar desde Excel</h3>
+<p>Sirve para dos cosas: <strong>dar de alta</strong> contactos nuevos y, sobre todo, <strong>etiquetar en masa</strong>
+contactos que ya tienes.</p>
 <ol>
 <li>
 <p>Clic en <strong>Importar Excel</strong>.</p>
 </li>
 <li>
-<p>Sube el archivo <code>.xlsx</code>. El formato es simple:</p>
+<p>Sube el archivo <code>.xlsx</code>, <code>.xls</code> o <code>.csv</code>:</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
-<th>Columna A</th>
-<th>Columna B (opcional)</th>
+<th>Teléfono</th>
+<th>Nombre (opcional)</th>
+<th>Etiqueta (opcional)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Teléfono</td>
-<td>Nombre</td>
+<td>9231311146</td>
+<td>Juan Pérez</td>
+<td>VIP</td>
+</tr>
+<tr>
+<td>6692522844</td>
+<td>Ana López</td>
+<td>VIP, Mazatlán</td>
 </tr>
 </tbody>
 </table></div>
 <ul>
-<li>Los teléfonos van con la clave del país, sin el signo +. Ejemplo: <code>529231311146</code>.</li>
-<li>Si la primera fila es un encabezado, el sistema lo detecta solo.</li>
+<li>Los teléfonos pueden ir con clave de país (<code>529231311146</code>) o solo los 10 dígitos.</li>
+<li><strong>Con encabezado el orden de las columnas da igual</strong>, el sistema las reconoce.</li>
+<li>La columna de etiqueta se puede llamar <code>etiqueta</code>, <code>etiquetas</code>, <code>tag</code> o <code>tags</code>.</li>
+<li><strong>Varias etiquetas en una celda</strong> separadas por coma.</li>
+<li>Las etiquetas que no existan <strong>se crean solas</strong>. <code>VIP</code> y <code>vip</code> son la misma.</li>
 </ul>
 </li>
 <li>
-<p>Al terminar verás un resumen: <strong>aceptados / duplicados / formato inválido</strong>.</p>
-<ul>
-<li><strong>Duplicados</strong>: ya estaban, no se agregan otra vez.</li>
-<li><strong>Formato inválido</strong>: números mal escritos, se ignoran.</li>
-</ul>
-</li>
-<li>
-<p>Los contactos que ya pidieron <strong>baja</strong> nunca regresan, aunque los vuelvas a importar.</p>
+<p>Al terminar verás el resumen: <strong>nuevos / ya existían / inválidos</strong>, y si el archivo traía
+columna de etiqueta, cuántas se asignaron y cuántas se crearon.</p>
 </li>
 </ol>
 <blockquote>
-<p>💡 Para bajar tus contactos a Excel, usa el botón <strong>Exportar</strong>.</p>
+<p>🏷️ <strong>Si el teléfono ya existe, NO se duplica: se le agrega la etiqueta.</strong> Por eso puedes
+re-subir una lista de números que ya tienes solo para clasificarlos. Las etiquetas que el
+contacto ya tenía <strong>no se borran</strong>, se suman.</p>
+</blockquote>
+<p>Detalles:</p>
+<ul>
+<li><strong>Ya existían</strong>: el número ya estaba. Se etiqueta pero no se da de alta otra vez.</li>
+<li><strong>Inválidos</strong>: números mal escritos. Se ignoran y te dice en qué fila estaban.</li>
+<li>Los contactos que pidieron <strong>baja</strong> nunca regresan, aunque los vuelvas a importar.</li>
+<li>Un contacto <strong>eliminado</strong> no se re-etiqueta (está fuera de listas y campañas).</li>
+</ul>
+<blockquote>
+<p>💡 El botón <strong>Exportar</strong> baja tus contactos a Excel <strong>con su columna de etiquetas</strong>, en el
+mismo formato que lee el importador. Puedes exportar, cambiar etiquetas en Excel y volver a
+subir el archivo.</p>
 </blockquote>
 <h3 id="agregar-un-contacto-a-mano">Agregar un contacto a mano</h3>
 <p>Para un prospecto suelto (un referido, una llamada):</p>

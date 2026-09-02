@@ -47,7 +47,12 @@
             <template #title>Cargar contactos desde Excel / CSV</template>
             <template #content>
                 <p class="upload-hint">
-                    <strong>Columna A</strong> = teléfono &nbsp;·&nbsp; <strong>Columna B</strong> = nombre (opcional)<br>
+                    <strong>Teléfono</strong> &nbsp;·&nbsp; <strong>Nombre</strong> (opcional)
+                    &nbsp;·&nbsp; <strong>Etiqueta</strong> (opcional)<br>
+                    Con encabezado el orden da igual. La columna de etiqueta acepta
+                    <code>etiqueta</code>, <code>etiquetas</code>, <code>tag</code> o <code>tags</code>,
+                    y varias en una celda separadas por coma.<br>
+                    Si el teléfono <strong>ya existe</strong>, no se duplica: solo se le agrega la etiqueta.<br>
                     Formatos: .xlsx, .xls, .csv - máx. 10 MB. Los números se normalizan al formato mexicano (52 + 10 dígitos).
                 </p>
                 <div class="upload-row">
@@ -63,9 +68,15 @@
                 <div v-if="uploadResult" class="upload-result" :class="{ 'has-errors': uploadResult.summary?.errors?.length }">
                     <strong>Resultado:</strong>
                     {{ uploadResult.summary?.inserted ?? 0 }} nuevos ·
-                    {{ uploadResult.summary?.duplicates ?? 0 }} duplicados ·
+                    {{ uploadResult.summary?.duplicates ?? 0 }} ya existían ·
                     {{ uploadResult.summary?.invalid ?? 0 }} inválidos
                     (de {{ uploadResult.summary?.total ?? 0 }} filas)
+                    <div v-if="uploadResult.summary?.has_tag_column" class="upload-tags">
+                        <i class="pi pi-tag"></i>
+                        {{ uploadResult.summary.tags_assigned ?? 0 }} etiqueta(s) asignadas<template v-if="uploadResult.summary.duplicates_tagged">,
+                        {{ uploadResult.summary.duplicates_tagged }} de ellas a contactos que ya existían</template><template v-if="uploadResult.summary.tags_created">.
+                        Se crearon {{ uploadResult.summary.tags_created }} etiqueta(s) nueva(s)</template>.
+                    </div>
                     <div v-if="uploadResult.error" class="upload-error">{{ uploadResult.error }}</div>
                     <ul v-if="uploadResult.summary?.errors?.length" class="error-list">
                         <li v-for="err in uploadResult.summary.errors" :key="err">{{ err }}</li>
@@ -850,7 +861,11 @@ async function uploadContacts() {
     fileInput.value.value = '';
     uploadFile.value   = null;
 
-    if (uploadResult.value.success) await loadContacts(1);
+    if (uploadResult.value.success) {
+        await loadContacts(1);
+        // El archivo pudo crear etiquetas nuevas: sin esto el selector de tags queda viejo.
+        await loadTags();
+    }
 }
 
 function openEdit(contact) {
@@ -1174,6 +1189,14 @@ onMounted(() => { loadContacts(); loadTags(); });
 .paste-main { color: var(--p-text-color); }
 .paste-warn { color: var(--p-orange-600, #c2410c); }
 .paste-hint { margin: 0 0 10px; font-size: .85rem; color: var(--p-text-muted-color); }
+
+.upload-tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    color: var(--p-primary-600);
+}
 
 .export-row  { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .row-actions { display: flex; gap: 2px; align-items: center; }

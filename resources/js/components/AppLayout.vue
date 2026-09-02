@@ -74,7 +74,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.32.0</span>
+                <span class="version">v0.33.0</span>
             </div>
         </aside>
 
@@ -290,7 +290,7 @@ const helpContent = {
     '/contacts': {
         title: 'Contactos',
         items: [
-            { icon: 'pi-upload',        label: 'Importar',   text: 'Sube un Excel (.xlsx). Columna A: teléfono, Columna B: nombre (opcional).' },
+            { icon: 'pi-upload',        label: 'Importar',   text: 'Sube un Excel o CSV con Telefono, Nombre (opcional) y Etiqueta (opcional). Con encabezado el orden da igual. Si el telefono YA existe no se duplica: solo se le agrega la etiqueta, asi que sirve para etiquetar en masa. Las etiquetas nuevas se crean solas y varias caben en una celda separadas por coma.' },
             { icon: 'pi-plus',          label: 'Agregar uno', text: 'Botón "Agregar contacto" para alta manual. Al teclear el número te avisa si ya existe, está bloqueado o en enfriamiento.' },
             { icon: 'pi-phone',         label: 'Formato',    text: 'Teléfonos en formato mexicano con código de país: 529231311146.' },
             { icon: 'pi-check-circle',  label: 'Resultado',  text: 'Al importar verás: aceptados / duplicados / formato inválido.' },

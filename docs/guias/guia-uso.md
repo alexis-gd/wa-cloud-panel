@@ -165,21 +165,39 @@ Aquí vive tu base de prospectos. Entra a **Contactos** en el menú.
 
 ### Importar desde Excel
 
+Sirve para dos cosas: **dar de alta** contactos nuevos y, sobre todo, **etiquetar en masa**
+contactos que ya tienes.
+
 1. Clic en **Importar Excel**.
-2. Sube el archivo `.xlsx`. El formato es simple:
+2. Sube el archivo `.xlsx`, `.xls` o `.csv`:
 
-   | Columna A | Columna B (opcional) |
-   |-----------|----------------------|
-   | Teléfono  | Nombre               |
+   | Teléfono | Nombre (opcional) | Etiqueta (opcional) |
+   |----------|-------------------|---------------------|
+   | 9231311146 | Juan Pérez | VIP |
+   | 6692522844 | Ana López | VIP, Mazatlán |
 
-   - Los teléfonos van con la clave del país, sin el signo +. Ejemplo: `529231311146`.
-   - Si la primera fila es un encabezado, el sistema lo detecta solo.
-3. Al terminar verás un resumen: **aceptados / duplicados / formato inválido**.
-   - **Duplicados**: ya estaban, no se agregan otra vez.
-   - **Formato inválido**: números mal escritos, se ignoran.
-4. Los contactos que ya pidieron **baja** nunca regresan, aunque los vuelvas a importar.
+   - Los teléfonos pueden ir con clave de país (`529231311146`) o solo los 10 dígitos.
+   - **Con encabezado el orden de las columnas da igual**, el sistema las reconoce.
+   - La columna de etiqueta se puede llamar `etiqueta`, `etiquetas`, `tag` o `tags`.
+   - **Varias etiquetas en una celda** separadas por coma.
+   - Las etiquetas que no existan **se crean solas**. `VIP` y `vip` son la misma.
+3. Al terminar verás el resumen: **nuevos / ya existían / inválidos**, y si el archivo traía
+   columna de etiqueta, cuántas se asignaron y cuántas se crearon.
 
-> 💡 Para bajar tus contactos a Excel, usa el botón **Exportar**.
+> 🏷️ **Si el teléfono ya existe, NO se duplica: se le agrega la etiqueta.** Por eso puedes
+> re-subir una lista de números que ya tienes solo para clasificarlos. Las etiquetas que el
+> contacto ya tenía **no se borran**, se suman.
+
+Detalles:
+
+- **Ya existían**: el número ya estaba. Se etiqueta pero no se da de alta otra vez.
+- **Inválidos**: números mal escritos. Se ignoran y te dice en qué fila estaban.
+- Los contactos que pidieron **baja** nunca regresan, aunque los vuelvas a importar.
+- Un contacto **eliminado** no se re-etiqueta (está fuera de listas y campañas).
+
+> 💡 El botón **Exportar** baja tus contactos a Excel **con su columna de etiquetas**, en el
+> mismo formato que lee el importador. Puedes exportar, cambiar etiquetas en Excel y volver a
+> subir el archivo.
 
 ### Agregar un contacto a mano
 

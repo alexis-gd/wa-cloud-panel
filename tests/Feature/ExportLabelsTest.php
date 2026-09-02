@@ -52,6 +52,31 @@ class ExportLabelsTest extends TestCase
         }
     }
 
+    public function test_el_excel_de_contactos_trae_la_columna_de_etiquetas(): void
+    {
+        $conTags = \App\Models\Contact::factory()->create(['phone' => '526692522844']);
+        $conTags->tags()->attach([
+            \App\Models\Tag::create(['name' => 'VIP'])->id,
+            \App\Models\Tag::create(['name' => 'Mazatlan'])->id,
+        ]);
+        \App\Models\Contact::factory()->create(['phone' => '526692522845']);   // sin etiquetas
+
+        $filas = $this->hojaDe('/api/export/contacts');
+
+        $this->assertContains('Etiquetas', $filas[0]);
+
+        $columna = array_search('Etiquetas', $filas[0], true);
+        $celdas  = array_column(array_slice($filas, 1), $columna);
+
+        // Separadas por coma: el mismo formato que lee el importador, para poder volver a
+        // subir el archivo exportado y re-etiquetar.
+        $conEtiquetas = array_values(array_filter($celdas));
+        $this->assertCount(1, $conEtiquetas);
+        $this->assertStringContainsString('VIP', $conEtiquetas[0]);
+        $this->assertStringContainsString('Mazatlan', $conEtiquetas[0]);
+        $this->assertStringContainsString(',', $conEtiquetas[0]);
+    }
+
     public function test_el_excel_de_contactos_trae_la_fuente_en_espanol(): void
     {
         Contact::factory()->create(['source' => 'excel']);

@@ -29,6 +29,14 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Upload happy path**: subir Excel con teléfonos válidos → reporte muestra aceptados/duplicados/formato inválido
 - [ ] **Duplicados**: subir el mismo teléfono dos veces → solo se guarda uno
 - [ ] **Formato inválido**: incluir teléfono de 7 dígitos o sin prefijo → rechazado, aparece en reporte como inválido
+- [ ] **Import con etiqueta**: CSV con columna `etiqueta` → crea la etiqueta y la asigna; el resumen dice cuántas asignó y creó
+- [ ] **Import etiqueta a existente**: subir números que YA están con una etiqueta nueva → 0 nuevos, se etiquetan igual, el resumen lo dice
+- [ ] **Import no pisa etiquetas**: un contacto con etiqueta previa recibe la nueva sin perder la vieja
+- [ ] **Import varias etiquetas**: celda `VIP, Mazatlán` → dos etiquetas al mismo contacto
+- [ ] **Import mayúsculas**: `VIP` y `vip` en el mismo archivo → una sola etiqueta, no dos
+- [ ] **Import reimportado**: subir el mismo archivo dos veces → no duplica relaciones, `tags_assigned = 0` la segunda vez
+- [ ] **Selector de tags refrescado**: tras importar etiquetas nuevas, aparecen en el filtro sin recargar la página
+- [ ] **Export con etiquetas**: descargar el Excel de contactos → trae columna `Etiquetas` separada por coma; volver a subir ese archivo re-etiqueta sin duplicar
 - [ ] **Opt-out manual**: eliminar contacto desde UI → se marca `opted_out`, NO se borra de BD
 - [ ] **Filtro por tag**: aplicar filtro `?tag_id=X` → solo aparecen contactos de ese tag
 - [ ] **Asignar/quitar tags**: asignar múltiples tags a un contacto → se guardan correctamente → quitarlos → se eliminan

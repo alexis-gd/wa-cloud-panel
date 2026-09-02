@@ -240,7 +240,16 @@ export const api = {
     }),
 
     // ── Tags ─────────────────────────────────────────────────────────────────
-    tags: () => request('/tags'),
+    tags: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return request(qs ? `/tags?${qs}` : '/tags');
+    },
+
+    /** Renombra la etiqueta. El slug no cambia: es la llave que usa el importador. */
+    renameTag: (id, name) => request(`/tags/${id}`, {
+        method : 'PUT',
+        body   : JSON.stringify({ name }),
+    }),
 
     createTag: (name) => request('/tags', {
         method : 'POST',

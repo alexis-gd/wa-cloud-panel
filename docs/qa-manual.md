@@ -40,6 +40,13 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Opt-out manual**: eliminar contacto desde UI → se marca `opted_out`, NO se borra de BD
 - [ ] **Filtro por tag**: aplicar filtro `?tag_id=X` → solo aparecen contactos de ese tag
 - [ ] **Asignar/quitar tags**: asignar múltiples tags a un contacto → se guardan correctamente → quitarlos → se eliminan
+- [ ] **Pantalla Etiquetas**: aparece en el menú para admin y operator, NO para agente
+- [ ] **Catálogo - contadores**: los números de Contactos y Campañas coinciden con la realidad
+- [ ] **Catálogo - ver contactos**: clic en el número de contactos → lleva a Contactos filtrado por esa etiqueta, y la URL trae `?tag=ID`
+- [ ] **Catálogo - crear**: crear una etiqueta desde la pantalla → aparece en la lista y en el selector de Contactos
+- [ ] **Catálogo - renombrar**: renombrar una etiqueta → cambia el nombre pero el identificador NO; subir un Excel con el nombre VIEJO sigue apuntando a la misma etiqueta (no crea duplicada)
+- [ ] **Catálogo - nombre repetido**: renombrar a un nombre que ya existe → lo rechaza con aviso
+- [ ] **Catálogo - buscar y paginar**: el buscador filtra y el selector Mostrar funciona igual que en las demás tablas
 - [ ] **Borrar etiqueta - conteo previo**: borrar una etiqueta con contactos → la confirmación dice cuántos la perderán
 - [ ] **Borrar etiqueta - bloqueo**: crear campaña en borrador con esa etiqueta → el bote de basura avisa que no se puede y nombra la campaña; la etiqueta sigue existiendo
 - [ ] **Borrar etiqueta - campaña ya enviada**: con campaña `completed` → sí borra, y la campaña queda con segmento vacío sin perder su historial

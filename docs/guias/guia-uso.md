@@ -349,11 +349,29 @@ Para **quitar** una etiqueta de varios: selecciónalos, elige la etiqueta y clic
 
 ---
 
+### La pantalla Etiquetas
+
+En el menú hay una pantalla **Etiquetas** con el catálogo completo. Ahí ves de un vistazo:
+
+| Columna | Qué te dice |
+|---|---|
+| Etiqueta | El nombre. |
+| Identificador | El nombre interno. **No cambia aunque renombres**, y es con el que el Excel de importación reconoce la etiqueta. |
+| Contactos | Cuántos la tienen ahora. **Es un botón**: te lleva a Contactos ya filtrado por esa etiqueta. |
+| Campañas | Cuántas campañas la usan como segmento. |
+| Creada | Cuándo se creó. |
+
+Arriba tienes el resumen (cuántas etiquetas hay, cuántos contactos etiquetados y cuántas
+etiquetas **sin usar**, útil para limpiar), un buscador y el botón **Nueva etiqueta**.
+
+**Renombrar** (icono de lápiz) cambia solo el nombre que ves. El identificador se queda igual a
+propósito: si cambiara, tus Excel viejos dejarían de reconocer la etiqueta y crearían una
+duplicada.
+
 ### Borrar una etiqueta
 
-En el recuadro **Asignar tags** (icono de etiqueta en cualquier contacto) aparece la lista de
-etiquetas con su bote de basura. Antes de borrar, el sistema te dice **exactamente qué se lleva
-por delante**:
+Desde la pantalla **Etiquetas**, o desde el recuadro **Asignar tags** de cualquier contacto.
+Antes de borrar, el sistema te dice **exactamente qué se lleva por delante**:
 
 - Cuántos contactos dejarán de tenerla. **Los contactos NO se eliminan**, solo pierden la etiqueta.
 - Cuántas campañas ya enviadas quedarán sin la referencia de su segmento. Su historial no cambia.

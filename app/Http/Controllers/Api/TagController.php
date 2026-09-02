@@ -12,9 +12,18 @@ use Illuminate\Http\Request;
 class TagController extends Controller
 {
     // GET /api/tags
-    public function index(): JsonResponse
+    // Devuelve SIEMPRE la lista completa (no paginada): la consumen los selectores de
+    // etiquetas de Contactos y Campañas, que necesitan todas. El catálogo pagina del lado
+    // del navegador; las etiquetas son decenas, no cientos de miles.
+    public function index(Request $request): JsonResponse
     {
-        $tags = Tag::withCount('contacts')->orderBy('name')->get();
+        $tags = Tag::withCount(['contacts', 'campaigns'])
+            ->when($request->filled('q'), function ($q) use ($request) {
+                $term = $request->input('q');
+                $q->where('name', 'like', "%{$term}%");
+            })
+            ->orderBy('name')
+            ->get();
 
         return response()->json(['status' => 'ok', 'data' => $tags]);
     }
@@ -29,6 +38,27 @@ class TagController extends Controller
         $tag = Tag::create(['name' => $data['name']]);
 
         return response()->json(['status' => 'ok', 'data' => $tag], 201);
+    }
+
+    // PUT /api/tags/{id}
+    // Renombra la etiqueta. El SLUG NO se toca: es la llave estable con la que el importador
+    // reconoce una etiqueta existente (ver TagResolver). Si el slug cambiara, el mismo Excel
+    // dejaría de reconocerla y crearía una etiqueta duplicada.
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $tag = Tag::find($id);
+
+        if (! $tag) {
+            return response()->json(['status' => 'error', 'message' => 'Tag no encontrado.'], 404);
+        }
+
+        $data = $request->validate([
+            'name' => 'required|string|max:100|unique:tags,name,' . $tag->id,
+        ]);
+
+        $tag->update(['name' => $data['name']]);
+
+        return response()->json(['status' => 'ok', 'data' => $tag->fresh()]);
     }
 
     // GET /api/tags/{id}/usage

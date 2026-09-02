@@ -33,6 +33,7 @@ import ContactsView        from './views/ContactsView.vue';
 import CampaignsView       from './views/CampaignsView.vue';
 import SmsRepliesView      from './views/SmsRepliesView.vue';
 import ConversationsView   from './views/ConversationsView.vue';
+import TagsView           from './views/TagsView.vue';
 import TemplatesView       from './views/TemplatesView.vue';
 import UsersView           from './views/UsersView.vue';
 import SettingsView        from './views/SettingsView.vue';
@@ -48,6 +49,7 @@ const router = createRouter({
         { path: '/campaigns',      component: CampaignsView     },
         { path: '/sms-replies',    component: SmsRepliesView    },
         { path: '/conversations',  component: ConversationsView  },
+        { path: '/tags',          component: TagsView          },
         { path: '/templates',     component: TemplatesView, meta: { role: 'admin' } },
         { path: '/users',     component: UsersView,  meta: { role: 'admin' } },
         { path: '/settings',  component: SettingsView, meta: { role: 'superadmin' } },

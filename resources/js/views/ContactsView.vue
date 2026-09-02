@@ -453,7 +453,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast }   from 'primevue/usetoast';
 import { useAuth }    from '../auth.js';
@@ -471,6 +472,7 @@ import Dialog        from 'primevue/dialog';
 import { api }       from '../api.js';
 import TablePaginator from '../components/TablePaginator.vue';
 
+const route   = useRoute();
 const confirm = useConfirm();
 const toast   = useToast();
 const { user: authState } = useAuth();
@@ -1098,7 +1100,23 @@ function tagDeleteMessage(usage) {
     return partes.join(' ');
 }
 
-onMounted(() => { loadContacts(); loadTags(); });
+// El catálogo de etiquetas enlaza aquí con ?tag=ID para ver los contactos de una etiqueta.
+// Se lee de la URL para que el enlace se pueda compartir y sobreviva a un refresco.
+function aplicarTagDeLaUrl() {
+    const id = Number(route.query.tag);
+    tagFilter.value = Number.isInteger(id) && id > 0 ? id : null;
+}
+
+watch(() => route.query.tag, () => {
+    aplicarTagDeLaUrl();
+    loadContacts(1);
+});
+
+onMounted(() => {
+    aplicarTagDeLaUrl();
+    loadContacts();
+    loadTags();
+});
 </script>
 
 <style scoped>

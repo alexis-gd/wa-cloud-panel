@@ -79,6 +79,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         // Tags
         Route::get('/tags',         [TagController::class, 'index']);
         Route::post('/tags',        [TagController::class, 'store']);
+        // Renombrar: solo cambia el nombre visible, el slug se queda fijo.
+        Route::put('/tags/{id}',    [TagController::class, 'update']);
         // Conteo previo al borrado: cuantos contactos y campanas usan la etiqueta.
         Route::get('/tags/{id}/usage', [TagController::class, 'usage']);
         Route::delete('/tags/{id}', [TagController::class, 'destroy']);

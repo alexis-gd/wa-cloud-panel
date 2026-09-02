@@ -38,12 +38,15 @@
                     <i class="pi pi-inbox" />
                     <span>Respuestas SMS</span>
                 </RouterLink>
+                <RouterLink v-if="!isAgent() && isEnabled('feature_tags')" to="/tags" class="nav-item" :class="{ active: route.path === '/tags' }" @click="sidebarOpen = false">
+                    <i class="pi pi-tags" />
+                    <span>Etiquetas</span>
+                </RouterLink>
                 <RouterLink v-if="isEnabled('feature_conversations')" to="/conversations" class="nav-item" :class="{ active: route.path === '/conversations' }" @click="sidebarOpen = false">
                     <i class="pi pi-comments" />
                     <span>Conversaciones</span>
                 </RouterLink>
 
-                <!-- Solo admin -->
                 <RouterLink v-if="isAdmin() && isEnabled('feature_templates')" to="/templates" class="nav-item" :class="{ active: route.path === '/templates' }" @click="sidebarOpen = false">
                     <i class="pi pi-file-edit" />
                     <span>Plantillas</span>
@@ -74,7 +77,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.33.0</span>
+                <span class="version">v0.34.0</span>
             </div>
         </aside>
 
@@ -262,6 +265,7 @@ const sidebarOpen = ref(false);
 const pageTitles = {
     '/'               : 'Panel',
     '/contacts'       : 'Contactos',
+    '/tags'           : 'Etiquetas',
     '/campaigns'      : 'Campañas',
     '/sms-replies'    : 'Respuestas SMS',
     '/conversations'  : 'Conversaciones',
@@ -286,6 +290,16 @@ const helpContent = {
             { icon: 'pi-bolt',          label: 'En vivo',     text: 'El tablero se actualiza solo con la actividad (semáforo, cifras, últimos mensajes) mientras corren las campañas. No hace falta recargar. El histórico por mes se carga una vez.' },
         ],
         warning: 'Si el semáforo está ROJO o PAUSADO, no ejecutar campañas hasta que se revise.',
+    },
+    '/tags': {
+        title: 'Etiquetas',
+        items: [
+            { icon: 'pi-tags',   label: 'Para que sirven', text: 'Una etiqueta es un segmento: al crear una campana puedes mandarla solo a los contactos de esa etiqueta en vez de a toda la base.' },
+            { icon: 'pi-plus',   label: 'Crear',           text: 'Boton "Nueva etiqueta". Tambien se crean solas al importar un Excel con columna de etiqueta.' },
+            { icon: 'pi-pencil', label: 'Renombrar',       text: 'Cambia solo el nombre visible. El identificador se queda fijo para que el Excel de importacion siga reconociendo la etiqueta.' },
+            { icon: 'pi-users',  label: 'Ver contactos',   text: 'El numero de la columna Contactos es un boton: te lleva a Contactos ya filtrado por esa etiqueta.' },
+            { icon: 'pi-trash',  label: 'Borrar',          text: 'Te dice antes cuantos contactos la perderan. Si una campana SIN ENVIAR la usa, no deja borrarla: esa campana se quedaria sin segmento y saldria a todos los contactos.' },
+        ],
     },
     '/contacts': {
         title: 'Contactos',

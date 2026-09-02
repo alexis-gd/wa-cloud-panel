@@ -138,6 +138,19 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 
 ---
 
+## API de contactados (S1)
+
+- [ ] **Sin llave**: `GET /api/contacted?date=...` sin `X-API-Key` → 401
+- [ ] **Un día**: devuelve nombre y número de los contactados ese día, una fila por contacto
+- [ ] **Corte del día**: un envío de las 23:30 CST sale en ese día, no en el siguiente
+- [ ] **Fallidos**: un mensaje `failed` o `discarded` NO aparece
+- [ ] **Dos canales**: cuenta WhatsApp y SMS
+- [ ] **Rango**: `from`/`to` incluye las dos fechas
+- [ ] **Errores**: sin fecha → `MISSING_DATE`; fecha y rango juntos → `AMBIGUOUS_RANGE`; `to` antes de `from` → `INVALID_RANGE`
+- [ ] **Paginado**: recorrer todas las páginas no repite ni pierde contactos
+
+---
+
 ## Auth y roles
 
 - [ ] **Login admin**: puede ver todas las secciones del menú

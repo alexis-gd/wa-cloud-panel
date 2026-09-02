@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\ContactedController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
@@ -39,6 +40,12 @@ Route::post('/webhook', [WebhookController::class, 'handle']);
 
 // ── Webhook gateway SMS — sin API key, valida HMAC X-Signature ──────────────
 Route::post('/sms/webhook', [SmsWebhookController::class, 'handle']);
+
+// ── API para sistemas externos del cliente — X-API-Key, no Sanctum ──────────
+// La consume otro servidor, no el panel: un servidor no hace login, manda una llave.
+Route::middleware(['api_key', 'throttle:60,1'])->group(function () {
+    Route::get('/contacted', [ContactedController::class, 'index']);
+});
 
 // ── Auth — público, con rate limit anti-brute-force ─────────────────────────
 // 5 intentos por minuto por IP — bloquea ataques de fuerza bruta sin molestar

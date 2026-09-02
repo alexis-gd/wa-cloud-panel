@@ -32,6 +32,11 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Opt-out manual**: eliminar contacto desde UI → se marca `opted_out`, NO se borra de BD
 - [ ] **Filtro por tag**: aplicar filtro `?tag_id=X` → solo aparecen contactos de ese tag
 - [ ] **Asignar/quitar tags**: asignar múltiples tags a un contacto → se guardan correctamente → quitarlos → se eliminan
+- [ ] **Borrar etiqueta - conteo previo**: borrar una etiqueta con contactos → la confirmación dice cuántos la perderán
+- [ ] **Borrar etiqueta - bloqueo**: crear campaña en borrador con esa etiqueta → el bote de basura avisa que no se puede y nombra la campaña; la etiqueta sigue existiendo
+- [ ] **Borrar etiqueta - campaña ya enviada**: con campaña `completed` → sí borra, y la campaña queda con segmento vacío sin perder su historial
+- [ ] **Borrar etiqueta - contactos intactos**: tras borrar, los contactos siguen existiendo y solo perdieron la etiqueta
+- [ ] **Borrar etiqueta - filtro activo**: con el filtro por esa etiqueta puesto, borrarla → el filtro se limpia y la lista se recarga
 - [ ] **Pegado masivo**: copiar una columna de ~500 números de Excel y pegarla en el buscador → filtra por esa lista, aparece el chip con encontrados / no dados de alta / inválidos
 - [ ] **Pegado con formato**: pegar números escritos `52 923 111 1111` (espacios dentro), uno por línea → los reconoce, `invalid = 0`
 - [ ] **Copiar faltantes**: con números que no existen, botón "Copiar faltantes" → deja la lista en el portapapeles

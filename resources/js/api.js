@@ -247,6 +247,9 @@ export const api = {
         body   : JSON.stringify({ name }),
     }),
 
+    /** Que se lleva por delante borrar la etiqueta: contactos, campanas y si esta bloqueada. */
+    tagUsage: (id) => request(`/tags/${id}/usage`),
+
     deleteTag: (id) => request(`/tags/${id}`, { method: 'DELETE' }),
 
     syncContactTags: (contactId, tagIds) => request(`/contacts/${contactId}/tags`, {

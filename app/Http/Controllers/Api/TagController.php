@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\Tag;
+use App\Services\Tags\TagDeletionGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -30,6 +31,30 @@ class TagController extends Controller
         return response()->json(['status' => 'ok', 'data' => $tag], 201);
     }
 
+    // GET /api/tags/{id}/usage
+    // Qué se lleva por delante borrar la etiqueta. El panel lo pide ANTES de confirmar,
+    // para que el operador vea el conteo real en vez de un "¿seguro?" a ciegas.
+    public function usage(int $id): JsonResponse
+    {
+        $tag = Tag::find($id);
+
+        if (! $tag) {
+            return response()->json(['status' => 'error', 'message' => 'Tag no encontrado.'], 404);
+        }
+
+        $usage = TagDeletionGuard::usage($tag);
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => array_merge($usage, [
+                'blocked' => TagDeletionGuard::isBlocked($usage),
+                'reason'  => TagDeletionGuard::isBlocked($usage)
+                    ? TagDeletionGuard::blockedMessage($usage)
+                    : null,
+            ]),
+        ]);
+    }
+
     // DELETE /api/tags/{id}
     public function destroy(int $id): JsonResponse
     {
@@ -39,9 +64,26 @@ class TagController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Tag no encontrado.'], 404);
         }
 
+        // El bloqueo se revalida aquí, no solo en el endpoint de usage: entre que el
+        // operador ve el conteo y confirma pueden pasar minutos, y alguien pudo crear
+        // una campaña con esta etiqueta mientras tanto.
+        $usage = TagDeletionGuard::usage($tag);
+
+        if (TagDeletionGuard::isBlocked($usage)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => TagDeletionGuard::blockedMessage($usage),
+                'code'    => 'TAG_IN_USE_BY_CAMPAIGN',
+                'data'    => $usage,
+            ], 422);
+        }
+
         $tag->delete();
 
-        return response()->json(['status' => 'ok']);
+        return response()->json([
+            'status' => 'ok',
+            'data'   => ['contacts_untagged' => $usage['contacts']],
+        ]);
     }
 
     // PUT /api/contacts/{id}/tags

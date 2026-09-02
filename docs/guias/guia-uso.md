@@ -331,6 +331,21 @@ Para **quitar** una etiqueta de varios: selecciónalos, elige la etiqueta y clic
 
 ---
 
+### Borrar una etiqueta
+
+En el recuadro **Asignar tags** (icono de etiqueta en cualquier contacto) aparece la lista de
+etiquetas con su bote de basura. Antes de borrar, el sistema te dice **exactamente qué se lleva
+por delante**:
+
+- Cuántos contactos dejarán de tenerla. **Los contactos NO se eliminan**, solo pierden la etiqueta.
+- Cuántas campañas ya enviadas quedarán sin la referencia de su segmento. Su historial no cambia.
+
+> 🛑 **Si una campaña sin enviar usa esa etiqueta, el sistema NO te deja borrarla** y te dice
+> cuál es. Es a propósito: una campaña que apunta a una etiqueta se quedaría sin segmento y se
+> enviaría a **todos** los contactos. Primero cámbiale el segmento a esa campaña o cancélala.
+
+Borrar una etiqueta no se puede deshacer: hay que volver a crearla y reasignarla.
+
 ## 8. Campañas
 
 Una campaña es un **envío masivo** a un grupo de contactos.

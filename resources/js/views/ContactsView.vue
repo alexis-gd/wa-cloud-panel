@@ -349,7 +349,15 @@
             <div v-for="t in allTags" :key="t.id" class="tag-manage-item">
                 <span class="tag-chip">{{ t.name }}</span>
                 <span class="tag-count">{{ t.contacts_count ?? 0 }} contactos</span>
-                <Button icon="pi pi-trash" text severity="danger" size="small" @click="deleteTag(t)" />
+                <Button
+                    icon="pi pi-trash"
+                    text
+                    severity="danger"
+                    size="small"
+                    :loading="deletingTagId === t.id"
+                    @click="deleteTag(t)"
+                    v-tooltip.top="'Borrar etiqueta'"
+                />
             </div>
             <p v-if="!allTags.length" class="tags-empty-hint">No hay tags creados aún.</p>
         </div>
@@ -520,6 +528,8 @@ const selectedTagIds = ref([]);
 const savingTags    = ref(false);
 const newTagName    = ref('');
 const creatingTag   = ref(false);
+// Etiqueta cuyo conteo se está consultando antes de confirmar el borrado.
+const deletingTagId = ref(null);
 
 const filterOptions = [
     { label: 'Todos',        value: '' },
@@ -1005,10 +1015,72 @@ async function createTag() {
     creatingTag.value = false;
 }
 
+// Borrar una etiqueta NO es inocuo: los contactos la pierden y las campañas que la usan se
+// quedan sin segmento. Por eso primero se pide el conteo real al backend y se muestra, en vez
+// de un "¿seguro?" a ciegas. El backend bloquea las campañas sin enviar; aquí solo se explica.
 async function deleteTag(tag) {
-    await api.deleteTag(tag.id);
-    allTags.value = allTags.value.filter(t => t.id !== tag.id);
-    selectedTagIds.value = selectedTagIds.value.filter(id => id !== tag.id);
+    deletingTagId.value = tag.id;
+    const res = await api.tagUsage(tag.id);
+    deletingTagId.value = null;
+
+    if (res.status !== 'ok') {
+        toast.add({ severity: 'error', summary: 'No se pudo consultar la etiqueta', detail: res.message, life: 5000 });
+        return;
+    }
+
+    const usage = res.data;
+
+    if (usage.blocked) {
+        toast.add({ severity: 'warn', summary: 'No se puede borrar', detail: usage.reason, life: 10000 });
+        return;
+    }
+
+    confirm.require({
+        header     : `Borrar la etiqueta "${tag.name}"`,
+        message    : tagDeleteMessage(usage),
+        icon       : 'pi pi-exclamation-triangle',
+        acceptLabel: 'Borrar etiqueta',
+        rejectLabel: 'Cancelar',
+        acceptClass: 'p-button-danger',
+        accept     : async () => {
+            const del = await api.deleteTag(tag.id);
+
+            if (del.status !== 'ok') {
+                toast.add({ severity: 'error', summary: 'No se pudo borrar', detail: del.message, life: 10000 });
+                return;
+            }
+
+            allTags.value = allTags.value.filter(t => t.id !== tag.id);
+            selectedTagIds.value = selectedTagIds.value.filter(id => id !== tag.id);
+            if (tagFilter.value === tag.id) tagFilter.value = null;
+
+            toast.add({
+                severity : 'success',
+                summary  : 'Etiqueta borrada',
+                detail   : `${del.data?.contacts_untagged ?? 0} contacto(s) dejaron de tenerla. Ningún contacto se eliminó.`,
+                life     : 4000,
+            });
+
+            loadContacts(meta.value?.current_page ?? 1);
+        },
+    });
+}
+
+// Texto de la confirmación, con los números reales.
+function tagDeleteMessage(usage) {
+    const partes = [];
+
+    partes.push(usage.contacts === 0
+        ? 'Ningún contacto tiene esta etiqueta.'
+        : `${usage.contacts} contacto(s) dejarán de tenerla. Los contactos NO se eliminan.`);
+
+    if (usage.campaigns > 0) {
+        partes.push(`${usage.campaigns} campaña(s) ya enviadas quedarán sin la referencia de su segmento. Su historial de envíos no cambia.`);
+    }
+
+    partes.push('Esta acción no se puede deshacer.');
+
+    return partes.join(' ');
 }
 
 onMounted(() => { loadContacts(); loadTags(); });

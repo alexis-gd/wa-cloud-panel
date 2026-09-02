@@ -74,7 +74,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.31.0</span>
+                <span class="version">v0.32.0</span>
             </div>
         </aside>
 
@@ -296,6 +296,7 @@ const helpContent = {
             { icon: 'pi-check-circle',  label: 'Resultado',  text: 'Al importar verás: aceptados / duplicados / formato inválido.' },
             { icon: 'pi-ban',           label: 'Dar de baja', text: 'El botón Dar de baja marca al contacto como baja permanente (cumplimiento). Nunca más se le envía.' },
             { icon: 'pi-refresh',       label: 'Reactivar',  text: 'Solo admin: el botón Reactivar aparece en contactos Inalcanzables (3 mensajes seguidos sin entregarse). Los vuelve a Activo si hay evidencia de que el número volvió a ser alcanzable. Filtra por "Inalcanzables" para encontrarlos. Las bajas e inválidos NO se reactivan.' },
+            { icon: 'pi-tag',           label: 'Borrar etiqueta', text: 'El bote de basura de una etiqueta te dice antes cuantos contactos la perderan y cuantas campanas se quedan sin referencia de segmento. Si una campana SIN ENVIAR la usa, no deja borrarla: esa campana se quedaria sin segmento y saldria a todos los contactos.' },
             { icon: 'pi-trash',         label: 'Eliminar',   text: 'El bote de basura (solo admin) quita el contacto de listas y campañas - para limpiar pruebas/basura. Es recuperable y no afecta las stats de bajas.' },
             { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora, POR CANAL: dos etiquetas, una de WhatsApp y otra de SMS (Disponible, Pospuesto, Enfriamiento, Enviado hoy o No recibe). Cada canal cuenta lo suyo, puede estar disponible en uno y en enfriamiento en el otro. Distinta del Estado.' },
             { icon: 'pi-filter',        label: 'Filtrar por entregabilidad', text: 'El selector Entregabilidad busca por esos mismos estados y siempre dice de que canal habla: "Enfriamiento - WhatsApp" no es lo mismo que "Enfriamiento - SMS". Se pueden marcar varios estados y se suman. Pospuesto y En espera (Meta) solo existen en WhatsApp.' },

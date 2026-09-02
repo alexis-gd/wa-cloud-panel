@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\Log;
  */
 class ExternalContactsClient
 {
+    /** Token vigente de esta corrida (modo `login`). No se persiste: caduca en minutos. */
+    private ?string $token = null;
+
     public function __construct(
         private readonly ?string $url = null,
         private readonly ?int $timeout = null,
@@ -47,6 +50,18 @@ class ExternalContactsClient
                 'body'   => null,
                 'error'  => 'Falta SYNC_API_URL en el .env: no se sabe a dónde consultar.',
             ];
+        }
+
+        // Modo `login`: primero el token, luego la consulta. Si el login falla no tiene
+        // caso pedir los datos: se devuelve el error del login, que es el que explica qué pasó.
+        if (config('contact_sync.auth', 'login') === 'login') {
+            $sesion = $this->login();
+
+            if (! $sesion['ok']) {
+                return ['ok' => false, 'status' => 0, 'body' => null, 'error' => $sesion['error']];
+            }
+
+            $this->token = $sesion['token'];
         }
 
         try {
@@ -90,13 +105,67 @@ class ExternalContactsClient
         return ['ok' => true, 'status' => $response->status(), 'body' => $json, 'error' => null];
     }
 
+    /**
+     * Pide un token al endpoint de login. Solo aplica al modo `login`.
+     *
+     * @return array{ok: bool, token: ?string, error: ?string}
+     */
+    public function login(): array
+    {
+        $url = config('contact_sync.login_url');
+
+        if (empty($url)) {
+            return ['ok' => false, 'token' => null, 'error' => 'Falta SYNC_API_LOGIN_URL en el .env.'];
+        }
+
+        try {
+            $response = Http::timeout($this->timeout ?? (int) config('contact_sync.timeout', 30))
+                ->acceptJson()
+                ->post($url, [
+                    (string) config('contact_sync.login_user_key', 'usuario') => config('contact_sync.user'),
+                    (string) config('contact_sync.login_pass_key', 'password') => config('contact_sync.password'),
+                ]);
+        } catch (\Throwable $e) {
+            Log::error('API de contactos: no se pudo hacer login', ['error' => $e->getMessage()]);
+
+            return ['ok' => false, 'token' => null, 'error' => $e->getMessage()];
+        }
+
+        if ($response->failed()) {
+            // Nunca se loguea la contraseña ni el token: solo el código.
+            Log::error('API de contactos: login rechazado', ['status' => $response->status()]);
+
+            return [
+                'ok'    => false,
+                'token' => null,
+                'error' => "El login respondió HTTP {$response->status()}. Revisa SYNC_API_USER y SYNC_API_PASSWORD.",
+            ];
+        }
+
+        $token = data_get($response->json(), (string) config('contact_sync.token_path', 'token'));
+
+        if (empty($token) || ! is_string($token)) {
+            return [
+                'ok'    => false,
+                'token' => null,
+                'error' => 'El login respondió OK pero no traía token en "'
+                    . config('contact_sync.token_path', 'token') . '". Ajusta SYNC_API_TOKEN_PATH.',
+            ];
+        }
+
+        return ['ok' => true, 'token' => $token, 'error' => null];
+    }
+
     /** Arma la petición con el modo de autenticación configurado. */
     private function request()
     {
         $http = Http::timeout($this->timeout ?? (int) config('contact_sync.timeout', 30))
             ->acceptJson();
 
-        return match (config('contact_sync.auth', 'basic')) {
+        return match (config('contact_sync.auth', 'login')) {
+            // El token se pide al vuelo: el de este API caduca en 5 minutos, así que
+            // guardarlo entre corridas no serviría de nada.
+            'login'  => $http->withToken((string) ($this->token ?? '')),
             'bearer' => $http->withToken((string) config('contact_sync.token')),
             'none'   => $http,
             default  => $http->withBasicAuth(

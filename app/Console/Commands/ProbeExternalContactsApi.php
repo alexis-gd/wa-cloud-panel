@@ -24,8 +24,9 @@ class ProbeExternalContactsApi extends Command
 
         $this->info('Configuración actual:');
         $this->table(['Variable', 'Valor'], [
-            ['SYNC_API_URL',     $url ?: '(vacío)'],
-            ['SYNC_API_AUTH',    config('contact_sync.auth')],
+            ['SYNC_API_URL',       $url ?: '(vacío)'],
+            ['SYNC_API_AUTH',      config('contact_sync.auth')],
+            ['SYNC_API_LOGIN_URL', config('contact_sync.login_url') ?: '(vacío)'],
             ['SYNC_API_USER',    config('contact_sync.user') ?: '(vacío)'],
             // La contraseña nunca se imprime: solo si está puesta o no.
             ['SYNC_API_PASSWORD', config('contact_sync.password') ? '(configurada)' : '(vacía)'],
@@ -38,6 +39,24 @@ class ProbeExternalContactsApi extends Command
         if (empty($url)) {
             $this->error('Falta SYNC_API_URL en el .env. Sin eso no hay a dónde consultar.');
             return self::FAILURE;
+        }
+
+        // El login se prueba por separado para poder decir CUÁL de los dos pasos falló:
+        // credenciales malas y ruta mala se arreglan de formas muy distintas.
+        if (config('contact_sync.auth') === 'login') {
+            $this->newLine();
+            $this->info('Haciendo login en ' . config('contact_sync.login_url') . ' ...');
+
+            $sesion = $client->login();
+
+            if (! $sesion['ok']) {
+                $this->error('Login fallido: ' . $sesion['error']);
+                return self::FAILURE;
+            }
+
+            // Del token solo el principio: es una credencial, no se imprime completa.
+            $this->info('Login OK. Token recibido (' . substr($sesion['token'], 0, 12) . '...).');
+            $this->line('  Este API entrega un JWT de vida corta, por eso se pide uno en cada corrida.');
         }
 
         $this->newLine();

@@ -22,16 +22,31 @@ return [
     'url' => env('SYNC_API_URL'),
 
     /*
-    | Autenticación. Dos modos:
-    |   basic  -> usuario y contraseña (lo que mandó Joseph)
-    |   bearer -> un token fijo en la cabecera Authorization
-    | Si su API exige login previo para obtener token, eso se agrega cuando se
-    | conozca el flujo; hoy no se inventa.
+    | Autenticación. Modos:
+    |   login  -> hace POST al endpoint de login, saca el token y lo usa (EL DE ESTE API)
+    |   basic  -> usuario y contraseña en cada petición
+    |   bearer -> un token fijo puesto a mano en el .env
+    |   none   -> sin autenticación
+    |
+    | El API del cliente usa `login`: devuelve un JWT que caduca en 5 MINUTOS, así que un
+    | token fijo en el .env no sirve - caducaría mucho antes del siguiente cron. Por eso se
+    | pide uno nuevo en cada corrida.
     */
-    'auth'     => env('SYNC_API_AUTH', 'basic'),
+    'auth'     => env('SYNC_API_AUTH', 'login'),
     'user'     => env('SYNC_API_USER'),
     'password' => env('SYNC_API_PASSWORD'),
     'token'    => env('SYNC_API_TOKEN'),
+
+    /*
+    | Solo para el modo `login`. Los nombres de los campos son configurables porque este
+    | API espera `usuario`, no `username`.
+    */
+    'login_url'      => env('SYNC_API_LOGIN_URL'),
+    'login_user_key' => env('SYNC_API_LOGIN_USER_KEY', 'usuario'),
+    'login_pass_key' => env('SYNC_API_LOGIN_PASS_KEY', 'password'),
+
+    // Dónde viene el token en la respuesta del login. Se lee con `data_get`.
+    'token_path' => env('SYNC_API_TOKEN_PATH', 'token'),
 
     'timeout' => (int) env('SYNC_API_TIMEOUT', 30),
 

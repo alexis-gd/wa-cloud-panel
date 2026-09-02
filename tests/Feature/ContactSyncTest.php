@@ -21,7 +21,8 @@ class ContactSyncTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const URL = 'http://192.168.17.20:8085/api/clientes';
+    private const URL       = 'http://192.168.17.20:8001/clients';
+    private const LOGIN_URL = 'http://192.168.17.20:8001/login';
 
     protected function setUp(): void
     {
@@ -29,6 +30,8 @@ class ContactSyncTest extends TestCase
 
         config([
             'contact_sync.url'         => self::URL,
+            // Los tests de arriba usan `basic` por simplicidad; el bloque de login prueba
+            // el modo real del API del cliente.
             'contact_sync.auth'        => 'basic',
             'contact_sync.user'        => 'sender',
             'contact_sync.password'    => 'secreto',
@@ -320,5 +323,118 @@ class ContactSyncTest extends TestCase
         $this->sync();
 
         Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer abc123'));
+    }
+
+    // ── Login con JWT (el modo real del API del cliente) ─────────────────────
+
+    /** Deja la config en el modo `login`, como el API real del cliente. */
+    private function modoLogin(): void
+    {
+        config([
+            'contact_sync.auth'           => 'login',
+            'contact_sync.login_url'      => self::LOGIN_URL,
+            'contact_sync.login_user_key' => 'usuario',
+            'contact_sync.login_pass_key' => 'password',
+            'contact_sync.token_path'     => 'token',
+        ]);
+    }
+
+    public function test_hace_login_y_usa_el_token_en_la_consulta(): void
+    {
+        // El JWT de este API caduca en 5 minutos, asi que se pide uno en CADA corrida en
+        // vez de guardarlo en el .env: un token fijo caducaria antes del siguiente cron.
+        $this->modoLogin();
+
+        Http::fake([
+            self::LOGIN_URL => Http::response(['success' => true, 'token' => 'jwt-de-prueba']),
+            self::URL       => Http::response([['telefono' => '9231311146']]),
+        ]);
+
+        $this->sync();
+
+        Http::assertSent(fn ($r) => $r->url() === self::LOGIN_URL
+            && $r['usuario'] === 'sender'
+            && $r['password'] === 'secreto');
+
+        Http::assertSent(fn ($r) => $r->url() === self::URL
+            && $r->hasHeader('Authorization', 'Bearer jwt-de-prueba'));
+
+        $this->assertSame(1, Contact::count());
+    }
+
+    public function test_si_el_login_falla_no_consulta_los_datos(): void
+    {
+        $this->modoLogin();
+
+        Http::fake([
+            self::LOGIN_URL => Http::response(['success' => false], 401),
+            self::URL       => Http::response([['telefono' => '9231311146']]),
+        ]);
+
+        $this->artisan('contactos:sincronizar')->assertFailed();
+
+        // No tiene caso pedir los datos sin token: el error del login es el que explica.
+        Http::assertNotSent(fn ($r) => $r->url() === self::URL);
+        $this->assertSame(0, Contact::count());
+    }
+
+    public function test_si_el_login_responde_sin_token_lo_dice(): void
+    {
+        $this->modoLogin();
+
+        Http::fake([
+            self::LOGIN_URL => Http::response(['success' => true]),   // 200 pero sin token
+            self::URL       => Http::response([]),
+        ]);
+
+        $this->artisan('contactos:sincronizar')->assertFailed();
+        Http::assertNotSent(fn ($r) => $r->url() === self::URL);
+    }
+
+    public function test_el_token_se_puede_leer_de_otra_llave(): void
+    {
+        $this->modoLogin();
+        config(['contact_sync.token_path' => 'data.access_token']);
+
+        Http::fake([
+            self::LOGIN_URL => Http::response(['data' => ['access_token' => 'otro-jwt']]),
+            self::URL       => Http::response([]),
+        ]);
+
+        $this->sync();
+
+        Http::assertSent(fn ($r) => $r->url() === self::URL
+            && $r->hasHeader('Authorization', 'Bearer otro-jwt'));
+    }
+
+    public function test_los_nombres_del_login_son_configurables(): void
+    {
+        // Este API espera `usuario`; otro podria esperar `username`.
+        $this->modoLogin();
+        config(['contact_sync.login_user_key' => 'username', 'contact_sync.login_pass_key' => 'pwd']);
+
+        Http::fake([
+            self::LOGIN_URL => Http::response(['token' => 'jwt']),
+            self::URL       => Http::response([]),
+        ]);
+
+        $this->sync();
+
+        Http::assertSent(fn ($r) => $r->url() === self::LOGIN_URL
+            && $r['username'] === 'sender' && $r['pwd'] === 'secreto');
+    }
+
+    public function test_el_probador_no_imprime_el_token_completo(): void
+    {
+        $this->modoLogin();
+
+        Http::fake([
+            self::LOGIN_URL => Http::response(['token' => 'jwt-secreto-completo-que-no-debe-salir']),
+            self::URL       => Http::response([['telefono' => '9231311146']]),
+        ]);
+
+        $this->artisan('contactos:probar-api')
+             ->doesntExpectOutputToContain('jwt-secreto-completo-que-no-debe-salir')
+             ->assertSuccessful();
     }
 }

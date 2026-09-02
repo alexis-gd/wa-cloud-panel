@@ -326,6 +326,12 @@ export const api = {
 
     claimConversation: (contactId) => request(`/conversations/${contactId}/claim`, { method: 'POST' }),
 
+    /** Deja la conversación sin agente. No borra historial: agrega un movimiento. */
+    releaseConversation: (contactId) => request(`/conversations/${contactId}/release`, { method: 'POST' }),
+
+    /** Historial de movimientos: fecha, quién la movió y qué movimiento fue. */
+    conversationHistory: (contactId) => request(`/conversations/${contactId}/history`),
+
     // ── Dashboard messages ────────────────────────────────────────────────────
     dashboardMessages: (params = {}) => {
         const qs = new URLSearchParams(params).toString();

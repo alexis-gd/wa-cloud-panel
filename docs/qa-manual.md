@@ -83,6 +83,19 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 
 ---
 
+### Reasignación e historial (P2)
+
+- [ ] **Reasignar**: pasar una conversación de un agente a otro → el agente viejo deja de verla, el nuevo la ve
+- [ ] **Mismo agente**: reasignar al que ya la tiene → lo rechaza con aviso, no agrega movimiento
+- [ ] **Dejar sin asignar**: la conversación queda "Sin asignar" y el historial conserva los movimientos previos
+- [ ] **Historial - contenido**: el modal muestra movimiento, agente, fecha en hora de México y quién lo hizo
+- [ ] **Historial - sistema**: un reparto automático aparece como "Asignación automática" y "por el sistema", sin nombre de usuario
+- [ ] **Historial - baja**: dar de baja a un contacto con agente → queda sin asignar y el historial NO se borra
+- [ ] **Historial - permisos**: el agente no ve los botones de reasignar/soltar/historial (y la API le responde 403)
+- [ ] **Reparto automático**: una conversación suelta no le cuenta como carga a ningún agente al repartir la siguiente
+
+---
+
 ## Configuración
 
 - [ ] **Cambiar modo asignación**: cambiar a `first_available` → guardar → llega mensaje nuevo → va al primer agente

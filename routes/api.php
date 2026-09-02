@@ -120,6 +120,10 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         // que es solo admin, y al operador le salía vacío.
         Route::get('/conversations/assignable-users',     [ConversationController::class, 'assignableUsers']);
         Route::post('/conversations/{contactId}/assign', [ConversationController::class, 'assign'])->whereNumber('contactId');
+        // Dejarla sin asignar (cambio de turno sin relevo inmediato). No borra historial.
+        Route::post('/conversations/{contactId}/release', [ConversationController::class, 'release'])->whereNumber('contactId');
+        // Historial de movimientos: fecha, quien la movio y que movimiento fue.
+        Route::get('/conversations/{contactId}/history', [ConversationController::class, 'history'])->whereNumber('contactId');
     });
 
     // Quick replies — solo admin puede crear/eliminar

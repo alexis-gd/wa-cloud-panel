@@ -11,6 +11,8 @@ use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\QuickReply;
 use App\Models\User;
+use App\Services\AssignmentService;
+use App\Services\StatusLabels;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +20,11 @@ use Illuminate\Support\Facades\Log;
 
 class ConversationController extends Controller
 {
+    // Inyección por constructor, no `app()` dentro del método (ver reglas de estilo).
+    public function __construct(private readonly AssignmentService $assignmentService)
+    {
+    }
+
     // GET /api/conversations — lista de contactos con conversaciones abiertas
     public function index(Request $request): JsonResponse
     {
@@ -100,10 +107,27 @@ class ConversationController extends Controller
 
         $user = User::find($request->user_id);
 
+        // Si ya tenía responsable es una REASIGNACIÓN (cambio de turno), no una asignación:
+        // el modal de historial las distingue, que es justo lo que se quiere medir.
+        $anterior = $contact->assignments()->latest('id')->first();
+        $venia    = $anterior?->user_id;
+
+        if ($venia === $user->id) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Esa conversación ya está asignada a ' . $user->name . '.',
+                'code'    => 'ALREADY_ASSIGNED',
+            ], 422);
+        }
+
         ConversationAssignment::create([
-            'contact_id'  => $contactId,
-            'user_id'     => $request->user_id,
-            'assigned_at' => now(),
+            'contact_id'     => $contactId,
+            'user_id'        => $user->id,
+            'assigned_by_id' => $request->user()->id,
+            'action'         => $venia
+                ? ConversationAssignment::ACTION_REASSIGN
+                : ConversationAssignment::ACTION_MANUAL,
+            'assigned_at'    => now(),
         ]);
 
         // Tiempo real: la fila de la lista y el panel derecho cambian solos para todos.
@@ -113,6 +137,47 @@ class ConversationController extends Controller
             'status' => 'ok',
             'data'   => ['assigned_to' => ['id' => $user->id, 'name' => $user->name]],
         ]);
+    }
+
+    // POST /api/conversations/{contactId}/release — dejarla sin asignar (admin/operator)
+    public function release(Request $request, int $contactId): JsonResponse
+    {
+        $contact = Contact::find($contactId);
+        if (! $contact) {
+            return response()->json(['status' => 'error', 'message' => 'Contacto no encontrado.'], 404);
+        }
+
+        // No borra historial: agrega una fila de liberación (ver AssignmentService::unassign).
+        $this->assignmentService->unassign($contactId, $request->user()->id);
+
+        event(new ConversationUpdated($contactId));
+
+        return response()->json(['status' => 'ok', 'data' => ['assigned_to' => null]]);
+    }
+
+    // GET /api/conversations/{contactId}/history — quién la ha tenido y quién la movió
+    public function history(int $contactId): JsonResponse
+    {
+        $contact = Contact::find($contactId);
+        if (! $contact) {
+            return response()->json(['status' => 'error', 'message' => 'Contacto no encontrado.'], 404);
+        }
+
+        $movimientos = ConversationAssignment::where('contact_id', $contactId)
+            ->with(['user:id,name', 'assignedBy:id,name'])
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (ConversationAssignment $a) => [
+                'id'           => $a->id,
+                'action'       => $a->action,
+                'action_label' => StatusLabels::assignmentAction($a->action),
+                'agent'        => $a->user?->name,
+                // NULL = lo hizo el sistema (reparto automático), no una persona.
+                'by'           => $a->assignedBy?->name,
+                'at'           => $a->assigned_at?->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
+            ]);
+
+        return response()->json(['status' => 'ok', 'data' => $movimientos]);
     }
 
     // POST /api/conversations/{contactId}/claim — el agente se autoasigna
@@ -127,9 +192,11 @@ class ConversationController extends Controller
         $authUser = $request->user();
 
         ConversationAssignment::create([
-            'contact_id'  => $contactId,
-            'user_id'     => $authUser->id,
-            'assigned_at' => now(),
+            'contact_id'     => $contactId,
+            'user_id'        => $authUser->id,
+            'assigned_by_id' => $authUser->id,   // se la tomó él mismo
+            'action'         => ConversationAssignment::ACTION_CLAIM,
+            'assigned_at'    => now(),
         ]);
 
         // Tiempo real: la fila de la lista y el panel derecho cambian solos para todos.

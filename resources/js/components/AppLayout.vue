@@ -77,7 +77,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.34.0</span>
+                <span class="version">v0.35.0</span>
             </div>
         </aside>
 
@@ -346,6 +346,8 @@ const helpContent = {
     '/conversations': {
         title: 'Conversaciones',
         items: [
+            { icon: 'pi-history', label: 'Historial', text: 'En Asignacion, el boton Ver historial abre todos los movimientos de esa conversacion: que movimiento fue, a que agente quedo, cuando y quien lo hizo (o el sistema, si fue reparto automatico). No se borra nunca, ni al soltarla.' },
+            { icon: 'pi-user-minus', label: 'Cambio de turno', text: 'Reasignar se la pasa a otro agente; Dejar sin asignar la suelta para que la tome quien entre. Las dos quedan registradas en el historial.' },
             { icon: 'pi-circle-fill',   label: 'Estado',      text: 'El punto de color y el chip dicen en qué anda la conversación: Abierta (verde, ventana 24h abierta, se puede responder libre), Cerrada (gris, 24h vencidas, solo plantilla reabre), Pospuesto (ámbar, pidió "no por ahora"), Baja (rojo, dado de baja).' },
             { icon: 'pi-clock',         label: 'Pospuesto',   text: 'Pospuesto NO bloquea el chat: el contacto tocó "No por ahora", el sistema no lo mete en campañas de WhatsApp hasta la fecha (arriba y en Info del contacto). El SMS NO se ve afectado (es por canal). Y tú SÍ le puedes seguir escribiendo aquí a mano.' },
             { icon: 'pi-user',          label: 'Asignación',  text: 'Aparte del estado: "Sin asignar" (ámbar) = nadie la atiende; "Tú" (verde) con barra verde a la izquierda = es tuya; iniciales = la atiende otro agente.' },

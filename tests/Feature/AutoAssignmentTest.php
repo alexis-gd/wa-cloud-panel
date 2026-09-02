@@ -138,7 +138,35 @@ class AutoAssignmentTest extends TestCase
         $this->postWebhook($this->inboundPayload($contact->phone, 'DAR DE BAJA'))->assertStatus(200);
 
         $this->assertSame('opted_out', $contact->fresh()->status);
-        $this->assertSame(0, ConversationAssignment::where('contact_id', $contact->id)->count());
+
+        // Queda sin agente, que es lo que importa. Antes esto se comprobaba contando 0 filas
+        // porque soltar BORRABA el historial; ahora se agrega una fila de liberación para no
+        // perder el rastro de quién la tuvo (ver AssignmentService::unassign).
+        $this->assertNull($contact->fresh()->currentAssignment()?->user_id);
+        $this->assertSame(2, ConversationAssignment::where('contact_id', $contact->id)->count());
+        $this->assertDatabaseHas('conversation_assignments', [
+            'contact_id' => $contact->id,
+            'user_id'    => null,
+            'action'     => ConversationAssignment::ACTION_RELEASE,
+        ]);
+    }
+
+    public function test_soltar_dos_veces_no_apila_liberaciones(): void
+    {
+        $agent   = User::factory()->create(['role' => 'agent', 'is_active' => true]);
+        $contact = $this->createContact();
+
+        ConversationAssignment::create([
+            'contact_id'  => $contact->id,
+            'user_id'     => $agent->id,
+            'assigned_at' => now(),
+        ]);
+
+        $service = app(\App\Services\AssignmentService::class);
+        $service->unassign($contact->id);
+        $service->unassign($contact->id);
+
+        $this->assertSame(2, ConversationAssignment::where('contact_id', $contact->id)->count());
     }
 
     // ── Modo least_chats ──────────────────────────────────────────────────────

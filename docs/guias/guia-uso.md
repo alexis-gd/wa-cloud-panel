@@ -529,6 +529,31 @@ un agente solo. El modo lo elige el administrador en **Configuración → Multi-
 
 ---
 
+### Cambios de turno: reasignar y ver el historial
+
+En el panel derecho de una conversación, la sección **Asignación** tiene tres acciones (solo
+para operador y administrador):
+
+- **Reasignar**: elige a otro agente y pásasela. Sirve para el cambio de turno.
+- **Dejar sin asignar**: la suelta para que la tome quien entre. No se pierde nada.
+- **Ver historial**: abre el detalle de todos los movimientos de esa conversación.
+
+El historial muestra, del movimiento más reciente al más viejo:
+
+| | |
+|---|---|
+| **Qué movimiento** | Asignación automática · Asignada · Tomada por el agente · Reasignada · Sin asignar |
+| **A quién** | El agente que quedó a cargo. |
+| **Cuándo** | Fecha y hora. |
+| **Quién lo hizo** | El usuario que movió la conversación, o *el sistema* cuando fue el reparto automático. |
+
+> 📌 **El historial nunca se borra.** Aunque la conversación se suelte o cambie de agente diez
+> veces, quedan los diez movimientos. Es lo que permite revisar el seguimiento que se le dio a
+> un cliente.
+
+Si intentas reasignar al mismo agente que ya la tiene, el sistema lo rechaza: así el historial
+no se llena de movimientos que no movieron nada.
+
 ## 10. Respuestas SMS
 
 Los SMS que te responden aparecen en **Respuestas SMS** (en el menú).

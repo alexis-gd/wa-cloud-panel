@@ -43,6 +43,8 @@ class ContactSyncService
             'invalid'     => 0,
             'duplicates'  => 0,
             'inserted'    => 0,
+            'excluded'    => 0,
+            'by_status'   => [],   // cuántos vienen de cada estado del sistema del cliente
             'samples'     => [],
             'dry_run'     => $dryRun,
         ];
@@ -81,13 +83,31 @@ class ContactSyncService
                 continue;
             }
 
+            // El estado en SU sistema (LIQUIDADO, BURÓ, BAJA...). Se cuenta siempre, aunque
+            // luego se excluya: el operador necesita saber qué trae el API para decidir.
+            $estado = $this->valorDe($fila, config('contact_sync.field_status'));
+            $estado = $estado === null ? null : trim((string) $estado);
+
+            if ($estado !== null && $estado !== '') {
+                $resumen['by_status'][$estado] = ($resumen['by_status'][$estado] ?? 0) + 1;
+            }
+
+            if (! $this->estadoAceptado($estado)) {
+                $resumen['excluded']++;
+                continue;
+            }
+
             // El mismo teléfono dos veces en la respuesta es uno solo.
             if (! isset($parsed[$normal])) {
                 $nombre = $this->valorDe($fila, config('contact_sync.field_name'));
-                $parsed[$normal] = $nombre !== null ? trim((string) $nombre) : null;
+                $parsed[$normal] = [
+                    'name'   => $nombre !== null ? trim((string) $nombre) : null,
+                    'status' => $estado ?: null,
+                ];
             }
         }
 
+        ksort($resumen['by_status']);
         $resumen['valid'] = count($parsed);
 
         if ($parsed === []) {
@@ -110,7 +130,9 @@ class ContactSyncService
         $existentes = array_flip($existentes);
         $nuevos     = [];
 
-        foreach ($parsed as $telefono => $nombre) {
+        $estadoPorTelefono = [];
+
+        foreach ($parsed as $telefono => $datos) {
             if (isset($existentes[$telefono])) {
                 $resumen['duplicates']++;
                 continue;
@@ -118,12 +140,18 @@ class ContactSyncService
 
             $nuevos[] = [
                 'phone'      => $telefono,
-                'name'       => $nombre ?: null,
+                'name'       => $datos['name'] ?: null,
+                // `status` aquí es NUESTRO estado (activo / baja / inválido), que no tiene
+                // nada que ver con el `Estado` de su cartera. Todo lo que entra, entra activo.
                 'status'     => 'active',
                 'source'     => 'api',
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
+
+            if ($datos['status']) {
+                $estadoPorTelefono[$telefono] = $datos['status'];
+            }
         }
 
         if ($dryRun) {
@@ -138,8 +166,80 @@ class ContactSyncService
         }
 
         $this->etiquetar(array_column($nuevos, 'phone'));
+        $this->etiquetarPorEstado($estadoPorTelefono);
 
         return $resumen;
+    }
+
+    /**
+     * ¿Este estado del sistema del cliente pasa los filtros configurados?
+     * Sin filtros configurados pasa todo: no se descarta a nadie en silencio.
+     */
+    private function estadoAceptado(?string $estado): bool
+    {
+        $excluir = $this->lista(config('contact_sync.status_exclude'));
+        $incluir = $this->lista(config('contact_sync.status_include'));
+
+        $normalizado = $estado === null ? null : mb_strtoupper($estado);
+
+        // Excluir gana sobre incluir: es la regla más restrictiva y la que protege.
+        if ($normalizado !== null && in_array($normalizado, $excluir, true)) {
+            return false;
+        }
+
+        if ($incluir === []) {
+            return true;
+        }
+
+        return $normalizado !== null && in_array($normalizado, $incluir, true);
+    }
+
+    /** @return string[] */
+    private function lista(?string $csv): array
+    {
+        if (empty($csv)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            fn (string $v) => mb_strtoupper(trim($v)),
+            explode(',', $csv)
+        )));
+    }
+
+    /**
+     * Etiqueta a cada contacto nuevo con su estado en el sistema del cliente (LIQUIDADO,
+     * BURÓ...). Así el operador puede mandar una campaña de renovación solo a los que ya
+     * pagaron, sin tener que cruzar listas a mano.
+     *
+     * @param  array<string, string>  $estadoPorTelefono
+     */
+    private function etiquetarPorEstado(array $estadoPorTelefono): void
+    {
+        if (! config('contact_sync.tag_from_status', true) || $estadoPorTelefono === []) {
+            return;
+        }
+
+        $mapa = TagResolver::resolve(array_values(array_unique($estadoPorTelefono)));
+
+        $ids = [];
+        foreach (array_chunk(array_keys($estadoPorTelefono), self::CHUNK) as $lote) {
+            $ids += Contact::whereIn('phone', $lote)->pluck('id', 'phone')->all();
+        }
+
+        $pares = [];
+        foreach ($estadoPorTelefono as $telefono => $estado) {
+            $tagId     = $mapa['ids'][TagResolver::slug($estado)] ?? null;
+            $contactId = $ids[$telefono] ?? null;
+
+            if ($tagId && $contactId) {
+                $pares[] = ['contact_id' => $contactId, 'tag_id' => $tagId];
+            }
+        }
+
+        foreach (array_chunk($pares, self::CHUNK) as $lote) {
+            DB::table('contact_tag')->insertOrIgnore($lote);
+        }
     }
 
     /**

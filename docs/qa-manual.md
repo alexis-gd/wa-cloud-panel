@@ -167,6 +167,10 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **No pisa**: un contacto que ya existe conserva su nombre del panel
 - [ ] **Respeta la baja**: un contacto `opted_out` que viene en el API NO se reactiva
 - [ ] **Etiqueta**: con `SYNC_TAG` puesto, los nuevos quedan con esa etiqueta
+- [ ] **Etiqueta por estado**: cada contacto nuevo queda con la etiqueta de su `Estado` (LIQUIDADO, BURÓ, BAJA)
+- [ ] **Su BAJA no es la nuestra**: un contacto con `Estado = BAJA` entra como **Activo** en el panel, solo etiquetado
+- [ ] **Desglose**: `--dry-run` muestra la tabla de cuántos hay de cada estado
+- [ ] **Excluir**: con `SYNC_STATUS_EXCLUDE=BURÓ`, esos no se dan de alta y salen en "Excluidos por su estado"
 - [ ] **API caído**: si no responde, el comando falla con mensaje claro y no deja nada a medias
 - [ ] **Scheduler**: `php artisan schedule:list` muestra `contactos:sincronizar` a las 04:00
 

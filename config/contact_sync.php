@@ -75,4 +75,30 @@ return [
     */
     'tag' => env('SYNC_TAG'),
 
+    /*
+    |---------------------------------------------------------------------------
+    | Estado del cliente en SU sistema
+    |---------------------------------------------------------------------------
+    |
+    | El API devuelve un campo `Estado` con valores como LIQUIDADO, BURO o BAJA. Es su
+    | clasificacion de cartera, NO nuestro opt-out: su "BAJA" significa que termino su
+    | relacion con ellos, no que la persona pidio dejar de recibir mensajes.
+    |
+    | Por eso NO se filtra por default: se dan de alta todos y se etiqueta a cada quien
+    | con su estado, para que el operador pueda segmentar campanas (por ejemplo, ofrecer
+    | renovacion solo a los LIQUIDADO). Si el cliente decide excluir alguno, se pone aqui
+    | sin tocar codigo.
+    */
+    'field_status' => env('SYNC_FIELD_STATUS', 'estado,status,situacion'),
+
+    // Solo dar de alta estos (lista por comas). Vacio = todos.
+    'status_include' => env('SYNC_STATUS_INCLUDE'),
+
+    // Nunca dar de alta estos (lista por comas). Gana sobre include.
+    'status_exclude' => env('SYNC_STATUS_EXCLUDE'),
+
+    // Etiquetar a cada contacto nuevo con su estado (LIQUIDADO, BURO...). Muy util para
+    // segmentar; se puede apagar con SYNC_TAG_FROM_STATUS=false.
+    'tag_from_status' => filter_var(env('SYNC_TAG_FROM_STATUS', true), FILTER_VALIDATE_BOOL),
+
 ];

@@ -325,6 +325,175 @@ class ContactSyncTest extends TestCase
         Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer abc123'));
     }
 
+    // ── Estado del cliente en SU sistema (LIQUIDADO / BURO / BAJA) ───────────
+
+    /** Respuesta con la forma REAL del API del cliente. */
+    private function respuestaReal(): array
+    {
+        return ['success' => true, 'data' => [
+            ['Celular' => '6692406890', 'Nombre' => 'PATRICIA MARIA RIVERA PAZ', 'Estado' => 'BAJA'],
+            ['Celular' => '6691655905', 'Nombre' => 'CARLOS OSUNA VEGA',         'Estado' => 'LIQUIDADO'],
+            ['Celular' => '6699931652', 'Nombre' => 'PERLA TERESA ORTIZ GOMEZ',  'Estado' => 'BURO'],
+        ]];
+    }
+
+    public function test_lee_la_respuesta_real_del_cliente(): void
+    {
+        // Forma exacta que devuelve su API: envoltura `data`, campos con mayuscula inicial.
+        config(['contact_sync.root' => 'data']);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $this->assertSame(3, Contact::count());
+        $this->assertDatabaseHas('contacts', [
+            'phone'  => '526692406890',
+            'name'   => 'PATRICIA MARIA RIVERA PAZ',
+            'source' => 'api',
+        ]);
+    }
+
+    public function test_etiqueta_a_cada_contacto_con_su_estado(): void
+    {
+        // Asi el operador puede mandar renovacion solo a los LIQUIDADO sin cruzar listas.
+        config(['contact_sync.root' => 'data']);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $liquidado = Contact::where('phone', '526691655905')->firstOrFail();
+
+        $this->assertSame(['LIQUIDADO'], $liquidado->tags->pluck('name')->all());
+        $this->assertEqualsCanonicalizing(['BAJA', 'BURO', 'LIQUIDADO'], Tag::pluck('name')->all());
+    }
+
+    public function test_la_baja_de_SU_sistema_no_es_nuestra_baja(): void
+    {
+        // Su "BAJA" significa que termino su relacion con ellos, NO que la persona pidio
+        // dejar de recibir mensajes. Entra como contacto activo, solo etiquetado.
+        config(['contact_sync.root' => 'data']);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $baja = Contact::where('phone', '526692406890')->firstOrFail();
+
+        $this->assertSame('active', $baja->status);
+        $this->assertSame(['BAJA'], $baja->tags->pluck('name')->all());
+    }
+
+    public function test_por_default_no_excluye_a_nadie(): void
+    {
+        // Descartar en silencio seria peor que dar de alta de mas: la decision es del cliente.
+        config(['contact_sync.root' => 'data']);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $this->assertSame(3, Contact::count());
+    }
+
+    public function test_se_pueden_excluir_estados(): void
+    {
+        config(['contact_sync.root' => 'data', 'contact_sync.status_exclude' => 'BURO,BAJA']);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $this->assertSame(1, Contact::count());
+        $this->assertDatabaseHas('contacts', ['phone' => '526691655905']);
+    }
+
+    public function test_se_puede_dar_de_alta_solo_ciertos_estados(): void
+    {
+        config(['contact_sync.root' => 'data', 'contact_sync.status_include' => 'LIQUIDADO']);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $this->assertSame(1, Contact::count());
+        $this->assertDatabaseHas('contacts', ['phone' => '526691655905']);
+    }
+
+    public function test_excluir_gana_sobre_incluir(): void
+    {
+        // La regla mas restrictiva manda: es la que protege.
+        config([
+            'contact_sync.root'           => 'data',
+            'contact_sync.status_include' => 'LIQUIDADO,BURO',
+            'contact_sync.status_exclude' => 'BURO',
+        ]);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $this->assertSame(1, Contact::count());
+        $this->assertDatabaseHas('contacts', ['phone' => '526691655905']);
+    }
+
+    public function test_el_filtro_de_estado_no_distingue_mayusculas(): void
+    {
+        config(['contact_sync.root' => 'data', 'contact_sync.status_exclude' => 'buro']);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $this->assertSame(2, Contact::count());
+    }
+
+    public function test_se_puede_apagar_el_etiquetado_por_estado(): void
+    {
+        config(['contact_sync.root' => 'data', 'contact_sync.tag_from_status' => false]);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $this->assertSame(0, Tag::count());
+    }
+
+    public function test_el_resumen_desglosa_por_estado(): void
+    {
+        config(['contact_sync.root' => 'data']);
+
+        $this->responde($this->respuestaReal());
+
+        // El desglose es lo que permite decidir con el cliente a quien si ofrecerle.
+        $this->artisan('contactos:sincronizar', ['--dry-run' => true])
+             ->expectsOutputToContain('LIQUIDADO')
+             ->expectsOutputToContain('BURO')
+             ->assertSuccessful();
+    }
+
+    public function test_una_respuesta_sin_campo_de_estado_sigue_funcionando(): void
+    {
+        $this->responde([['telefono' => '9231311146', 'nombre' => 'Juan']]);
+
+        $this->sync();
+
+        $this->assertSame(1, Contact::count());
+        $this->assertSame(0, Tag::count());
+    }
+
+    public function test_el_probador_lista_los_estados_que_trae_el_api(): void
+    {
+        config(['contact_sync.root' => 'data']);
+
+        $this->responde($this->respuestaReal());
+
+        $this->artisan('contactos:probar-api')
+             ->expectsOutputToContain('LIQUIDADO')
+             ->assertSuccessful();
+    }
+
     // ── Login con JWT (el modo real del API del cliente) ─────────────────────
 
     /** Deja la config en el modo `login`, como el API real del cliente. */

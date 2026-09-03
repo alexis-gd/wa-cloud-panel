@@ -43,9 +43,21 @@ class SyncExternalContacts extends Command
             ['Registros recibidos del API', $r['received']],
             ['Teléfonos válidos',           $r['valid']],
             ['Con formato inválido',        $r['invalid']],
+            ['Excluidos por su estado',     $r['excluded']],
             ['Ya existían en el panel',     $r['duplicates']],
             [$seco ? 'Se DARÍAN de alta' : 'Dados de alta', $r['inserted']],
         ]);
+
+        // El desglose por estado es lo que permite decidir a quién sí ofrecerle: un
+        // LIQUIDADO es prospecto de renovación, un BURÓ probablemente no.
+        if ($r['by_status']) {
+            $this->newLine();
+            $this->line('Desglose por estado en el sistema del cliente:');
+            $this->table(
+                ['Estado', 'Registros'],
+                collect($r['by_status'])->map(fn ($n, $e) => [$e, $n])->values()->all()
+            );
+        }
 
         // Las filas ilegibles casi siempre significan que el campo se llama distinto:
         // mostrarlas evita adivinar cuál es el nombre correcto para SYNC_FIELD_PHONE.

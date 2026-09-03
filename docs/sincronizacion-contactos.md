@@ -3,25 +3,28 @@
 Un cron diario consulta un API **del cliente** (no nuestro) y da de alta en el panel los
 contactos que todavía no existen. Solo agrega: nunca actualiza ni reactiva a nadie.
 
-> ⚠️ **Estado: montado, falta el último dato.** Ya sabemos el puerto (8001), el login
-> (`POST /login`, JWT) y el recurso (`GET /clients`). Falta correr `contactos:probar-api`
-> para ver cómo se llama el arreglo dentro de la respuesta y los campos de teléfono y
-> nombre. Todo eso se ajusta en el `.env`, sin tocar código.
+> ✅ **Estado: listo para conectar.** Ya se conoce el API completo (puerto, login, recurso y
+> campos). Solo falta poner las variables en el `.env` del VPS y decidir con el cliente qué
+> estados de cartera se dan de alta.
 
 ---
 
-## Cómo conectarlo cuando lleguen los datos
+## Cómo conectarlo
 
 ### 1. Llenar el `.env`
 
 ```env
-SYNC_API_URL=http://192.168.17.20:8001/clients
-SYNC_API_LOGIN_URL=http://192.168.17.20:8001/login
 SYNC_API_AUTH=login
+SYNC_API_LOGIN_URL=http://192.168.17.20:8001/login
+SYNC_API_URL=http://192.168.17.20:8001/clients
 SYNC_API_USER=sender
 SYNC_API_PASSWORD=...
-SYNC_API_ROOT=data          # ajustar con lo que diga contactos:probar-api
+SYNC_API_ROOT=data
+SYNC_FIELD_PHONE=Celular
+SYNC_FIELD_NAME=Nombre
 ```
+
+Esos son los valores **reales**, ya verificados contra su API.
 
 > 🔑 **El token dura 5 minutos.** El API entrega un JWT (`exp - iat = 300s`), así que **no**
 > se puede dejar un token fijo en el `.env`: caducaría mucho antes del siguiente cron. Por eso
@@ -29,44 +32,20 @@ SYNC_API_ROOT=data          # ajustar con lo que diga contactos:probar-api
 > en cada corrida. El campo del usuario se llama `usuario` (no `username`), lo cual es
 > configurable con `SYNC_API_LOGIN_USER_KEY`.
 
+Los nombres de campo admiten **varios separados por coma** y gana el primero que traiga
+dato: `SYNC_FIELD_PHONE=Celular,telefono,phone`. Así, si mañana cambian el nombre del campo,
+la sincronización sigue jalando. Tampoco distingue mayúsculas.
+
 ### 2. Probar la conexión
 
 ```bash
 php artisan contactos:probar-api
 ```
 
-No escribe nada. Dice si llega, si autentica y **qué campos trae** cada registro:
+No escribe nada. Prueba el login y la consulta **por separado**, para que si algo falla se
+sepa cuál de los dos fue, y muestra los campos y los estados que trae el API.
 
-```
-Encontré 1,204 registro(s).
-
-Primer registro tal como llega:
-{ "idCliente": 8891, "nombreCompleto": "Juan Pérez", "celular": "9231311146" }
-
-Campos disponibles: idCliente, nombreCompleto, celular
-```
-
-### 3. Ajustar el mapeo con esos nombres
-
-```env
-SYNC_FIELD_PHONE=celular
-SYNC_FIELD_NAME=nombreCompleto
-```
-
-Se pueden poner **varios separados por coma** y gana el primero que traiga dato:
-`SYNC_FIELD_PHONE=celular,telefono,phone`. Así un cambio de nombre del lado de ellos no
-rompe la sincronización. Tampoco distingue mayúsculas: `Telefono` y `telefono` son lo mismo.
-
-Si la lista viene anidada, hay que decir dónde:
-
-```env
-# { "result": { "items": [ {...} ] } }
-SYNC_API_ROOT=result.items
-```
-
-Vacío significa que la respuesta **es** el arreglo.
-
-### 4. Ver qué haría, sin escribir
+### 3. Ver qué haría, sin escribir
 
 ```bash
 php artisan contactos:sincronizar --dry-run
@@ -83,7 +62,7 @@ MODO SECO: no se va a escribir nada en la base de datos.
  Se DARÍAN de alta            48
 ```
 
-### 5. Correrlo de verdad
+### 4. Correrlo de verdad
 
 ```bash
 php artisan contactos:sincronizar
@@ -106,14 +85,58 @@ esté disponible para las campañas del día.
 | Teléfono ilegible | Lo cuenta como inválido, muestra la fila y **sigue** con los demás |
 | Mismo teléfono repetido | Entra una sola vez |
 
-### Etiquetar lo que entra por aquí
+### El campo `Estado`: su cartera, no nuestro opt-out
+
+El API trae un campo `Estado` con la clasificación de cartera del cliente. Valores vistos:
+
+| Estado | Qué significa (de su lado) |
+|---|---|
+| `LIQUIDADO` | Ya pagó su crédito. Es el mejor prospecto para renovación. |
+| `BURÓ` | Está reportado en buró de crédito. |
+| `BAJA` | Terminó su relación con ellos. |
+
+> 🛑 **Su `BAJA` NO es nuestra Baja.** En el panel, "Baja" significa que la persona pidió
+> dejar de recibir mensajes (opt-out, irreversible, legal). En su sistema significa que el
+> cliente ya no es cliente. Son cosas distintas: alguien en `BAJA` entra al panel como
+> **Activo** y sí puede recibir campañas.
+
+**Por default no se excluye a nadie.** Descartar en silencio sería peor que dar de alta de
+más: la decisión es del cliente. Lo que sí se hace es **etiquetar a cada contacto con su
+estado**, para poder segmentar:
+
+```env
+SYNC_TAG_FROM_STATUS=true     # default: etiqueta con LIQUIDADO, BURÓ, BAJA...
+```
+
+Así una campaña de renovación se manda solo a la etiqueta `LIQUIDADO`, sin cruzar listas a
+mano. Si el cliente decide excluir alguno:
+
+```env
+SYNC_STATUS_EXCLUDE=BURÓ                 # nunca dar de alta estos
+SYNC_STATUS_INCLUDE=LIQUIDADO            # o al revés: solo estos
+```
+
+`EXCLUDE` gana sobre `INCLUDE` (la regla más restrictiva manda) y no distingue mayúsculas.
+
+El desglose por estado sale en `--dry-run`, que es justo lo que hace falta para llevarle
+números al cliente antes de decidir:
+
+```
+Desglose por estado en el sistema del cliente:
+ Estado      Registros
+ BAJA        340
+ BURÓ        128
+ LIQUIDADO   1,436
+```
+
+### Etiquetar todo lo que entra por aquí
 
 ```env
 SYNC_TAG=Del sistema
 ```
 
-Con eso, cada contacto que da de alta el cron recibe esa etiqueta y se puede segmentar una
-campaña solo para ellos. Vacío = sin etiqueta.
+Etiqueta adicional para **todos** los que da de alta el cron, sin importar su estado.
+Vacío = sin etiqueta.
 
 ---
 
@@ -130,6 +153,7 @@ campaña solo para ellos. Vacío = sin etiqueta.
 | HTTP 404 | `SYNC_API_URL`: el servidor contesta pero esa ruta no existe |
 | "No encuentro una LISTA" | `SYNC_API_ROOT`: la respuesta llegó pero el arreglo está en otro lado |
 | Muchos "formato inválido" | `SYNC_FIELD_PHONE`: el teléfono viene en un campo con otro nombre |
+| Entraron menos de los esperados | `SYNC_STATUS_EXCLUDE` / `SYNC_STATUS_INCLUDE`: revisa el renglón "Excluidos por su estado" |
 
 El cron falla solo y no arrastra al resto del scheduler. Los errores quedan en
 `storage/logs/laravel.log`.
@@ -145,11 +169,22 @@ El cron falla solo y no arrastra al resto del scheduler. Los errores quedan en
 | Login | `POST /login` con `{"usuario": "...", "password": "..."}` → `{"success":true,"token":"<JWT>"}` |
 | Vida del token | **5 minutos** (`exp - iat = 300`) |
 | Recurso | `GET /clients` (respondía 401 sin token: la ruta existe) |
-| Envoltura | `{"success": ..., ...}` - probablemente `{"success":true,"data":[...]}` |
+| Envoltura | `{"success":true,"data":[ ... ]}` → `SYNC_API_ROOT=data` |
+| Campos | `Celular`, `Nombre`, `Estado` |
 | Rutas que NO existen | `/api`, `/api/v1`, `/clientes`, `/contactos`, `/swagger`, `/health` (todas 404) |
 
-Falta confirmar con `contactos:probar-api`: cómo se llama el arreglo dentro de la respuesta
-(`SYNC_API_ROOT`) y los nombres de los campos de teléfono y nombre.
+Respuesta real:
+
+```json
+{"success":true,"data":[
+  {"Celular":"6692406890","Nombre":"PATRICIA MARIA RIVERA PAZ","Estado":"BAJA"},
+  {"Celular":"6691655905","Nombre":"CARLOS OSUNA VEGA","Estado":"LIQUIDADO"},
+  {"Celular":"6699931652","Nombre":"PERLA TERESA ORTIZ GOMEZ","Estado":"BURÓ"}
+]}
+```
+
+Los teléfonos vienen a 10 dígitos sin lada de país; `Contact::normalizePhone()` les antepone
+el `52`, igual que en el importador de Excel y el alta manual.
 
 ---
 

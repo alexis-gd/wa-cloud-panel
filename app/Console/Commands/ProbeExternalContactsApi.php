@@ -118,12 +118,53 @@ class ProbeExternalContactsApi extends Command
             $this->newLine();
             $this->line('Campos disponibles: ' . implode(', ', array_keys($filas[0])));
             $this->line('Ajusta SYNC_FIELD_PHONE y SYNC_FIELD_NAME con los nombres de arriba.');
+
+            $this->mostrarEstados($filas);
         }
 
         $this->newLine();
         $this->info('Siguiente paso: php artisan contactos:sincronizar --dry-run');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Valores distintos del campo de estado, con su conteo. Es lo que hace falta para
+     * decidir con el cliente a quién sí darle de alta: su "BAJA" no es nuestro opt-out.
+     */
+    private function mostrarEstados(array $filas): void
+    {
+        $campos = array_map('trim', explode(',', (string) config('contact_sync.field_status')));
+        $conteo = [];
+
+        foreach ($filas as $fila) {
+            if (! is_array($fila)) {
+                continue;
+            }
+
+            $minus = array_change_key_case($fila, CASE_LOWER);
+
+            foreach ($campos as $campo) {
+                $valor = $minus[strtolower($campo)] ?? null;
+
+                if ($valor !== null && $valor !== '') {
+                    $conteo[trim((string) $valor)] = ($conteo[trim((string) $valor)] ?? 0) + 1;
+                    break;
+                }
+            }
+        }
+
+        if ($conteo === []) {
+            return;
+        }
+
+        ksort($conteo);
+
+        $this->newLine();
+        $this->line('Estados que trae el API (su clasificación de cartera, NO nuestro opt-out):');
+        $this->table(['Estado', 'Registros'], collect($conteo)->map(fn ($n, $e) => [$e, $n])->values()->all());
+        $this->line('Cada contacto nuevo se etiqueta con su estado, para poder segmentar campañas.');
+        $this->line('Para excluir alguno: SYNC_STATUS_EXCLUDE=BURÓ  (o SYNC_STATUS_INCLUDE=LIQUIDADO)');
     }
 
     private function recorte(mixed $valor, bool $completo): string

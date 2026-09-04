@@ -59,6 +59,17 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Pegado + filtros**: con lista pegada, aplicar estado/tag/entregabilidad → filtra dentro de la lista, no fuera
 - [ ] **Filtro entregabilidad por canal**: "Enfriamiento - WhatsApp" y "Enfriamiento - SMS" devuelven conjuntos distintos para un contacto que solo recibió SMS
 - [ ] **Precedencia del filtro**: un contacto que recibió hoy sale en "Enviado hoy", NO en "Enfriamiento" (la etiqueta de la fila debe coincidir con el filtro)
+- [ ] **Filtro Cartera**: el desplegable trae solo los estados que existen en la base; elegir uno filtra bien
+- [ ] **Cartera se suma**: Cartera = LIQUIDADO + Estado = Activos devuelve la intersección, no la suma
+- [ ] **Sin datos, sin filtro**: en una base sin estados de cartera, el desplegable no aparece
+- [ ] **Etiquetar todo lo filtrado**: filtrar por Cartera → el aviso dice el total real → confirmar → etiqueta a TODOS, no solo a la página visible
+- [ ] **Confirmación con número**: el diálogo dice cuántos contactos va a etiquetar antes de aceptar
+- [ ] **No pisa etiquetas**: un contacto con etiqueta previa la conserva y suma la nueva
+- [ ] **Repetir no duplica**: etiquetar dos veces el mismo filtro → la segunda dice 0 etiquetados
+- [ ] **Filtro por etiqueta + etiquetar**: filtrar por la etiqueta VIP y etiquetar con otra → solo toca a los VIP (no confundir el filtro con la etiqueta que se pone)
+- [ ] **Sin filtro no aparece**: con la lista sin filtrar, el aviso de "etiquetar todo lo filtrado" NO se muestra
+- [ ] **Con selección tampoco**: al marcar casillas aparece la barra azul y se esconde la de filtro (son dos acciones distintas)
+- [ ] **Hover del botón**: el tooltip explica que etiqueta todo el filtro y que no quita etiquetas
 - [ ] **Selector Mostrar**: cambiar a 250/500 → la tabla trae esa cantidad y vuelve a la página 1
 - [ ] **Mostrar = Todos**: con más de 5,000 resultados → muestra 5,000 y el aviso "Mostrando 5,000 de N"
 - [ ] **Selector en otras pantallas**: Campañas, Respuestas SMS y Últimos mensajes del Panel tienen el mismo selector y responden igual
@@ -167,10 +178,16 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **No pisa**: un contacto que ya existe conserva su nombre del panel
 - [ ] **Respeta la baja**: un contacto `opted_out` que viene en el API NO se reactiva
 - [ ] **Etiqueta**: con `SYNC_TAG` puesto, los nuevos quedan con esa etiqueta
-- [ ] **Etiqueta por estado**: cada contacto nuevo queda con la etiqueta de su `Estado` (LIQUIDADO, BURÓ, BAJA)
-- [ ] **Su BAJA no es la nuestra**: un contacto con `Estado = BAJA` entra como **Activo** en el panel, solo etiquetado
+- [ ] **Estado de cartera**: cada contacto nuevo queda con su `Estado` en la columna **Cartera** (LIQUIDADO, BURÓ, BAJA)
+- [ ] **No crea etiquetas**: tras sincronizar, la pantalla Etiquetas NO tiene etiquetas nuevas con nombre de estado
+- [ ] **Su BAJA no es la nuestra**: un contacto con `Estado = BAJA` entra como **Activo**, solo con Cartera = BAJA
+- [ ] **Refresca a los que ya existen**: cambiar a mano la Cartera de un contacto, volver a sincronizar → vuelve al valor del API, y el resumen lo cuenta en "Estado actualizado"
+- [ ] **El refresco no toca nada más**: ese contacto conserva su nombre del panel y su Baja si la tenía
+- [ ] **Se puede congelar**: con `SYNC_REFRESH_STATUS=false` el estado NO se actualiza
+- [ ] **Modo seco no refresca**: `--dry-run` reporta "Cambiarían de estado" pero la columna no cambia
 - [ ] **Desglose**: `--dry-run` muestra la tabla de cuántos hay de cada estado
 - [ ] **Excluir**: con `SYNC_STATUS_EXCLUDE=BURÓ`, esos no se dan de alta y salen en "Excluidos por su estado"
+- [ ] **Excluido que ya existe**: con `SYNC_STATUS_EXCLUDE=BURÓ`, a un contacto que YA está y pasa a BURÓ **sí** se le actualiza la Cartera (excluir impide el alta, no el reflejo)
 - [ ] **API caído**: si no responde, el comando falla con mensaje claro y no deja nada a medias
 - [ ] **Scheduler**: `php artisan schedule:list` muestra `contactos:sincronizar` a las 04:00
 

@@ -311,6 +311,34 @@ disponible en uno y en pausa en el otro:
 **Chip rojo "Baja SMS"**: aparece cuando el contacto no recibe SMS (pidió baja por SMS o el
 número no recibe texto). Es aparte del estado: puede recibir WhatsApp pero no SMS.
 
+**Cartera**: cómo está esa persona en el sistema del cliente (por ejemplo **LIQUIDADO**, **BURÓ**
+o **BAJA**). No lo escribe nadie a mano: el panel lo trae solo cada noche del sistema del cliente,
+así que siempre dice cómo está **hoy**.
+
+> ⚠️ **La "BAJA" de Cartera NO es nuestra Baja.** En el sistema del cliente, "BAJA" significa que
+> esa persona dejó de ser su cliente. **Sí se le puede mandar publicidad.** Nuestra Baja - la que
+> significa "pidió no recibir más" - vive en la columna **Estado**, y ésa nunca se toca.
+
+### Mandarle una campaña a un grupo de la cartera
+
+El caso típico: mandarle una promoción de renovación solo a los que ya liquidaron su crédito.
+
+1. En **Contactos**, en el desplegable **Cartera: todos**, elige `LIQUIDADO`.
+2. La lista se filtra. Abajo del buscador aparece un aviso:
+   *"¿Quieres etiquetar los N contactos del filtro, no solo los de esta página?"*
+3. Elige una etiqueta (o créala antes, por ejemplo `Renovación septiembre`) y da clic en
+   **Etiquetar todo lo filtrado**.
+4. El panel te dice **a cuántos** les va a poner la etiqueta y te pide confirmar.
+5. Ve a **Campañas**, crea la campaña y elige esa etiqueta como segmento.
+
+**Por qué son dos pasos y no uno:** la Cartera cambia sola cada noche. Si alguien liquida mañana,
+deja de ser BURÓ. La etiqueta, en cambio, se queda fija: es tu registro de **a quién le mandaste**
+esa campaña, aunque después cambie su situación.
+
+> El botón etiqueta **todos los contactos del filtro**, no solo los de la página que estás viendo.
+> Si quieres etiquetar unos pocos, marca sus casillas y usa **Asignar tag** (la barra azul).
+> Ninguno de los dos quita las etiquetas que el contacto ya tuviera.
+
 **Botones de la fila de un contacto:**
 - 🏷️ **Etiqueta** - le pones o quitas tags (ver [Etiquetas](#7-etiquetas-tags)).
 - **Dar de baja** (rojo) - lo marca como baja (ver abajo).

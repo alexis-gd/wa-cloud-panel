@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\Setting;
+use App\Services\Contacts\ContactFilters;
 use App\Services\Contacts\ContactImporter;
 use App\Services\Contacts\DeliverabilityBadges;
-use App\Services\Contacts\DeliverabilityFilter;
 use App\Services\Contacts\PhoneListParser;
 use App\Support\PageSize;
 use Illuminate\Http\JsonResponse;
@@ -38,13 +38,9 @@ class ContactController extends Controller
      */
     public function search(Request $request): JsonResponse
     {
-        $request->validate([
-            'phones_raw'     => 'nullable|string|max:200000',
-            'status'         => 'nullable|string',
-            'q'              => 'nullable|string|max:255',
-            'tag_id'         => 'nullable|integer',
-            'deliverability' => 'nullable',
-        ]);
+        $request->validate(array_merge(ContactFilters::RULES, [
+            'phones_raw' => 'nullable|string|max:200000',
+        ]));
 
         $paste = $request->filled('phones_raw')
             ? PhoneListParser::parse((string) $request->input('phones_raw'))
@@ -63,44 +59,10 @@ class ContactController extends Controller
     {
         $query = Contact::with('tags:id,name,slug')->orderByDesc('id');
 
-        // El pegado masivo manda sobre el buscador de texto: si el operador pegó una lista,
-        // lo que quiere ver es exactamente esa lista.
-        if ($paste !== null) {
-            // Lista vacía tras normalizar -> whereIn([]) devuelve 0 filas, que es lo correcto
-            // (pegó puros números inválidos); el resumen del pegado se lo explica.
-            $query->whereIn('phone', $paste['phones']);
-        } elseif ($request->filled('q')) {
-            $term = $request->input('q');
-            $query->where(function ($q) use ($term) {
-                $q->where('phone', 'like', "%{$term}%")
-                  ->orWhere('name',  'like', "%{$term}%");
-            });
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        if ($request->filled('tag_id')) {
-            $query->whereHas('tags', fn ($q) => $q->where('tags.id', (int) $request->input('tag_id')));
-        }
-
-        // Filtro "Solo bajas SMS": contactos que no reciben SMS (opt-out / bloqueado / inválido).
-        // Eje independiente del status de WhatsApp.
-        if ($request->boolean('sms_blocked')) {
-            $query->where(function ($q) {
-                $q->where('sms_opt_out', true)
-                  ->orWhere('sms_blocked', true)
-                  ->orWhere('sms_invalid', true);
-            });
-        }
-
-        // Filtro por entregabilidad, por canal (Enfriamiento WhatsApp != Enfriamiento SMS).
-        // Acumulativo: varios estados elegidos se suman (OR).
-        DeliverabilityFilter::apply(
-            $query,
-            DeliverabilityFilter::normalize($request->input('deliverability'))
-        );
+        // Los filtros viven en un servicio porque el etiquetado masivo por filtro tiene que
+        // aplicar EXACTAMENTE los mismos: si se separan, el operador etiquetaría un conjunto
+        // distinto del que tiene en pantalla.
+        ContactFilters::apply($query, $request, $paste);
 
         $contacts = $query->paginate(PageSize::from($request, 50));
 
@@ -158,6 +120,21 @@ class ContactController extends Controller
             'active'    => (int) ($counts['active']    ?? 0),
             'opted_out' => (int) ($counts['opted_out'] ?? 0),
             'invalid'   => (int) ($counts['invalid']   ?? 0),
+        ]);
+    }
+
+    /**
+     * Los estados de cartera que existen hoy en la base, para el desplegable del filtro.
+     * GET /api/contacts/portfolio-statuses
+     *
+     * Sale de los datos y no de una lista fija: el catálogo es del cliente y puede crecer
+     * sin avisarnos.
+     */
+    public function portfolioStatuses(): JsonResponse
+    {
+        return response()->json([
+            'status' => 'ok',
+            'data'   => ContactFilters::portfolioStatuses(),
         ]);
     }
 

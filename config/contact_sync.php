@@ -84,10 +84,10 @@ return [
     | clasificacion de cartera, NO nuestro opt-out: su "BAJA" significa que termino su
     | relacion con ellos, no que la persona pidio dejar de recibir mensajes.
     |
-    | Por eso NO se filtra por default: se dan de alta todos y se etiqueta a cada quien
-    | con su estado, para que el operador pueda segmentar campanas (por ejemplo, ofrecer
-    | renovacion solo a los LIQUIDADO). Si el cliente decide excluir alguno, se pone aqui
-    | sin tocar codigo.
+    | Por eso NO se filtra por default: se dan de alta todos y el estado se guarda en la
+    | columna `contacts.portfolio_status`, para que el operador pueda filtrar por el en
+    | Contactos (por ejemplo, ofrecer renovacion solo a los LIQUIDADO). Si el cliente
+    | decide excluir alguno, se pone aqui sin tocar codigo.
     */
     'field_status' => env('SYNC_FIELD_STATUS', 'estado,status,situacion'),
 
@@ -97,8 +97,9 @@ return [
     // Nunca dar de alta estos (lista por comas). Gana sobre include.
     'status_exclude' => env('SYNC_STATUS_EXCLUDE'),
 
-    // Etiquetar a cada contacto nuevo con su estado (LIQUIDADO, BURO...). Muy util para
-    // segmentar; se puede apagar con SYNC_TAG_FROM_STATUS=false.
-    'tag_from_status' => filter_var(env('SYNC_TAG_FROM_STATUS', true), FILTER_VALIDATE_BOOL),
+    // Refrescar el estado de cartera de los contactos que YA existen. Es lo UNICO que la
+    // sincronizacion actualiza de un contacto existente: el estado cambia con el tiempo y
+    // congelarlo haria que el filtro mintiera. Apagar con SYNC_REFRESH_STATUS=false.
+    'refresh_status' => filter_var(env('SYNC_REFRESH_STATUS', true), FILTER_VALIDATE_BOOL),
 
 ];

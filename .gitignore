@@ -24,3 +24,6 @@ CLAUDE.local.md
 # Scripts de prueba local (no van al repo)
 /qa-seed.php
 /qa-clean.php
+/qa-fake-api.php
+/qa-seed-c1.php
+/qa-clean-c1.php

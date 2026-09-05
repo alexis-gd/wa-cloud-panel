@@ -18,6 +18,9 @@ class Contact extends Model
         'name',
         'status',
         'source',
+        // Estado en la cartera del cliente (LIQUIDADO, BURO, BAJA...). Lo escribe la
+        // sincronizacion, no el operador. No confundir con `status`, que es nuestra baja.
+        'portfolio_status',
         'notes',
         'opted_out_at',
         'opted_out_source',

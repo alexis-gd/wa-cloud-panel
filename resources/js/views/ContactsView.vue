@@ -112,6 +112,17 @@
                     <Select v-model="filter" :options="filterOptions" option-label="label" option-value="value" placeholder="Todos los estados" @change="loadContacts(1)" />
                     <Select v-model="tagFilter" :options="tagFilterOptions" option-label="label" option-value="value" placeholder="Todos los tags" @change="loadContacts(1)" />
                     <Select v-model="smsFilter" :options="smsFilterOptions" option-label="label" option-value="value" placeholder="SMS: todos" @change="loadContacts(1)" />
+                    <Select
+                        v-if="portfolioOptions.length"
+                        v-model="portfolioFilter"
+                        :options="portfolioOptions"
+                        option-label="label"
+                        option-value="value"
+                        placeholder="Cartera: todos"
+                        show-clear
+                        v-tooltip.top="portfolioTooltip"
+                        @change="loadContacts(1)"
+                    />
                     <MultiSelect
                         v-model="deliverFilter"
                         :options="deliverFilterOptions"
@@ -200,6 +211,34 @@
                     <Button label="Limpiar" text size="small" severity="secondary" @click="selected = []" />
                 </div>
 
+                <!-- Etiquetar todo lo que cumple el filtro, no solo lo que esta en pantalla.
+                     Solo aparece si hay algun filtro puesto: sin filtro seria "toda la base",
+                     que casi nunca es lo que el operador quiere. -->
+                <div v-if="hasActiveFilter && !selected.length" class="filtered-tag-bar">
+                    <i class="pi pi-filter filtered-icon"></i>
+                    <span class="filtered-text">
+                        ¿Quieres etiquetar <strong>los {{ total }}</strong> contactos del filtro,
+                        no solo los de esta página?
+                    </span>
+                    <Select
+                        v-model="bulkTagId"
+                        :options="allTags"
+                        option-label="name"
+                        option-value="id"
+                        placeholder="Elegir tag..."
+                        style="min-width: 180px"
+                    />
+                    <Button
+                        label="Etiquetar todo lo filtrado"
+                        icon="pi pi-tags"
+                        size="small"
+                        :disabled="!bulkTagId || taggingFiltered"
+                        :loading="taggingFiltered"
+                        v-tooltip.top="filteredTagTooltip"
+                        @click="confirmTagFiltered"
+                    />
+                </div>
+
                 <div class="table-scroll mt-3">
                 <DataTable v-model:selection="selected" data-key="id" :value="contacts" :loading="loading" size="small" stripedRows>
                     <Column selection-mode="multiple" header-style="width: 3rem" />
@@ -258,6 +297,18 @@
                                 <span v-for="t in data.tags" :key="t.id" class="tag-chip">{{ t.name }}</span>
                                 <span v-if="!data.tags?.length" class="tag-empty">-</span>
                             </div>
+                        </template>
+                    </Column>
+                    <Column header="Cartera" style="min-width: 120px">
+                        <template #body="{ data }">
+                            <Tag
+                                v-if="data.portfolio_status"
+                                :value="data.portfolio_status"
+                                severity="secondary"
+                                v-tooltip.top="portfolioTooltip"
+                                style="cursor:help"
+                            />
+                            <span v-else class="tag-empty">-</span>
                         </template>
                     </Column>
                     <Column field="source" header="Fuente" />
@@ -498,6 +549,11 @@ const search       = ref('');
 const filter       = ref('');
 const tagFilter    = ref(null);
 const smsFilter    = ref('');
+// Estado en la cartera del cliente (LIQUIDADO, BURO...). Lo escribe la sincronizacion
+// diaria, no el operador: por eso es una columna y no una etiqueta.
+const portfolioFilter  = ref(null);
+const portfolioValues  = ref([]);
+const taggingFiltered  = ref(false);
 // Acumulativo: el operador puede marcar varios estados y se suman (OR en el backend).
 const deliverFilter = ref([]);
 
@@ -556,6 +612,31 @@ const smsFilterOptions = [
     { label: 'SMS: todos',     value: '' },
     { label: 'Solo bajas SMS', value: 'blocked' },
 ];
+
+// Estado de cartera: las opciones salen de los datos, no de una lista fija. El catálogo es
+// del cliente y puede crecer sin avisarnos; si su sistema manda uno nuevo, aparece solo.
+const portfolioOptions = computed(() =>
+    portfolioValues.value.map(v => ({ label: v, value: v }))
+);
+
+const portfolioTooltip = `Cómo está esa persona en el sistema del cliente (LIQUIDADO, BURÓ...).
+Lo actualiza solo, cada noche.
+OJO: su "BAJA" significa que dejó de ser su cliente, NO que pidió dejar de recibir mensajes.
+Nuestra Baja es la columna Estado.`;
+
+const filteredTagTooltip = `Le pone la etiqueta a TODOS los contactos que cumplen los filtros de arriba,
+no solo a los de esta página.
+Sirve para: filtrar por cartera, etiquetar a todos, y crear la campaña con esa etiqueta.
+No quita las etiquetas que ya tuvieran.
+Antes de hacerlo te pide confirmación con el total.`;
+
+/** ¿Hay algún filtro puesto? Sin filtro, "etiquetar todo" sería toda la base. */
+const hasActiveFilter = computed(() =>
+    Boolean(filter.value || search.value || tagFilter.value || portfolioFilter.value
+        || smsFilter.value || deliverFilter.value?.length || pasteRaw.value)
+);
+
+const total = computed(() => meta.value?.total ?? 0);
 
 // Entregabilidad POR CANAL: cada canal lleva su propio enfriamiento y "enviado hoy", así que
 // las opciones dicen de qué canal hablan. Mismas etiquetas que los tags de la tabla.
@@ -702,19 +783,31 @@ const optOutTooltip = (contact) => {
     return `Baja el: ${date}\nOrigen: ${source}`;
 };
 
-async function loadContacts(page = 1) {
-    loading.value = true;
-    const params = { page, per_page: perPage.value };
-    if (filter.value)        params.status         = filter.value;
-    if (search.value)        params.q              = search.value;
-    if (tagFilter.value)     params.tag_id         = tagFilter.value;
+/**
+ * Los filtros puestos ahora mismo, sin paginado. Se usan para listar Y para etiquetar en
+ * masa: si cada uno armara los suyos, el operador etiquetaría un conjunto distinto del que
+ * tiene enfrente.
+ */
+function currentFilters() {
+    const params = {};
+    if (filter.value)          params.status           = filter.value;
+    if (search.value)          params.q                = search.value;
+    if (tagFilter.value)       params.tag_id           = tagFilter.value;
+    if (portfolioFilter.value) params.portfolio_status = portfolioFilter.value;
     if (deliverFilter.value?.length) params.deliverability = deliverFilter.value.join(',');
     if (smsFilter.value === 'blocked') params.sms_blocked = 1;
+    if (pasteRaw.value)        params.phones_raw       = pasteRaw.value;
+    return params;
+}
+
+async function loadContacts(page = 1) {
+    loading.value = true;
+    const params = { ...currentFilters(), page, per_page: perPage.value };
 
     // Con lista pegada la petición va por POST: cientos de números no caben en la URL
     // (nginx corta con 414). Mismo filtro, mismo formato de respuesta.
     const data = pasteRaw.value
-        ? await api.contactsSearch({ ...params, phones_raw: pasteRaw.value })
+        ? await api.contactsSearch(params)
         : await api.contacts(params);
 
     contacts.value     = data.data ?? [];
@@ -988,7 +1081,14 @@ async function createBulkTag() {
         showBulkNewTag.value = false;
         bulkNewTagName.value = '';
     } else {
-        toast.add({ severity: 'error', summary: 'Error', detail: res.message ?? 'No se pudo crear el tag.', life: 4000 });
+        // El backend ya manda el motivo en español (nombre repetido, identificador ocupado).
+        // Nunca se muestra el texto crudo de la base de datos.
+        toast.add({
+            severity : 'error',
+            summary  : 'No se pudo crear la etiqueta',
+            detail   : res.message ?? res.errors?.name?.[0] ?? 'Intenta con otro nombre.',
+            life     : 6000,
+        });
     }
 }
 
@@ -1092,7 +1192,7 @@ function tagDeleteMessage(usage) {
         : `${usage.contacts} contacto(s) dejarán de tenerla. Los contactos NO se eliminan.`);
 
     if (usage.campaigns > 0) {
-        partes.push(`${usage.campaigns} campaña(s) ya enviadas quedarán sin la referencia de su segmento. Su historial de envíos no cambia.`);
+        partes.push(`${usage.campaigns} campaña(s) que ya se enviaron dejarán de mostrar esta etiqueta en sus destinatarios. Lo que ya se envió no cambia: sus mensajes y resultados siguen igual.`);
     }
 
     partes.push('Esta acción no se puede deshacer.');
@@ -1112,10 +1212,60 @@ watch(() => route.query.tag, () => {
     loadContacts(1);
 });
 
+async function loadPortfolioStatuses() {
+    const res = await api.portfolioStatuses();
+    portfolioValues.value = res.data ?? [];
+}
+
+/**
+ * Etiqueta todo lo que cumple el filtro. Pide el total primero y lo muestra: etiquetar
+ * decenas de miles de contactos de un clic no se deshace con un botón.
+ */
+async function confirmTagFiltered() {
+    const filters = currentFilters();
+    const tag     = allTags.value.find(t => t.id === bulkTagId.value);
+
+    const previa = await api.bulkTagPreview(filters);
+    const cuantos = previa.data?.total ?? 0;
+
+    if (!cuantos) {
+        toast.add({ severity: 'warn', summary: 'No hay contactos', detail: 'El filtro actual no devuelve ninguno.', life: 4000 });
+        return;
+    }
+
+    confirm.require({
+        header      : 'Etiquetar todo lo filtrado',
+        message     : `Se le va a poner la etiqueta "${tag?.name}" a ${cuantos.toLocaleString('es-MX')} contacto(s). `
+                    + 'No se quitan las etiquetas que ya tengan. ¿Continuar?',
+        icon        : 'pi pi-tags',
+        acceptLabel : 'Sí, etiquetar',
+        rejectLabel : 'Cancelar',
+        accept: async () => {
+            taggingFiltered.value = true;
+            const res = await api.bulkAttachTagFiltered(filters, bulkTagId.value);
+            taggingFiltered.value = false;
+
+            if (res.status === 'ok') {
+                toast.add({
+                    severity : 'success',
+                    summary  : 'Contactos etiquetados',
+                    detail   : `${(res.data.attached ?? 0).toLocaleString('es-MX')} con la etiqueta "${tag?.name}".`,
+                    life     : 5000,
+                });
+                loadContacts(meta.value?.current_page ?? 1);
+                loadTags();
+            } else {
+                toast.add({ severity: 'error', summary: 'No se pudo etiquetar', detail: res.message, life: 6000 });
+            }
+        },
+    });
+}
+
 onMounted(() => {
     aplicarTagDeLaUrl();
     loadContacts();
     loadTags();
+    loadPortfolioStatuses();
 });
 </script>
 
@@ -1183,6 +1333,22 @@ onMounted(() => {
     border-radius: 8px;
 }
 .bulk-count { font-size: .85rem; font-weight: 600; color: var(--p-primary-700); }
+
+/* Barra de "etiquetar todo lo filtrado". Tono distinto al de la selección para que no se
+   confundan: una actúa sobre lo marcado, la otra sobre TODO lo que cumple el filtro. */
+.filtered-tag-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding: 8px 14px;
+    background: var(--p-surface-100);
+    border: 1px dashed var(--p-surface-300);
+    border-radius: 8px;
+}
+.filtered-icon { color: var(--p-text-muted-color); }
+.filtered-text { font-size: .85rem; color: var(--p-text-color); }
 .mt-3          { margin-top: 12px; }
 .mb-4          { margin-bottom: 20px; }
 .date-cell     { color: var(--p-text-muted-color); font-size: .82rem; }
@@ -1260,6 +1426,7 @@ onMounted(() => {
     .filter-row-selects :deep(.p-select),
     .filter-row-selects :deep(.p-multiselect) { flex: 1 1 100%; }
     .bulk-bar   { flex-wrap: wrap; }
+    .filtered-tag-bar { flex-direction: column; align-items: stretch; }
     /* Botones de acción apilados y a todo el ancho (no pegados ni cortados). */
     .export-row               { flex-direction: column; align-items: stretch; }
     .export-row :deep(.p-button) { width: 100%; justify-content: center; }

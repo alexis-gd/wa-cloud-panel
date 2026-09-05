@@ -212,6 +212,9 @@ export const api = {
 
     contactStats: () => request('/contacts/stats'),
 
+    /** Estados de cartera que existen hoy (LIQUIDADO, BURO...), para el filtro. */
+    portfolioStatuses: () => request('/contacts/portfolio-statuses'),
+
     checkContact: (phone) => request(`/contacts/check?phone=${encodeURIComponent(phone)}`),
 
     createContact: (payload) => request('/contacts', {
@@ -274,6 +277,22 @@ export const api = {
     bulkDetachTag: (contactIds, tagId) => request('/contacts/tags/bulk-detach', {
         method : 'POST',
         body   : JSON.stringify({ contact_ids: contactIds, tag_id: tagId }),
+    }),
+
+    /** Cuantos contactos cumplen los filtros: para avisar antes de etiquetar en masa. */
+    bulkTagPreview: (filters = {}) => request('/contacts/tags/bulk-preview', {
+        method : 'POST',
+        body   : JSON.stringify(filters),
+    }),
+
+    /**
+     * Etiqueta TODO lo que cumple los filtros, no solo las filas cargadas en pantalla.
+     * Ojo con los dos campos: `tag_id` (dentro de filters) filtra por etiqueta ya puesta,
+     * `attach_tag_id` es la que se va a poner. No son lo mismo.
+     */
+    bulkAttachTagFiltered: (filters, attachTagId) => request('/contacts/tags/bulk-attach-filtered', {
+        method : 'POST',
+        body   : JSON.stringify({ ...filters, attach_tag_id: attachTagId }),
     }),
 
     // ── Campaigns ─────────────────────────────────────────────────────────────

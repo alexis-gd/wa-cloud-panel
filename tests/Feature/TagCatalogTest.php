@@ -202,4 +202,52 @@ class TagCatalogTest extends TestCase
         $this->actingAsAgent()->getJson('/api/tags')->assertStatus(403);
         $this->actingAsAgent()->putJson("/api/tags/{$tag->id}", ['name' => 'X'])->assertStatus(403);
     }
+
+    // -- Nombres distintos que chocan en el identificador ---------------------
+
+    public function test_rechaza_un_nombre_que_choca_en_el_identificador(): void
+    {
+        // Bug encontrado en QA: "QA Import Renombrada" y "qa import" tienen nombres
+        // distintos, asi que `unique:tags,name` los dejaba pasar, y el choque estallaba
+        // en MySQL con un "Integrity constraint violation 1062" en crudo, en pantalla.
+        Tag::create(['name' => 'QA Import Renombrada', 'slug' => 'qa-import']);
+
+        $res = $this->postJson('/api/tags', ['name' => 'qa import']);
+
+        $res->assertStatus(422);
+        $this->assertSame('DUPLICATE_SLUG', $res->json('code'));
+        $this->assertStringContainsString('QA Import Renombrada', $res->json('message'));
+        $this->assertSame(1, Tag::count());
+    }
+
+    public function test_el_choque_de_identificador_tambien_aplica_con_acentos_y_signos(): void
+    {
+        // "Mazatlan" y "¡Mazatlan!" acaban en el mismo identificador.
+        Tag::create(['name' => 'Mazatlan']);
+
+        $this->postJson('/api/tags', ['name' => '¡Mazatlan!'])
+             ->assertStatus(422)
+             ->assertJsonPath('code', 'DUPLICATE_SLUG');
+    }
+
+    public function test_un_nombre_libre_si_se_crea(): void
+    {
+        Tag::create(['name' => 'QA Import Renombrada', 'slug' => 'qa-import']);
+
+        $this->postJson('/api/tags', ['name' => 'Otra Etiqueta'])
+             ->assertStatus(201);
+
+        $this->assertSame(2, Tag::count());
+    }
+
+    public function test_el_nombre_repetido_avisa_en_espanol(): void
+    {
+        // El operador nunca debe leer el mensaje por default de Laravel, que va en ingles.
+        Tag::create(['name' => 'VIP']);
+
+        $res = $this->postJson('/api/tags', ['name' => 'VIP']);
+
+        $res->assertStatus(422);
+        $this->assertStringContainsString('Ya existe una etiqueta con ese nombre', $res->json('message'));
+    }
 }

@@ -12,7 +12,7 @@ use Tests\TestCase;
  * Borrado de etiquetas con conteo previo y bloqueo por campaña sin enviar.
  *
  * Lo que se protege: `campaigns.tag_id` es `nullOnDelete`. Si se borra una etiqueta que usa
- * una campaña todavía ejecutable, esa campaña se queda sin segmento y al ejecutarla apunta a
+ * una campaña todavía ejecutable, esa campaña se queda sin destinatarios y al ejecutarla apunta a
  * TODA la base (CampaignController::execute solo segmenta `if ($campaign->tag_id)`).
  */
 class TagDeletionTest extends TestCase
@@ -121,7 +121,7 @@ class TagDeletionTest extends TestCase
 
     public function test_si_borra_cuando_las_campanas_ya_corrieron(): void
     {
-        // Una campaña completada solo pierde la referencia del segmento; su historial de
+        // Una campaña completada solo deja de mostrar la etiqueta en sus destinatarios; su historial de
         // envíos no cambia y no se puede volver a ejecutar.
         $tag = $this->tagWithContacts('VIP', 4);
         $campaign = $this->campaign($tag, 'completed');

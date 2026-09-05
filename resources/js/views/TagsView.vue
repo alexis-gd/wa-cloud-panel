@@ -134,6 +134,7 @@
                 El identificador (<code>{{ editing.slug }}</code>) no cambia: es con el que el
                 Excel de importación reconoce esta etiqueta.
             </small>
+            <div v-if="formError" class="form-error">{{ formError }}</div>
         </div>
         <template #footer>
             <Button label="Cancelar" text @click="formDialog = false" />
@@ -172,6 +173,8 @@ const formDialog = ref(false);
 const formName   = ref('');
 const editing    = ref(null);   // null = alta, objeto = renombrar
 const saving     = ref(false);
+// El error de este formulario vive aqui y se pinta debajo del campo, no en un toast.
+const formError  = ref('');
 
 // La búsqueda y el paginado son del lado del navegador a propósito: las etiquetas son
 // decenas, y el endpoint devuelve la lista completa porque los selectores de Contactos y
@@ -208,10 +211,10 @@ function cambiarTamano(size) {
 watch(search, () => { page.value = 1; });
 
 const tableHelp =
-    'Las etiquetas sirven para segmentar: una campaña se puede mandar solo a los contactos de '
-    + 'una etiqueta. Contactos = cuántos la tienen ahora. Campañas = cuántas la usan como '
-    + 'segmento. Renombrar cambia solo el nombre visible; el identificador se queda fijo para '
-    + 'que el Excel de importación siga reconociendo la etiqueta.';
+    'Las etiquetas sirven para agrupar contactos: una campaña se le puede mandar solo a los de '
+    + 'una etiqueta. Contactos = cuántos la tienen ahora. Campañas = cuántas la tienen como '
+    + 'destinatarios. Renombrar cambia solo el nombre visible; el identificador se queda fijo '
+    + 'para que el Excel de importación siga reconociendo la etiqueta.';
 
 const slugHelp =
     'Identificador interno. Es con lo que el Excel de importación reconoce la etiqueta, por eso '
@@ -232,19 +235,37 @@ function verContactos(tag) {
 function openCreate() {
     editing.value    = null;
     formName.value   = '';
+    formError.value  = '';
     formDialog.value = true;
 }
 
 function openRename(tag) {
     editing.value    = tag;
     formName.value   = tag.name;
+    formError.value  = '';
     formDialog.value = true;
+}
+
+/**
+ * Traduce la respuesta del backend a algo que el operador pueda accionar. Nunca se muestra
+ * el texto crudo de la base de datos: un "Integrity constraint violation 1062" no le dice a
+ * nadie que le ponga otro nombre a la etiqueta.
+ */
+function mensajeDeError(res) {
+    if (res.code === 'DUPLICATE_SLUG') return res.message;
+
+    // Laravel devuelve los errores de validacion agrupados por campo.
+    const deValidacion = res.errors?.name?.[0];
+    if (deValidacion) return 'Ya existe una etiqueta con ese nombre. Ponle otro.';
+
+    return res.message ?? 'No se pudo guardar la etiqueta. Intenta con otro nombre.';
 }
 
 async function guardar() {
     const name = formName.value.trim();
     if (!name) return;
 
+    formError.value = '';
     saving.value = true;
     const res = editing.value
         ? await api.renameTag(editing.value.id, name)
@@ -252,12 +273,9 @@ async function guardar() {
     saving.value = false;
 
     if (res.status !== 'ok') {
-        toast.add({
-            severity : 'error',
-            summary  : editing.value ? 'No se pudo renombrar' : 'No se pudo crear',
-            detail   : res.message ?? 'Puede que ya exista una etiqueta con ese nombre.',
-            life     : 5000,
-        });
+        // El error se queda DENTRO del formulario, junto al campo que hay que corregir. En un
+        // toast el operador lo lee, se va, y se queda sin saber qué escribir distinto.
+        formError.value = mensajeDeError(res);
         return;
     }
 
@@ -324,8 +342,10 @@ function mensajeBorrado(usage) {
         ? 'Ningún contacto tiene esta etiqueta.'
         : `${usage.contacts} contacto(s) dejarán de tenerla. Los contactos NO se eliminan.`);
 
+    // "Segmento" es palabra nuestra, no del operador. Se dice con las palabras de la pantalla
+    // de Campañas, donde ese campo se llama "Destinatarios".
     if (usage.campaigns > 0) {
-        partes.push(`${usage.campaigns} campaña(s) ya enviadas quedarán sin la referencia de su segmento. Su historial de envíos no cambia.`);
+        partes.push(`${usage.campaigns} campaña(s) que ya se enviaron dejarán de mostrar esta etiqueta en sus destinatarios. Lo que ya se envió no cambia: sus mensajes y resultados siguen igual.`);
     }
 
     partes.push('Esta acción no se puede deshacer.');
@@ -378,6 +398,17 @@ onMounted(cargar);
 .edit-field       { display: flex; flex-direction: column; gap: 6px; }
 .edit-field label { font-size: .85rem; font-weight: 600; }
 .field-hint       { color: var(--p-text-muted-color); font-size: .78rem; }
+
+/* Mismo tratamiento que los errores de formulario de Usuarios y Campañas. */
+.form-error {
+    margin-top: 4px;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: .85rem;
+    line-height: 1.45;
+}
 
 @media (max-width: 640px) {
     .filter-row { flex-wrap: wrap; }

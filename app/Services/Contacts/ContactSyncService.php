@@ -44,6 +44,7 @@ class ContactSyncService
             'duplicates'  => 0,
             'inserted'    => 0,
             'excluded'    => 0,
+            'refreshed'   => 0,   // a cuántos ya existentes se les actualizó el estado de cartera
             'by_status'   => [],   // cuántos vienen de cada estado del sistema del cliente
             'samples'     => [],
             'dry_run'     => $dryRun,
@@ -92,23 +93,32 @@ class ContactSyncService
                 $resumen['by_status'][$estado] = ($resumen['by_status'][$estado] ?? 0) + 1;
             }
 
-            if (! $this->estadoAceptado($estado)) {
+            // El filtro de estados decide si se le DA DE ALTA, no si se le actualiza. Un
+            // excluido que YA existe igual necesita su estado al día: si el cliente excluye
+            // BURÓ y alguien cae en buró, saltárselo lo dejaría marcado LIQUIDADO para
+            // siempre - y entraría a la campaña de renovación. El API manda sobre el estado.
+            $aceptado = $this->estadoAceptado($estado);
+
+            if (! $aceptado) {
                 $resumen['excluded']++;
-                continue;
             }
 
             // El mismo teléfono dos veces en la respuesta es uno solo.
             if (! isset($parsed[$normal])) {
                 $nombre = $this->valorDe($fila, config('contact_sync.field_name'));
                 $parsed[$normal] = [
-                    'name'   => $nombre !== null ? trim((string) $nombre) : null,
-                    'status' => $estado ?: null,
+                    'name'     => $nombre !== null ? trim((string) $nombre) : null,
+                    'status'   => $estado ?: null,
+                    'eligible' => $aceptado,
                 ];
             }
         }
 
         ksort($resumen['by_status']);
-        $resumen['valid'] = count($parsed);
+
+        // "Válidos" son los que podrían darse de alta: los excluidos no cuentan aquí, aunque
+        // sigan viajando en $parsed para poder refrescarles el estado si ya existen.
+        $resumen['valid'] = count(array_filter($parsed, fn (array $d) => $d['eligible']));
 
         if ($parsed === []) {
             return $resumen;
@@ -130,11 +140,26 @@ class ContactSyncService
         $existentes = array_flip($existentes);
         $nuevos     = [];
 
-        $estadoPorTelefono = [];
+        // Teléfonos que YA existen, agrupados por su estado de cartera actual. Se refresca
+        // en bloque: una consulta por estado distinto, no una por contacto.
+        $refrescar = [];
 
         foreach ($parsed as $telefono => $datos) {
+            // Ya existe: no se da de alta, pero sí se le pone al día el estado de cartera.
+            // Aplica también a los excluidos: el filtro es una puerta de entrada, no una
+            // razón para dejar de reflejar lo que dice el API de alguien que ya está dentro.
             if (isset($existentes[$telefono])) {
                 $resumen['duplicates']++;
+
+                if ($datos['status']) {
+                    $refrescar[$datos['status']][] = $telefono;
+                }
+
+                continue;
+            }
+
+            // No existe y su estado está excluido: no entra. Es lo único que hace el filtro.
+            if (! $datos['eligible']) {
                 continue;
             }
 
@@ -145,18 +170,19 @@ class ContactSyncService
                 // nada que ver con el `Estado` de su cartera. Todo lo que entra, entra activo.
                 'status'     => 'active',
                 'source'     => 'api',
+                // El estado de cartera va como columna del contacto, no como etiqueta: es
+                // un dato del cliente que cambia con el tiempo, no una decisión del operador.
+                'portfolio_status' => $datos['status'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
-
-            if ($datos['status']) {
-                $estadoPorTelefono[$telefono] = $datos['status'];
-            }
         }
 
         if ($dryRun) {
-            // En seco se reporta lo que se insertaría, pero no se escribe nada.
-            $resumen['inserted'] = count($nuevos);
+            // En seco se reporta lo que se insertaría y a cuántos se les movería el estado,
+            // pero no se escribe nada.
+            $resumen['inserted']  = count($nuevos);
+            $resumen['refreshed'] = $this->contarPorRefrescar($refrescar);
             return $resumen;
         }
 
@@ -165,8 +191,9 @@ class ContactSyncService
             $resumen['inserted'] += count($lote);
         }
 
+        $resumen['refreshed'] = $this->refrescarEstado($refrescar);
+
         $this->etiquetar(array_column($nuevos, 'phone'));
-        $this->etiquetarPorEstado($estadoPorTelefono);
 
         return $resumen;
     }
@@ -208,38 +235,72 @@ class ContactSyncService
     }
 
     /**
-     * Etiqueta a cada contacto nuevo con su estado en el sistema del cliente (LIQUIDADO,
-     * BURÓ...). Así el operador puede mandar una campaña de renovación solo a los que ya
-     * pagaron, sin tener que cruzar listas a mano.
+     * Actualiza el estado de cartera de los contactos que YA existían.
      *
-     * @param  array<string, string>  $estadoPorTelefono
+     * Es la única cosa que esta sincronización actualiza de un contacto existente, y es a
+     * propósito: el estado cambia con el tiempo (quien hoy está en BURÓ mañana liquida) y
+     * un dato congelado haría que el filtro mintiera más cada mes. El nombre, la baja y
+     * cualquier otro campo siguen intocables: el panel manda sobre el API.
+     *
+     * Se puede apagar con `SYNC_REFRESH_STATUS=false` si el cliente prefiere congelar el
+     * estado con el que entró cada quien.
+     *
+     * @param  array<string, string[]>  $porEstado  Estado de cartera => teléfonos con ese estado.
+     * @return int  Cuántos contactos cambiaron de estado.
      */
-    private function etiquetarPorEstado(array $estadoPorTelefono): void
+    private function refrescarEstado(array $porEstado): int
     {
-        if (! config('contact_sync.tag_from_status', true) || $estadoPorTelefono === []) {
-            return;
+        if (! config('contact_sync.refresh_status', true) || $porEstado === []) {
+            return 0;
         }
 
-        $mapa = TagResolver::resolve(array_values(array_unique($estadoPorTelefono)));
+        $cambiados = 0;
 
-        $ids = [];
-        foreach (array_chunk(array_keys($estadoPorTelefono), self::CHUNK) as $lote) {
-            $ids += Contact::whereIn('phone', $lote)->pluck('id', 'phone')->all();
-        }
-
-        $pares = [];
-        foreach ($estadoPorTelefono as $telefono => $estado) {
-            $tagId     = $mapa['ids'][TagResolver::slug($estado)] ?? null;
-            $contactId = $ids[$telefono] ?? null;
-
-            if ($tagId && $contactId) {
-                $pares[] = ['contact_id' => $contactId, 'tag_id' => $tagId];
+        foreach ($porEstado as $estado => $telefonos) {
+            foreach (array_chunk($telefonos, self::CHUNK) as $lote) {
+                // `withTrashed`: un contacto borrado sigue ocupando el teléfono y su estado
+                // de cartera también vale, por si el operador lo reactiva.
+                // El `where` de desigualdad evita reescribir filas que ya estaban bien, así
+                // el contador dice "cuántos CAMBIARON", no "cuántos vinieron".
+                $cambiados += Contact::withTrashed()
+                    ->whereIn('phone', $lote)
+                    ->where(function ($q) use ($estado) {
+                        $q->where('portfolio_status', '!=', $estado)
+                          ->orWhereNull('portfolio_status');
+                    })
+                    ->update(['portfolio_status' => $estado]);
             }
         }
 
-        foreach (array_chunk($pares, self::CHUNK) as $lote) {
-            DB::table('contact_tag')->insertOrIgnore($lote);
+        return $cambiados;
+    }
+
+    /**
+     * Cuántos contactos existentes cambiarían de estado, sin escribir. Solo para `--dry-run`.
+     *
+     * @param  array<string, string[]>  $porEstado
+     */
+    private function contarPorRefrescar(array $porEstado): int
+    {
+        if (! config('contact_sync.refresh_status', true) || $porEstado === []) {
+            return 0;
         }
+
+        $total = 0;
+
+        foreach ($porEstado as $estado => $telefonos) {
+            foreach (array_chunk($telefonos, self::CHUNK) as $lote) {
+                $total += Contact::withTrashed()
+                    ->whereIn('phone', $lote)
+                    ->where(function ($q) use ($estado) {
+                        $q->where('portfolio_status', '!=', $estado)
+                          ->orWhereNull('portfolio_status');
+                    })
+                    ->count();
+            }
+        }
+
+        return $total;
     }
 
     /**

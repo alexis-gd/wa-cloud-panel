@@ -55,14 +55,22 @@ class TagDeletionGuard
         return $usage['blocking'] !== [];
     }
 
-    /** Mensaje para el operador cuando el borrado está bloqueado. */
+    /**
+     * Mensaje para el operador cuando el borrado está bloqueado.
+     *
+     * Escrito para alguien que no sabe qué es un "segmento": se dice "a quién le va a enviar",
+     * que es la palabra que usa la propia pantalla de Campañas ("Destinatarios"). Y la salida
+     * que ofrece es una que el panel SÍ permite: **borrar la campaña**. No existe pantalla
+     * para editar una campaña ya creada, así que decirle "cámbiale el segmento" lo mandaba a
+     * buscar un botón que no existe.
+     */
     public static function blockedMessage(array $usage): string
     {
         $names = collect($usage['blocking'])->pluck('name')->implode(', ');
         $count = count($usage['blocking']);
 
         return $count === 1
-            ? "No se puede borrar: la campaña \"{$names}\" todavía no se ha enviado y usa esta etiqueta. Si la borras, esa campaña dejaría de estar segmentada y se enviaría a TODOS los contactos. Cámbiale el segmento o cancélala primero."
-            : "No se puede borrar: {$count} campañas sin enviar usan esta etiqueta ({$names}). Si la borras, dejarían de estar segmentadas y se enviarían a TODOS los contactos. Cámbiales el segmento o cancélalas primero.";
+            ? "No se puede borrar. La campaña \"{$names}\" todavía no se ha enviado y tiene esta etiqueta como destinatarios. Si borras la etiqueta, esa campaña se quedaría sin lista de a quién enviar y le saldría a TODOS los contactos. Borra primero la campaña \"{$names}\" en la pantalla Campañas, o deja esta etiqueta como está."
+            : "No se puede borrar. Hay {$count} campañas sin enviar que tienen esta etiqueta como destinatarios ({$names}). Si borras la etiqueta, se quedarían sin lista de a quién enviar y les saldría a TODOS los contactos. Borra primero esas campañas en la pantalla Campañas, o deja esta etiqueta como está.";
     }
 }

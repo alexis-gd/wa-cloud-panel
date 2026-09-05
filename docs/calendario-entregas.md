@@ -303,13 +303,41 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
   y **anula** los filtros de estado, tag y lista pegada (hay test). Índice nuevo
   `idx_logs_to_channel_status_sent` sobre `message_log (to_number, channel, status, sent_at)`:
   ninguno de los previos incluía `channel`.
-- [x] **Etiqueta por estado de cartera en C1.** El API trae un campo `Estado` (`LIQUIDADO`,
-  `BURÓ`, `BAJA`) que no esperábamos. **Su `BAJA` NO es nuestra Baja**: la suya significa que
-  dejó de ser su cliente, la nuestra es opt-out irreversible por ley. Un contacto en `BAJA` entra
-  como **Activo**. No se excluye a nadie por default (descartar en silencio sería peor y la
-  decisión es del cliente); se **etiqueta a cada uno con su estado** para poder segmentar una
-  campaña de renovación solo a `LIQUIDADO`, y `--dry-run` da el desglose para llevarle números al
-  cliente. `SYNC_STATUS_EXCLUDE` / `SYNC_STATUS_INCLUDE` cuando decida.
+- [x] **Estado de cartera en C1: columna, no etiqueta.** El API trae un campo `Estado`
+  (`LIQUIDADO`, `BURÓ`, `BAJA`) que no esperábamos. **Su `BAJA` NO es nuestra Baja**: la suya
+  significa que dejó de ser su cliente, la nuestra es opt-out irreversible por ley. Un contacto
+  en `BAJA` entra como **Activo**. No se excluye a nadie por default (descartar en silencio sería
+  peor y la decisión es del cliente); `--dry-run` da el desglose para llevarle números al cliente.
+  `SYNC_STATUS_EXCLUDE` / `SYNC_STATUS_INCLUDE` cuando decida.
+  - **Primera versión: etiqueta por estado. Se descartó** (decisión de Alexis, 2026-09-03) por
+    tres razones. (1) **Se congelaba**: la sincronización solo etiquetaba a los contactos nuevos,
+    así que quien entró como `BURÓ` seguía marcado `BURÓ` aunque después liquidara - y
+    `LIQUIDADO` es justo el segmento que le importa al cliente. (2) Las etiquetas las crea,
+    renombra y borra el operador: un dato que escribe un proceso automático no puede vivir donde
+    alguien lo borra sin querer. (3) Si mañana su API agrega un campo `tag` propio, chocaría con
+    los estados en el mismo catálogo.
+  - **Ahora:** columna `contacts.portfolio_status` (índice propio), visible como **Cartera** en
+    Contactos, con filtro. **Se refresca en cada corrida** - es lo único que la sincronización
+    actualiza de un contacto existente; el nombre y la baja siguen intocables. Apagable con
+    `SYNC_REFRESH_STATUS=false` si el cliente prefiere congelarlo. El comando reporta
+    "Estado actualizado" / "Cambiarían de estado".
+  - **Las campañas NO segmentan por cartera** (queda fuera a propósito): siguen segmentando por
+    etiqueta. El puente es **"Etiquetar todo lo filtrado"**: el operador filtra por `LIQUIDADO`,
+    le pone `Renovación septiembre` a todos y crea la campaña con esa etiqueta. Así la columna
+    dice cómo está **hoy** y la etiqueta registra **a quién se le mandó**.
+- [x] **Etiquetado masivo sobre el filtro + rendimiento del existente.** `bulkAttach` hacía
+  `syncWithoutDetaching` **una consulta por contacto**: con 5,000 seleccionados eran 5,000
+  consultas y la petición moría por timeout. Ahora es un `insertOrIgnore` (y el detach un solo
+  `delete`). Nuevo `POST /contacts/tags/bulk-attach-filtered`, que recorre con `chunkById` todo
+  lo que cumple el filtro - las casillas solo alcanzan lo cargado en pantalla (tope 5,000), y con
+  40,000 `LIQUIDADO` el operador tendría que hacerlo en ocho tandas. `bulk-preview` devuelve el
+  total para confirmar antes. Los filtros salieron del controller a `App\Services\Contacts\ContactFilters`,
+  compartido por el listado y el etiquetado: si cada uno armara su query, el operador etiquetaría
+  un conjunto distinto del que tiene enfrente.
+  - **Bug que destapó la prueba:** `tag_id` significaba dos cosas en la misma petición - "filtra
+    los que YA tienen esta etiqueta" y "ponles esta etiqueta". El filtro ganaba y no etiquetaba a
+    nadie, **sin error**. Por eso la etiqueta a poner viaja en `attach_tag_id`. De paso queda
+    habilitado el caso útil: "a los que tienen VIP, ponles Renovación". Tiene test.
 
 ### Bugs reportados por el cliente operando (2026-09-03) - PENDIENTES
 

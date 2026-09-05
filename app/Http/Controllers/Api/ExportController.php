@@ -19,32 +19,42 @@ class ExportController extends Controller
      */
     public function contacts(): StreamedResponse
     {
-        $contacts = Contact::orderBy('id')->get([
-            'id', 'phone', 'name', 'status', 'source', 'snoozed_until', 'created_at',
-        ]);
-
         $spreadsheet = new Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Contactos');
 
-        $sheet->fromArray(['ID', 'Teléfono', 'Nombre', 'Estado', 'Fuente', 'Pospuesto hasta', 'Creado'], null, 'A1');
+        $sheet->fromArray(
+            ['ID', 'Teléfono', 'Nombre', 'Estado', 'Fuente', 'Etiquetas', 'Pospuesto hasta', 'Creado'],
+            null,
+            'A1'
+        );
 
         $row = 2;
-        foreach ($contacts as $c) {
-            $sheet->fromArray([
-                $c->id,
-                $c->phone,
-                $c->name,
-                StatusLabels::contactStatus($c->status),
-                StatusLabels::contactSource($c->source),
-                self::enHoraDeMexico($c->snoozed_until),
-                self::enHoraDeMexico($c->created_at),
-            ], null, "A{$row}");
-            $row++;
-        }
+
+        // `chunk()` y no `get()`: con 200,000 contactos y sus etiquetas cargadas, traerlos
+        // todos de una se come la memoria del proceso. Se recorre de 1,000 en 1,000.
+        // La columna Etiquetas sale separada por coma, el mismo formato que lee el importador,
+        // así que el archivo exportado se puede volver a subir para re-etiquetar.
+        Contact::with('tags:id,name')
+            ->orderBy('id')
+            ->chunk(1000, function ($contacts) use ($sheet, &$row) {
+                foreach ($contacts as $c) {
+                    $sheet->fromArray([
+                        $c->id,
+                        $c->phone,
+                        $c->name,
+                        StatusLabels::contactStatus($c->status),
+                        StatusLabels::contactSource($c->source),
+                        $c->tags->pluck('name')->implode(', '),
+                        self::enHoraDeMexico($c->snoozed_until),
+                        self::enHoraDeMexico($c->created_at),
+                    ], null, "A{$row}");
+                    $row++;
+                }
+            });
 
         // Autoajustar ancho de columnas
-        foreach (range('A', 'G') as $col) {
+        foreach (range('A', 'H') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

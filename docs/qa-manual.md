@@ -29,9 +29,29 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Upload happy path**: subir Excel con teléfonos válidos → reporte muestra aceptados/duplicados/formato inválido
 - [ ] **Duplicados**: subir el mismo teléfono dos veces → solo se guarda uno
 - [ ] **Formato inválido**: incluir teléfono de 7 dígitos o sin prefijo → rechazado, aparece en reporte como inválido
+- [ ] **Import con etiqueta**: CSV con columna `etiqueta` → crea la etiqueta y la asigna; el resumen dice cuántas asignó y creó
+- [ ] **Import etiqueta a existente**: subir números que YA están con una etiqueta nueva → 0 nuevos, se etiquetan igual, el resumen lo dice
+- [ ] **Import no pisa etiquetas**: un contacto con etiqueta previa recibe la nueva sin perder la vieja
+- [ ] **Import varias etiquetas**: celda `VIP, Mazatlán` → dos etiquetas al mismo contacto
+- [ ] **Import mayúsculas**: `VIP` y `vip` en el mismo archivo → una sola etiqueta, no dos
+- [ ] **Import reimportado**: subir el mismo archivo dos veces → no duplica relaciones, `tags_assigned = 0` la segunda vez
+- [ ] **Selector de tags refrescado**: tras importar etiquetas nuevas, aparecen en el filtro sin recargar la página
+- [ ] **Export con etiquetas**: descargar el Excel de contactos → trae columna `Etiquetas` separada por coma; volver a subir ese archivo re-etiqueta sin duplicar
 - [ ] **Opt-out manual**: eliminar contacto desde UI → se marca `opted_out`, NO se borra de BD
 - [ ] **Filtro por tag**: aplicar filtro `?tag_id=X` → solo aparecen contactos de ese tag
 - [ ] **Asignar/quitar tags**: asignar múltiples tags a un contacto → se guardan correctamente → quitarlos → se eliminan
+- [ ] **Pantalla Etiquetas**: aparece en el menú para admin y operator, NO para agente
+- [ ] **Catálogo - contadores**: los números de Contactos y Campañas coinciden con la realidad
+- [ ] **Catálogo - ver contactos**: clic en el número de contactos → lleva a Contactos filtrado por esa etiqueta, y la URL trae `?tag=ID`
+- [ ] **Catálogo - crear**: crear una etiqueta desde la pantalla → aparece en la lista y en el selector de Contactos
+- [ ] **Catálogo - renombrar**: renombrar una etiqueta → cambia el nombre pero el identificador NO; subir un Excel con el nombre VIEJO sigue apuntando a la misma etiqueta (no crea duplicada)
+- [ ] **Catálogo - nombre repetido**: renombrar a un nombre que ya existe → lo rechaza con aviso
+- [ ] **Catálogo - buscar y paginar**: el buscador filtra y el selector Mostrar funciona igual que en las demás tablas
+- [ ] **Borrar etiqueta - conteo previo**: borrar una etiqueta con contactos → la confirmación dice cuántos la perderán
+- [ ] **Borrar etiqueta - bloqueo**: crear campaña en borrador con esa etiqueta → el bote de basura avisa que no se puede y nombra la campaña; la etiqueta sigue existiendo
+- [ ] **Borrar etiqueta - campaña ya enviada**: con campaña `completed` → sí borra, y la campaña queda con segmento vacío sin perder su historial
+- [ ] **Borrar etiqueta - contactos intactos**: tras borrar, los contactos siguen existiendo y solo perdieron la etiqueta
+- [ ] **Borrar etiqueta - filtro activo**: con el filtro por esa etiqueta puesto, borrarla → el filtro se limpia y la lista se recarga
 - [ ] **Pegado masivo**: copiar una columna de ~500 números de Excel y pegarla en el buscador → filtra por esa lista, aparece el chip con encontrados / no dados de alta / inválidos
 - [ ] **Pegado con formato**: pegar números escritos `52 923 111 1111` (espacios dentro), uno por línea → los reconoce, `invalid = 0`
 - [ ] **Copiar faltantes**: con números que no existen, botón "Copiar faltantes" → deja la lista en el portapapeles
@@ -60,6 +80,35 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Respuestas rápidas**: clic en chip de respuesta rápida → carga texto → se envía → aparece en historial
 - [ ] **Filtro por rol agente**: agente solo ve sus conversaciones asignadas, no las de otros agentes
 - [ ] **Admin ve todo**: admin ve todas las conversaciones, incluyendo las sin asignar
+
+---
+
+### Reporte de agentes (P1)
+
+- [ ] **Visibilidad**: aparece en el menú para operador y admin; el agente NO lo ve (y la API le responde 403)
+- [ ] **Por defecto**: al entrar muestra el día de hoy sin tocar nada
+- [ ] **Recibidas**: asignar un chat hoy → sube en "Recibidas en el periodo"; con filtro de ayer, no aparece
+- [ ] **Abiertas ahora**: un chat asignado hace un mes cuenta en "Abiertas ahora" aunque el filtro sea de hoy
+- [ ] **Reasignada**: al pasar un chat de Ana a Beto, Ana conserva la "recibida" pero pierde la "abierta"
+- [ ] **Sin asignar**: soltar un chat → deja de contarle a su agente en "Abiertas ahora"
+- [ ] **Agentes en cero**: un agente sin conversaciones aparece con 0, no desaparece
+- [ ] **Filtro por agente**: deja una sola fila
+- [ ] **Excel**: descarga, abre bien y trae los mismos números que la pantalla
+- [ ] **PDF**: descarga, abre bien, con el periodo en el encabezado y los totales al pie
+- [ ] **Filtros en la descarga**: filtrar por agente y descargar → el archivo trae solo a ese agente
+
+---
+
+### Reasignación e historial (P2)
+
+- [ ] **Reasignar**: pasar una conversación de un agente a otro → el agente viejo deja de verla, el nuevo la ve
+- [ ] **Mismo agente**: reasignar al que ya la tiene → lo rechaza con aviso, no agrega movimiento
+- [ ] **Dejar sin asignar**: la conversación queda "Sin asignar" y el historial conserva los movimientos previos
+- [ ] **Historial - contenido**: el modal muestra movimiento, agente, fecha en hora de México y quién lo hizo
+- [ ] **Historial - sistema**: un reparto automático aparece como "Asignación automática" y "por el sistema", sin nombre de usuario
+- [ ] **Historial - baja**: dar de baja a un contacto con agente → queda sin asignar y el historial NO se borra
+- [ ] **Historial - permisos**: el agente no ve los botones de reasignar/soltar/historial (y la API le responde 403)
+- [ ] **Reparto automático**: una conversación suelta no le cuenta como carga a ningún agente al repartir la siguiente
 
 ---
 
@@ -102,6 +151,41 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **read**: contacto abre el mensaje → pasa a `read`
 - [ ] **failed**: error en envío → estado `failed` en log
 - [ ] **Firma webhook inválida**: petición sin `X-Hub-Signature-256` → responde 403, no procesa nada
+
+---
+
+## Sincronización de contactos desde el API del cliente (C1)
+
+> Requiere que el cliente abra el firewall y dé puerto y ruta. Sin eso solo se puede
+> verificar que los comandos existen y fallan con un mensaje claro.
+
+- [ ] **Diagnóstico**: `php artisan contactos:probar-api` muestra la config, y sin URL avisa que falta `SYNC_API_URL`
+- [ ] **Sin contraseña visible**: la salida del diagnóstico NUNCA imprime la contraseña
+- [ ] **Campos**: con el API conectado, el diagnóstico lista los campos que llegan
+- [ ] **Modo seco**: `contactos:sincronizar --dry-run` reporta cuántos daría de alta y NO escribe nada
+- [ ] **Alta**: `contactos:sincronizar` da de alta solo los nuevos, con `source = api`
+- [ ] **No pisa**: un contacto que ya existe conserva su nombre del panel
+- [ ] **Respeta la baja**: un contacto `opted_out` que viene en el API NO se reactiva
+- [ ] **Etiqueta**: con `SYNC_TAG` puesto, los nuevos quedan con esa etiqueta
+- [ ] **Etiqueta por estado**: cada contacto nuevo queda con la etiqueta de su `Estado` (LIQUIDADO, BURÓ, BAJA)
+- [ ] **Su BAJA no es la nuestra**: un contacto con `Estado = BAJA` entra como **Activo** en el panel, solo etiquetado
+- [ ] **Desglose**: `--dry-run` muestra la tabla de cuántos hay de cada estado
+- [ ] **Excluir**: con `SYNC_STATUS_EXCLUDE=BURÓ`, esos no se dan de alta y salen en "Excluidos por su estado"
+- [ ] **API caído**: si no responde, el comando falla con mensaje claro y no deja nada a medias
+- [ ] **Scheduler**: `php artisan schedule:list` muestra `contactos:sincronizar` a las 04:00
+
+---
+
+## API de contactados (S1)
+
+- [ ] **Sin llave**: `GET /api/contacted?date=...` sin `X-API-Key` → 401
+- [ ] **Un día**: devuelve nombre y número de los contactados ese día, una fila por contacto
+- [ ] **Corte del día**: un envío de las 23:30 CST sale en ese día, no en el siguiente
+- [ ] **Fallidos**: un mensaje `failed` o `discarded` NO aparece
+- [ ] **Dos canales**: cuenta WhatsApp y SMS
+- [ ] **Rango**: `from`/`to` incluye las dos fechas
+- [ ] **Errores**: sin fecha → `MISSING_DATE`; fecha y rango juntos → `AMBIGUOUS_RANGE`; `to` antes de `from` → `INVALID_RANGE`
+- [ ] **Paginado**: recorrer todas las páginas no repite ni pierde contactos
 
 ---
 

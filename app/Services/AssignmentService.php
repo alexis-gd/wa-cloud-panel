@@ -34,26 +34,45 @@ class AssignmentService
         }
 
         ConversationAssignment::create([
-            'contact_id'  => $contactId,
-            'user_id'     => $agent->id,
-            'assigned_at' => now(),
+            'contact_id'     => $contactId,
+            'user_id'        => $agent->id,
+            'assigned_by_id' => null,   // lo hizo el sistema, no una persona
+            'action'         => ConversationAssignment::ACTION_AUTO,
+            'assigned_at'    => now(),
         ]);
 
         Log::info("AutoAssign: contacto {$contactId} → agente {$agent->id} (modo: {$mode})");
     }
 
     /**
-     * Suelta la conversación: borra las asignaciones del contacto para que quede "Sin asignar".
-     * Se usa cuando el contacto se da de baja - no tiene caso mantener un agente en un chat al
-     * que ya nunca se le podrá escribir. (`user_id` no admite null, así que se borra el registro.)
+     * Suelta la conversación: queda "Sin asignar".
+     *
+     * Antes esto BORRABA las filas del contacto, y con ellas el historial. Ahora agrega una
+     * fila de liberación con `user_id = null`: como el responsable actual es siempre la fila
+     * más reciente, el contacto queda sin asignar igual, pero se conserva el rastro de quién
+     * lo tuvo y quién lo soltó. Se usa cuando el contacto se da de baja - no tiene caso dejar
+     * a un agente en un chat al que ya nunca se le podrá escribir.
      */
-    public function unassign(int $contactId): void
+    public function unassign(int $contactId, ?int $byUserId = null): void
     {
-        $deleted = ConversationAssignment::where('contact_id', $contactId)->delete();
+        $actual = ConversationAssignment::where('contact_id', $contactId)
+            ->orderByDesc('id')
+            ->first();
 
-        if ($deleted) {
-            Log::info("Unassign: contacto {$contactId} liberado ({$deleted} asignación/es borradas)");
+        // Ya estaba sin asignar: no se apila una liberación tras otra.
+        if (! $actual || $actual->user_id === null) {
+            return;
         }
+
+        ConversationAssignment::create([
+            'contact_id'     => $contactId,
+            'user_id'        => null,
+            'assigned_by_id' => $byUserId,
+            'action'         => ConversationAssignment::ACTION_RELEASE,
+            'assigned_at'    => now(),
+        ]);
+
+        Log::info("Unassign: contacto {$contactId} liberado (venía del usuario {$actual->user_id})");
     }
 
     /**
@@ -64,6 +83,8 @@ class AssignmentService
     {
         // Contar cuántas conversaciones tiene cada agente como asignado actual.
         // Un agente es el "actual" cuando su registro es el MAX id para ese contact_id.
+        // Solo cuentan las filas más recientes por contacto: una fila de liberación tiene
+        // `user_id` null y por lo tanto no le suma carga a nadie.
         $counts = ConversationAssignment::selectRaw('user_id, COUNT(*) as cnt')
             ->whereRaw('id = (SELECT MAX(id) FROM conversation_assignments ca2 WHERE ca2.contact_id = conversation_assignments.contact_id)')
             ->whereIn('user_id', $agents->pluck('id'))

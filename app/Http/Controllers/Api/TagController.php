@@ -5,15 +5,25 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\Tag;
+use App\Services\Tags\TagDeletionGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TagController extends Controller
 {
     // GET /api/tags
-    public function index(): JsonResponse
+    // Devuelve SIEMPRE la lista completa (no paginada): la consumen los selectores de
+    // etiquetas de Contactos y Campañas, que necesitan todas. El catálogo pagina del lado
+    // del navegador; las etiquetas son decenas, no cientos de miles.
+    public function index(Request $request): JsonResponse
     {
-        $tags = Tag::withCount('contacts')->orderBy('name')->get();
+        $tags = Tag::withCount(['contacts', 'campaigns'])
+            ->when($request->filled('q'), function ($q) use ($request) {
+                $term = $request->input('q');
+                $q->where('name', 'like', "%{$term}%");
+            })
+            ->orderBy('name')
+            ->get();
 
         return response()->json(['status' => 'ok', 'data' => $tags]);
     }
@@ -30,6 +40,51 @@ class TagController extends Controller
         return response()->json(['status' => 'ok', 'data' => $tag], 201);
     }
 
+    // PUT /api/tags/{id}
+    // Renombra la etiqueta. El SLUG NO se toca: es la llave estable con la que el importador
+    // reconoce una etiqueta existente (ver TagResolver). Si el slug cambiara, el mismo Excel
+    // dejaría de reconocerla y crearía una etiqueta duplicada.
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $tag = Tag::find($id);
+
+        if (! $tag) {
+            return response()->json(['status' => 'error', 'message' => 'Tag no encontrado.'], 404);
+        }
+
+        $data = $request->validate([
+            'name' => 'required|string|max:100|unique:tags,name,' . $tag->id,
+        ]);
+
+        $tag->update(['name' => $data['name']]);
+
+        return response()->json(['status' => 'ok', 'data' => $tag->fresh()]);
+    }
+
+    // GET /api/tags/{id}/usage
+    // Qué se lleva por delante borrar la etiqueta. El panel lo pide ANTES de confirmar,
+    // para que el operador vea el conteo real en vez de un "¿seguro?" a ciegas.
+    public function usage(int $id): JsonResponse
+    {
+        $tag = Tag::find($id);
+
+        if (! $tag) {
+            return response()->json(['status' => 'error', 'message' => 'Tag no encontrado.'], 404);
+        }
+
+        $usage = TagDeletionGuard::usage($tag);
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => array_merge($usage, [
+                'blocked' => TagDeletionGuard::isBlocked($usage),
+                'reason'  => TagDeletionGuard::isBlocked($usage)
+                    ? TagDeletionGuard::blockedMessage($usage)
+                    : null,
+            ]),
+        ]);
+    }
+
     // DELETE /api/tags/{id}
     public function destroy(int $id): JsonResponse
     {
@@ -39,9 +94,26 @@ class TagController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Tag no encontrado.'], 404);
         }
 
+        // El bloqueo se revalida aquí, no solo en el endpoint de usage: entre que el
+        // operador ve el conteo y confirma pueden pasar minutos, y alguien pudo crear
+        // una campaña con esta etiqueta mientras tanto.
+        $usage = TagDeletionGuard::usage($tag);
+
+        if (TagDeletionGuard::isBlocked($usage)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => TagDeletionGuard::blockedMessage($usage),
+                'code'    => 'TAG_IN_USE_BY_CAMPAIGN',
+                'data'    => $usage,
+            ], 422);
+        }
+
         $tag->delete();
 
-        return response()->json(['status' => 'ok']);
+        return response()->json([
+            'status' => 'ok',
+            'data'   => ['contacts_untagged' => $usage['contacts']],
+        ]);
     }
 
     // PUT /api/contacts/{id}/tags

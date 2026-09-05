@@ -217,3 +217,115 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
   - Motivo real del punto: en el corte del cliente (2026-08-09) dos pruebas dejaron dos números congelados 7 días sin que nada lo avisara.
 - [x] **`wa:sync-templates` debe limpiar las plantillas que ya no están en la WABA.** Hoy solo hace `updateOrCreate`, nunca borra ([`SyncWhatsAppTemplates`](../app/Console/Commands/SyncWhatsAppTemplates.php)). Al conectar la cuenta del cliente (2026-08-09) el panel siguió mostrando las plantillas de la WABA anterior y hubo que entrar por SSH a correr `WaTemplate::query()->delete()` - el cliente no puede hacer eso. Alcance: tras sincronizar, borrar (o marcar como obsoletas) las filas cuyo `name`+`language_code` no vino en la respuesta de Meta para el `WA_WABA_ID` actual. Es seguro: `campaigns.template_name` es string, no FK. Considerar avisar en la UI cuántas se quitaron.
 - [x] **Guía: cómo crear plantillas, con sección de plantillas con imagen.** `guia-meta.md` (sección 3) explica cómo crearlas en Meta pero **no** menciona que una plantilla con imagen necesita además subir el archivo en el panel. Documentar el flujo completo de punta a punta: crear en Meta → esperar aprobación → sincronizar → subir imagen en el panel → recién ahí usarla en campañas. Depende del punto anterior.
+
+
+---
+
+### Ampliación aprobada por el cliente (2026-09-01 → 2026-09-03) - rama `feature/tags-fase-1`
+
+> Cotización de 9 partidas aprobada el 2026-09-01. Aquí van las **7 que pidió arrancar**
+> (falta PL1, plantillas SMS con variables desde API). **745 tests verdes** (eran 565),
+> v0.31.0 → v0.37.0, 10 commits en una sola rama para un solo deploy.
+>
+> ⚠️ **Pendiente de validar en prod.** El código está y probado; nada se ha desplegado.
+
+**El deploy necesita tres cosas fuera de lo normal:**
+1. `composer install` - dependencia nueva (`barryvdh/laravel-dompdf`).
+2. `migrate` - autoría en `conversation_assignments`.
+3. Verificar el cron del scheduler (`schedule:run`), o `contactos:sincronizar` nunca corre.
+
+- [x] **C3 - Borrar etiqueta con confirmación y conteo previo.** `GET /api/tags/{id}/usage`
+  devuelve cuántos contactos y campañas la usan. **Bloqueo duro (422)** si una campaña en
+  `draft` o `paused` la usa: `campaigns.tag_id` es `nullOnDelete` y el despacho solo segmenta
+  `if ($campaign->tag_id)`, así que borrarla dejaba una campaña de 500 apuntando a TODA la
+  base. El `DELETE` revalida el bloqueo, no confía en el conteo previo. Antes borraba en seco,
+  sin preguntar nada. `App\Services\Tags\TagDeletionGuard`.
+- [x] **C2 - Columna de etiqueta en importación y exportación.** El importador cambia de
+  propósito: su trabajo principal pasa a ser **etiquetar**, no dar de alta (las altas vienen
+  de C1). Por eso una fila cuyo teléfono ya existe **recibe la etiqueta igual** en vez de
+  descartarse como duplicado (opción A, decisión del cliente). Encabezados `etiqueta` /
+  `etiquetas` / `tag` / `tags`, varias por celda separadas por coma, la llave es el **slug**
+  (`VIP` y `vip` son una). Nada fila por fila: etiquetas resueltas de una, teléfonos existentes
+  por lotes de 1,000, `insertOrIgnore` masivo. `upload()` salió del controller a
+  `App\Services\Contacts\ContactImporter`. El Excel de exportación gana columna
+  **Etiquetas** (mismo formato que lee el importador) y pasa de `get()` a `chunk(1000)`.
+- [x] **T1 - Catálogo de etiquetas en vista propia** (`/tags`). Nombre, identificador,
+  contactos (es botón: lleva a Contactos filtrado, `?tag=ID` en la URL), campañas que la usan,
+  creada. Resumen con etiquetas **sin usar** para limpiar. Renombrar necesitó `PUT /api/tags/{id}`,
+  que no existía; **el slug NO se regenera** al renombrar, porque es la llave con la que
+  `TagResolver` reconoce una etiqueta y cambiarla haría que un Excel viejo creara una duplicada.
+  Visible para **admin y operator** (no solo admin: el operador ya crea y borra etiquetas desde
+  Contactos y las rutas son `role:admin,operator`).
+- [x] **P2 - Reasignar conversaciones + historial con autoría.** `conversation_assignments`
+  pasa a ser un libro que solo crece: `assigned_by_id` (null = lo hizo el sistema), `action`
+  (`auto`/`manual`/`claim`/`reassign`/`release`) y `user_id` **nullable** para registrar la
+  liberación como una fila más. Antes soltar una conversación **BORRABA** las filas y con ellas
+  el historial, justo en el cambio de turno. Modal con todos los movimientos, `POST .../release`
+  y `GET .../history` (admin/operator). Reasignar al mismo agente se rechaza (422) para no
+  ensuciar el historial. **Lleva migración.**
+- [x] **S1 - API pública de contactados por fecha.** `GET /api/contacted?date=YYYY-MM-DD` o
+  `from`/`to`, con **`X-API-Key`** (`ApiKeyMiddleware`, que existía sin usarse) porque la consume
+  otro servidor, no el panel. Devuelve nombre y teléfono, **una fila por contacto**. "Contactado"
+  = el mensaje salió (`sent`/`delivered`/`read`), los dos canales - mismo criterio que el
+  enfriamiento, para que el número cuadre con lo que ve el operador. Las fechas viajan como
+  **texto** `Y-m-d` hasta el servicio: con objetos Carbon el día se corría (`createFromFormat`
+  conserva la hora actual y al pasar de UTC a CST una petición de las 02:00 caía en el día
+  anterior). Documentada para el cliente en [`docs/api-contactados.md`](api-contactados.md).
+- [x] **P1 - Reporte de conversaciones por agente** (`/reports/agents`), operador hacia arriba.
+  **Dos columnas** porque "cuántas conversaciones tiene un agente" son dos números distintos:
+  *Recibidas en el periodo* (responde al filtro de fecha) y *Abiertas ahora* (foto del momento,
+  ajena al filtro). Un agente puede haber recibido 12 hoy y tener 40 abiertas por arrastre. Con
+  una sola columna el reporte mentiría en la mitad de los casos. Filtros por rango y por agente,
+  descarga **Excel y PDF**. Los que están en cero también salen. Agrega `barryvdh/laravel-dompdf`
+  (PHP puro, sin Chromium en el VPS); la plantilla Blade usa tabla y estilos básicos a propósito.
+- [x] **C1 - Cron diario que da de alta contactos del API del cliente.** Solo agrega: quien ya
+  existe conserva su nombre del panel, quien pidió su baja **nunca revive** y un borrado se salta
+  (`phone` es UNIQUE). Scheduler **04:00 CST**, antes del warm-up (05:00) y de la ventana (09:00).
+  Comandos `contactos:probar-api` (diagnóstico, no escribe, nunca imprime la contraseña) y
+  `contactos:sincronizar --dry-run`. Ver [`docs/sincronizacion-contactos.md`](sincronizacion-contactos.md).
+  **Falta**: poner el `.env` en el VPS y que el cliente decida qué estados de cartera dar de alta.
+
+#### Extras que salieron de la misma tanda (no cotizados)
+
+- [x] **Pegado masivo de números en el buscador de Contactos.** El cliente pega 500 números de
+  Excel. Va por `POST /api/contacts/search` porque 500 números son ~6.5 KB de query string y
+  2,000 pasan de 25 KB: **nginx corta con 414** antes de que Laravel se entere. `index()` (GET) y
+  `search()` (POST) comparten `respondWithPage()`. Reporta cuáles **no están dados de alta** con
+  botón para copiarlos. El espacio es ambiguo (separa números pero Excel también lo mete dentro
+  de uno), así que el parser corre dos veces y gana el corte que rescata más números válidos.
+- [x] **Selector de registros por página** (`TablePaginator.vue`) en Contactos, Campañas,
+  Respuestas SMS y mensajes del Panel: 10/20/50/100/250/500/**Todos**. "Todos" tiene **tope duro
+  de 5,000** con aviso visible - con 200k contactos el JSON pesa decenas de MB y el navegador se
+  cuelga. Un `per_page` fuera del catálogo cae al default. `App\Support\PageSize`.
+- [x] **Filtro de entregabilidad por canal y acumulativo.** Multiselección: "Enfriamiento -
+  WhatsApp" no es "Enfriamiento - SMS". Respeta la precedencia de las etiquetas de la fila.
+  Los `orWhere` van envueltos en su propio `where()`: sin ese paréntesis el primer OR se escapa
+  y **anula** los filtros de estado, tag y lista pegada (hay test). Índice nuevo
+  `idx_logs_to_channel_status_sent` sobre `message_log (to_number, channel, status, sent_at)`:
+  ninguno de los previos incluía `channel`.
+- [x] **Etiqueta por estado de cartera en C1.** El API trae un campo `Estado` (`LIQUIDADO`,
+  `BURÓ`, `BAJA`) que no esperábamos. **Su `BAJA` NO es nuestra Baja**: la suya significa que
+  dejó de ser su cliente, la nuestra es opt-out irreversible por ley. Un contacto en `BAJA` entra
+  como **Activo**. No se excluye a nadie por default (descartar en silencio sería peor y la
+  decisión es del cliente); se **etiqueta a cada uno con su estado** para poder segmentar una
+  campaña de renovación solo a `LIQUIDADO`, y `--dry-run` da el desglose para llevarle números al
+  cliente. `SYNC_STATUS_EXCLUDE` / `SYNC_STATUS_INCLUDE` cuando decida.
+
+### Bugs reportados por el cliente operando (2026-09-03) - PENDIENTES
+
+- [ ] **Lag al escribir en Conversaciones.** El operador teclea y las letras aparecen tarde.
+  **Causa identificada:** `newMessage` vive en el mismo componente que renderiza la lista lateral
+  (`v-for="c in contacts"`, hoy **938 filas**), los mensajes del chat abierto y los chips de
+  respuestas rápidas. En Vue, cambiar una variable reactiva vuelve a ejecutar el render de **todo
+  el componente**, así que cada tecla dispara un diff de ~938 filas. Antes no pasaba porque había
+  20 conversaciones. **Arreglo:** sacar el escritor (y idealmente la lista) a componentes propios
+  para que teclear solo redibuje la cajita de texto. No toca backend. **Relacionado:** esa lista
+  trae las 938 conversaciones completas en cada refetch - va a empeorar mes con mes, y a mediano
+  plazo necesita paginado o buscador del lado del servidor.
+- [ ] **"Los mensajes nuevos no suben al inicio de la lista"** (reporte del cliente, **sin
+  confirmar**). El código sí está hecho para reordenar: el backend ordena por `last_message_at`
+  y el frontend hace refetch completo al recibir un inbound. En los screenshots la lista se ve
+  **bien ordenada**. Falta que el cliente sea más específico; Alexis lo cree tema visual. Antes de
+  tocar código, comprobar: (1) ¿le aparece el toast "Nueva respuesta"? Si no, el tiempo real no
+  está llegando (Soketi) y la lista se queda congelada como cargó; (2) con 938 filas, si el
+  operador está scrolleado abajo puede no ver que la fila brincó arriba.

@@ -32,6 +32,8 @@ CLAUDE.md                              ← punto de entrada, referencias a todo 
 │   ├── sms-sim-propia-analisis.md     ← análisis SIM propia (gateway) vs proveedor: legal/económico/riesgos
 │   ├── guia-sms-gateway-setup.md      ← ✅ EN USO: montar el gateway capcom6 (Docker + túnel + teléfono)
 │   ├── guia-twilio-setup.md           ← ⚠️ referencia (NO elegido): setup Twilio
+│   ├── sincronizacion-contactos.md    ← cron que consume el API del cliente para dar de alta contactos (config, diagnostico, estado de red)
+│   ├── api-contactados.md             ← API pública de contactados por fecha (X-API-Key) para el sistema del cliente
 │   ├── testing.md                     ← guía PHPUnit, convenciones de tests
 │   ├── deploy-vps.md                  ← receta de deploy VPS Ubuntu + Nginx + SSL
 │   └── limpieza-y-seeds.md            ← seeders + db:clean-demo + receta prod limpio para cliente

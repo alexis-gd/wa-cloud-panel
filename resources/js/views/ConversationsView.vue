@@ -141,7 +141,35 @@
             fluid
             class="assign-select"
           />
-          <Button label="Asignar" size="small" :loading="assigning" :disabled="!assignUserId" @click="doAssign" class="assign-btn" />
+          <Button
+            :label="currentAssignment ? 'Reasignar' : 'Asignar'"
+            size="small"
+            :loading="assigning"
+            :disabled="!assignUserId"
+            @click="doAssign"
+            class="assign-btn"
+          />
+          <Button
+            v-if="currentAssignment"
+            label="Dejar sin asignar"
+            icon="pi pi-user-minus"
+            size="small"
+            severity="secondary"
+            text
+            :loading="releasing"
+            @click="doRelease"
+            class="assign-btn"
+          />
+          <Button
+            label="Ver historial"
+            icon="pi pi-history"
+            size="small"
+            severity="secondary"
+            text
+            :loading="loadingHistory"
+            @click="openHistory"
+            class="assign-btn"
+          />
         </template>
       </div>
 
@@ -181,6 +209,38 @@
     </Dialog>
 
   </div>
+
+  <!-- Historial de asignaciones: quién la tuvo, quién la movió y cuándo -->
+  <Dialog v-model:visible="historyDialog" header="Historial de la conversación" modal style="width: 560px">
+    <p class="history-contact" v-if="selected">
+      {{ selected.name || 'Sin nombre' }} · <code>{{ selected.phone }}</code>
+    </p>
+
+    <p v-if="!history.length" class="history-empty">
+      Esta conversación no tiene movimientos de asignación todavía.
+    </p>
+
+    <ul v-else class="history-list">
+      <li v-for="mov in history" :key="mov.id" class="history-item">
+        <span class="history-dot" :class="'dot--' + mov.action"></span>
+        <div class="history-body">
+          <div class="history-head">
+            <strong>{{ mov.action_label }}</strong>
+            <span v-if="mov.agent" class="history-agent">→ {{ mov.agent }}</span>
+          </div>
+          <div class="history-meta">
+            {{ mov.at }}
+            <template v-if="mov.by"> · por {{ mov.by }}</template>
+            <template v-else> · por el sistema</template>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <template #footer>
+      <Button label="Cerrar" text @click="historyDialog = false" />
+    </template>
+  </Dialog>
 </template>
 
 <script setup>
@@ -273,6 +333,12 @@ const users            = ref([]);
 const currentAssignment = ref(null);
 const assignUserId     = ref(null);
 const assigning        = ref(false);
+const releasing        = ref(false);
+
+// Historial de movimientos (P2): para cambios de turno y para medir el seguimiento.
+const historyDialog    = ref(false);
+const history          = ref([]);
+const loadingHistory   = ref(false);
 const claiming         = ref(false);
 
 let echoChannel = null;
@@ -393,14 +459,56 @@ async function claimConversation() {
 
 async function doAssign() {
   if (!assignUserId.value) return;
+
+  const reasignando = !!currentAssignment.value;
   assigning.value = true;
   const res = await api.assignConversation(selected.value.id, assignUserId.value);
-  if (res.status === 'ok') {
-    currentAssignment.value = res.data.assigned_to;
-    assignUserId.value = null;
-    toast.add({ severity: 'success', summary: 'Asignado', detail: `Conversación asignada a ${res.data.assigned_to.name}`, life: 2500 });
-  }
   assigning.value = false;
+
+  if (res.status !== 'ok') {
+    // Reasignar al mismo agente se rechaza: evita movimientos que no movieron nada.
+    toast.add({ severity: 'warn', summary: 'No se pudo asignar', detail: res.message, life: 4000 });
+    return;
+  }
+
+  currentAssignment.value = res.data.assigned_to;
+  assignUserId.value = null;
+  toast.add({
+    severity : 'success',
+    summary  : reasignando ? 'Reasignada' : 'Asignada',
+    detail   : `Conversación asignada a ${res.data.assigned_to.name}`,
+    life     : 2500,
+  });
+}
+
+// Soltar la conversación (cambio de turno sin relevo inmediato). No borra el historial:
+// queda registrada como un movimiento más.
+async function doRelease() {
+  releasing.value = true;
+  const res = await api.releaseConversation(selected.value.id);
+  releasing.value = false;
+
+  if (res.status !== 'ok') {
+    toast.add({ severity: 'error', summary: 'No se pudo soltar', detail: res.message, life: 4000 });
+    return;
+  }
+
+  currentAssignment.value = null;
+  toast.add({ severity: 'success', summary: 'Sin asignar', detail: 'La conversación quedó libre.', life: 2500 });
+}
+
+async function openHistory() {
+  loadingHistory.value = true;
+  const res = await api.conversationHistory(selected.value.id);
+  loadingHistory.value = false;
+
+  if (res.status !== 'ok') {
+    toast.add({ severity: 'error', summary: 'No se pudo cargar el historial', detail: res.message, life: 4000 });
+    return;
+  }
+
+  history.value = res.data ?? [];
+  historyDialog.value = true;
 }
 
 async function sendMessage() {
@@ -627,4 +735,38 @@ function formatDate(iso) {
   .conv-page--detail .conv-chat    { display: flex; }
   .chat-back { display: inline-flex; }
 }
+
+/* ── Historial de asignaciones (P2) ─────────────────────────────────────── */
+.history-contact { margin: 0 0 12px; font-size: .85rem; color: var(--p-text-muted-color); }
+.history-empty   { margin: 0; font-size: .85rem; color: var(--p-text-muted-color); }
+
+.history-list { list-style: none; margin: 0; padding: 0; }
+
+.history-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--p-surface-200);
+}
+.history-item:last-child { border-bottom: none; }
+
+.history-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+  background: var(--p-surface-400);
+}
+.dot--auto     { background: var(--p-surface-400); }
+.dot--manual   { background: var(--p-primary-500); }
+.dot--claim    { background: var(--p-primary-400); }
+.dot--reassign { background: var(--p-orange-500, #f97316); }
+.dot--release  { background: var(--p-red-500, #ef4444); }
+
+.history-body  { min-width: 0; }
+.history-head  { font-size: .88rem; }
+.history-agent { color: var(--p-primary-600); font-weight: 600; margin-left: 4px; }
+.history-meta  { font-size: .78rem; color: var(--p-text-muted-color); margin-top: 2px; }
+
 </style>

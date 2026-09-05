@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Tag extends Model
@@ -24,5 +25,15 @@ class Tag extends Model
     public function contacts(): BelongsToMany
     {
         return $this->belongsToMany(Contact::class);
+    }
+
+    /**
+     * Campañas segmentadas con esta etiqueta. Es `nullOnDelete`, por eso borrar una etiqueta
+     * necesita el guardia de TagDeletionGuard: una campaña sin `tag_id` deja de estar
+     * segmentada y saldría a toda la base.
+     */
+    public function campaigns(): HasMany
+    {
+        return $this->hasMany(Campaign::class);
     }
 }

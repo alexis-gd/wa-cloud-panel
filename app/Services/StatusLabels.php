@@ -36,6 +36,14 @@ class StatusLabels
         'discarded' => 'Descartado',
     ];
 
+    private const ASSIGNMENT_ACTION = [
+        'auto'     => 'Asignación automática',
+        'manual'   => 'Asignada',
+        'claim'    => 'Tomada por el agente',
+        'reassign' => 'Reasignada',
+        'release'  => 'Sin asignar',
+    ];
+
     private const CHANNEL = [
         'whatsapp' => 'WhatsApp',
         'sms'      => 'SMS',
@@ -54,6 +62,15 @@ class StatusLabels
     public static function messageStatus(?string $value): string
     {
         return self::traducir(self::MESSAGE_STATUS, $value);
+    }
+
+    /**
+     * Movimiento de asignación de una conversación, en español.
+     * Los valores internos viajan en inglés a propósito, pero nunca deben llegar al operador.
+     */
+    public static function assignmentAction(?string $value): string
+    {
+        return self::traducir(self::ASSIGNMENT_ACTION, $value);
     }
 
     public static function channel(?string $value): string

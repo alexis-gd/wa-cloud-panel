@@ -38,12 +38,19 @@
                     <i class="pi pi-inbox" />
                     <span>Respuestas SMS</span>
                 </RouterLink>
+                <RouterLink v-if="!isAgent() && isEnabled('feature_conversations')" to="/reports/agents" class="nav-item" :class="{ active: route.path === '/reports/agents' }" @click="sidebarOpen = false">
+                    <i class="pi pi-chart-bar" />
+                    <span>Reporte de agentes</span>
+                </RouterLink>
+                <RouterLink v-if="!isAgent() && isEnabled('feature_tags')" to="/tags" class="nav-item" :class="{ active: route.path === '/tags' }" @click="sidebarOpen = false">
+                    <i class="pi pi-tags" />
+                    <span>Etiquetas</span>
+                </RouterLink>
                 <RouterLink v-if="isEnabled('feature_conversations')" to="/conversations" class="nav-item" :class="{ active: route.path === '/conversations' }" @click="sidebarOpen = false">
                     <i class="pi pi-comments" />
                     <span>Conversaciones</span>
                 </RouterLink>
 
-                <!-- Solo admin -->
                 <RouterLink v-if="isAdmin() && isEnabled('feature_templates')" to="/templates" class="nav-item" :class="{ active: route.path === '/templates' }" @click="sidebarOpen = false">
                     <i class="pi pi-file-edit" />
                     <span>Plantillas</span>
@@ -74,7 +81,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.31.0</span>
+                <span class="version">v0.37.0</span>
             </div>
         </aside>
 
@@ -262,6 +269,8 @@ const sidebarOpen = ref(false);
 const pageTitles = {
     '/'               : 'Panel',
     '/contacts'       : 'Contactos',
+    '/tags'           : 'Etiquetas',
+    '/reports/agents' : 'Reporte de agentes',
     '/campaigns'      : 'Campañas',
     '/sms-replies'    : 'Respuestas SMS',
     '/conversations'  : 'Conversaciones',
@@ -287,15 +296,34 @@ const helpContent = {
         ],
         warning: 'Si el semáforo está ROJO o PAUSADO, no ejecutar campañas hasta que se revise.',
     },
+    '/reports/agents': {
+        title: 'Reporte de agentes',
+        items: [
+            { icon: 'pi-chart-bar', label: 'Que mide',   text: 'Cuantas conversaciones lleva cada quien. Solo lo ven operador y administrador; el agente no ve la carga de sus companeros.' },
+            { icon: 'pi-calendar',  label: 'Dos numeros', text: '"Recibidas en el periodo" son las que se le asignaron entre las fechas del filtro. "Abiertas ahora" es la foto de este momento y NO cambia con el filtro: un agente puede haber recibido 12 hoy y tener 40 abiertas porque arrastra de dias anteriores.' },
+            { icon: 'pi-download',  label: 'Descargas',  text: 'Los botones bajan la MISMA tabla que ves, con los filtros aplicados, en Excel o PDF.' },
+        ],
+    },
+    '/tags': {
+        title: 'Etiquetas',
+        items: [
+            { icon: 'pi-tags',   label: 'Para que sirven', text: 'Una etiqueta es un segmento: al crear una campana puedes mandarla solo a los contactos de esa etiqueta en vez de a toda la base.' },
+            { icon: 'pi-plus',   label: 'Crear',           text: 'Boton "Nueva etiqueta". Tambien se crean solas al importar un Excel con columna de etiqueta.' },
+            { icon: 'pi-pencil', label: 'Renombrar',       text: 'Cambia solo el nombre visible. El identificador se queda fijo para que el Excel de importacion siga reconociendo la etiqueta.' },
+            { icon: 'pi-users',  label: 'Ver contactos',   text: 'El numero de la columna Contactos es un boton: te lleva a Contactos ya filtrado por esa etiqueta.' },
+            { icon: 'pi-trash',  label: 'Borrar',          text: 'Te dice antes cuantos contactos la perderan. Si una campana SIN ENVIAR la usa, no deja borrarla: esa campana se quedaria sin segmento y saldria a todos los contactos.' },
+        ],
+    },
     '/contacts': {
         title: 'Contactos',
         items: [
-            { icon: 'pi-upload',        label: 'Importar',   text: 'Sube un Excel (.xlsx). Columna A: teléfono, Columna B: nombre (opcional).' },
+            { icon: 'pi-upload',        label: 'Importar',   text: 'Sube un Excel o CSV con Telefono, Nombre (opcional) y Etiqueta (opcional). Con encabezado el orden da igual. Si el telefono YA existe no se duplica: solo se le agrega la etiqueta, asi que sirve para etiquetar en masa. Las etiquetas nuevas se crean solas y varias caben en una celda separadas por coma.' },
             { icon: 'pi-plus',          label: 'Agregar uno', text: 'Botón "Agregar contacto" para alta manual. Al teclear el número te avisa si ya existe, está bloqueado o en enfriamiento.' },
             { icon: 'pi-phone',         label: 'Formato',    text: 'Teléfonos en formato mexicano con código de país: 529231311146.' },
             { icon: 'pi-check-circle',  label: 'Resultado',  text: 'Al importar verás: aceptados / duplicados / formato inválido.' },
             { icon: 'pi-ban',           label: 'Dar de baja', text: 'El botón Dar de baja marca al contacto como baja permanente (cumplimiento). Nunca más se le envía.' },
             { icon: 'pi-refresh',       label: 'Reactivar',  text: 'Solo admin: el botón Reactivar aparece en contactos Inalcanzables (3 mensajes seguidos sin entregarse). Los vuelve a Activo si hay evidencia de que el número volvió a ser alcanzable. Filtra por "Inalcanzables" para encontrarlos. Las bajas e inválidos NO se reactivan.' },
+            { icon: 'pi-tag',           label: 'Borrar etiqueta', text: 'El bote de basura de una etiqueta te dice antes cuantos contactos la perderan y cuantas campanas se quedan sin referencia de segmento. Si una campana SIN ENVIAR la usa, no deja borrarla: esa campana se quedaria sin segmento y saldria a todos los contactos.' },
             { icon: 'pi-trash',         label: 'Eliminar',   text: 'El bote de basura (solo admin) quita el contacto de listas y campañas - para limpiar pruebas/basura. Es recuperable y no afecta las stats de bajas.' },
             { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora, POR CANAL: dos etiquetas, una de WhatsApp y otra de SMS (Disponible, Pospuesto, Enfriamiento, Enviado hoy o No recibe). Cada canal cuenta lo suyo, puede estar disponible en uno y en enfriamiento en el otro. Distinta del Estado.' },
             { icon: 'pi-filter',        label: 'Filtrar por entregabilidad', text: 'El selector Entregabilidad busca por esos mismos estados y siempre dice de que canal habla: "Enfriamiento - WhatsApp" no es lo mismo que "Enfriamiento - SMS". Se pueden marcar varios estados y se suman. Pospuesto y En espera (Meta) solo existen en WhatsApp.' },
@@ -331,6 +359,8 @@ const helpContent = {
     '/conversations': {
         title: 'Conversaciones',
         items: [
+            { icon: 'pi-history', label: 'Historial', text: 'En Asignacion, el boton Ver historial abre todos los movimientos de esa conversacion: que movimiento fue, a que agente quedo, cuando y quien lo hizo (o el sistema, si fue reparto automatico). No se borra nunca, ni al soltarla.' },
+            { icon: 'pi-user-minus', label: 'Cambio de turno', text: 'Reasignar se la pasa a otro agente; Dejar sin asignar la suelta para que la tome quien entre. Las dos quedan registradas en el historial.' },
             { icon: 'pi-circle-fill',   label: 'Estado',      text: 'El punto de color y el chip dicen en qué anda la conversación: Abierta (verde, ventana 24h abierta, se puede responder libre), Cerrada (gris, 24h vencidas, solo plantilla reabre), Pospuesto (ámbar, pidió "no por ahora"), Baja (rojo, dado de baja).' },
             { icon: 'pi-clock',         label: 'Pospuesto',   text: 'Pospuesto NO bloquea el chat: el contacto tocó "No por ahora", el sistema no lo mete en campañas de WhatsApp hasta la fecha (arriba y en Info del contacto). El SMS NO se ve afectado (es por canal). Y tú SÍ le puedes seguir escribiendo aquí a mano.' },
             { icon: 'pi-user',          label: 'Asignación',  text: 'Aparte del estado: "Sin asignar" (ámbar) = nadie la atiende; "Tú" (verde) con barra verde a la izquierda = es tuya; iniciales = la atiende otro agente.' },

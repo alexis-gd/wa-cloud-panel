@@ -407,9 +407,47 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
 
 ### Anotado para cuando crezca (sin urgencia)
 
-- [ ] **La lista de Conversaciones trae las 938 completas en cada refresco.** No era lo que
-  causaba el lag al escribir (eso ya se cerró), pero crece mes con mes. A mediano plazo
-  necesita paginado o buscador del lado del servidor.
+- [ ] **Paginar la lista de Conversaciones.** `ConversationController::index` hace `->get()`:
+  trae **todos** los contactos que tengan al menos una conversación, sin tope. Hoy son 938 y
+  crece con cada persona que responde una campaña. No es lo que causaba el lag al escribir
+  (eso se cerró en v0.38.2 sacando el escritor y la fila a componentes propios), pero es el
+  siguiente techo del módulo.
+
+  **Qué pasa hoy:** cada refresco son ~190 KB de JSON, y el frontend **refresca la lista
+  completa cada vez que entra un mensaje**. En hora pico eso es varias veces por minuto. Con
+  200,000 contactos en la base, si un 5% llega a responder alguna vez, son 10,000 filas por
+  petición: el navegador se cuelga y el servidor arma un JSON de megas.
+
+  **El obstáculo real - por qué no es cambiar `get()` por `paginate()`:** el orden se hace
+  **en PHP**, no en SQL (`->get()->sortByDesc('last_message_at')`). Y se hace ahí porque la
+  llave de orden no es una columna de `contacts`: sale de una relación cargada aparte
+  (`latestConversation.created_at`). Paginar en SQL exige ordenar en SQL, y ordenar en SQL
+  exige que esa fecha sea alcanzable desde la consulta. Si se pagina sin resolver eso, el
+  servidor devolvería "los primeros 50 por id" y **luego** los ordenaría - o sea, la página 1
+  no traería las conversaciones más recientes. Sería peor que no paginar, y en silencio.
+
+  **Lo que hay que hacer, en orden:**
+  1. **Que la fecha del último mensaje sea consultable.** Lo más limpio es una columna
+     `contacts.last_message_at` denormalizada, que se actualiza al guardar un mensaje
+     (entrante y saliente), con índice. La alternativa sin columna es una subconsulta o un
+     join contra `conversations`, que sobre 200k filas hay que medir antes de elegir.
+  2. **Mover el orden a SQL** y recién entonces paginar.
+  3. **Buscador del lado del servidor.** Sin él, paginar *empeora* la vida del operador: hoy
+     encuentra a cualquiera con Ctrl+F porque están todos cargados. Con páginas, el que no
+     esté en la primera desaparece. El buscador no es un extra, es parte del mismo cambio.
+  4. **Que el tiempo real no rompa la paginación.** Hoy un mensaje entrante dispara un
+     refetch completo; con páginas, eso devolvería al operador a la página 1 mientras lee.
+     Hay que refrescar solo la página visible, o mejor, actualizar la fila que cambió sin
+     volver a pedir la lista.
+
+  **Cuándo:** no es urgente, es preventivo. Vale la pena antes de que el cliente pase de unas
+  pocas miles de conversaciones - y con la sincronización del API metiendo 11,719 contactos,
+  ese momento se acerca. Buen momento para medirlo: cuando la lista pase de ~3,000 filas.
+
+  **Ojo con el filtro del agente:** un agente solo ve las suyas, y ese filtro usa
+  `MAX(id)` sobre `conversation_assignments` en un `whereHas`. Al paginar hay que confirmar
+  que ese subquery siga siendo eficiente, o el paginado le va a salir lento justo a quien más
+  usa la pantalla.
 - [ ] **Interruptor de hombre muerto externo** (healthchecks.io o similar). La barra del panel
   cubre "cron roto, servidor vivo", que es el caso común. No cubre el servidor apagado: ahí el
   panel tampoco responde y nadie se entera. Son ~10 líneas y una cuenta gratis.

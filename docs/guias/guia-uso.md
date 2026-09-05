@@ -311,9 +311,17 @@ disponible en uno y en pausa en el otro:
 **Chip rojo "Baja SMS"**: aparece cuando el contacto no recibe SMS (pidió baja por SMS o el
 número no recibe texto). Es aparte del estado: puede recibir WhatsApp pero no SMS.
 
-**Cartera**: cómo está esa persona en el sistema del cliente (por ejemplo **LIQUIDADO**, **BURÓ**
-o **BAJA**). No lo escribe nadie a mano: el panel lo trae solo cada noche del sistema del cliente,
-así que siempre dice cómo está **hoy**.
+**Cartera**: cómo está esa persona en el sistema de Prestamaz. No lo escribe nadie a mano: el
+panel lo trae solo cada noche, así que siempre dice cómo está **hoy**.
+
+| Cartera | Qué significa |
+|---|---|
+| **LIQUIDADO** | Ya pagó su crédito. Es el mejor prospecto para ofrecerle uno nuevo. |
+| **ACTIVO** | Tiene un crédito vigente ahorita. |
+| **BURÓ** | Está reportado en buró de crédito. |
+| **BAJA** | Terminó su relación con Prestamaz. |
+
+Si mañana aparece una clasificación nueva, sale sola en el filtro: la lista no está fija.
 
 > ⚠️ **La "BAJA" de Cartera NO es nuestra Baja.** En el sistema del cliente, "BAJA" significa que
 > esa persona dejó de ser su cliente. **Sí se le puede mandar publicidad.** Nuestra Baja - la que

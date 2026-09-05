@@ -186,6 +186,7 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Se puede congelar**: con `SYNC_REFRESH_STATUS=false` el estado NO se actualiza
 - [ ] **Modo seco no refresca**: `--dry-run` reporta "Cambiarían de estado" pero la columna no cambia
 - [ ] **Desglose**: `--dry-run` muestra la tabla de cuántos hay de cada estado
+- [ ] **Estado nuevo sin tocar código**: si el API manda una clasificación que no conocíamos (pasó con `ACTIVO`), entra sola y aparece en el filtro Cartera sin desplegar nada
 - [ ] **Excluir**: con `SYNC_STATUS_EXCLUDE=BURÓ`, esos no se dan de alta y salen en "Excluidos por su estado"
 - [ ] **Excluido que ya existe**: con `SYNC_STATUS_EXCLUDE=BURÓ`, a un contacto que YA está y pasa a BURÓ **sí** se le actualiza la Cartera (excluir impide el alta, no el reflejo)
 - [ ] **API caído**: si no responde, el comando falla con mensaje claro y no deja nada a medias

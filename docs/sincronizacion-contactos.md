@@ -87,13 +87,20 @@ esté disponible para las campañas del día.
 
 ### El campo `Estado`: su cartera, no nuestro opt-out
 
-El API trae un campo `Estado` con la clasificación de cartera del cliente. Valores vistos:
+El API trae un campo `Estado` con la clasificación de cartera del cliente. Valores vistos
+(conteo real del 2026-09-05, sobre 14,872 registros):
 
-| Estado | Qué significa (de su lado) |
-|---|---|
-| `LIQUIDADO` | Ya pagó su crédito. Es el mejor prospecto para renovación. |
-| `BURÓ` | Está reportado en buró de crédito. |
-| `BAJA` | Terminó su relación con ellos. |
+| Estado | Registros | Qué significa (de su lado) |
+|---|---|---|
+| `LIQUIDADO` | 12,737 | Ya pagó su crédito. Es el mejor prospecto para renovación. |
+| `ACTIVO` | 1,704 | Tiene un crédito vigente con ellos. |
+| `BURÓ` | 414 | Está reportado en buró de crédito. |
+| `BAJA` | 17 | Terminó su relación con ellos. |
+
+> `ACTIVO` no aparecía en la muestra inicial de 3 registros: se descubrió al conectar contra
+> el API completo. Es el segundo grupo más grande. No se filtra por nombre de estado en
+> ningún lado del código, así que un valor nuevo entra solo - por eso el desplegable de
+> Cartera se arma con lo que hay en la base y no con una lista fija.
 
 > 🛑 **Su `BAJA` NO es nuestra Baja.** En el panel, "Baja" significa que la persona pidió
 > dejar de recibir mensajes (opt-out, irreversible, legal). En su sistema significa que el

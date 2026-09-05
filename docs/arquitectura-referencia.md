@@ -44,7 +44,18 @@ Navegador/cliente
 | `Services/WhatsApp/PhoneNumberVerifier.php` | Verifica un número contra Meta (estado de verificación, nombre, calidad). Traduce el error de Meta a mensaje claro en español |
 | `Controllers/Api/PhoneNumberController.php` | Alta y gestión de números WhatsApp (solo superadmin). Verifica contra Meta antes de guardar; nunca expone token ni IDs internos |
 | `Console/Commands/WarmupPhoneNumbersCommand.php` | `wa:warmup-numbers` — warm-up automático: sube el `daily_limit` por número (uso ≥50% ayer, ×2) topado por el portfolio |
-| `Middleware/ApiKeyMiddleware.php` | Verifica header `X-API-Key` en cada petición a `/api/*` |
+| `Middleware/ApiKeyMiddleware.php` | Verifica header `X-API-Key`. Lo usa **solo** `GET /api/contacted`: es la única ruta que consume un servidor externo, el resto del panel va con Sanctum |
+| `Services/Contacts/ContactFilters.php` | Los filtros de la pantalla de Contactos, en un solo lugar. Lo comparten el listado y el etiquetado masivo por filtro: si cada uno armara su query, el operador etiquetaría un conjunto distinto del que ve |
+| `Services/Contacts/ContactImporter.php` | Importación de Excel/CSV. Su trabajo principal es **etiquetar**, no dar de alta: una fila cuyo teléfono ya existe recibe la etiqueta igual |
+| `Services/Contacts/ContactSyncService.php` | Alta de contactos desde el API **del cliente**. Solo agrega; lo único que actualiza de alguien existente es `portfolio_status` |
+| `Services/Contacts/ExternalContactsClient.php` | Único punto de salida HTTP hacia el API del cliente. Mismo patrón que `WhatsAppClient` y `SmsGatewayClient` |
+| `Services/Contacts/ContactedLookup.php` | Resuelve "a quién contactamos" para **nuestro** API de contactados. Fechas como texto `Y-m-d` hasta el final, para que el día no se corra al pasar por UTC |
+| `Services/Tags/TagResolver.php` | Resuelve nombres de etiqueta a ids por **slug**, creando las que falten. Una consulta y un insert, sin importar cuántas vengan |
+| `Services/Tags/TagDeletionGuard.php` | Decide si una etiqueta se puede borrar. Bloquea si una campaña sin enviar la usa: `campaigns.tag_id` es `nullOnDelete` y sin él la campaña saldría a TODA la base |
+| `Services/Reports/AgentConversationReport.php` | Reporte por agente: "recibidas en el periodo" y "abiertas ahora" son dos números distintos, ver más abajo |
+| `Services/System/SchedulerHeartbeat.php` | Latido del cron. El scheduler lo deja cada minuto y el panel avisa si lleva más de 15 sin latir |
+| `Console/Commands/SyncExternalContacts.php` | `contactos:sincronizar [--dry-run]` — alta diaria desde el API del cliente, 04:00 CST |
+| `Console/Commands/ProbeExternalContactsApi.php` | `contactos:probar-api` — diagnóstico de conexión. No escribe nada y **nunca** imprime la contraseña |
 | `Controllers/Api/TemplateController.php` | `GET /api/templates` y `POST /api/templates/send-test` |
 | `Controllers/Api/WebhookController.php` | `GET /webhook` (verificación Meta) y `POST /webhook` (eventos de entrega/lectura) |
 | `Controllers/Api/DashboardController.php` | `GET /api/dashboard/stats` — últimos 20 mensajes y totales |
@@ -212,6 +223,25 @@ El parseo del pegado vive en `App\Services\Contacts\PhoneListParser`. El espacio
 (separa números, pero Excel también lo mete dentro de uno), así que el parser corre dos veces
 - una cortando por espacios y otra solo por saltos de línea - y gana la que rescata más
 números válidos.
+
+### Por qué el escritor y la fila de Conversaciones son componentes propios
+
+`ConversationComposer.vue` y `ConversationListItem.vue` no se extrajeron por orden, se
+extrajeron por **rendimiento medible**. El texto que se estaba tecleando vivía en
+`ConversationsView`, el mismo componente que dibuja la lista lateral. En Vue, cambiar una
+variable reactiva vuelve a ejecutar el render de todo el componente, así que cada tecla
+comparaba las 938 filas de producción y el operador veía las letras aparecer tarde.
+
+Dos lecciones que valen para cualquier lista larga de este proyecto:
+
+1. **Una variable que cambia rápido no puede vivir en un componente que dibuja muchas
+   filas.** Sácala a un hijo.
+2. **Llamar funciones desde la plantilla las re-ejecuta en cada render.** La fila llamaba a
+   seis, y la peor era `formatTime`: armaba un `Intl.DateTimeFormat` **por fila**. Como
+   componente, eso son `computed` con caché y un formateador para toda la lista.
+
+El hijo además **no se limpia solo** al enviar: lo limpia el padre solo si el mensaje salió.
+Así un fallo de red deja de comerse lo que el operador escribió.
 
 ### Entregabilidad: dos clases que deben cambiar juntas
 

@@ -224,10 +224,13 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
 ### Ampliación aprobada por el cliente (2026-09-01 → 2026-09-03) - rama `feature/tags-fase-1`
 
 > Cotización de 9 partidas aprobada el 2026-09-01. Aquí van las **7 que pidió arrancar**
-> (falta PL1, plantillas SMS con variables desde API). **745 tests verdes** (eran 565),
-> v0.31.0 → v0.37.0, 10 commits en una sola rama para un solo deploy.
+> (falta PL1, plantillas SMS con variables desde API). **786 tests verdes** (eran 565),
+> v0.31.0 → v0.39.0.
 >
-> ⚠️ **Pendiente de validar en prod.** El código está y probado; nada se ha desplegado.
+> ✅ **DESPLEGADO Y VALIDADO EN PRODUCCIÓN el 2026-09-05.** Los siete módulos se probaron a
+> mano uno por uno contra datos reales, no solo con la suite. Lo que destapó esa validación
+> está abajo: un cambio de diseño en C1 y tres bugs que ningún test cubría porque nadie había
+> pensado en ellos.
 
 **El deploy necesita tres cosas fuera de lo normal:**
 1. `composer install` - dependencia nueva (`barryvdh/laravel-dompdf`).
@@ -285,6 +288,69 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
   `contactos:sincronizar --dry-run`. Ver [`docs/sincronizacion-contactos.md`](sincronizacion-contactos.md).
   **Falta**: poner el `.env` en el VPS y que el cliente decida qué estados de cartera dar de alta.
 
+#### Lo que destapó validar en producción (2026-09-05)
+
+> Cada módulo se probó a mano contra datos reales. Casi todo salió a la primera; lo que no,
+> está aquí. Los tres bugs tienen algo en común: **ninguno rompía nada visiblemente**, por eso
+> ni la suite ni el desarrollo los habían encontrado.
+
+- [x] **C1 cambia de diseño: el estado de cartera es COLUMNA, no etiqueta.** Decisión de
+  Alexis al revisar el flujo. La versión de etiqueta tenía tres problemas: **se congelaba**
+  (solo se etiquetaba a los contactos nuevos, así que quien entró como `BURÓ` seguía marcado
+  así aunque después liquidara - y `LIQUIDADO` es justo el segmento que el cliente vende);
+  las etiquetas las crea, renombra y borra el operador, y un dato que escribe un proceso
+  automático no puede vivir donde alguien lo borra sin querer; y si mañana su API agrega un
+  campo `tag` propio, chocaría en el mismo catálogo. Ahora es `contacts.portfolio_status`
+  con índice propio, visible como **Cartera** con filtro, y **se refresca en cada corrida** -
+  lo único que la sincronización actualiza de un contacto existente. Las campañas siguen
+  segmentando por etiqueta; el puente es **"Etiquetar todo lo filtrado"**.
+- [x] **`tag_id` significaba dos cosas en la misma petición** - "filtra los que YA tienen esta
+  etiqueta" y "ponles esta etiqueta". El filtro ganaba y **no etiquetaba a nadie, sin error**.
+  La etiqueta a poner viaja en `attach_tag_id`. Salió al escribir el test, no al programar.
+- [x] **Crear una etiqueta validaba el nombre, no el identificador.** "QA Import Renombrada" y
+  "qa import" comparten el slug `qa-import`, así que pasaban la validación y MySQL respondía
+  con un `Integrity constraint violation 1062` **en crudo, en pantalla**. Ahora se valida el
+  slug, el mensaje nombra la etiqueta que estorba y sale **debajo del campo**, no en un toast.
+- [x] **El reporte de la sincronización no cuadraba.** En la primera corrida real: 14,872
+  recibidos, 14,758 válidos, 4 inválidos - faltaban **110 filas sin explicar**. Eran teléfonos
+  que su API manda más de una vez. Ya tienen su renglón, y el comando verifica que
+  `inválidos + repetidos + excluidos + válidos = recibidos`, avisando si alguna vez deja de
+  cumplirse. De paso: los repetidos **contaban doble en el desglose por estado**, que es el
+  número con el que el cliente decide a quién excluir.
+- [x] **Copy que le pedía al operador algo imposible.** El bloqueo al borrar una etiqueta decía
+  "cámbiale el segmento a esa campaña". Las campañas **no se pueden editar** - no existe esa
+  pantalla - y "segmento" no aparece en ninguna parte de la UI (el campo se llama
+  **Destinatarios**). Ahora ofrece las dos salidas que el panel sí permite. La misma jerga se
+  limpió del detalle de campaña, el catálogo, las plantillas y la guía.
+- [x] **Un cuarto estado de cartera que no conocíamos: `ACTIVO`**, 1,704 de 14,872 (el segundo
+  grupo más grande). La muestra inicial solo traía tres registros. No hizo falta tocar código:
+  nada filtra por nombre de estado y el desplegable se arma con lo que hay en la base.
+- [x] **El texto del diagnóstico mentía.** `contactos:probar-api` seguía diciendo que cada
+  contacto nuevo se etiqueta con su estado - comportamiento de la versión reemplazada.
+
+#### Bugs del cliente, cerrados
+
+- [x] **Lag al escribir en Conversaciones** (v0.38.2). Eran dos cosas sumadas: `newMessage`
+  vivía en el mismo componente que dibuja la lista lateral (938 filas en prod), así que cada
+  tecla la rediseñaba entera; y cada fila llamaba a seis funciones desde la plantilla, la peor
+  `formatTime`, que armaba un `Intl.DateTimeFormat` **por fila**. Ahora el escritor y la fila
+  son componentes propios (`ConversationComposer`, `ConversationListItem`) y el formateador es
+  uno para toda la lista. Extra: la cajita ya no se limpia sola al enviar - la limpia el padre
+  solo si el mensaje salió, así que un fallo de red deja de comerse lo escrito.
+
+#### Vigilancia del cron (2026-09-05, no cotizado)
+
+- [x] **El panel avisa si el programador de tareas se detiene** (v0.39.0). Una sola línea de
+  crontab mueve todo lo automático: alta de contactos, warm-up, marcado de inalcanzables y las
+  reconciliaciones de SMS. Si se rompe, **nada avisa** y el sistema se desafina en silencio
+  durante días. Como un cron muerto no puede reportarse, la detección va al revés: el scheduler
+  deja un latido cada minuto y el **panel** nota que está frío. Pasados 15 minutos sale una
+  barra roja para admin y operador; `deploy.sh` revisa lo mismo al final. El texto dice que las
+  campañas **sí siguen enviándose** (el worker corre bajo Supervisor, aparte del cron): decir
+  que todo se paró sería falso y haría que dejaran de trabajar sin razón.
+  `App\Services\System\SchedulerHeartbeat`. **Sin correo** (el panel nunca ha tenido SMTP);
+  queda anotado el interruptor de hombre muerto externo para cubrir el servidor apagado.
+
 #### Extras que salieron de la misma tanda (no cotizados)
 
 - [x] **Pegado masivo de números en el buscador de Contactos.** El cliente pega 500 números de
@@ -339,19 +405,59 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
     nadie, **sin error**. Por eso la etiqueta a poner viaja en `attach_tag_id`. De paso queda
     habilitado el caso útil: "a los que tienen VIP, ponles Renovación". Tiene test.
 
-### Bugs reportados por el cliente operando (2026-09-03) - PENDIENTES
+### Anotado para cuando crezca (sin urgencia)
 
-- [ ] **Lag al escribir en Conversaciones.** El operador teclea y las letras aparecen tarde.
-  **Causa identificada:** `newMessage` vive en el mismo componente que renderiza la lista lateral
-  (`v-for="c in contacts"`, hoy **938 filas**), los mensajes del chat abierto y los chips de
-  respuestas rápidas. En Vue, cambiar una variable reactiva vuelve a ejecutar el render de **todo
-  el componente**, así que cada tecla dispara un diff de ~938 filas. Antes no pasaba porque había
-  20 conversaciones. **Arreglo:** sacar el escritor (y idealmente la lista) a componentes propios
-  para que teclear solo redibuje la cajita de texto. No toca backend. **Relacionado:** esa lista
-  trae las 938 conversaciones completas en cada refetch - va a empeorar mes con mes, y a mediano
-  plazo necesita paginado o buscador del lado del servidor.
-- [ ] **"Los mensajes nuevos no suben al inicio de la lista"** (reporte del cliente, **sin
-  confirmar**). El código sí está hecho para reordenar: el backend ordena por `last_message_at`
+- [ ] **Paginar la lista de Conversaciones.** `ConversationController::index` hace `->get()`:
+  trae **todos** los contactos que tengan al menos una conversación, sin tope. Hoy son 938 y
+  crece con cada persona que responde una campaña. No es lo que causaba el lag al escribir
+  (eso se cerró en v0.38.2 sacando el escritor y la fila a componentes propios), pero es el
+  siguiente techo del módulo.
+
+  **Qué pasa hoy:** cada refresco son ~190 KB de JSON, y el frontend **refresca la lista
+  completa cada vez que entra un mensaje**. En hora pico eso es varias veces por minuto. Con
+  200,000 contactos en la base, si un 5% llega a responder alguna vez, son 10,000 filas por
+  petición: el navegador se cuelga y el servidor arma un JSON de megas.
+
+  **El obstáculo real - por qué no es cambiar `get()` por `paginate()`:** el orden se hace
+  **en PHP**, no en SQL (`->get()->sortByDesc('last_message_at')`). Y se hace ahí porque la
+  llave de orden no es una columna de `contacts`: sale de una relación cargada aparte
+  (`latestConversation.created_at`). Paginar en SQL exige ordenar en SQL, y ordenar en SQL
+  exige que esa fecha sea alcanzable desde la consulta. Si se pagina sin resolver eso, el
+  servidor devolvería "los primeros 50 por id" y **luego** los ordenaría - o sea, la página 1
+  no traería las conversaciones más recientes. Sería peor que no paginar, y en silencio.
+
+  **Lo que hay que hacer, en orden:**
+  1. **Que la fecha del último mensaje sea consultable.** Lo más limpio es una columna
+     `contacts.last_message_at` denormalizada, que se actualiza al guardar un mensaje
+     (entrante y saliente), con índice. La alternativa sin columna es una subconsulta o un
+     join contra `conversations`, que sobre 200k filas hay que medir antes de elegir.
+  2. **Mover el orden a SQL** y recién entonces paginar.
+  3. **Buscador del lado del servidor.** Sin él, paginar *empeora* la vida del operador: hoy
+     encuentra a cualquiera con Ctrl+F porque están todos cargados. Con páginas, el que no
+     esté en la primera desaparece. El buscador no es un extra, es parte del mismo cambio.
+  4. **Que el tiempo real no rompa la paginación.** Hoy un mensaje entrante dispara un
+     refetch completo; con páginas, eso devolvería al operador a la página 1 mientras lee.
+     Hay que refrescar solo la página visible, o mejor, actualizar la fila que cambió sin
+     volver a pedir la lista.
+
+  **Cuándo:** no es urgente, es preventivo. Vale la pena antes de que el cliente pase de unas
+  pocas miles de conversaciones - y con la sincronización del API metiendo 11,719 contactos,
+  ese momento se acerca. Buen momento para medirlo: cuando la lista pase de ~3,000 filas.
+
+  **Ojo con el filtro del agente:** un agente solo ve las suyas, y ese filtro usa
+  `MAX(id)` sobre `conversation_assignments` en un `whereHas`. Al paginar hay que confirmar
+  que ese subquery siga siendo eficiente, o el paginado le va a salir lento justo a quien más
+  usa la pantalla.
+- [ ] **Interruptor de hombre muerto externo** (healthchecks.io o similar). La barra del panel
+  cubre "cron roto, servidor vivo", que es el caso común. No cubre el servidor apagado: ahí el
+  panel tampoco responde y nadie se entera. Son ~10 líneas y una cuenta gratis.
+- [ ] **PL1** - plantillas SMS con variables desde el API. Novena partida de la cotización,
+  nunca se arrancó. Fuera de esta fase a propósito.
+
+### Bugs reportados por el cliente operando (2026-09-03)
+
+- [ ] **"Los mensajes nuevos no suben al inicio de la lista"** - ÚNICO ABIERTO (reporte del
+  cliente, **sin confirmar**). El código sí está hecho para reordenar: el backend ordena por `last_message_at`
   y el frontend hace refetch completo al recibir un inbound. En los screenshots la lista se ve
   **bien ordenada**. Falta que el cliente sea más específico; Alexis lo cree tema visual. Antes de
   tocar código, comprobar: (1) ¿le aparece el toast "Nueva respuesta"? Si no, el tiempo real no

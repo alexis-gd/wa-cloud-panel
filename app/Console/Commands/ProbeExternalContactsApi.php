@@ -163,8 +163,9 @@ class ProbeExternalContactsApi extends Command
         $this->newLine();
         $this->line('Estados que trae el API (su clasificación de cartera, NO nuestro opt-out):');
         $this->table(['Estado', 'Registros'], collect($conteo)->map(fn ($n, $e) => [$e, $n])->values()->all());
-        $this->line('Cada contacto nuevo se etiqueta con su estado, para poder segmentar campañas.');
-        $this->line('Para excluir alguno: SYNC_STATUS_EXCLUDE=BURÓ  (o SYNC_STATUS_INCLUDE=LIQUIDADO)');
+        $this->line('El estado se guarda en la columna Cartera del contacto y se refresca en cada corrida.');
+        $this->line('En Contactos se puede filtrar por él y de ahí etiquetar al grupo para una campaña.');
+        $this->line('Para NO dar de alta alguno: SYNC_STATUS_EXCLUDE=BURÓ  (o SYNC_STATUS_INCLUDE=LIQUIDADO)');
     }
 
     private function recorte(mixed $valor, bool $completo): string

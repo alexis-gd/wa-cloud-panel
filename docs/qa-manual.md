@@ -160,6 +160,20 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 
 ---
 
+## Latido del programador de tareas (cron)
+
+- [ ] **Sano**: con el cron corriendo, no aparece ninguna barra roja en el panel
+- [ ] **Caído**: en tinker, `Setting::set('scheduler_last_run', now()->subHours(3)->toIso8601String())` → recargar el panel → barra roja arriba diciendo "3 horas"
+- [ ] **El texto es correcto**: dice que las campañas SÍ siguen enviándose (el worker corre bajo Supervisor, aparte del cron)
+- [ ] **Se recupera solo**: esperar un minuto a que el cron lata → cambiar de pantalla → la barra desaparece
+- [ ] **Unidades**: menos de 60 min dice minutos, más dice horas, más de un día dice días
+- [ ] **El agente no la ve**: entrar como agente con el latido frío → NO aparece la barra (y la API le responde 403)
+- [ ] **Recién desplegado**: sin ninguna marca todavía, NO alarma (evita el falso positivo en cada deploy)
+- [ ] **Aparece sin recargar**: con el latido frío, navegar de una pantalla a otra hace que salga
+- [ ] **deploy.sh avisa**: el paso [10/10] dice "Cron vivo", o grita si no lo está
+
+---
+
 ## Webhook / Estados de mensajes
 
 - [ ] **delivered**: Meta confirma entrega → log y conversación pasan de `sent` a `delivered`

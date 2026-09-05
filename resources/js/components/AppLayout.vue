@@ -81,7 +81,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.38.2</span>
+                <span class="version">v0.39.0</span>
             </div>
         </aside>
 
@@ -146,6 +146,17 @@
                 </div>
             </header>
 
+            <!-- Aviso de cron caído. Va aquí y no en la campanita porque no se puede
+                 ignorar: una sola línea de crontab mueve todo lo automático del sistema. -->
+            <div v-if="schedulerDown" class="scheduler-alert">
+                <i class="pi pi-exclamation-triangle scheduler-alert__icon"></i>
+                <div class="scheduler-alert__text">
+                    <strong>Las tareas automáticas llevan {{ schedulerStaleLabel }} detenidas.</strong>
+                    Las campañas siguen enviándose, pero no están entrando contactos nuevos ni se
+                    está actualizando el estado de los SMS. Avisa a soporte técnico.
+                </div>
+            </div>
+
             <main class="content">
                 <RouterView />
             </main>
@@ -156,7 +167,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter, RouterLink, RouterView } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import Tag          from 'primevue/tag';
@@ -194,6 +205,36 @@ async function handleVisibilityChange() {
     const res = await api.me();
     // Cubre 401 (token expirado) y 500/otros (token ausente o servidor)
     if (res.status !== 'ok') handleSessionExpired();
+
+    // De paso: si el operador vuelve a la pestaña tras horas, revisamos el cron.
+    checkScheduler();
+}
+
+// ── Salud del programador de tareas ─────────────────────────────────────────
+// Sin temporizador a propósito: el proyecto eliminó los pollings. Se consulta al entrar,
+// al cambiar de pantalla y al volver a la pestaña, que es más que suficiente para algo
+// que se mide en horas. El agente no lo ve: solo atiende conversaciones, que llegan por
+// webhook y no dependen del cron.
+const schedulerState = ref(null);
+
+const schedulerDown = computed(() =>
+    schedulerState.value !== null && schedulerState.value.healthy === false
+);
+
+const schedulerStaleLabel = computed(() => {
+    const min = schedulerState.value?.minutes_stale ?? 0;
+    if (min < 60)   return `${min} minutos`;
+    const horas = Math.floor(min / 60);
+    if (horas < 24) return `${horas} hora${horas === 1 ? '' : 's'}`;
+    const dias = Math.floor(horas / 24);
+    return `${dias} día${dias === 1 ? '' : 's'}`;
+});
+
+async function checkScheduler() {
+    if (!['admin', 'operator', 'superadmin'].includes(authState.user?.role)) return;
+
+    const res = await api.schedulerStatus();
+    if (res.status === 'ok') schedulerState.value = res.data;
 }
 
 // ── Notifications ────────────────────────────────────────────────────────────
@@ -253,6 +294,7 @@ onMounted(() => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     fetchNotifications();
     subscribeRealtime();
+    checkScheduler();
 });
 
 onUnmounted(() => {
@@ -263,6 +305,8 @@ onUnmounted(() => {
         echoChannel = null;
     }
 });
+
+watch(() => route.path, () => checkScheduler());
 
 const sidebarOpen = ref(false);
 
@@ -693,6 +737,21 @@ async function logout() {
 }
 
 .page-title { font-size: 1rem; font-weight: 600; color: #0f172a; }
+
+/* Aviso de cron caído: rojo, ancho completo, imposible de ignorar. */
+.scheduler-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 12px 20px 0;
+    padding: 12px 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-left: 4px solid #dc2626;
+    border-radius: 8px;
+}
+.scheduler-alert__icon { color: #dc2626; font-size: 1.1rem; margin-top: 1px; flex-shrink: 0; }
+.scheduler-alert__text { font-size: .85rem; color: #7f1d1d; line-height: 1.5; }
 
 .content { padding: 24px; flex: 1; min-width: 0; }
 

@@ -301,6 +301,16 @@ sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start wa-queue:*
 sudo supervisorctl status  # debe mostrar RUNNING
+
+> **Dos relojes distintos, no confundirlos.** Supervisor mantiene vivo al *worker*, que es
+> quien manda los mensajes: si el cron muere, **las campañas siguen saliendo**. El cron
+> (`* * * * * schedule:run`) mueve todo lo demás - alta de contactos del API del cliente,
+> warm-up, marcado de inalcanzables y reconciliaciones de SMS. Cada uno puede morirse sin
+> tumbar al otro, y los síntomas son distintos.
+>
+> El panel vigila el cron solo: el scheduler deja un latido cada minuto y, si lleva más de
+> 15 sin latir, sale una barra roja para admin y operador. `deploy.sh` también lo revisa al
+> final. Ver `App\Services\System\SchedulerHeartbeat`.
 ```
 
 ---

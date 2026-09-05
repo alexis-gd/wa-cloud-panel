@@ -55,12 +55,28 @@ php artisan contactos:sincronizar --dry-run
 MODO SECO: no se va a escribir nada en la base de datos.
 
  Concepto                     Cantidad
- Registros recibidos del API  1204
- Teléfonos válidos            1198
- Con formato inválido         6
- Ya existían en el panel      1150
- Se DARÍAN de alta            48
+ Registros recibidos del API  14872
+   Con formato inválido       4
+   Repetidos en la respuesta  110
+   Excluidos por su estado    0
+   Teléfonos válidos          14758
+ ---------------------------------
+ Ya existían en el panel      3039
+ Se DARÍAN de alta            11719
+ Cambiarían de estado         3039
 ```
+
+Los cuatro renglones sangrados **suman exactamente** los registros recibidos:
+
+```
+recibidos = inválidos + repetidos + excluidos + válidos
+```
+
+Si no cuadran, el comando lo avisa. Sin el renglón de repetidos la tabla no cerraba y se
+perdían filas sin explicación - en la primera corrida real fueron 110 de 14,872 (el mismo
+teléfono más de una vez en su respuesta: la misma persona registrada dos veces, o dos
+personas compartiendo número). Gana la primera aparición, y el desglose por estado también
+la cuenta una sola vez.
 
 ### 4. Correrlo de verdad
 

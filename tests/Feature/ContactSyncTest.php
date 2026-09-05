@@ -140,6 +140,64 @@ class ContactSyncTest extends TestCase
         $this->assertSame(1, Contact::withTrashed()->where('phone', '529231311146')->count());
     }
 
+    public function test_los_repetidos_se_cuentan_aparte_para_que_el_reporte_cuadre(): void
+    {
+        // Sin este renglon la tabla no cerraba: en la primera corrida real del cliente
+        // "recibidos" (14,872) no cuadraba con validos + invalidos y faltaban 110 filas
+        // sin explicacion. El operador le lleva estos numeros al cliente.
+        $this->responde([
+            ['telefono' => '5219231311146', 'nombre' => 'Uno'],
+            ['telefono' => '9231311146',    'nombre' => 'Uno otra vez'],  // mismo, otro formato
+            ['telefono' => '5219231311147', 'nombre' => 'Dos'],
+            ['telefono' => 'basura',        'nombre' => 'Ilegible'],
+        ]);
+
+        $r = app(\App\Services\Contacts\ContactSyncService::class)->sync(true);
+
+        $this->assertSame(4, $r['received']);
+        $this->assertSame(1, $r['invalid']);
+        $this->assertSame(1, $r['repeated']);
+        $this->assertSame(2, $r['valid']);
+    }
+
+    public function test_los_renglones_del_reporte_suman_los_registros_recibidos(): void
+    {
+        // La identidad que hace confiable al reporte:
+        // recibidos = invalidos + repetidos + excluidos + validos
+        config(['contact_sync.root' => 'data', 'contact_sync.status_exclude' => 'BURO']);
+
+        $this->responde(['data' => [
+            ['Celular' => '6692406890', 'Nombre' => 'A', 'Estado' => 'LIQUIDADO'],
+            ['Celular' => '6692406890', 'Nombre' => 'A otra vez', 'Estado' => 'LIQUIDADO'],
+            ['Celular' => '6699931652', 'Nombre' => 'B', 'Estado' => 'BURO'],
+            ['Celular' => 'nada',       'Nombre' => 'C', 'Estado' => 'LIQUIDADO'],
+        ]]);
+
+        $r = app(\App\Services\Contacts\ContactSyncService::class)->sync(true);
+
+        $this->assertSame(
+            $r['received'],
+            $r['invalid'] + $r['repeated'] + $r['excluded'] + $r['valid'],
+            'Los renglones del reporte deben sumar los registros recibidos'
+        );
+    }
+
+    public function test_un_repetido_no_suma_dos_veces_al_desglose_por_estado(): void
+    {
+        // El desglose es lo que el cliente usa para decidir a quien excluir: contar dos
+        // veces a la misma persona le daria un grupo mas grande de lo que es.
+        config(['contact_sync.root' => 'data']);
+
+        $this->responde(['data' => [
+            ['Celular' => '6692406890', 'Nombre' => 'A', 'Estado' => 'LIQUIDADO'],
+            ['Celular' => '6692406890', 'Nombre' => 'A otra vez', 'Estado' => 'LIQUIDADO'],
+        ]]);
+
+        $r = app(\App\Services\Contacts\ContactSyncService::class)->sync(true);
+
+        $this->assertSame(['LIQUIDADO' => 1], $r['by_status']);
+    }
+
     public function test_el_mismo_telefono_repetido_en_la_respuesta_entra_una_vez(): void
     {
         $this->responde([

@@ -174,6 +174,8 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Sin contraseña visible**: la salida del diagnóstico NUNCA imprime la contraseña
 - [ ] **Campos**: con el API conectado, el diagnóstico lista los campos que llegan
 - [ ] **Modo seco**: `contactos:sincronizar --dry-run` reporta cuántos daría de alta y NO escribe nada
+- [ ] **La tabla cuadra**: inválidos + repetidos + excluidos + válidos = registros recibidos. Si no, el comando avisa
+- [ ] **Repetidos**: el mismo teléfono dos veces en la respuesta cuenta como 1 válido y 1 repetido, y el desglose por estado no lo suma dos veces
 - [ ] **Alta**: `contactos:sincronizar` da de alta solo los nuevos, con `source = api`
 - [ ] **No pisa**: un contacto que ya existe conserva su nombre del panel
 - [ ] **Respeta la baja**: un contacto `opted_out` que viene en el API NO se reactiva

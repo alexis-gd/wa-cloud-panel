@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Services\Contacts\ContactSyncService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Console\Helper\TableSeparator;
 
 /**
  * Da de alta los contactos nuevos que trae el API del cliente. Corre por scheduler una vez
@@ -38,16 +39,30 @@ class SyncExternalContacts extends Command
             return self::FAILURE;
         }
 
+        // El orden no es decorativo: los cuatro primeros renglones suman exactamente los
+        // registros recibidos. Antes faltaba "repetidos" y la tabla no cuadraba - en la
+        // primera corrida real se perdían 110 filas de 14,872 sin explicación.
         $this->newLine();
         $this->table(['Concepto', 'Cantidad'], [
-            ['Registros recibidos del API', $r['received']],
-            ['Teléfonos válidos',           $r['valid']],
-            ['Con formato inválido',        $r['invalid']],
-            ['Excluidos por su estado',     $r['excluded']],
-            ['Ya existían en el panel',     $r['duplicates']],
+            ['Registros recibidos del API',  $r['received']],
+            ['  Con formato inválido',       $r['invalid']],
+            ['  Repetidos en la respuesta',  $r['repeated']],
+            ['  Excluidos por su estado',    $r['excluded']],
+            ['  Teléfonos válidos',          $r['valid']],
+            new TableSeparator(),
+            ['Ya existían en el panel',      $r['duplicates']],
             [$seco ? 'Se DARÍAN de alta' : 'Dados de alta', $r['inserted']],
             [$seco ? 'Cambiarían de estado' : 'Estado actualizado', $r['refreshed']],
         ]);
+
+        // Si esto no cuadra, algún renglón dejó de contarse y el reporte estaría mintiendo.
+        $suma = $r['invalid'] + $r['repeated'] + $r['excluded'] + $r['valid'];
+
+        if ($suma !== $r['received']) {
+            $this->newLine();
+            $this->warn("Aviso: los renglones suman {$suma} y se recibieron {$r['received']}. "
+                . 'Hay filas sin clasificar - avisa al equipo técnico.');
+        }
 
         // El desglose por estado es lo que permite decidir a quién sí ofrecerle: un
         // LIQUIDADO es prospecto de renovación, un BURÓ probablemente no.

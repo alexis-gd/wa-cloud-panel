@@ -44,6 +44,7 @@ class ContactSyncService
             'duplicates'  => 0,
             'inserted'    => 0,
             'excluded'    => 0,
+            'repeated'    => 0,   // el mismo teléfono más de una vez en la respuesta del API
             'refreshed'   => 0,   // a cuántos ya existentes se les actualizó el estado de cartera
             'by_status'   => [],   // cuántos vienen de cada estado del sistema del cliente
             'samples'     => [],
@@ -84,6 +85,17 @@ class ContactSyncService
                 continue;
             }
 
+            // El mismo teléfono dos veces en la respuesta es una sola persona. Se cuenta
+            // aparte para que el reporte cierre: sin este renglón, "recibidos" no cuadraba
+            // con "válidos + inválidos" y faltaban filas sin explicación (en la primera
+            // corrida real del cliente eran 110 de 14,872).
+            // Gana la PRIMERA aparición; por eso el descarte va antes de contar el estado,
+            // si no un repetido sumaría dos veces al desglose.
+            if (isset($parsed[$normal])) {
+                $resumen['repeated']++;
+                continue;
+            }
+
             // El estado en SU sistema (LIQUIDADO, BURÓ, BAJA...). Se cuenta siempre, aunque
             // luego se excluya: el operador necesita saber qué trae el API para decidir.
             $estado = $this->valorDe($fila, config('contact_sync.field_status'));
@@ -103,15 +115,12 @@ class ContactSyncService
                 $resumen['excluded']++;
             }
 
-            // El mismo teléfono dos veces en la respuesta es uno solo.
-            if (! isset($parsed[$normal])) {
-                $nombre = $this->valorDe($fila, config('contact_sync.field_name'));
-                $parsed[$normal] = [
-                    'name'     => $nombre !== null ? trim((string) $nombre) : null,
-                    'status'   => $estado ?: null,
-                    'eligible' => $aceptado,
-                ];
-            }
+            $nombre = $this->valorDe($fila, config('contact_sync.field_name'));
+            $parsed[$normal] = [
+                'name'     => $nombre !== null ? trim((string) $nombre) : null,
+                'status'   => $estado ?: null,
+                'eligible' => $aceptado,
+            ];
         }
 
         ksort($resumen['by_status']);

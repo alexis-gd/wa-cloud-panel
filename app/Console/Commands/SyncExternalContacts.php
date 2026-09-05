@@ -46,6 +46,7 @@ class SyncExternalContacts extends Command
             ['Excluidos por su estado',     $r['excluded']],
             ['Ya existían en el panel',     $r['duplicates']],
             [$seco ? 'Se DARÍAN de alta' : 'Dados de alta', $r['inserted']],
+            [$seco ? 'Cambiarían de estado' : 'Estado actualizado', $r['refreshed']],
         ]);
 
         // El desglose por estado es lo que permite decidir a quién sí ofrecerle: un

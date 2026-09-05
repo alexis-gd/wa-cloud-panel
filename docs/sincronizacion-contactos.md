@@ -79,7 +79,7 @@ esté disponible para las campañas del día.
 | Situación | Qué hace |
 |---|---|
 | Teléfono que no existe | Lo da de alta con `status = active` y `source = api` |
-| Teléfono que **ya existe** | Lo ignora. **No** actualiza el nombre: el panel manda sobre el API |
+| Teléfono que **ya existe** | No lo da de alta otra vez y **no** actualiza el nombre: el panel manda sobre el API. Lo único que se le refresca es el estado de cartera |
 | Contacto **dado de baja** | Lo ignora. La baja manda sobre cualquier fuente externa (LFPDPPP y políticas de Meta) |
 | Contacto **eliminado** | Lo ignora. `phone` es UNIQUE y el borrado sigue ocupando el número |
 | Teléfono ilegible | Lo cuenta como inválido, muestra la fila y **sigue** con los demás |
@@ -101,15 +101,43 @@ El API trae un campo `Estado` con la clasificación de cartera del cliente. Valo
 > **Activo** y sí puede recibir campañas.
 
 **Por default no se excluye a nadie.** Descartar en silencio sería peor que dar de alta de
-más: la decisión es del cliente. Lo que sí se hace es **etiquetar a cada contacto con su
-estado**, para poder segmentar:
+más: la decisión es del cliente. Lo que sí se hace es guardar el estado en la columna
+**`contacts.portfolio_status`**, que el panel muestra como **Cartera** y permite filtrar.
+
+### Por qué columna y no etiqueta
+
+La primera versión creaba una etiqueta por estado (`LIQUIDADO`, `BURÓ`...). Se cambió a columna
+por tres razones:
+
+1. **El estado cambia con el tiempo.** Quien hoy está en `BURÓ` mañana liquida. Como etiqueta
+   quedaba congelado en el valor con el que entró, así que el segmento mentía más cada mes -
+   justo en `LIQUIDADO`, que es el grupo que le importa al cliente.
+2. **Las etiquetas son del operador.** Él las crea, renombra y borra. Un dato que escribe un
+   proceso automático no debe vivir donde alguien lo puede borrar sin querer.
+3. **Choque de nombres.** Si mañana su API agrega un campo `tag` propio, entraría al mismo
+   catálogo y se mezclaría con los estados de cartera.
+
+**Se refresca en cada corrida.** Es lo **único** que la sincronización actualiza de un contacto
+que ya existe: el nombre, la baja y todo lo demás siguen intocables.
 
 ```env
-SYNC_TAG_FROM_STATUS=true     # default: etiqueta con LIQUIDADO, BURÓ, BAJA...
+SYNC_REFRESH_STATUS=true      # default: el estado dice cómo está HOY
+SYNC_REFRESH_STATUS=false     # congela el estado con el que entró cada quien
 ```
 
-Así una campaña de renovación se manda solo a la etiqueta `LIQUIDADO`, sin cruzar listas a
-mano. Si el cliente decide excluir alguno:
+### Cómo se manda una campaña a un grupo de la cartera
+
+Las campañas siguen segmentando por **etiqueta**, no por estado de cartera. El flujo es:
+
+1. En Contactos, filtrar por **Cartera = LIQUIDADO**.
+2. Botón **Etiquetar todo lo filtrado** → le pone una etiqueta (ej. `Renovación septiembre`) a
+   todos los del filtro, no solo a los de la página. Pide confirmación con el total.
+3. Crear la campaña con esa etiqueta.
+
+Así la columna dice **cómo está hoy** la persona, y la etiqueta registra **a quién se le mandó**,
+aunque su situación cambie después.
+
+Si el cliente decide excluir alguno:
 
 ```env
 SYNC_STATUS_EXCLUDE=BURÓ                 # nunca dar de alta estos
@@ -117,6 +145,11 @@ SYNC_STATUS_INCLUDE=LIQUIDADO            # o al revés: solo estos
 ```
 
 `EXCLUDE` gana sobre `INCLUDE` (la regla más restrictiva manda) y no distingue mayúsculas.
+
+> **El filtro es una puerta de entrada, no un apagador.** A quien ya está dentro se le sigue
+> refrescando el estado aunque quede excluido. Si no fuera así: el cliente excluye `BURÓ`,
+> Juan cae en buró, y el panel lo dejaría marcado `LIQUIDADO` para siempre - entrando a la
+> campaña de renovación. Excluir impide **dar de alta**, no impide **reflejar la verdad**.
 
 El desglose por estado sale en `--dry-run`, que es justo lo que hace falta para llevarle
 números al cliente antes de decidir:

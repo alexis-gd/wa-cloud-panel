@@ -117,7 +117,7 @@ Al entrar ves un resumen de todo. De arriba a abajo:
 > **La prueba es un mensaje real.** Sale por el número de la empresa igual que una campaña:
 > gasta cupo del día, Meta lo cobra en la factura de la cuenta, y el contacto queda en
 > **enfriamiento**, o sea que no podrá recibir campañas hasta que pase ese periodo. Usa
-> siempre el mismo número de pruebas, y que no esté en los segmentos de tus campañas reales.
+> siempre el mismo número de pruebas, y que no esté en los destinatarios de tus campañas reales.
 > A quien pidió su baja el sistema no le envía ni siquiera una prueba.
 
 > ⚠️ Si el semáforo está en **ROJO** o dice **PAUSADO**, NO ejecutes campañas. El sistema se
@@ -311,6 +311,34 @@ disponible en uno y en pausa en el otro:
 **Chip rojo "Baja SMS"**: aparece cuando el contacto no recibe SMS (pidió baja por SMS o el
 número no recibe texto). Es aparte del estado: puede recibir WhatsApp pero no SMS.
 
+**Cartera**: cómo está esa persona en el sistema del cliente (por ejemplo **LIQUIDADO**, **BURÓ**
+o **BAJA**). No lo escribe nadie a mano: el panel lo trae solo cada noche del sistema del cliente,
+así que siempre dice cómo está **hoy**.
+
+> ⚠️ **La "BAJA" de Cartera NO es nuestra Baja.** En el sistema del cliente, "BAJA" significa que
+> esa persona dejó de ser su cliente. **Sí se le puede mandar publicidad.** Nuestra Baja - la que
+> significa "pidió no recibir más" - vive en la columna **Estado**, y ésa nunca se toca.
+
+### Mandarle una campaña a un grupo de la cartera
+
+El caso típico: mandarle una promoción de renovación solo a los que ya liquidaron su crédito.
+
+1. En **Contactos**, en el desplegable **Cartera: todos**, elige `LIQUIDADO`.
+2. La lista se filtra. Abajo del buscador aparece un aviso:
+   *"¿Quieres etiquetar los N contactos del filtro, no solo los de esta página?"*
+3. Elige una etiqueta (o créala antes, por ejemplo `Renovación septiembre`) y da clic en
+   **Etiquetar todo lo filtrado**.
+4. El panel te dice **a cuántos** les va a poner la etiqueta y te pide confirmar.
+5. Ve a **Campañas**, crea la campaña y elige esa etiqueta en **Destinatarios**.
+
+**Por qué son dos pasos y no uno:** la Cartera cambia sola cada noche. Si alguien liquida mañana,
+deja de ser BURÓ. La etiqueta, en cambio, se queda fija: es tu registro de **a quién le mandaste**
+esa campaña, aunque después cambie su situación.
+
+> El botón etiqueta **todos los contactos del filtro**, no solo los de la página que estás viendo.
+> Si quieres etiquetar unos pocos, marca sus casillas y usa **Asignar tag** (la barra azul).
+> Ninguno de los dos quita las etiquetas que el contacto ya tuviera.
+
 **Botones de la fila de un contacto:**
 - 🏷️ **Etiqueta** - le pones o quitas tags (ver [Etiquetas](#7-etiquetas-tags)).
 - **Dar de baja** (rojo) - lo marca como baja (ver abajo).
@@ -358,7 +386,7 @@ En el menú hay una pantalla **Etiquetas** con el catálogo completo. Ahí ves d
 | Etiqueta | El nombre. |
 | Identificador | El nombre interno. **No cambia aunque renombres**, y es con el que el Excel de importación reconoce la etiqueta. |
 | Contactos | Cuántos la tienen ahora. **Es un botón**: te lleva a Contactos ya filtrado por esa etiqueta. |
-| Campañas | Cuántas campañas la usan como segmento. |
+| Campañas | Cuántas campañas la tienen como destinatarios. |
 | Creada | Cuándo se creó. |
 
 Arriba tienes el resumen (cuántas etiquetas hay, cuántos contactos etiquetados y cuántas
@@ -374,11 +402,16 @@ Desde la pantalla **Etiquetas**, o desde el recuadro **Asignar tags** de cualqui
 Antes de borrar, el sistema te dice **exactamente qué se lleva por delante**:
 
 - Cuántos contactos dejarán de tenerla. **Los contactos NO se eliminan**, solo pierden la etiqueta.
-- Cuántas campañas ya enviadas quedarán sin la referencia de su segmento. Su historial no cambia.
+- Cuántas campañas ya enviadas dejarán de mostrarla en sus destinatarios. Lo que ya se envió no
+  cambia: sus mensajes y resultados siguen igual.
 
-> 🛑 **Si una campaña sin enviar usa esa etiqueta, el sistema NO te deja borrarla** y te dice
-> cuál es. Es a propósito: una campaña que apunta a una etiqueta se quedaría sin segmento y se
-> enviaría a **todos** los contactos. Primero cámbiale el segmento a esa campaña o cancélala.
+> 🛑 **Si hay una campaña sin enviar que tiene esa etiqueta como destinatarios, el sistema NO te
+> deja borrarla**, y te dice cuál es. Es a propósito: esa campaña se quedaría sin lista de a
+> quién enviar y le saldría a **todos** los contactos.
+>
+> **Qué hacer:** una campaña ya creada no se puede editar, así que tienes dos caminos: **borrar
+> esa campaña** en la pantalla Campañas y volver a crearla con otros destinatarios, o **dejar la
+> etiqueta como está** hasta que la campaña ya se haya enviado.
 
 Borrar una etiqueta no se puede deshacer: hay que volver a crearla y reasignarla.
 

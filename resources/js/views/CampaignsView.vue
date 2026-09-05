@@ -262,11 +262,11 @@
                     </div>
                 </div>
 
-                <!-- Info: contactos del segmento que no reciben por estar de baja (no se les envía) -->
+                <!-- Info: destinatarios que no reciben por estar de baja (no se les envía) -->
                 <p v-if="detailStats?.excluded_optout > 0" class="excluded-note">
                     <i class="pi pi-info-circle"></i>
                     {{ detailStats.excluded_optout }} contacto{{ detailStats.excluded_optout === 1 ? '' : 's' }}
-                    del segmento no {{ detailStats.excluded_optout === 1 ? 'recibe' : 'reciben' }} por estar de
+                    de los destinatarios no {{ detailStats.excluded_optout === 1 ? 'recibe' : 'reciben' }} por estar de
                     <strong>baja</strong> - no se les intenta enviar (es lo correcto).
                 </p>
 

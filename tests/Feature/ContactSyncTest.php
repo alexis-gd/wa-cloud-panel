@@ -354,19 +354,31 @@ class ContactSyncTest extends TestCase
         ]);
     }
 
-    public function test_etiqueta_a_cada_contacto_con_su_estado(): void
+    public function test_guarda_el_estado_de_cartera_en_su_propia_columna(): void
     {
-        // Asi el operador puede mandar renovacion solo a los LIQUIDADO sin cruzar listas.
+        // Columna y no etiqueta: es UN dato del cliente que cambia con el tiempo, no una
+        // decision del operador. Asi se puede refrescar y el filtro dice la verdad de hoy.
         config(['contact_sync.root' => 'data']);
 
         $this->responde($this->respuestaReal());
 
         $this->sync();
 
-        $liquidado = Contact::where('phone', '526691655905')->firstOrFail();
+        $this->assertSame('LIQUIDADO', Contact::where('phone', '526691655905')->value('portfolio_status'));
+        $this->assertSame('BURO',      Contact::where('phone', '526699931652')->value('portfolio_status'));
+    }
 
-        $this->assertSame(['LIQUIDADO'], $liquidado->tags->pluck('name')->all());
-        $this->assertEqualsCanonicalizing(['BAJA', 'BURO', 'LIQUIDADO'], Tag::pluck('name')->all());
+    public function test_el_estado_de_cartera_no_crea_etiquetas(): void
+    {
+        // Las etiquetas son del operador. Si el estado las creara, ensuciaria su catalogo y
+        // chocaria con un futuro campo `tag` del propio API del cliente.
+        config(['contact_sync.root' => 'data']);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $this->assertSame(0, Tag::count());
     }
 
     public function test_la_baja_de_SU_sistema_no_es_nuestra_baja(): void
@@ -382,7 +394,7 @@ class ContactSyncTest extends TestCase
         $baja = Contact::where('phone', '526692406890')->firstOrFail();
 
         $this->assertSame('active', $baja->status);
-        $this->assertSame(['BAJA'], $baja->tags->pluck('name')->all());
+        $this->assertSame('BAJA', $baja->portfolio_status);
     }
 
     public function test_por_default_no_excluye_a_nadie(): void
@@ -449,15 +461,146 @@ class ContactSyncTest extends TestCase
         $this->assertSame(2, Contact::count());
     }
 
-    public function test_se_puede_apagar_el_etiquetado_por_estado(): void
+    // -- Refresco del estado de cartera -------------------------------------
+
+    public function test_refresca_el_estado_de_quien_ya_existe(): void
     {
-        config(['contact_sync.root' => 'data', 'contact_sync.tag_from_status' => false]);
+        // Es lo UNICO que se actualiza de un contacto existente: el estado cambia con el
+        // tiempo (quien hoy esta en BURO manana liquida) y congelarlo haria mentir al filtro.
+        config(['contact_sync.root' => 'data']);
+
+        Contact::create([
+            'phone'            => '526691655905',
+            'name'             => 'NOMBRE DEL PANEL',
+            'status'           => 'active',
+            'source'           => 'manual',
+            'portfolio_status' => 'BURO',
+        ]);
 
         $this->responde($this->respuestaReal());
 
         $this->sync();
 
-        $this->assertSame(0, Tag::count());
+        $contacto = Contact::where('phone', '526691655905')->firstOrFail();
+
+        $this->assertSame('LIQUIDADO', $contacto->portfolio_status);
+        // El nombre del panel manda sobre el API: eso no cambia.
+        $this->assertSame('NOMBRE DEL PANEL', $contacto->name);
+    }
+
+    public function test_refrescar_el_estado_no_revive_una_baja(): void
+    {
+        // La baja es irreversible por ley. Se le puede mover el estado de cartera, pero
+        // nuestro `status` no se toca jamas.
+        config(['contact_sync.root' => 'data']);
+
+        Contact::create([
+            'phone'            => '526691655905',
+            'name'             => 'YA SE DIO DE BAJA',
+            'status'           => 'opted_out',
+            'source'           => 'manual',
+            'portfolio_status' => 'BURO',
+        ]);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $contacto = Contact::where('phone', '526691655905')->firstOrFail();
+
+        $this->assertSame('opted_out', $contacto->status);
+        $this->assertSame('LIQUIDADO', $contacto->portfolio_status);
+    }
+
+    public function test_el_resumen_cuenta_los_estados_actualizados(): void
+    {
+        config(['contact_sync.root' => 'data']);
+
+        Contact::create([
+            'phone' => '526691655905', 'name' => 'A', 'status' => 'active',
+            'source' => 'manual', 'portfolio_status' => 'BURO',
+        ]);
+        // Este ya viene con el estado correcto: no debe contar como cambiado.
+        Contact::create([
+            'phone' => '526692406890', 'name' => 'B', 'status' => 'active',
+            'source' => 'manual', 'portfolio_status' => 'BAJA',
+        ]);
+
+        $this->responde($this->respuestaReal());
+
+        $resumen = app(\App\Services\Contacts\ContactSyncService::class)->sync();
+
+        $this->assertSame(1, $resumen['refreshed']);
+    }
+
+    public function test_un_excluido_que_ya_existe_igual_se_le_refresca_el_estado(): void
+    {
+        // El filtro de estados es una puerta de ENTRADA, no una razon para dejar de reflejar
+        // lo que dice el API de alguien que ya esta dentro. Si el cliente excluye BURO y
+        // alguien cae en buro, saltarselo lo dejaria marcado LIQUIDADO para siempre - y
+        // entraria a la campana de renovacion. El API manda sobre el estado de cartera.
+        config(['contact_sync.root' => 'data', 'contact_sync.status_exclude' => 'BURO']);
+
+        Contact::create([
+            'phone'            => '526699931652',   // en la respuesta viene como BURO
+            'name'             => 'CAYO EN BURO',
+            'status'           => 'active',
+            'source'           => 'manual',
+            'portfolio_status' => 'LIQUIDADO',
+        ]);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $this->assertSame('BURO', Contact::where('phone', '526699931652')->value('portfolio_status'));
+    }
+
+    public function test_un_excluido_que_no_existe_sigue_sin_darse_de_alta(): void
+    {
+        // La otra mitad de la regla: excluir sigue impidiendo el alta de gente nueva.
+        config(['contact_sync.root' => 'data', 'contact_sync.status_exclude' => 'BURO']);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $this->assertDatabaseMissing('contacts', ['phone' => '526699931652']);
+        $this->assertSame(2, Contact::count());
+    }
+
+    public function test_se_puede_apagar_el_refresco_del_estado(): void
+    {
+        // Por si el cliente prefiere congelar el estado con el que entro cada quien.
+        config(['contact_sync.root' => 'data', 'contact_sync.refresh_status' => false]);
+
+        Contact::create([
+            'phone' => '526691655905', 'name' => 'A', 'status' => 'active',
+            'source' => 'manual', 'portfolio_status' => 'BURO',
+        ]);
+
+        $this->responde($this->respuestaReal());
+
+        $this->sync();
+
+        $this->assertSame('BURO', Contact::where('phone', '526691655905')->value('portfolio_status'));
+    }
+
+    public function test_el_modo_seco_no_refresca_pero_lo_reporta(): void
+    {
+        config(['contact_sync.root' => 'data']);
+
+        Contact::create([
+            'phone' => '526691655905', 'name' => 'A', 'status' => 'active',
+            'source' => 'manual', 'portfolio_status' => 'BURO',
+        ]);
+
+        $this->responde($this->respuestaReal());
+
+        $resumen = app(\App\Services\Contacts\ContactSyncService::class)->sync(true);
+
+        $this->assertSame(1, $resumen['refreshed']);
+        $this->assertSame('BURO', Contact::where('phone', '526691655905')->value('portfolio_status'));
     }
 
     public function test_el_resumen_desglosa_por_estado(): void

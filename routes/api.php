@@ -77,12 +77,18 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::post('/contacts/search',      [ContactController::class, 'search']);
         Route::get('/contacts/stats',        [ContactController::class, 'stats']);
         Route::get('/contacts/check',        [ContactController::class, 'check']);
+        // Estados de cartera existentes (LIQUIDADO, BURO...), para el desplegable del filtro.
+        Route::get('/contacts/portfolio-statuses', [ContactController::class, 'portfolioStatuses']);
         Route::post('/contacts',             [ContactController::class, 'store']);
         Route::post('/contacts/upload',      [ContactController::class, 'upload']);
         Route::post('/contacts/{id}/opt-out', [ContactController::class, 'optOut']);
         Route::put('/contacts/{id}/tags',    [TagController::class, 'syncContact']);
         Route::post('/contacts/tags/bulk-attach', [TagController::class, 'bulkAttach']);
         Route::post('/contacts/tags/bulk-detach', [TagController::class, 'bulkDetach']);
+        // Etiquetar TODO lo que cumple el filtro, no solo las filas visibles. El preview
+        // devuelve el conteo para poder avisar antes de confirmar.
+        Route::post('/contacts/tags/bulk-preview',        [TagController::class, 'bulkPreview']);
+        Route::post('/contacts/tags/bulk-attach-filtered', [TagController::class, 'bulkAttachFiltered']);
 
         // Tags
         Route::get('/tags',         [TagController::class, 'index']);

@@ -211,7 +211,7 @@
             title="Qué pasa al enviar una prueba"
             :items="testHelpItems"
             warning="El contacto quedará en enfriamiento: no podrá recibir campañas durante ese periodo."
-            tip="Usa siempre el mismo número de pruebas, y que no esté en los segmentos de tus campañas reales."
+            tip="Usa siempre el mismo número de pruebas, y que no esté en los destinatarios de tus campañas reales."
           />
         </div>
         <div class="form-group">

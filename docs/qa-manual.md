@@ -89,6 +89,10 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Reasignar**: admin cambia asignación de agente A a agente B → agente A ya no la ve en su lista
 - [ ] **No reasignar en mensajes siguientes**: contacto ya asignado envía otro mensaje → la asignación no cambia
 - [ ] **Respuestas rápidas**: clic en chip de respuesta rápida → carga texto → se envía → aparece en historial
+- [ ] **Escribir no se traba**: con cientos de conversaciones en la lista, teclear en la cajita sale fluido (el texto vive en su propio componente; antes cada tecla redibujaba la lista entera)
+- [ ] **El texto no se pierde**: si el envío falla (apaga la red y manda), el mensaje escrito SIGUE en la cajita
+- [ ] **Se limpia al enviar bien**: envío exitoso → la cajita queda vacía
+- [ ] **La fila se ve igual**: nombre, hora, vista previa, punto de estado, etiqueta y el mini indicador de asignación siguen viéndose como antes (se movieron a un componente)
 - [ ] **Filtro por rol agente**: agente solo ve sus conversaciones asignadas, no las de otros agentes
 - [ ] **Admin ve todo**: admin ve todas las conversaciones, incluyendo las sin asignar
 

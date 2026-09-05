@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Services\System\SchedulerHeartbeat;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -12,6 +13,14 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        // Latido: deja constancia de que el cron está vivo. Va PRIMERO y sin condiciones
+        // (no `withoutOverlapping`, no ventanas) porque su único trabajo es demostrar que
+        // esta línea se está ejecutando. Si deja de latir, el panel lo avisa - una sola
+        // línea de cron mueve todo lo automático del sistema y su muerte es silenciosa.
+        $schedule->call(fn () => SchedulerHeartbeat::latir())
+            ->everyMinute()
+            ->name('scheduler-heartbeat');
+
         // Procesar queue de mensajes WhatsApp — solo L-V, 9AM-10PM hora México (CST/UTC-6)
         // Cubre todo México: Baja California (PST) recibe desde 7AM, Veracruz (CST) hasta 10PM.
         // Sin override manual — el scheduler es la única fuente de verdad.

@@ -88,6 +88,9 @@ export const api = {
 
     tokenStatus: () => request('/settings/token-status'),
 
+    /** ¿El cron sigue vivo? Una sola línea de crontab mueve todo lo automático. */
+    schedulerStatus: () => request('/system/scheduler-status'),
+
     updateToken: (token) => request('/settings/token', {
         method : 'POST',
         body   : JSON.stringify({ token }),

@@ -7,6 +7,7 @@ use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
+use App\Services\System\SchedulerHeartbeat;
 use App\Services\WhatsApp\PortfolioLimit;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,21 @@ use Illuminate\Support\Facades\Http;
 
 class SettingsController extends Controller
 {
+    /**
+     * ¿El programador de tareas sigue vivo?
+     * GET /api/system/scheduler-status
+     *
+     * Lo consulta el panel para pintar la barra de aviso. Va aparte de las demás pantallas
+     * porque no es configuración: es salud del servidor, y lo pregunta cualquier vista.
+     */
+    public function schedulerStatus(): JsonResponse
+    {
+        return response()->json([
+            'status' => 'ok',
+            'data'   => SchedulerHeartbeat::estado(),
+        ]);
+    }
+
     /**
      * GET /api/settings/token-status
      * Verifica si el token actual en DB es válido contra Meta.

@@ -55,12 +55,28 @@ php artisan contactos:sincronizar --dry-run
 MODO SECO: no se va a escribir nada en la base de datos.
 
  Concepto                     Cantidad
- Registros recibidos del API  1204
- Teléfonos válidos            1198
- Con formato inválido         6
- Ya existían en el panel      1150
- Se DARÍAN de alta            48
+ Registros recibidos del API  14872
+   Con formato inválido       4
+   Repetidos en la respuesta  110
+   Excluidos por su estado    0
+   Teléfonos válidos          14758
+ ---------------------------------
+ Ya existían en el panel      3039
+ Se DARÍAN de alta            11719
+ Cambiarían de estado         3039
 ```
+
+Los cuatro renglones sangrados **suman exactamente** los registros recibidos:
+
+```
+recibidos = inválidos + repetidos + excluidos + válidos
+```
+
+Si no cuadran, el comando lo avisa. Sin el renglón de repetidos la tabla no cerraba y se
+perdían filas sin explicación - en la primera corrida real fueron 110 de 14,872 (el mismo
+teléfono más de una vez en su respuesta: la misma persona registrada dos veces, o dos
+personas compartiendo número). Gana la primera aparición, y el desglose por estado también
+la cuenta una sola vez.
 
 ### 4. Correrlo de verdad
 
@@ -87,13 +103,20 @@ esté disponible para las campañas del día.
 
 ### El campo `Estado`: su cartera, no nuestro opt-out
 
-El API trae un campo `Estado` con la clasificación de cartera del cliente. Valores vistos:
+El API trae un campo `Estado` con la clasificación de cartera del cliente. Valores vistos
+(conteo real del 2026-09-05, sobre 14,872 registros):
 
-| Estado | Qué significa (de su lado) |
-|---|---|
-| `LIQUIDADO` | Ya pagó su crédito. Es el mejor prospecto para renovación. |
-| `BURÓ` | Está reportado en buró de crédito. |
-| `BAJA` | Terminó su relación con ellos. |
+| Estado | Registros | Qué significa (de su lado) |
+|---|---|---|
+| `LIQUIDADO` | 12,737 | Ya pagó su crédito. Es el mejor prospecto para renovación. |
+| `ACTIVO` | 1,704 | Tiene un crédito vigente con ellos. |
+| `BURÓ` | 414 | Está reportado en buró de crédito. |
+| `BAJA` | 17 | Terminó su relación con ellos. |
+
+> `ACTIVO` no aparecía en la muestra inicial de 3 registros: se descubrió al conectar contra
+> el API completo. Es el segundo grupo más grande. No se filtra por nombre de estado en
+> ningún lado del código, así que un valor nuevo entra solo - por eso el desplegable de
+> Cartera se arma con lo que hay en la base y no con una lista fija.
 
 > 🛑 **Su `BAJA` NO es nuestra Baja.** En el panel, "Baja" significa que la persona pidió
 > dejar de recibir mensajes (opt-out, irreversible, legal). En su sistema significa que el

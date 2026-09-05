@@ -174,6 +174,8 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Sin contraseña visible**: la salida del diagnóstico NUNCA imprime la contraseña
 - [ ] **Campos**: con el API conectado, el diagnóstico lista los campos que llegan
 - [ ] **Modo seco**: `contactos:sincronizar --dry-run` reporta cuántos daría de alta y NO escribe nada
+- [ ] **La tabla cuadra**: inválidos + repetidos + excluidos + válidos = registros recibidos. Si no, el comando avisa
+- [ ] **Repetidos**: el mismo teléfono dos veces en la respuesta cuenta como 1 válido y 1 repetido, y el desglose por estado no lo suma dos veces
 - [ ] **Alta**: `contactos:sincronizar` da de alta solo los nuevos, con `source = api`
 - [ ] **No pisa**: un contacto que ya existe conserva su nombre del panel
 - [ ] **Respeta la baja**: un contacto `opted_out` que viene en el API NO se reactiva
@@ -186,6 +188,7 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Se puede congelar**: con `SYNC_REFRESH_STATUS=false` el estado NO se actualiza
 - [ ] **Modo seco no refresca**: `--dry-run` reporta "Cambiarían de estado" pero la columna no cambia
 - [ ] **Desglose**: `--dry-run` muestra la tabla de cuántos hay de cada estado
+- [ ] **Estado nuevo sin tocar código**: si el API manda una clasificación que no conocíamos (pasó con `ACTIVO`), entra sola y aparece en el filtro Cartera sin desplegar nada
 - [ ] **Excluir**: con `SYNC_STATUS_EXCLUDE=BURÓ`, esos no se dan de alta y salen en "Excluidos por su estado"
 - [ ] **Excluido que ya existe**: con `SYNC_STATUS_EXCLUDE=BURÓ`, a un contacto que YA está y pasa a BURÓ **sí** se le actualiza la Cartera (excluir impide el alta, no el reflejo)
 - [ ] **API caído**: si no responde, el comando falla con mensaje claro y no deja nada a medias

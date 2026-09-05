@@ -165,21 +165,39 @@ Aquí vive tu base de prospectos. Entra a **Contactos** en el menú.
 
 ### Importar desde Excel
 
+Sirve para dos cosas: **dar de alta** contactos nuevos y, sobre todo, **etiquetar en masa**
+contactos que ya tienes.
+
 1. Clic en **Importar Excel**.
-2. Sube el archivo `.xlsx`. El formato es simple:
+2. Sube el archivo `.xlsx`, `.xls` o `.csv`:
 
-   | Columna A | Columna B (opcional) |
-   |-----------|----------------------|
-   | Teléfono  | Nombre               |
+   | Teléfono | Nombre (opcional) | Etiqueta (opcional) |
+   |----------|-------------------|---------------------|
+   | 9231311146 | Juan Pérez | VIP |
+   | 6692522844 | Ana López | VIP, Mazatlán |
 
-   - Los teléfonos van con la clave del país, sin el signo +. Ejemplo: `529231311146`.
-   - Si la primera fila es un encabezado, el sistema lo detecta solo.
-3. Al terminar verás un resumen: **aceptados / duplicados / formato inválido**.
-   - **Duplicados**: ya estaban, no se agregan otra vez.
-   - **Formato inválido**: números mal escritos, se ignoran.
-4. Los contactos que ya pidieron **baja** nunca regresan, aunque los vuelvas a importar.
+   - Los teléfonos pueden ir con clave de país (`529231311146`) o solo los 10 dígitos.
+   - **Con encabezado el orden de las columnas da igual**, el sistema las reconoce.
+   - La columna de etiqueta se puede llamar `etiqueta`, `etiquetas`, `tag` o `tags`.
+   - **Varias etiquetas en una celda** separadas por coma.
+   - Las etiquetas que no existan **se crean solas**. `VIP` y `vip` son la misma.
+3. Al terminar verás el resumen: **nuevos / ya existían / inválidos**, y si el archivo traía
+   columna de etiqueta, cuántas se asignaron y cuántas se crearon.
 
-> 💡 Para bajar tus contactos a Excel, usa el botón **Exportar**.
+> 🏷️ **Si el teléfono ya existe, NO se duplica: se le agrega la etiqueta.** Por eso puedes
+> re-subir una lista de números que ya tienes solo para clasificarlos. Las etiquetas que el
+> contacto ya tenía **no se borran**, se suman.
+
+Detalles:
+
+- **Ya existían**: el número ya estaba. Se etiqueta pero no se da de alta otra vez.
+- **Inválidos**: números mal escritos. Se ignoran y te dice en qué fila estaban.
+- Los contactos que pidieron **baja** nunca regresan, aunque los vuelvas a importar.
+- Un contacto **eliminado** no se re-etiqueta (está fuera de listas y campañas).
+
+> 💡 El botón **Exportar** baja tus contactos a Excel **con su columna de etiquetas**, en el
+> mismo formato que lee el importador. Puedes exportar, cambiar etiquetas en Excel y volver a
+> subir el archivo.
 
 ### Agregar un contacto a mano
 
@@ -331,6 +349,39 @@ Para **quitar** una etiqueta de varios: selecciónalos, elige la etiqueta y clic
 
 ---
 
+### La pantalla Etiquetas
+
+En el menú hay una pantalla **Etiquetas** con el catálogo completo. Ahí ves de un vistazo:
+
+| Columna | Qué te dice |
+|---|---|
+| Etiqueta | El nombre. |
+| Identificador | El nombre interno. **No cambia aunque renombres**, y es con el que el Excel de importación reconoce la etiqueta. |
+| Contactos | Cuántos la tienen ahora. **Es un botón**: te lleva a Contactos ya filtrado por esa etiqueta. |
+| Campañas | Cuántas campañas la usan como segmento. |
+| Creada | Cuándo se creó. |
+
+Arriba tienes el resumen (cuántas etiquetas hay, cuántos contactos etiquetados y cuántas
+etiquetas **sin usar**, útil para limpiar), un buscador y el botón **Nueva etiqueta**.
+
+**Renombrar** (icono de lápiz) cambia solo el nombre que ves. El identificador se queda igual a
+propósito: si cambiara, tus Excel viejos dejarían de reconocer la etiqueta y crearían una
+duplicada.
+
+### Borrar una etiqueta
+
+Desde la pantalla **Etiquetas**, o desde el recuadro **Asignar tags** de cualquier contacto.
+Antes de borrar, el sistema te dice **exactamente qué se lleva por delante**:
+
+- Cuántos contactos dejarán de tenerla. **Los contactos NO se eliminan**, solo pierden la etiqueta.
+- Cuántas campañas ya enviadas quedarán sin la referencia de su segmento. Su historial no cambia.
+
+> 🛑 **Si una campaña sin enviar usa esa etiqueta, el sistema NO te deja borrarla** y te dice
+> cuál es. Es a propósito: una campaña que apunta a una etiqueta se quedaría sin segmento y se
+> enviaría a **todos** los contactos. Primero cámbiale el segmento a esa campaña o cancélala.
+
+Borrar una etiqueta no se puede deshacer: hay que volver a crearla y reasignarla.
+
 ## 8. Campañas
 
 Una campaña es un **envío masivo** a un grupo de contactos.
@@ -477,6 +528,55 @@ un agente solo. El modo lo elige el administrador en **Configuración → Multi-
 > Los agentes solo ven **sus** conversaciones. Admin y operador ven todas.
 
 ---
+
+### Cambios de turno: reasignar y ver el historial
+
+En el panel derecho de una conversación, la sección **Asignación** tiene tres acciones (solo
+para operador y administrador):
+
+- **Reasignar**: elige a otro agente y pásasela. Sirve para el cambio de turno.
+- **Dejar sin asignar**: la suelta para que la tome quien entre. No se pierde nada.
+- **Ver historial**: abre el detalle de todos los movimientos de esa conversación.
+
+El historial muestra, del movimiento más reciente al más viejo:
+
+| | |
+|---|---|
+| **Qué movimiento** | Asignación automática · Asignada · Tomada por el agente · Reasignada · Sin asignar |
+| **A quién** | El agente que quedó a cargo. |
+| **Cuándo** | Fecha y hora. |
+| **Quién lo hizo** | El usuario que movió la conversación, o *el sistema* cuando fue el reparto automático. |
+
+> 📌 **El historial nunca se borra.** Aunque la conversación se suelte o cambie de agente diez
+> veces, quedan los diez movimientos. Es lo que permite revisar el seguimiento que se le dio a
+> un cliente.
+
+Si intentas reasignar al mismo agente que ya la tiene, el sistema lo rechaza: así el historial
+no se llena de movimientos que no movieron nada.
+
+### Reporte de agentes
+
+En el menú hay una pantalla **Reporte de agentes** (operador y administrador; el agente no la
+ve, no debe ver la carga de sus compañeros). Muestra cuántas conversaciones lleva cada quien.
+
+Trae **dos números** porque "cuántas conversaciones tiene" se puede entender de dos formas:
+
+| Columna | Qué es |
+|---|---|
+| **Recibidas en el periodo** | Las que se le asignaron entre las fechas del filtro. Responde al filtro de fecha. |
+| **Abiertas ahora** | Las que tiene a su cargo en este momento. **No cambia con el filtro de fecha.** |
+
+> Un agente puede haber recibido 12 hoy y tener 40 abiertas: arrastra conversaciones de días
+> anteriores que nadie ha cerrado ni reasignado. Por eso van las dos columnas.
+
+Filtros: **Desde**, **Hasta** y **Agente**. El botón **Hoy** vuelve al día de hoy. Al entrar,
+la pantalla ya muestra el día de hoy sin que tengas que elegir nada.
+
+Los botones **Descargar Excel** y **Descargar PDF** bajan exactamente la tabla que estás
+viendo, con los filtros aplicados. El nombre del archivo lleva el periodo.
+
+Quien aparece: todos los que pueden atender conversaciones (agentes, operadores y
+administradores), **aunque estén en cero**. Un agente en cero también es información.
 
 ## 10. Respuestas SMS
 

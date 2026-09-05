@@ -177,6 +177,26 @@ de envíos (9AM). Sin contención de BD con los jobs de campaña.
 
 Ver plan de implementación completo en [`docs/plan-unreachable.md`](plan-unreachable.md).
 
+### Por qué dompdf para el reporte en PDF
+
+`barryvdh/laravel-dompdf` es PHP puro: no necesita Node ni Chromium en el VPS, que es lo que
+pediría `spatie/browsershot`. A cambio no entiende flex ni grid, así que la plantilla
+`resources/views/reports/agent-conversations.blade.php` está hecha con tabla y estilos básicos
+a propósito. Para un reporte tabular alcanza; si algún día hace falta un PDF que calque una
+pantalla compleja, ahí sí habría que reconsiderar.
+
+### Por qué el reporte de agentes trae dos columnas
+
+"Cuántas conversaciones tiene un agente" son dos números distintos: las que se le **asignaron
+en el periodo** (responde al filtro de fecha) y las que tiene **abiertas ahora** (foto del
+momento, ajena al filtro). Un agente puede haber recibido 12 hoy y tener 40 abiertas porque
+arrastra de días previos. Con una sola columna el reporte mentiría en la mitad de los casos,
+así que `AgentConversationReport` devuelve las dos y la pantalla las nombra.
+
+El responsable actual de un contacto es siempre su movimiento más reciente (`MAX(id)` en
+`conversation_assignments`), el mismo criterio que usan el listado de conversaciones, el filtro
+por agente y el reparto automático.
+
 ### Por qué `POST /api/contacts/search` y no un GET con muchos parámetros
 
 El operador copia una columna de Excel y pega cientos de números en el buscador de Contactos

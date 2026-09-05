@@ -240,12 +240,24 @@ export const api = {
     }),
 
     // ── Tags ─────────────────────────────────────────────────────────────────
-    tags: () => request('/tags'),
+    tags: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return request(qs ? `/tags?${qs}` : '/tags');
+    },
+
+    /** Renombra la etiqueta. El slug no cambia: es la llave que usa el importador. */
+    renameTag: (id, name) => request(`/tags/${id}`, {
+        method : 'PUT',
+        body   : JSON.stringify({ name }),
+    }),
 
     createTag: (name) => request('/tags', {
         method : 'POST',
         body   : JSON.stringify({ name }),
     }),
+
+    /** Que se lleva por delante borrar la etiqueta: contactos, campanas y si esta bloqueada. */
+    tagUsage: (id) => request(`/tags/${id}/usage`),
 
     deleteTag: (id) => request(`/tags/${id}`, { method: 'DELETE' }),
 
@@ -314,6 +326,12 @@ export const api = {
 
     claimConversation: (contactId) => request(`/conversations/${contactId}/claim`, { method: 'POST' }),
 
+    /** Deja la conversación sin agente. No borra historial: agrega un movimiento. */
+    releaseConversation: (contactId) => request(`/conversations/${contactId}/release`, { method: 'POST' }),
+
+    /** Historial de movimientos: fecha, quién la movió y qué movimiento fue. */
+    conversationHistory: (contactId) => request(`/conversations/${contactId}/history`),
+
     // ── Dashboard messages ────────────────────────────────────────────────────
     dashboardMessages: (params = {}) => {
         const qs = new URLSearchParams(params).toString();
@@ -355,6 +373,37 @@ export const api = {
     // A quién se le puede asignar una conversación. Va aparte de `users()` porque esa ruta es
     // solo admin: al operador le respondía 403 y el desplegable de asignar salía vacío.
     assignableUsers: () => request('/conversations/assignable-users'),
+
+    // ── Reporte de conversaciones por agente ─────────────────────────────────
+    agentReport: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return request(`/reports/agent-conversations?${qs}`);
+    },
+
+    /**
+     * Descarga el reporte (xlsx o pdf). Va por fetch y no por un <a href> porque la ruta
+     * necesita el token de Sanctum en la cabecera, y un enlace normal no la manda.
+     */
+    downloadAgentReport: async (params = {}) => {
+        const token = localStorage.getItem('wa_token');
+        const qs    = new URLSearchParams(params).toString();
+        const res   = await fetch(`${BASE}/reports/agent-conversations/export?${qs}`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        });
+
+        if (!res.ok) return false;
+
+        const blob     = await res.blob();
+        const url      = URL.createObjectURL(blob);
+        const filename = res.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1]
+                         ?? `reporte.${params.format === 'pdf' ? 'pdf' : 'xlsx'}`;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        return true;
+    },
 
     createUser: (payload) => request('/users', {
         method : 'POST',

@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\AgentReportController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\ContactedController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
@@ -39,6 +41,12 @@ Route::post('/webhook', [WebhookController::class, 'handle']);
 
 // ── Webhook gateway SMS — sin API key, valida HMAC X-Signature ──────────────
 Route::post('/sms/webhook', [SmsWebhookController::class, 'handle']);
+
+// ── API para sistemas externos del cliente — X-API-Key, no Sanctum ──────────
+// La consume otro servidor, no el panel: un servidor no hace login, manda una llave.
+Route::middleware(['api_key', 'throttle:60,1'])->group(function () {
+    Route::get('/contacted', [ContactedController::class, 'index']);
+});
 
 // ── Auth — público, con rate limit anti-brute-force ─────────────────────────
 // 5 intentos por minuto por IP — bloquea ataques de fuerza bruta sin molestar
@@ -79,6 +87,10 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         // Tags
         Route::get('/tags',         [TagController::class, 'index']);
         Route::post('/tags',        [TagController::class, 'store']);
+        // Renombrar: solo cambia el nombre visible, el slug se queda fijo.
+        Route::put('/tags/{id}',    [TagController::class, 'update']);
+        // Conteo previo al borrado: cuantos contactos y campanas usan la etiqueta.
+        Route::get('/tags/{id}/usage', [TagController::class, 'usage']);
         Route::delete('/tags/{id}', [TagController::class, 'destroy']);
 
         // Campañas
@@ -112,10 +124,19 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
     // Asignación de conversaciones — solo admin y operator
     Route::middleware('role:admin,operator')->group(function () {
+        // Reporte de conversaciones por agente: de operador hacia arriba (el agente no ve
+        // la carga de sus companeros).
+        Route::get('/reports/agent-conversations',        [AgentReportController::class, 'index']);
+        Route::get('/reports/agent-conversations/export', [AgentReportController::class, 'export']);
+
         // Quien puede asignar necesita saber a quién: el desplegable se llenaba con /users,
         // que es solo admin, y al operador le salía vacío.
         Route::get('/conversations/assignable-users',     [ConversationController::class, 'assignableUsers']);
         Route::post('/conversations/{contactId}/assign', [ConversationController::class, 'assign'])->whereNumber('contactId');
+        // Dejarla sin asignar (cambio de turno sin relevo inmediato). No borra historial.
+        Route::post('/conversations/{contactId}/release', [ConversationController::class, 'release'])->whereNumber('contactId');
+        // Historial de movimientos: fecha, quien la movio y que movimiento fue.
+        Route::get('/conversations/{contactId}/history', [ConversationController::class, 'history'])->whereNumber('contactId');
     });
 
     // Quick replies — solo admin puede crear/eliminar

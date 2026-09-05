@@ -47,7 +47,12 @@
             <template #title>Cargar contactos desde Excel / CSV</template>
             <template #content>
                 <p class="upload-hint">
-                    <strong>Columna A</strong> = teléfono &nbsp;·&nbsp; <strong>Columna B</strong> = nombre (opcional)<br>
+                    <strong>Teléfono</strong> &nbsp;·&nbsp; <strong>Nombre</strong> (opcional)
+                    &nbsp;·&nbsp; <strong>Etiqueta</strong> (opcional)<br>
+                    Con encabezado el orden da igual. La columna de etiqueta acepta
+                    <code>etiqueta</code>, <code>etiquetas</code>, <code>tag</code> o <code>tags</code>,
+                    y varias en una celda separadas por coma.<br>
+                    Si el teléfono <strong>ya existe</strong>, no se duplica: solo se le agrega la etiqueta.<br>
                     Formatos: .xlsx, .xls, .csv - máx. 10 MB. Los números se normalizan al formato mexicano (52 + 10 dígitos).
                 </p>
                 <div class="upload-row">
@@ -63,9 +68,15 @@
                 <div v-if="uploadResult" class="upload-result" :class="{ 'has-errors': uploadResult.summary?.errors?.length }">
                     <strong>Resultado:</strong>
                     {{ uploadResult.summary?.inserted ?? 0 }} nuevos ·
-                    {{ uploadResult.summary?.duplicates ?? 0 }} duplicados ·
+                    {{ uploadResult.summary?.duplicates ?? 0 }} ya existían ·
                     {{ uploadResult.summary?.invalid ?? 0 }} inválidos
                     (de {{ uploadResult.summary?.total ?? 0 }} filas)
+                    <div v-if="uploadResult.summary?.has_tag_column" class="upload-tags">
+                        <i class="pi pi-tag"></i>
+                        {{ uploadResult.summary.tags_assigned ?? 0 }} etiqueta(s) asignadas<template v-if="uploadResult.summary.duplicates_tagged">,
+                        {{ uploadResult.summary.duplicates_tagged }} de ellas a contactos que ya existían</template><template v-if="uploadResult.summary.tags_created">.
+                        Se crearon {{ uploadResult.summary.tags_created }} etiqueta(s) nueva(s)</template>.
+                    </div>
                     <div v-if="uploadResult.error" class="upload-error">{{ uploadResult.error }}</div>
                     <ul v-if="uploadResult.summary?.errors?.length" class="error-list">
                         <li v-for="err in uploadResult.summary.errors" :key="err">{{ err }}</li>
@@ -349,7 +360,15 @@
             <div v-for="t in allTags" :key="t.id" class="tag-manage-item">
                 <span class="tag-chip">{{ t.name }}</span>
                 <span class="tag-count">{{ t.contacts_count ?? 0 }} contactos</span>
-                <Button icon="pi pi-trash" text severity="danger" size="small" @click="deleteTag(t)" />
+                <Button
+                    icon="pi pi-trash"
+                    text
+                    severity="danger"
+                    size="small"
+                    :loading="deletingTagId === t.id"
+                    @click="deleteTag(t)"
+                    v-tooltip.top="'Borrar etiqueta'"
+                />
             </div>
             <p v-if="!allTags.length" class="tags-empty-hint">No hay tags creados aún.</p>
         </div>
@@ -434,7 +453,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast }   from 'primevue/usetoast';
 import { useAuth }    from '../auth.js';
@@ -452,6 +472,7 @@ import Dialog        from 'primevue/dialog';
 import { api }       from '../api.js';
 import TablePaginator from '../components/TablePaginator.vue';
 
+const route   = useRoute();
 const confirm = useConfirm();
 const toast   = useToast();
 const { user: authState } = useAuth();
@@ -520,6 +541,8 @@ const selectedTagIds = ref([]);
 const savingTags    = ref(false);
 const newTagName    = ref('');
 const creatingTag   = ref(false);
+// Etiqueta cuyo conteo se está consultando antes de confirmar el borrado.
+const deletingTagId = ref(null);
 
 const filterOptions = [
     { label: 'Todos',        value: '' },
@@ -840,7 +863,11 @@ async function uploadContacts() {
     fileInput.value.value = '';
     uploadFile.value   = null;
 
-    if (uploadResult.value.success) await loadContacts(1);
+    if (uploadResult.value.success) {
+        await loadContacts(1);
+        // El archivo pudo crear etiquetas nuevas: sin esto el selector de tags queda viejo.
+        await loadTags();
+    }
 }
 
 function openEdit(contact) {
@@ -1005,13 +1032,91 @@ async function createTag() {
     creatingTag.value = false;
 }
 
+// Borrar una etiqueta NO es inocuo: los contactos la pierden y las campañas que la usan se
+// quedan sin segmento. Por eso primero se pide el conteo real al backend y se muestra, en vez
+// de un "¿seguro?" a ciegas. El backend bloquea las campañas sin enviar; aquí solo se explica.
 async function deleteTag(tag) {
-    await api.deleteTag(tag.id);
-    allTags.value = allTags.value.filter(t => t.id !== tag.id);
-    selectedTagIds.value = selectedTagIds.value.filter(id => id !== tag.id);
+    deletingTagId.value = tag.id;
+    const res = await api.tagUsage(tag.id);
+    deletingTagId.value = null;
+
+    if (res.status !== 'ok') {
+        toast.add({ severity: 'error', summary: 'No se pudo consultar la etiqueta', detail: res.message, life: 5000 });
+        return;
+    }
+
+    const usage = res.data;
+
+    if (usage.blocked) {
+        toast.add({ severity: 'warn', summary: 'No se puede borrar', detail: usage.reason, life: 10000 });
+        return;
+    }
+
+    confirm.require({
+        header     : `Borrar la etiqueta "${tag.name}"`,
+        message    : tagDeleteMessage(usage),
+        icon       : 'pi pi-exclamation-triangle',
+        acceptLabel: 'Borrar etiqueta',
+        rejectLabel: 'Cancelar',
+        acceptClass: 'p-button-danger',
+        accept     : async () => {
+            const del = await api.deleteTag(tag.id);
+
+            if (del.status !== 'ok') {
+                toast.add({ severity: 'error', summary: 'No se pudo borrar', detail: del.message, life: 10000 });
+                return;
+            }
+
+            allTags.value = allTags.value.filter(t => t.id !== tag.id);
+            selectedTagIds.value = selectedTagIds.value.filter(id => id !== tag.id);
+            if (tagFilter.value === tag.id) tagFilter.value = null;
+
+            toast.add({
+                severity : 'success',
+                summary  : 'Etiqueta borrada',
+                detail   : `${del.data?.contacts_untagged ?? 0} contacto(s) dejaron de tenerla. Ningún contacto se eliminó.`,
+                life     : 4000,
+            });
+
+            loadContacts(meta.value?.current_page ?? 1);
+        },
+    });
 }
 
-onMounted(() => { loadContacts(); loadTags(); });
+// Texto de la confirmación, con los números reales.
+function tagDeleteMessage(usage) {
+    const partes = [];
+
+    partes.push(usage.contacts === 0
+        ? 'Ningún contacto tiene esta etiqueta.'
+        : `${usage.contacts} contacto(s) dejarán de tenerla. Los contactos NO se eliminan.`);
+
+    if (usage.campaigns > 0) {
+        partes.push(`${usage.campaigns} campaña(s) ya enviadas quedarán sin la referencia de su segmento. Su historial de envíos no cambia.`);
+    }
+
+    partes.push('Esta acción no se puede deshacer.');
+
+    return partes.join(' ');
+}
+
+// El catálogo de etiquetas enlaza aquí con ?tag=ID para ver los contactos de una etiqueta.
+// Se lee de la URL para que el enlace se pueda compartir y sobreviva a un refresco.
+function aplicarTagDeLaUrl() {
+    const id = Number(route.query.tag);
+    tagFilter.value = Number.isInteger(id) && id > 0 ? id : null;
+}
+
+watch(() => route.query.tag, () => {
+    aplicarTagDeLaUrl();
+    loadContacts(1);
+});
+
+onMounted(() => {
+    aplicarTagDeLaUrl();
+    loadContacts();
+    loadTags();
+});
 </script>
 
 <style scoped>
@@ -1102,6 +1207,14 @@ onMounted(() => { loadContacts(); loadTags(); });
 .paste-main { color: var(--p-text-color); }
 .paste-warn { color: var(--p-orange-600, #c2410c); }
 .paste-hint { margin: 0 0 10px; font-size: .85rem; color: var(--p-text-muted-color); }
+
+.upload-tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    color: var(--p-primary-600);
+}
 
 .export-row  { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .row-actions { display: flex; gap: 2px; align-items: center; }

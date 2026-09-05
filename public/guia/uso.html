@@ -345,44 +345,64 @@ temporal, el sistema lo reintenta solo cuando se levanta.</p>
 <h2 id="6-contactos">6. Contactos</h2>
 <p>Aquí vive tu base de prospectos. Entra a <strong>Contactos</strong> en el menú.</p>
 <h3 id="importar-desde-excel">Importar desde Excel</h3>
+<p>Sirve para dos cosas: <strong>dar de alta</strong> contactos nuevos y, sobre todo, <strong>etiquetar en masa</strong>
+contactos que ya tienes.</p>
 <ol>
 <li>
 <p>Clic en <strong>Importar Excel</strong>.</p>
 </li>
 <li>
-<p>Sube el archivo <code>.xlsx</code>. El formato es simple:</p>
+<p>Sube el archivo <code>.xlsx</code>, <code>.xls</code> o <code>.csv</code>:</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
-<th>Columna A</th>
-<th>Columna B (opcional)</th>
+<th>Teléfono</th>
+<th>Nombre (opcional)</th>
+<th>Etiqueta (opcional)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Teléfono</td>
-<td>Nombre</td>
+<td>9231311146</td>
+<td>Juan Pérez</td>
+<td>VIP</td>
+</tr>
+<tr>
+<td>6692522844</td>
+<td>Ana López</td>
+<td>VIP, Mazatlán</td>
 </tr>
 </tbody>
 </table></div>
 <ul>
-<li>Los teléfonos van con la clave del país, sin el signo +. Ejemplo: <code>529231311146</code>.</li>
-<li>Si la primera fila es un encabezado, el sistema lo detecta solo.</li>
+<li>Los teléfonos pueden ir con clave de país (<code>529231311146</code>) o solo los 10 dígitos.</li>
+<li><strong>Con encabezado el orden de las columnas da igual</strong>, el sistema las reconoce.</li>
+<li>La columna de etiqueta se puede llamar <code>etiqueta</code>, <code>etiquetas</code>, <code>tag</code> o <code>tags</code>.</li>
+<li><strong>Varias etiquetas en una celda</strong> separadas por coma.</li>
+<li>Las etiquetas que no existan <strong>se crean solas</strong>. <code>VIP</code> y <code>vip</code> son la misma.</li>
 </ul>
 </li>
 <li>
-<p>Al terminar verás un resumen: <strong>aceptados / duplicados / formato inválido</strong>.</p>
-<ul>
-<li><strong>Duplicados</strong>: ya estaban, no se agregan otra vez.</li>
-<li><strong>Formato inválido</strong>: números mal escritos, se ignoran.</li>
-</ul>
-</li>
-<li>
-<p>Los contactos que ya pidieron <strong>baja</strong> nunca regresan, aunque los vuelvas a importar.</p>
+<p>Al terminar verás el resumen: <strong>nuevos / ya existían / inválidos</strong>, y si el archivo traía
+columna de etiqueta, cuántas se asignaron y cuántas se crearon.</p>
 </li>
 </ol>
 <blockquote>
-<p>💡 Para bajar tus contactos a Excel, usa el botón <strong>Exportar</strong>.</p>
+<p>🏷️ <strong>Si el teléfono ya existe, NO se duplica: se le agrega la etiqueta.</strong> Por eso puedes
+re-subir una lista de números que ya tienes solo para clasificarlos. Las etiquetas que el
+contacto ya tenía <strong>no se borran</strong>, se suman.</p>
+</blockquote>
+<p>Detalles:</p>
+<ul>
+<li><strong>Ya existían</strong>: el número ya estaba. Se etiqueta pero no se da de alta otra vez.</li>
+<li><strong>Inválidos</strong>: números mal escritos. Se ignoran y te dice en qué fila estaban.</li>
+<li>Los contactos que pidieron <strong>baja</strong> nunca regresan, aunque los vuelvas a importar.</li>
+<li>Un contacto <strong>eliminado</strong> no se re-etiqueta (está fuera de listas y campañas).</li>
+</ul>
+<blockquote>
+<p>💡 El botón <strong>Exportar</strong> baja tus contactos a Excel <strong>con su columna de etiquetas</strong>, en el
+mismo formato que lee el importador. Puedes exportar, cambiar etiquetas en Excel y volver a
+subir el archivo.</p>
 </blockquote>
 <h3 id="agregar-un-contacto-a-mano">Agregar un contacto a mano</h3>
 <p>Para un prospecto suelto (un referido, una llamada):</p>
@@ -562,6 +582,56 @@ nombre y Enter).</li>
 <p>Las etiquetas son solo para clasificar. No afectan bajas ni pausas.</p>
 </blockquote>
 <hr />
+<h3 id="la-pantalla-etiquetas">La pantalla Etiquetas</h3>
+<p>En el menú hay una pantalla <strong>Etiquetas</strong> con el catálogo completo. Ahí ves de un vistazo:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Columna</th>
+<th>Qué te dice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Etiqueta</td>
+<td>El nombre.</td>
+</tr>
+<tr>
+<td>Identificador</td>
+<td>El nombre interno. <strong>No cambia aunque renombres</strong>, y es con el que el Excel de importación reconoce la etiqueta.</td>
+</tr>
+<tr>
+<td>Contactos</td>
+<td>Cuántos la tienen ahora. <strong>Es un botón</strong>: te lleva a Contactos ya filtrado por esa etiqueta.</td>
+</tr>
+<tr>
+<td>Campañas</td>
+<td>Cuántas campañas la usan como segmento.</td>
+</tr>
+<tr>
+<td>Creada</td>
+<td>Cuándo se creó.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Arriba tienes el resumen (cuántas etiquetas hay, cuántos contactos etiquetados y cuántas
+etiquetas <strong>sin usar</strong>, útil para limpiar), un buscador y el botón <strong>Nueva etiqueta</strong>.</p>
+<p><strong>Renombrar</strong> (icono de lápiz) cambia solo el nombre que ves. El identificador se queda igual a
+propósito: si cambiara, tus Excel viejos dejarían de reconocer la etiqueta y crearían una
+duplicada.</p>
+<h3 id="borrar-una-etiqueta">Borrar una etiqueta</h3>
+<p>Desde la pantalla <strong>Etiquetas</strong>, o desde el recuadro <strong>Asignar tags</strong> de cualquier contacto.
+Antes de borrar, el sistema te dice <strong>exactamente qué se lleva por delante</strong>:</p>
+<ul>
+<li>Cuántos contactos dejarán de tenerla. <strong>Los contactos NO se eliminan</strong>, solo pierden la etiqueta.</li>
+<li>Cuántas campañas ya enviadas quedarán sin la referencia de su segmento. Su historial no cambia.</li>
+</ul>
+<blockquote>
+<p>🛑 <strong>Si una campaña sin enviar usa esa etiqueta, el sistema NO te deja borrarla</strong> y te dice
+cuál es. Es a propósito: una campaña que apunta a una etiqueta se quedaría sin segmento y se
+enviaría a <strong>todos</strong> los contactos. Primero cámbiale el segmento a esa campaña o cancélala.</p>
+</blockquote>
+<p>Borrar una etiqueta no se puede deshacer: hay que volver a crearla y reasignarla.</p>
 <h2 id="8-campanas">8. Campañas</h2>
 <p>Una campaña es un <strong>envío masivo</strong> a un grupo de contactos.</p>
 <h3 id="crear-una-campana">Crear una campaña</h3>
@@ -749,6 +819,80 @@ selector de agentes. Úsalo si un agente ya no está disponible.</li>
 <p>Los agentes solo ven <strong>sus</strong> conversaciones. Admin y operador ven todas.</p>
 </blockquote>
 <hr />
+<h3 id="cambios-de-turno-reasignar-y-ver-el-historial">Cambios de turno: reasignar y ver el historial</h3>
+<p>En el panel derecho de una conversación, la sección <strong>Asignación</strong> tiene tres acciones (solo
+para operador y administrador):</p>
+<ul>
+<li><strong>Reasignar</strong>: elige a otro agente y pásasela. Sirve para el cambio de turno.</li>
+<li><strong>Dejar sin asignar</strong>: la suelta para que la tome quien entre. No se pierde nada.</li>
+<li><strong>Ver historial</strong>: abre el detalle de todos los movimientos de esa conversación.</li>
+</ul>
+<p>El historial muestra, del movimiento más reciente al más viejo:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Qué movimiento</strong></td>
+<td>Asignación automática · Asignada · Tomada por el agente · Reasignada · Sin asignar</td>
+</tr>
+<tr>
+<td><strong>A quién</strong></td>
+<td>El agente que quedó a cargo.</td>
+</tr>
+<tr>
+<td><strong>Cuándo</strong></td>
+<td>Fecha y hora.</td>
+</tr>
+<tr>
+<td><strong>Quién lo hizo</strong></td>
+<td>El usuario que movió la conversación, o <em>el sistema</em> cuando fue el reparto automático.</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>📌 <strong>El historial nunca se borra.</strong> Aunque la conversación se suelte o cambie de agente diez
+veces, quedan los diez movimientos. Es lo que permite revisar el seguimiento que se le dio a
+un cliente.</p>
+</blockquote>
+<p>Si intentas reasignar al mismo agente que ya la tiene, el sistema lo rechaza: así el historial
+no se llena de movimientos que no movieron nada.</p>
+<h3 id="reporte-de-agentes">Reporte de agentes</h3>
+<p>En el menú hay una pantalla <strong>Reporte de agentes</strong> (operador y administrador; el agente no la
+ve, no debe ver la carga de sus compañeros). Muestra cuántas conversaciones lleva cada quien.</p>
+<p>Trae <strong>dos números</strong> porque &quot;cuántas conversaciones tiene&quot; se puede entender de dos formas:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Columna</th>
+<th>Qué es</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Recibidas en el periodo</strong></td>
+<td>Las que se le asignaron entre las fechas del filtro. Responde al filtro de fecha.</td>
+</tr>
+<tr>
+<td><strong>Abiertas ahora</strong></td>
+<td>Las que tiene a su cargo en este momento. <strong>No cambia con el filtro de fecha.</strong></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>Un agente puede haber recibido 12 hoy y tener 40 abiertas: arrastra conversaciones de días
+anteriores que nadie ha cerrado ni reasignado. Por eso van las dos columnas.</p>
+</blockquote>
+<p>Filtros: <strong>Desde</strong>, <strong>Hasta</strong> y <strong>Agente</strong>. El botón <strong>Hoy</strong> vuelve al día de hoy. Al entrar,
+la pantalla ya muestra el día de hoy sin que tengas que elegir nada.</p>
+<p>Los botones <strong>Descargar Excel</strong> y <strong>Descargar PDF</strong> bajan exactamente la tabla que estás
+viendo, con los filtros aplicados. El nombre del archivo lleva el periodo.</p>
+<p>Quien aparece: todos los que pueden atender conversaciones (agentes, operadores y
+administradores), <strong>aunque estén en cero</strong>. Un agente en cero también es información.</p>
 <h2 id="10-respuestas-sms">10. Respuestas SMS</h2>
 <p>Los SMS que te responden aparecen en <strong>Respuestas SMS</strong> (en el menú).</p>
 <p>A diferencia de Conversaciones (WhatsApp), esto es <strong>solo de lectura</strong>: ves las respuestas pero

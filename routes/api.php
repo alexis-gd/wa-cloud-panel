@@ -63,6 +63,10 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
     // Dashboard, templates, configuración — admin y operator
     Route::middleware('role:admin,operator')->group(function () {
+        // Salud del cron. Una sola línea de crontab mueve todo lo automático; si muere,
+        // el sistema se degrada en silencio y esto es lo que lo hace visible.
+        Route::get('/system/scheduler-status', [SettingsController::class, 'schedulerStatus']);
+
         Route::get('/templates',             [TemplateController::class, 'index']);
         Route::get('/sms-templates',         [SmsTemplateController::class, 'index']);
         Route::get('/dashboard/stats',           [DashboardController::class, 'stats']);

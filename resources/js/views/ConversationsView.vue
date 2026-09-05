@@ -12,28 +12,14 @@
         <div v-if="loadingContacts" class="sidebar-empty">Cargando...</div>
         <div v-else-if="contacts.length === 0" class="sidebar-empty">Sin conversaciones aún</div>
 
-        <div v-for="c in contacts" :key="c.id"
-          @click="selectContact(c)"
-          :class="['sidebar-item',
-                   selected?.id === c.id ? 'sidebar-item--active' : '',
-                   isMyConversation(c) ? 'sidebar-item--mine' : '']">
-          <div class="item-row">
-            <span class="item-name">
-              <span class="state-dot" :class="'dot--' + lifecycleOf(c)" v-tooltip.top="lifecycleTag(c).label"></span>
-              <span class="item-name-text">{{ c.name || c.phone }}</span>
-            </span>
-            <span class="item-time">{{ formatTime(c.last_message_at) }}</span>
-          </div>
-          <div class="item-row">
-            <span class="item-preview">{{ c.last_message }}</span>
-            <span class="item-badges">
-              <Tag :value="lifecycleTag(c).label" :severity="lifecycleTag(c).severity" class="item-tag" />
-              <span class="assign-mini" :class="'assign--' + assignmentOf(c).cls" v-tooltip.top="assignmentOf(c).title">
-                {{ assignmentOf(c).label }}
-              </span>
-            </span>
-          </div>
-        </div>
+        <ConversationListItem
+          v-for="c in contacts"
+          :key="c.id"
+          :contact="c"
+          :active="selected?.id === c.id"
+          :current-user-id="authState.user?.id ?? null"
+          @select="selectContact"
+        />
       </div>
     </div>
 
@@ -76,30 +62,16 @@
           </div>
         </div>
 
-        <!-- Input -->
-        <div class="chat-input-area">
-          <div v-if="selected.status==='opted_out'" class="chat-notice chat-notice--danger">
-            Este contacto está dado de baja - no se le puede enviar mensajes.
-          </div>
-          <template v-else>
-            <div v-if="!windowOpen" class="chat-notice">
-              Ventana de 24h cerrada. Envía una plantilla para reabrir la conversación.
-            </div>
-            <!-- Respuestas rápidas (solo cuando ventana abierta) -->
-            <div v-if="windowOpen && quickReplies.length" class="quick-replies">
-              <button v-for="qr in quickReplies" :key="qr.id" @click="useQuickReply(qr)" class="qr-chip">
-                {{ qr.title }}
-              </button>
-            </div>
-            <div class="input-row">
-              <Textarea v-model="newMessage" :disabled="!windowOpen" placeholder="Escribe tu mensaje..."
-                :autoResize="true" rows="1" class="msg-input" @keydown.enter.exact.prevent="sendMessage" />
-              <Button icon="pi pi-send" :loading="sending" :disabled="!newMessage.trim() || !windowOpen"
-                @click="sendMessage" />
-            </div>
-            <p v-if="windowOpen" class="input-hint">Enter para enviar · Shift+Enter para nueva línea</p>
-          </template>
-        </div>
+        <!-- Input. Vive en su propio componente para que teclear no vuelva a dibujar la
+             lista lateral entera: con cientos de conversaciones se sentia el retraso. -->
+        <ConversationComposer
+          ref="composer"
+          :window-open="windowOpen"
+          :opted-out="selected.status === 'opted_out'"
+          :sending="sending"
+          :quick-replies="quickReplies"
+          @send="sendMessage"
+        />
       </template>
     </div>
 
@@ -255,35 +227,13 @@ import InputText from 'primevue/inputtext';
 import Select    from 'primevue/select';
 import Tag       from 'primevue/tag';
 import Dialog    from 'primevue/dialog';
+import ConversationListItem from '../components/ConversationListItem.vue';
+import ConversationComposer from '../components/ConversationComposer.vue';
 
 const toast = useToast();
 const { user: authState } = useAuth();
 const isAdmin            = computed(() => ['admin', 'superadmin'].includes(authState.user?.role));
 const isAdminOrOperator  = computed(() => ['admin', 'operator', 'superadmin'].includes(authState.user?.role));
-
-function isMyConversation(contact) {
-  return contact.assigned_to?.id === authState.user?.id;
-}
-
-// ── Estado de la conversacion (ciclo de vida) ────────────────────────────────
-// Prioridad: Baja (terminal) > Snooze > Cerrada (ventana 24h) > Abierta.
-const LIFECYCLE = {
-  abierta: { label: 'Abierta', severity: 'success'   },
-  cerrada: { label: 'Cerrada', severity: 'secondary' },
-  snooze:  { label: 'Pospuesto', severity: 'warn'    },
-  baja:    { label: 'Baja',    severity: 'danger'    },
-};
-
-function lifecycleOf(c) {
-  if (c.status === 'opted_out') return 'baja';
-  if (c.snoozed_until)          return 'snooze';
-  if (! c.window_open)          return 'cerrada';
-  return 'abierta';
-}
-
-function lifecycleTag(c) {
-  return LIFECYCLE[lifecycleOf(c)];
-}
 
 // ── Estado del contacto (identidad, no de la conversacion) ───────────────────
 // Es el `contacts.status` de la BD. Viaja en ingles porque es un identificador; aqui se
@@ -299,27 +249,12 @@ function contactStatusLabel(status) {
   return CONTACT_STATUS[status] ?? status;
 }
 
-// ── Asignacion (separada del estado) ─────────────────────────────────────────
-function initials(name) {
-  return (name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-}
-
-function assignmentOf(c) {
-  if (! c.assigned_to) {
-    return { label: 'Sin asignar', cls: 'unassigned', title: 'Nadie la atiende' };
-  }
-  if (c.assigned_to.id === authState.user?.id) {
-    return { label: 'Tú', cls: 'mine', title: 'Asignada a ti' };
-  }
-  return { label: initials(c.assigned_to.name), cls: 'other', title: `Asignada a ${c.assigned_to.name}` };
-}
-
 const contacts     = ref([]);
 const selected     = ref(null);
 const messages     = ref([]);
 const windowOpen   = ref(false);
 const quickReplies = ref([]);
-const newMessage   = ref('');
+const composer     = ref(null);   // ConversationComposer, para poder limpiarlo al enviar
 const sending      = ref(false);
 const loadingContacts  = ref(false);
 const loadingChat      = ref(false);
@@ -511,13 +446,17 @@ async function openHistory() {
   historyDialog.value = true;
 }
 
-async function sendMessage() {
-  if (!newMessage.value.trim() || sending.value) return;
+/**
+ * El texto ya no vive aqui: lo manda ConversationComposer. La cajita se limpia SOLO si el
+ * envio salio bien, para que un fallo de red no le borre al operador lo que escribio.
+ */
+async function sendMessage(texto) {
+  if (!texto || sending.value) return;
   sending.value = true;
-  const res = await api.sendMessage(selected.value.id, newMessage.value.trim());
+  const res = await api.sendMessage(selected.value.id, texto);
   if (res.status === 'ok') {
     messages.value.push(res.data);
-    newMessage.value = '';
+    composer.value?.limpiar();
     await nextTick();
     scrollToBottom();
   } else {
@@ -530,8 +469,6 @@ async function loadQuickReplies() {
   const res = await api.quickReplies();
   if (res.status === 'ok') quickReplies.value = res.data;
 }
-
-function useQuickReply(qr) { newMessage.value = qr.body; }
 
 async function saveQR() {
   if (!newQR.value.title || !newQR.value.body) return;
@@ -596,42 +533,6 @@ function formatDate(iso) {
 .sidebar-list   { flex: 1; min-height: 0; overflow-y: auto; }
 .sidebar-empty  { padding: 24px 16px; text-align: center; font-size: .82rem; color: var(--p-text-muted-color); }
 
-.sidebar-item {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--p-surface-100);
-  cursor: pointer;
-  transition: background .12s;
-}
-.sidebar-item--mine         { border-left: 3px solid var(--p-green-500); }
-.sidebar-item:hover         { background: var(--p-surface-50); }
-/* Seleccionada = fondo tintado (sin borde de color, para no confundir con el verde de "mia") */
-.sidebar-item--active       { background: var(--p-primary-100); }
-.sidebar-item--mine.sidebar-item--active { background: var(--p-primary-100); }
-
-.item-row    { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 3px; }
-.item-name   { font-size: .85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
-.item-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.item-time   { font-size: .7rem; color: var(--p-text-muted-color); flex-shrink: 0; }
-.item-preview{ font-size: .75rem; color: var(--p-text-muted-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-.item-badges { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-.item-tag    { flex-shrink: 0; font-size: .65rem !important; }
-
-/* Punto de estado (ciclo de vida) junto al nombre */
-.state-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.dot--abierta { background: var(--p-green-500); }
-.dot--cerrada { background: var(--p-surface-400); }
-.dot--snooze  { background: var(--p-amber-500); }
-.dot--baja    { background: var(--p-red-500); }
-
-/* Mini indicador de asignacion (separado del estado) */
-.assign-mini {
-  font-size: .6rem; font-weight: 700; line-height: 1;
-  padding: 3px 5px; border-radius: 5px; flex-shrink: 0; white-space: nowrap;
-}
-.assign--unassigned { background: var(--p-amber-100); color: var(--p-amber-700); }
-.assign--mine       { background: var(--p-green-100); color: var(--p-green-700); }
-.assign--other      { background: var(--p-surface-200); color: var(--p-text-muted-color); }
-
 /* Chat */
 .conv-chat  { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 
@@ -669,27 +570,6 @@ function formatDate(iso) {
 .msg-text { margin: 0; white-space: pre-wrap; word-break: break-word; }
 .msg-meta  { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 4px; font-size: .68rem; opacity: .7; }
 .msg-status{ font-size: .7rem; }
-
-.chat-input-area {
-  flex-shrink: 0;
-  padding: 12px 16px;
-  border-top: 1px solid var(--p-content-border-color);
-  background: var(--p-content-background);
-}
-.chat-notice        { text-align: center; font-size: .82rem; color: var(--p-text-muted-color); padding: 6px 0; }
-.chat-notice--danger{ color: var(--p-red-500); }
-
-.quick-replies { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.qr-chip {
-  font-size: .72rem; padding: 3px 10px; border-radius: 20px;
-  background: var(--p-surface-100); border: 1px solid var(--p-surface-200);
-  cursor: pointer; color: var(--p-text-color); transition: background .12s;
-}
-.qr-chip:hover { background: var(--p-primary-100); color: var(--p-primary-700); }
-
-.input-row  { display: flex; gap: 8px; align-items: flex-end; }
-.msg-input  { flex: 1; }
-.input-hint { font-size: .7rem; color: var(--p-text-muted-color); margin: 4px 0 0; }
 
 /* Panel info */
 .conv-info  { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--p-content-border-color); overflow-y: auto; }

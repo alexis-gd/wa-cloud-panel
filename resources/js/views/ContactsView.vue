@@ -1081,7 +1081,14 @@ async function createBulkTag() {
         showBulkNewTag.value = false;
         bulkNewTagName.value = '';
     } else {
-        toast.add({ severity: 'error', summary: 'Error', detail: res.message ?? 'No se pudo crear el tag.', life: 4000 });
+        // El backend ya manda el motivo en español (nombre repetido, identificador ocupado).
+        // Nunca se muestra el texto crudo de la base de datos.
+        toast.add({
+            severity : 'error',
+            summary  : 'No se pudo crear la etiqueta',
+            detail   : res.message ?? res.errors?.name?.[0] ?? 'Intenta con otro nombre.',
+            life     : 6000,
+        });
     }
 }
 
@@ -1185,7 +1192,7 @@ function tagDeleteMessage(usage) {
         : `${usage.contacts} contacto(s) dejarán de tenerla. Los contactos NO se eliminan.`);
 
     if (usage.campaigns > 0) {
-        partes.push(`${usage.campaigns} campaña(s) ya enviadas quedarán sin la referencia de su segmento. Su historial de envíos no cambia.`);
+        partes.push(`${usage.campaigns} campaña(s) que ya se enviaron dejarán de mostrar esta etiqueta en sus destinatarios. Lo que ya se envió no cambia: sus mensajes y resultados siguen igual.`);
     }
 
     partes.push('Esta acción no se puede deshacer.');

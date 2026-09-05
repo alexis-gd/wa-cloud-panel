@@ -27,3 +27,7 @@ CLAUDE.local.md
 /qa-fake-api.php
 /qa-seed-c1.php
 /qa-clean-c1.php
+/qa-seed-conversaciones.php
+/qa-archivos/
+/qa-seed-contactados.php
+/qa-seed-etiquetas.php

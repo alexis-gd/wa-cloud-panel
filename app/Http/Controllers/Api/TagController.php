@@ -8,6 +8,7 @@ use App\Models\Tag;
 use App\Services\Contacts\ContactFilters;
 use App\Services\Contacts\PhoneListParser;
 use App\Services\Tags\TagDeletionGuard;
+use App\Services\Tags\TagResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +40,29 @@ class TagController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:100|unique:tags,name',
+        ], [
+            // Sin esto sale el mensaje por default de Laravel, en ingles, al operador.
+            'name.unique'   => 'Ya existe una etiqueta con ese nombre. Ponle otro.',
+            'name.required' => 'Escribe un nombre para la etiqueta.',
+            'name.max'      => 'El nombre no puede pasar de 100 caracteres.',
         ]);
+
+        // El nombre puede ser distinto y el identificador el mismo: "qa import" y
+        // "QA Import Renombrada" comparten el slug `qa-import`. Validar solo el nombre dejaba
+        // pasar el choque hasta MySQL, que respondía con un error de llave duplicada en crudo.
+        // El slug es la llave real de la etiqueta, así que se valida aquí.
+        $slug     = TagResolver::slug($data['name']);
+        $existente = Tag::where('slug', $slug)->first();
+
+        if ($existente) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => "Ya existe una etiqueta con ese identificador: \"{$existente->name}\". "
+                    . 'Dos etiquetas no pueden compartirlo, aunque se escriban distinto. Ponle otro nombre.',
+                'code'    => 'DUPLICATE_SLUG',
+                'data'    => ['tag' => $existente->only(['id', 'name', 'slug'])],
+            ], 422);
+        }
 
         $tag = Tag::create(['name' => $data['name']]);
 
@@ -60,6 +83,10 @@ class TagController extends Controller
 
         $data = $request->validate([
             'name' => 'required|string|max:100|unique:tags,name,' . $tag->id,
+        ], [
+            'name.unique'   => 'Ya existe una etiqueta con ese nombre. Ponle otro.',
+            'name.required' => 'Escribe un nombre para la etiqueta.',
+            'name.max'      => 'El nombre no puede pasar de 100 caracteres.',
         ]);
 
         $tag->update(['name' => $data['name']]);

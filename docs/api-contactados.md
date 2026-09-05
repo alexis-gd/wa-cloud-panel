@@ -117,15 +117,3 @@ curl -H "X-API-Key: LA_LLAVE" \
 curl -H "X-API-Key: LA_LLAVE" \
   "https://sender.prestamaz.site/api/contacted?from=2026-08-01&to=2026-08-31&per_page=2000&page=1"
 ```
-
----
-
-## Notas de implementación
-
-- Ruta: `routes/api.php`, grupo `middleware(['api_key', 'throttle:60,1'])`.
-- Controller: `App\Http\Controllers\Api\ContactedController`.
-- Consulta: `App\Services\Contacts\ContactedLookup` - `DISTINCT` sobre `message_log`,
-  resuelto por índice; no trae una fila por mensaje para deduplicar en PHP.
-- Las fechas viajan como **texto** `Y-m-d` hasta el servicio, que las interpreta en CST.
-  Con objetos `Carbon` el día se corría: `createFromFormat('Y-m-d', ...)` conserva la hora
-  actual y al convertir de UTC a CST una petición de las 02:00 UTC caía en el día anterior.

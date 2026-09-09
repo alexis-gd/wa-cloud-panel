@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ContactedRequest;
 use App\Services\Contacts\ContactedLookup;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * API para un sistema externo del cliente: a quién contactamos en una fecha o rango.
@@ -19,15 +19,13 @@ class ContactedController extends Controller
      * GET /api/contacted?date=2026-08-17
      * GET /api/contacted?from=2026-08-01&to=2026-08-17&page=1&per_page=1000
      */
-    public function index(Request $request): JsonResponse
+    public function index(ContactedRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'date'     => 'nullable|date_format:Y-m-d',
-            'from'     => 'nullable|date_format:Y-m-d|required_with:to',
-            'to'       => 'nullable|date_format:Y-m-d|required_with:from',
-            'page'     => 'nullable|integer|min:1',
-            'per_page' => 'nullable|integer|min:1',
-        ]);
+        // La validación de campos vive en ContactedRequest para que sus errores salgan con
+        // el MISMO formato que los de abajo. Antes usaba $request->validate() y Laravel
+        // respondía con su forma y en inglés: el API contestaba de dos maneras distintas
+        // según el error, y el cliente se topaba con la inglesa al escribir mal una fecha.
+        $data = $request->validated();
 
         // Una sola fecha o un rango, no las dos cosas: si llegan juntas no se sabe cuál quiso.
         if (isset($data['date']) && isset($data['from'])) {

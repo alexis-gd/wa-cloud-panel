@@ -100,9 +100,9 @@ Todos responden **422** con `{ "status": "error", "message": "...", "code": "...
 | `MISSING_DATE` | No mandaste ni `date` ni `from`+`to`. Sin fecha no se responde: barrería la tabla entera. |
 | `AMBIGUOUS_RANGE` | Mandaste `date` **y** `from`/`to`. No se adivina cuál querías. |
 | `INVALID_RANGE` | `to` es anterior a `from`. |
+| `INVALID_PARAMS` | Una fecha con formato distinto de `AAAA-MM-DD`, `from` sin `to` (o al revés), o `page`/`per_page` que no son enteros positivos. |
 
-Una fecha mal escrita (`17-08-2026`) o `from` sin `to` los rechaza la validación de Laravel,
-también con 422.
+Y el **401** por llave faltante o inválida responde igual, con `code: UNAUTHORIZED`.
 
 ---
 

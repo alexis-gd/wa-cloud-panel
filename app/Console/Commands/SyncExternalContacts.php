@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Setting;
 use App\Services\Contacts\ContactSyncService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -33,6 +34,14 @@ class SyncExternalContacts extends Command
             $this->error('No se pudo sincronizar: ' . $r['error']);
             $this->line('');
             $this->line('Revisa la conexión con: php artisan contactos:probar-api');
+
+            if (! $seco) {
+                Setting::set('contact_sync_last_run', json_encode([
+                    'at'    => now()->toIso8601String(),
+                    'ok'    => false,
+                    'error' => $r['error'],
+                ], JSON_UNESCAPED_UNICODE));
+            }
 
             Log::error('Sincronización de contactos fallida', ['error' => $r['error']]);
 
@@ -88,9 +97,31 @@ class SyncExternalContacts extends Command
         }
 
         if (! $seco) {
+            // El resumen se GUARDA, no solo se loguea. Cuando esto corre a las 4 AM nadie
+            // ve la consola, y en producción el nivel de log puede estar en `warning`, con
+            // lo que un Log::info no se escribe siquiera. Guardado en Setting sobrevive a
+            // ambas cosas y se consulta con `contactos:ultima-corrida`.
+            Setting::set('contact_sync_last_run', json_encode([
+                'at'         => now()->toIso8601String(),
+                'ok'         => true,
+                'received'   => $r['received'],
+                'invalid'    => $r['invalid'],
+                'repeated'   => $r['repeated'],
+                'excluded'   => $r['excluded'],
+                'valid'      => $r['valid'],
+                'duplicates' => $r['duplicates'],
+                'inserted'   => $r['inserted'],
+                'refreshed'  => $r['refreshed'],
+                'by_status'  => $r['by_status'],
+            ], JSON_UNESCAPED_UNICODE));
+
             Log::info('Contactos sincronizados desde el API', [
-                'recibidos' => $r['received'],
-                'nuevos'    => $r['inserted'],
+                'recibidos'  => $r['received'],
+                'nuevos'     => $r['inserted'],
+                'refrescados' => $r['refreshed'],
+                'invalidos'  => $r['invalid'],
+                'repetidos'  => $r['repeated'],
+                'excluidos'  => $r['excluded'],
             ]);
         }
 

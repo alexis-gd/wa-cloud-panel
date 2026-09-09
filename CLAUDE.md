@@ -35,6 +35,7 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | [docs/checklist-produccion-cliente.md](docs/checklist-produccion-cliente.md) | Corte staging→cliente: qué cambiar (WABA/número, `.env`, horario, seeds) antes de datos reales |
 | [docs/sincronizacion-contactos.md](docs/sincronizacion-contactos.md) | Cron diario que consume el API del cliente y da de alta contactos nuevos. Config por `.env`, comandos `contactos:probar-api` y `contactos:sincronizar` |
 | [docs/api-contactados.md](docs/api-contactados.md) | API pública `GET /api/contacted` (X-API-Key): a quién contactamos en una fecha o rango. Para el sistema externo del cliente |
+| [docs/entregables/](docs/entregables/) | Paquete listo para entregar al programador del cliente: LEEME + colección de Postman con pruebas |
 | [docs/testing.md](docs/testing.md) | Guía PHPUnit, tipos de tests, mocks, convenciones |
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |
 | [docs/limpieza-y-seeds.md](docs/limpieza-y-seeds.md) | Seeders (`migrate:fresh --seed`) + comando `db:clean-demo` + receta para dejar prod limpio para el cliente |

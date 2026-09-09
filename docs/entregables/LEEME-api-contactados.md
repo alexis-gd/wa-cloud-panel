@@ -132,3 +132,29 @@ corregir. No hay ninguna respuesta con otro formato.
 - Es un secreto: no la subas a un repositorio ni la mandes por chat.
 - Si se filtra, avísanos: se cambia y se te entrega una nueva. Nada más del sistema se ve
   afectado.
+---
+
+## Dudas
+
+Escríbenos con: la **URL completa** que llamaste (sin la llave), el **código HTTP** que te
+respondió y el **cuerpo de la respuesta**. Con eso se resuelve casi siempre a la primera.
+
+---
+
+> **Nota interna - borrar antes de enviar.**
+>
+> Este paquete son dos archivos de esta carpeta más `docs/api-contactados.md`, que vive fuera
+> a propósito: es la fuente única y se actualiza con el código. No la dupliques aquí.
+>
+> **Para mandarla en PDF:**
+>
+> ```bash
+> php artisan guias:build docs/api-contactados.md
+> ```
+>
+> Genera `public/doc/api-contactados.html`. Ábrelo en Chrome y usa el botón
+> **"Imprimir / Guardar PDF"** de arriba a la derecha. En el diálogo: *Destino* → Guardar como
+> PDF, y activa **"Gráficos de fondo"** para que se vean las tablas y los bloques de código.
+>
+> Usa la misma plantilla que las guías del cliente, así que sale con el mismo formato y no hay
+> que instalar nada. El HTML generado está gitignoreado: es de un solo uso.

@@ -31,3 +31,6 @@ CLAUDE.local.md
 /qa-archivos/
 /qa-seed-contactados.php
 /qa-seed-etiquetas.php
+
+# HTML generado a demanda para imprimir a PDF (no es parte del producto)
+/public/doc/

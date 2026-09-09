@@ -220,6 +220,11 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 
 ## API de contactados (S1)
 
+- [ ] **Un solo formato de error**: todos los errores (401 incluido) responden `{status, message, code}`. Ninguno devuelve la forma de Laravel (`{message, errors:{...}}`) ni texto en inglés
+- [ ] **Fecha mal escrita**: `?date=24/08/2026` → 422 con `INVALID_PARAMS` y un mensaje que dice cómo escribirla
+- [ ] **Colección de Postman**: importarla, poner la llave en CURRENT VALUE y correrla completa → las 4 peticiones y los 5 errores en verde
+- [ ] **Documento en PDF**: `php artisan guias:build docs/api-contactados.md` → abrir el HTML → el botón "Imprimir / Guardar PDF" da un PDF legible con las tablas completas
+
 - [ ] **Sin llave**: `GET /api/contacted?date=...` sin `X-API-Key` → 401
 - [ ] **Un día**: devuelve nombre y número de los contactados ese día, una fila por contacto
 - [ ] **Corte del día**: un envío de las 23:30 CST sale en ese día, no en el siguiente

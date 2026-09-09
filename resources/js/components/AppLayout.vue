@@ -371,6 +371,8 @@ const helpContent = {
             { icon: 'pi-trash',         label: 'Eliminar',   text: 'El bote de basura (solo admin) quita el contacto de listas y campañas - para limpiar pruebas/basura. Es recuperable y no afecta las stats de bajas.' },
             { icon: 'pi-send',          label: 'Entregabilidad', text: 'Columna que indica si al contacto le llega ahora, POR CANAL: dos etiquetas, una de WhatsApp y otra de SMS (Disponible, Pospuesto, Enfriamiento, Enviado hoy o No recibe). Cada canal cuenta lo suyo, puede estar disponible en uno y en enfriamiento en el otro. Distinta del Estado.' },
             { icon: 'pi-filter',        label: 'Filtrar por entregabilidad', text: 'El selector Entregabilidad busca por esos mismos estados y siempre dice de que canal habla: "Enfriamiento - WhatsApp" no es lo mismo que "Enfriamiento - SMS". Se pueden marcar varios estados y se suman. Pospuesto y En espera (Meta) solo existen en WhatsApp.' },
+            { icon: 'pi-briefcase',     label: 'Cartera',    text: 'Columna que dice cómo está esa persona en el sistema de Prestamaz: ACTIVO, LIQUIDADO, BURÓ o BAJA. No la escribe nadie a mano - la trae el sistema del cliente cada noche y se actualiza sola. Los contactos que subiste por Excel salen vacíos porque el cliente no los tiene en su cartera.' },
+            { icon: 'pi-filter',        label: 'Filtrar por cartera', text: 'El selector "Cartera: todos" filtra por ese estado; de ahí puedes etiquetar al grupo y armarle una campaña (por ejemplo, renovación solo a los LIQUIDADO). Ojo: la "BAJA" de Cartera NO es nuestra Baja - allá significa que terminó su relación con Prestamaz, no que pidió dejar de recibir mensajes.' },
             { icon: 'pi-list',          label: 'Pegar lista', text: 'Copia una columna de numeros de Excel y pegala en el buscador (o usa el boton "Pegar lista"): el panel filtra por esa lista y te dice cuantos no estan dados de alta, con un boton para copiarlos. Hasta 5,000 numeros por pegado.' },
             { icon: 'pi-table',         label: 'Cuantos ver', text: 'El selector "Mostrar" debajo de la tabla cambia cuantos registros se ven (10 a 500, o Todos). "Todos" trae hasta 5,000; si el filtro da mas, avisa y conviene usar Exportar.' },
             { icon: 'pi-mobile',        label: 'Baja SMS',   text: 'Chip rojo bajo el Estado cuando el contacto NO recibe SMS (pidió baja por SMS, bloqueado o número inválido). Es independiente del Estado de WhatsApp: puede estar Activo para WhatsApp y con Baja SMS. Filtra con "Solo bajas SMS".' },
@@ -787,5 +789,18 @@ async function logout() {
         max-width: calc(100vw - 32px);
         margin: 16px;
     }
+}
+
+/* Los tooltips se teletransportan al <body>, asi que ningun <style scoped> de una vista los
+   alcanza: su ancho SOLO se puede tocar desde aqui. PrimeVue los deja en 12.5rem (200px), y
+   los textos largos de ayuda (el de la tabla de Contactos son 10 renglones) salian como una
+   columna angosta e ilegible. */
+.p-tooltip,
+.p-tooltip .p-tooltip-text {
+    max-width: min(440px, calc(100vw - 32px));
+}
+.p-tooltip .p-tooltip-text {
+    line-height: 1.45;
+    text-align: left;
 }
 </style>

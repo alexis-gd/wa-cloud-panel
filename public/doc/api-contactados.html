@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API de contactados por fecha</title>
+<style>
+  /* Poppins self-host (subset latin) - sin depender de Google */
+  @font-face {
+    font-family: "Poppins"; font-style: normal; font-weight: 600; font-display: swap;
+    src: url("fonts/poppins-600.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Poppins"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("fonts/poppins-700.woff2") format("woff2");
+  }
+  :root {
+    --navy:      #0E2A47;
+    --navy-2:    #16385C;
+    --emerald:   #0C9E6D;
+    --emerald-d: #0A7C56;
+    --emerald-wash: #E8F5EF;
+    --paper:     #F7F5F1;
+    --card:      #FFFFFF;
+    --ink:       #1B2530;
+    --ink-soft:  #51606E;
+    --ink-faint: #7C8794;
+    --line:      #E4DFD5;
+    --warn-wash: #FBF1DA;
+    --warn-line: #E7B34D;
+    --display: "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --sidebar-w: 288px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); line-height: 1.65; font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Layout ---------- */
+  .layout { display: flex; align-items: flex-start; }
+
+  .sidebar {
+    width: var(--sidebar-w); flex: none; position: sticky; top: 0;
+    height: 100vh; overflow-y: auto; background: var(--navy); color: #DCE7F1;
+    padding: 22px 16px 40px;
+  }
+  .sidebar .brand {
+    display: flex; align-items: center; gap: 10px; padding: 6px 8px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 14px;
+  }
+  .sidebar .brand .dot {
+    width: 30px; height: 30px; border-radius: 8px; flex: none;
+    background: linear-gradient(135deg, var(--emerald), var(--navy-2));
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .sidebar .brand b { font-family: var(--display); font-size: 15px; font-weight: 600; color: #fff; line-height: 1.2; }
+  .sidebar .brand span { display: block; font-size: 11px; color: #8FA6BB; font-weight: 400; }
+
+  .toc { list-style: none; margin: 0; padding: 0; }
+  .toc a {
+    display: block; padding: 7px 10px; border-radius: 7px; color: #B9CBDC;
+    text-decoration: none; font-size: 13.5px; line-height: 1.35;
+    transition: background .12s, color .12s;
+  }
+  .toc a:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .toc a.active { background: var(--emerald); color: #fff; font-weight: 600; }
+
+  .main { flex: 1 1 auto; min-width: 0; display: flex; justify-content: center; }
+  .doc { width: 100%; max-width: 780px; padding: 34px 40px 90px; }
+
+  /* ---------- Doc header ---------- */
+  .doc-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+  .doc-top .eyebrow { font-family: var(--display); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--emerald-d); }
+  .print-btn {
+    display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink-soft); border-radius: 8px; padding: 8px 14px;
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .print-btn:hover { border-color: var(--emerald); color: var(--emerald-d); }
+
+  /* ---------- Typography ---------- */
+  .doc h1, .doc h2, .doc h3 { font-family: var(--display); }
+  .doc h1 { font-size: 31px; line-height: 1.12; margin: 0 0 6px; letter-spacing: -.02em; font-weight: 700; text-wrap: balance; }
+  .doc h2 {
+    font-size: 22px; margin: 44px 0 12px; padding-top: 12px; font-weight: 700; letter-spacing: -.01em;
+    border-top: 1px solid var(--line); scroll-margin-top: 16px; text-wrap: balance;
+  }
+  .doc h2:first-of-type { border-top: none; padding-top: 0; margin-top: 8px; }
+  .doc h3 { font-size: 16.5px; margin: 26px 0 8px; font-weight: 600; color: var(--navy); scroll-margin-top: 16px; }
+  .doc p { margin: 12px 0; }
+  .doc a { color: var(--emerald-d); text-decoration: none; border-bottom: 1px solid transparent; }
+  .doc a:hover { border-bottom-color: var(--emerald); }
+  .doc strong { font-family: var(--display); font-weight: 600; color: var(--ink); }
+  .doc ul, .doc ol { margin: 12px 0; padding-left: 22px; }
+  .doc li { margin: 6px 0; }
+  .doc li::marker { color: var(--emerald-d); }
+  .doc hr { border: none; border-top: 1px solid var(--line); margin: 30px 0; }
+
+  /* ---------- Callouts (blockquote) ---------- */
+  .doc blockquote {
+    margin: 16px 0; padding: 13px 16px; background: var(--emerald-wash);
+    border-left: 4px solid var(--emerald); border-radius: 0 10px 10px 0;
+    color: var(--ink); font-size: 14.5px;
+  }
+  .doc blockquote p { margin: 6px 0; }
+  .doc blockquote p:first-child { margin-top: 0; }
+  .doc blockquote p:last-child { margin-bottom: 0; }
+
+  /* ---------- Tables ---------- */
+  .table-wrap { overflow-x: auto; margin: 18px 0; border: 1px solid var(--line); border-radius: 10px; }
+  .doc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .doc thead th {
+    background: var(--navy); color: #EAF2FA; text-align: left; font-weight: 600;
+    font-family: var(--display); padding: 10px 14px; white-space: nowrap;
+  }
+  .doc tbody td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  .doc tbody tr:nth-child(even) { background: #FBFAF7; }
+
+  /* ---------- Code ---------- */
+  .doc code {
+    background: #EEF1F4; color: #0A3B63; padding: 1px 6px; border-radius: 5px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .88em;
+  }
+
+  /* ---------- Mobile ---------- */
+  .menu-toggle { display: none; }
+  @media (max-width: 900px) {
+    .sidebar {
+      position: fixed; z-index: 30; left: 0; top: 0; transform: translateX(-100%);
+      transition: transform .22s ease; box-shadow: 0 0 40px rgba(0,0,0,.3);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .doc { padding: 20px 20px 70px; }
+    .menu-toggle {
+      display: inline-flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 20;
+      width: 100%; background: var(--navy); color: #fff; border: none; padding: 12px 16px;
+      font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 25; }
+    .backdrop.show { display: block; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    .sidebar, .menu-toggle, .print-btn, .backdrop { display: none !important; }
+    body { background: #fff; font-size: 12pt; }
+    .doc { max-width: none; padding: 0; }
+    .doc h2 { break-after: avoid; }
+    .table-wrap, .doc blockquote { break-inside: avoid; }
+    a { color: inherit; border: none; }
+  }
+</style>
+</head>
+<body>
+  <button class="menu-toggle" onclick="document.body.classList.toggle('nav-open')">
+    &#9776; Contenido
+  </button>
+  <div class="backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="dot">&#128214;</span>
+        <b>Prestamaz Panel<span>Guía de uso</span></b>
+      </div>
+      <ul class="toc" id="toc">
+        <li><a href="#comprobar-que-funciona-5-minutos">Comprobar que funciona (5 minutos)</a></li>
+        <li><a href="#autenticacion">Autenticación</a></li>
+        <li><a href="#peticion">Petición</a></li>
+        <li><a href="#respuesta">Respuesta</a></li>
+        <li><a href="#que-cuenta-como-quotcontactadoquot">Qué cuenta como &quot;contactado&quot;</a></li>
+        <li><a href="#errores">Errores</a></li>
+        <li><a href="#ejemplos">Ejemplos</a></li>
+        <li><a href="#si-algo-no-cuadra">Si algo no cuadra</a></li>
+      </ul>
+    </nav>
+    <div class="main">
+      <article class="doc">
+        <div class="doc-top">
+          <span class="eyebrow">Guía de uso</span>
+          <button class="print-btn" onclick="window.print()">&#128424; Imprimir / Guardar PDF</button>
+        </div>
+        <h1>API de contactados por fecha</h1>
+<p>API para que un sistema externo del cliente pregunte <strong>a quién contactamos</strong> en una fecha o
+en un rango. No la usa el panel: la consume otro servidor.</p>
+<hr />
+<h2 id="comprobar-que-funciona-5-minutos">Comprobar que funciona (5 minutos)</h2>
+<p>Junto a este documento viene <strong><code>api-contactados.postman_collection.json</code></strong>, una colección de
+Postman que no solo hace las peticiones: <strong>verifica sus resultados</strong>.</p>
+<ol>
+<li>Postman → <strong>Import</strong> → arrastra el archivo.</li>
+<li>Clic en la colección → pestaña <strong>Variables</strong> → pon tu llave en <code>api_key</code>.</li>
+<li>En <code>fecha_con_datos</code>, un día en el que sepas que hubo envíos. <strong>Save</strong>.</li>
+<li>Clic derecho en la colección → <strong>Run collection</strong> → <strong>Run</strong>.</li>
+</ol>
+<p><strong>Qué debes ver:</strong> las cuatro peticiones normales en verde y las cinco de la carpeta
+<em>Errores</em> también en verde. Esas cinco mandan cosas mal a propósito y comprueban que el API
+las <strong>rechace</strong> como debe; llevan fechas fijas, así que funcionan aunque no configures nada.</p>
+<p>Entre otras cosas verifica que ningún contacto se repita dentro de una página, que la página 2
+no repita contactos de la página 1, y que cada error traiga su <code>code</code> correspondiente.</p>
+<p>Si prefieres la terminal:</p>
+<pre><code class="language-bash">LLAVE=&quot;la-llave-que-te-dieron&quot;
+FECHA=&quot;2026-08-17&quot;
+
+# Debe responder 200 con la lista
+curl -s &quot;https://sender.prestamaz.site/api/contacted?date=$FECHA&quot; -H &quot;X-API-Key: $LLAVE&quot;
+
+# Debe responder 401 (sin la cabecera de la llave)
+curl -s -o /dev/null -w &quot;%{http_code}\n&quot; &quot;https://sender.prestamaz.site/api/contacted?date=$FECHA&quot;
+</code></pre>
+<hr />
+<h2 id="autenticacion">Autenticación</h2>
+<p>Cabecera <code>X-API-Key</code> con el valor de <code>API_KEY</code> del <code>.env</code> del panel.</p>
+<pre><code>X-API-Key: &lt;la llave&gt;
+</code></pre>
+<p>Sin la cabecera, o con una llave que no coincide, responde <strong>401</strong>.</p>
+<blockquote>
+<p>La llave <strong>no</strong> es el token de Meta ni el de Sanctum. Es un secreto aparte, solo para este
+API. Si se filtra, se cambia <code>API_KEY</code> en el <code>.env</code> y se avisa al cliente.</p>
+</blockquote>
+<p><strong>Límite:</strong> 60 peticiones por minuto por IP.</p>
+<hr />
+<h2 id="peticion">Petición</h2>
+<pre><code>GET https://sender.prestamaz.site/api/contacted?date=2026-08-17
+GET https://sender.prestamaz.site/api/contacted?from=2026-08-01&amp;to=2026-08-17
+</code></pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Parámetro</th>
+<th>Obligatorio</th>
+<th>Qué es</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>date</code></td>
+<td>Sí, o <code>from</code>+<code>to</code></td>
+<td>Un solo día, formato <code>YYYY-MM-DD</code>.</td>
+</tr>
+<tr>
+<td><code>from</code> / <code>to</code></td>
+<td>Sí, o <code>date</code></td>
+<td>Rango, <strong>inclusive las dos fechas</strong>. Van juntos.</td>
+</tr>
+<tr>
+<td><code>page</code></td>
+<td>No</td>
+<td>Página, empieza en 1.</td>
+</tr>
+<tr>
+<td><code>per_page</code></td>
+<td>No</td>
+<td>Filas por página. Default 1,000, máximo 5,000.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Las fechas son <strong>días naturales en hora de México</strong> (<code>America/Mexico_City</code>): un mensaje de
+las 23:30 del 17 pertenece al 17, aunque en UTC ya sea el 18.</p>
+<hr />
+<h2 id="respuesta">Respuesta</h2>
+<pre><code class="language-json">{
+  &quot;status&quot;: &quot;ok&quot;,
+  &quot;data&quot;: [
+    { &quot;name&quot;: &quot;Juan Pérez&quot;, &quot;phone&quot;: &quot;529231311146&quot; },
+    { &quot;name&quot;: null,         &quot;phone&quot;: &quot;526692522844&quot; }
+  ],
+  &quot;meta&quot;: {
+    &quot;from&quot;: &quot;2026-08-17&quot;,
+    &quot;to&quot;: &quot;2026-08-17&quot;,
+    &quot;total&quot;: 2,
+    &quot;page&quot;: 1,
+    &quot;per_page&quot;: 1000,
+    &quot;pages&quot;: 1
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Una fila por contacto.</strong> A quien recibió tres mensajes ese día se le contactó una vez.</li>
+<li><code>name</code> puede ser <code>null</code> si el número no tiene ficha de contacto. Se devuelve igual: se le
+contactó, y esconderlo daría un total que no cuadra.</li>
+<li>El teléfono va en formato mexicano <code>52</code> + 10 dígitos, <strong>sin</strong> el <code>+</code>.</li>
+</ul>
+<h3 id="paginar">Paginar</h3>
+<p>Recorre de <code>page=1</code> hasta <code>meta.pages</code>. El orden es por teléfono y es estable, así que
+ninguna página repite ni se salta contactos aunque entren envíos nuevos mientras se recorre.</p>
+<hr />
+<h2 id="que-cuenta-como-quotcontactadoquot">Qué cuenta como &quot;contactado&quot;</h2>
+<p>El mensaje <strong>salió</strong>: estado <code>sent</code>, <code>delivered</code> o <code>read</code>, en <strong>cualquiera de los dos
+canales</strong> (WhatsApp y SMS).</p>
+<p><strong>No</strong> cuentan:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Estado</th>
+<th>Por qué</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>failed</code></td>
+<td>El mensaje no salió.</td>
+</tr>
+<tr>
+<td><code>discarded</code></td>
+<td>El sistema lo descartó antes de enviarlo (baja, enfriamiento, tope de Meta).</td>
+</tr>
+<tr>
+<td><code>pending</code></td>
+<td>Todavía está en la cola.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Es el mismo criterio con el que el panel calcula el enfriamiento y el anti-duplicado, así que
+el número de este API cuadra con lo que ve el operador.</p>
+<hr />
+<h2 id="errores">Errores</h2>
+<p>Todos responden <strong>422</strong> con <code>{ &quot;status&quot;: &quot;error&quot;, &quot;message&quot;: &quot;...&quot;, &quot;code&quot;: &quot;...&quot; }</code>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th><code>code</code></th>
+<th>Cuándo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MISSING_DATE</code></td>
+<td>No mandaste ni <code>date</code> ni <code>from</code>+<code>to</code>. Sin fecha no se responde: barrería la tabla entera.</td>
+</tr>
+<tr>
+<td><code>AMBIGUOUS_RANGE</code></td>
+<td>Mandaste <code>date</code> <strong>y</strong> <code>from</code>/<code>to</code>. No se adivina cuál querías.</td>
+</tr>
+<tr>
+<td><code>INVALID_RANGE</code></td>
+<td><code>to</code> es anterior a <code>from</code>.</td>
+</tr>
+<tr>
+<td><code>INVALID_PARAMS</code></td>
+<td>Una fecha con formato distinto de <code>AAAA-MM-DD</code>, <code>from</code> sin <code>to</code> (o al revés), o <code>page</code>/<code>per_page</code> que no son enteros positivos.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Y el <strong>401</strong> por llave faltante o inválida responde igual, con <code>code: UNAUTHORIZED</code>.</p>
+<hr />
+<h2 id="ejemplos">Ejemplos</h2>
+<pre><code class="language-bash"># Un día
+curl -H &quot;X-API-Key: LA_LLAVE&quot; \
+  &quot;https://sender.prestamaz.site/api/contacted?date=2026-08-17&quot;
+
+# Un mes, de 2,000 en 2,000
+curl -H &quot;X-API-Key: LA_LLAVE&quot; \
+  &quot;https://sender.prestamaz.site/api/contacted?from=2026-08-01&amp;to=2026-08-31&amp;per_page=2000&amp;page=1&quot;
+</code></pre>
+<hr />
+<h2 id="si-algo-no-cuadra">Si algo no cuadra</h2>
+<p>Escríbenos con tres datos y se resuelve casi siempre a la primera:</p>
+<ol>
+<li>La <strong>URL completa</strong> que llamaste, sin la llave.</li>
+<li>El <strong>código HTTP</strong> que te respondió.</li>
+<li>El <strong>cuerpo</strong> de la respuesta.</li>
+</ol>
+
+      </article>
+    </div>
+  </div>
+
+<script>
+  // Sidebar movil
+  (function () {
+    var sb = document.getElementById('sidebar');
+    var bd = document.querySelector('.backdrop');
+    function sync() {
+      var open = document.body.classList.contains('nav-open');
+      sb.classList.toggle('open', open);
+      bd.classList.toggle('show', open);
+    }
+    new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    document.querySelectorAll('.toc a').forEach(function (a) {
+      a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+    });
+
+    // Scrollspy: resalta la seccion visible
+    var links = {}, targets = [];
+    document.querySelectorAll('.toc a').forEach(function (a) {
+      var id = a.getAttribute('href').slice(1);
+      links[id] = a; var el = document.getElementById(id); if (el) targets.push(el);
+    });
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          Object.values(links).forEach(function (l) { l.classList.remove('active'); });
+          var a = links[e.target.id]; if (a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '0px 0px -75% 0px', threshold: 0 });
+    targets.forEach(function (t) { obs.observe(t); });
+  })();
+</script>
+</body>
+</html>

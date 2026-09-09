@@ -8,18 +8,54 @@ use Illuminate\Support\Str;
 
 class BuildGuidesCommand extends Command
 {
-    protected $signature   = 'guias:build';
+    protected $signature = 'guias:build
+        {fuente? : Markdown suelto a convertir (ej. docs/api-contactados.md). Sin esto arma las guías del panel}
+        {--salida= : Dónde dejar el HTML, relativo a public/. Default: el nombre del archivo fuente}';
+
     protected $description  = 'Genera el HTML estilizado de las guías desde su Markdown (fuente única)';
 
-    /** Markdown fuente => HTML destino (relativo a public/). */
+    /**
+     * Markdown fuente => HTML destino (relativo a public/).
+     *
+     * Los dos primeros son los manuales del panel, para quien lo opera, y están enlazados
+     * desde adentro. El tercero es distinto: documentación técnica para el programador del
+     * cliente, que nunca entra al panel. Se arma aquí porque comparte el mecanismo y porque
+     * así se regenera sola cuando alguien edita el Markdown - de lo contrario el HTML que se
+     * sirve quedaría contradiciendo a su fuente.
+     */
     private const GUIAS = [
-        'docs/guias/guia-uso.md'  => 'guia/uso.html',
-        'docs/guias/guia-meta.md' => 'guia/meta.html',
+        'docs/guias/guia-uso.md'   => 'guia/uso.html',
+        'docs/guias/guia-meta.md'  => 'guia/meta.html',
+        'docs/api-contactados.md'  => 'doc/api-contactados.html',
     ];
 
     public function handle(): int
     {
         $template = File::get(resource_path('guias/plantilla.html'));
+
+        // Con un archivo suelto sirve para cualquier documento que haya que entregar en PDF:
+        // la plantilla ya trae estilos de impresión y un botón "Guardar PDF", así que el
+        // formato sale igual que el de las guías del cliente sin instalar nada.
+        if ($fuente = $this->argument('fuente')) {
+            $ruta = base_path($fuente);
+
+            if (! File::exists($ruta)) {
+                $this->error("No encontré el archivo: {$fuente}");
+                return self::FAILURE;
+            }
+
+            $destino = $this->option('salida')
+                ?: 'doc/' . Str::of($fuente)->basename('.md') . '.html';
+
+            $this->buildOne($ruta, public_path($destino), $template);
+
+            $this->info("Generado: public/{$destino}");
+            $this->line('');
+            $this->line('Ábrelo en el navegador y dale al botón "Imprimir / Guardar PDF".');
+            $this->line('En el diálogo de impresión elige "Guardar como PDF".');
+
+            return self::SUCCESS;
+        }
 
         foreach (self::GUIAS as $src => $dest) {
             $this->buildOne(base_path($src), public_path($dest), $template);

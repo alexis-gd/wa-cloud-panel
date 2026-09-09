@@ -5,6 +5,38 @@ en un rango. No la usa el panel: la consume otro servidor.
 
 ---
 
+## Comprobar que funciona (5 minutos)
+
+Junto a este documento viene **`api-contactados.postman_collection.json`**, una colección de
+Postman que no solo hace las peticiones: **verifica sus resultados**.
+
+1. Postman → **Import** → arrastra el archivo.
+2. Clic en la colección → pestaña **Variables** → pon tu llave en `api_key`.
+3. En `fecha_con_datos`, un día en el que sepas que hubo envíos. **Save**.
+4. Clic derecho en la colección → **Run collection** → **Run**.
+
+**Qué debes ver:** las cuatro peticiones normales en verde y las cinco de la carpeta
+*Errores* también en verde. Esas cinco mandan cosas mal a propósito y comprueban que el API
+las **rechace** como debe; llevan fechas fijas, así que funcionan aunque no configures nada.
+
+Entre otras cosas verifica que ningún contacto se repita dentro de una página, que la página 2
+no repita contactos de la página 1, y que cada error traiga su `code` correspondiente.
+
+Si prefieres la terminal:
+
+```bash
+LLAVE="la-llave-que-te-dieron"
+FECHA="2026-08-17"
+
+# Debe responder 200 con la lista
+curl -s "https://sender.prestamaz.site/api/contacted?date=$FECHA" -H "X-API-Key: $LLAVE"
+
+# Debe responder 401 (sin la cabecera de la llave)
+curl -s -o /dev/null -w "%{http_code}\n" "https://sender.prestamaz.site/api/contacted?date=$FECHA"
+```
+
+---
+
 ## Autenticación
 
 Cabecera `X-API-Key` con el valor de `API_KEY` del `.env` del panel.
@@ -117,3 +149,13 @@ curl -H "X-API-Key: LA_LLAVE" \
 curl -H "X-API-Key: LA_LLAVE" \
   "https://sender.prestamaz.site/api/contacted?from=2026-08-01&to=2026-08-31&per_page=2000&page=1"
 ```
+
+---
+
+## Si algo no cuadra
+
+Escríbenos con tres datos y se resuelve casi siempre a la primera:
+
+1. La **URL completa** que llamaste, sin la llave.
+2. El **código HTTP** que te respondió.
+3. El **cuerpo** de la respuesta.

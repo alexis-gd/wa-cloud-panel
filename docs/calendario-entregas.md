@@ -405,6 +405,39 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
     nadie, **sin error**. Por eso la etiqueta a poner viaja en `attach_tag_id`. De paso queda
     habilitado el caso útil: "a los que tienen VIP, ponles Renovación". Tiene test.
 
+### Entrega del API al cliente y visibilidad del cron (2026-09-08)
+
+- [x] **El API de contactados tenía TRES formatos de error.** Lo encontró el cliente corriendo
+  la colección de Postman, no nosotros: una fecha mal escrita salía con la forma por default de
+  Laravel (`{message, errors:{...}}`, en inglés, sin `code`), el 401 salía como
+  `{"error":"Unauthorized"}`, y solo el resto usaba el contrato documentado. Su programador se
+  topaba con el inglés al primer intento. Ahora todo pasa por
+  `App\Http\Requests\ContactedRequest` (con `failedValidation` devolviendo `INVALID_PARAMS`)
+  y `ApiKeyMiddleware` responde igual con `UNAUTHORIZED`. **La doc fuente llegó a documentar la
+  inconsistencia como si fuera normal**; ese párrafo ahora dice la regla.
+- [x] **Una sola guía para el cliente.** Se había creado un LEEME aparte que repetía casi todo
+  lo de `api-contactados.md` - tabla de errores, qué cuenta como contactado, paginado, límite,
+  fechas en hora de México. Dos documentos diciendo lo mismo se desincronizan. Se fusionaron:
+  queda `docs/api-contactados.md` con una sección de "Comprobar que funciona" arriba, más
+  `docs/api-contactados.postman_collection.json`.
+- [x] **La colección de Postman verifica, no solo consulta.** Comprueba que ningún contacto se
+  repita en una página, que la página 2 no repita los de la 1, y que cada error traiga su
+  `code`. Las peticiones de error llevan **fechas fijas**: al usar variables, una sin resolver
+  mandaba el placeholder literal y todas fallaban por formato, tapando el error que cada una
+  quería demostrar - que fue justo lo que le pasó al cliente.
+- [x] **La doc se publica en `/doc/api-contactados.html`.** Se arma con `guias:build` junto a
+  las dos guías del panel y su HTML viaja al repo, así que llega a producción con un deploy
+  normal y no se puede desincronizar de su Markdown. El resto de `public/doc/` sigue
+  gitignoreado: ahí caen los renders de un solo uso. `guias:build` acepta un archivo suelto
+  para eso. **Ojo:** publica dentro de `public/`, así que **no** correrlo en el servidor con
+  documentos internos - `sincronizacion-contactos.md` trae IPs y rutas del cliente.
+- [x] **Queda registro de cada corrida de la sincronización.** El cron corre a las 4 AM y nadie
+  ve esa consola: solo `recibidos` y `nuevos` llegaban al log, y en producción el `LOG_LEVEL`
+  puede estar en `warning`, con lo que ese `Log::info` no se escribe nunca. El resumen completo
+  se guarda ahora en el `Setting contact_sync_last_run` y se consulta con
+  **`contactos:ultima-corrida`** (y `--cartera` para el desglose actual). Los fallos también se
+  guardan con su motivo. El `--dry-run` **no** deja registro: un ensayo no es una corrida.
+
 ### Anotado para cuando crezca (sin urgencia)
 
 - [ ] **Paginar la lista de Conversaciones.** `ConversationController::index` hace `->get()`:
@@ -453,6 +486,17 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
   panel tampoco responde y nadie se entera. Son ~10 líneas y una cuenta gratis.
 - [ ] **PL1** - plantillas SMS con variables desde el API. Novena partida de la cotización,
   nunca se arrancó. Fuera de esta fase a propósito.
+
+### Abierto: no cuadran los contactos que cargó el API (2026-09-08)
+
+- [ ] **Hay 6,179 contactos y deberían ser ~14,700.** El `--dry-run` del 2026-09-05 reportó
+  **11,719 altas** sobre 14,872 registros, con 3,039 que ya existían. Si la base tenía ~3,000
+  antes, el total esperado era ~14,758. Faltan más de 8,000.
+  **Hipótesis a descartar, en orden:** (1) el cron falló a media corrida y el insert por lotes
+  de 500 quedó parcial; (2) alguien puso `SYNC_STATUS_EXCLUDE` en el `.env`; (3) el API devolvió
+  menos registros ese día; (4) la corrida nunca terminó (timeout del comando).
+  **Con qué empezar:** `contactos:ultima-corrida` - si no hay registro, es que la corrida es
+  anterior al commit que lo guarda, y entonces toca mirar el log y contar por `created_at`.
 
 ### Bugs reportados por el cliente operando (2026-09-03)
 

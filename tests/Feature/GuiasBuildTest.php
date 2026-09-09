@@ -101,5 +101,8 @@ class GuiasBuildTest extends TestCase
 
         $this->assertTrue(File::exists(public_path('guia/uso.html')));
         $this->assertTrue(File::exists(public_path('guia/meta.html')));
+        // La doc del API va en la misma corrida: si se generara aparte, el HTML que se
+        // sirve en produccion acabaria contradiciendo a su Markdown.
+        $this->assertTrue(File::exists(public_path('doc/api-contactados.html')));
     }
 }

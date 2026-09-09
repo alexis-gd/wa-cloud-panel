@@ -14,10 +14,19 @@ class BuildGuidesCommand extends Command
 
     protected $description  = 'Genera el HTML estilizado de las guías desde su Markdown (fuente única)';
 
-    /** Markdown fuente => HTML destino (relativo a public/). */
+    /**
+     * Markdown fuente => HTML destino (relativo a public/).
+     *
+     * Los dos primeros son los manuales del panel, para quien lo opera, y están enlazados
+     * desde adentro. El tercero es distinto: documentación técnica para el programador del
+     * cliente, que nunca entra al panel. Se arma aquí porque comparte el mecanismo y porque
+     * así se regenera sola cuando alguien edita el Markdown - de lo contrario el HTML que se
+     * sirve quedaría contradiciendo a su fuente.
+     */
     private const GUIAS = [
-        'docs/guias/guia-uso.md'  => 'guia/uso.html',
-        'docs/guias/guia-meta.md' => 'guia/meta.html',
+        'docs/guias/guia-uso.md'   => 'guia/uso.html',
+        'docs/guias/guia-meta.md'  => 'guia/meta.html',
+        'docs/api-contactados.md'  => 'doc/api-contactados.html',
     ];
 
     public function handle(): int

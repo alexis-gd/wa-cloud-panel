@@ -32,5 +32,7 @@ CLAUDE.local.md
 /qa-seed-contactados.php
 /qa-seed-etiquetas.php
 
-# HTML generado a demanda para imprimir a PDF (no es parte del producto)
-/public/doc/
+# HTML generado a demanda para imprimir a PDF. `doc/api-contactados.html` SÍ va al repo
+# (se sirve en produccion, igual que public/guia/*.html); lo demas es de un solo uso.
+/public/doc/*
+!/public/doc/api-contactados.html

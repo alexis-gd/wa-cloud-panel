@@ -100,9 +100,18 @@ Todos responden **422** con `{ "status": "error", "message": "...", "code": "...
 | `MISSING_DATE` | No mandaste ni `date` ni `from`+`to`. Sin fecha no se responde: barrería la tabla entera. |
 | `AMBIGUOUS_RANGE` | Mandaste `date` **y** `from`/`to`. No se adivina cuál querías. |
 | `INVALID_RANGE` | `to` es anterior a `from`. |
+| `INVALID_PARAMS` | Una fecha con formato distinto de `AAAA-MM-DD`, `from` sin `to` (o al revés), o `page`/`per_page` que no son enteros positivos. |
 
-Una fecha mal escrita (`17-08-2026`) o `from` sin `to` los rechaza la validación de Laravel,
-también con 422.
+Y el **401** por llave faltante o inválida responde igual, con `code: UNAUTHORIZED`.
+
+> **No hay excepciones al formato.** Antes una fecha mal escrita salía con la forma por default
+> de Laravel (`{message, errors:{...}}`, en inglés y sin `code`), así que el API contestaba de
+> dos maneras según el error. Lo detectó el cliente probando la colección de Postman. Ahora
+> todo pasa por `App\Http\Requests\ContactedRequest`, que devuelve el mismo contrato, y el
+> middleware de la llave hace lo propio con el 401.
+>
+> Quien lo consume puede programar contra `code` y mostrar `message` tal cual, sin ramificar
+> por tipo de error.
 
 ---
 

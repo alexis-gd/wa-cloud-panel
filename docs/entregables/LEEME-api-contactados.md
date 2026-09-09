@@ -1,4 +1,4 @@
-# API de contactados — Paquete de entrega
+# API de contactados - Paquete de entrega
 
 Para el equipo técnico de Prestamaz.
 
@@ -24,12 +24,16 @@ el sistema de Prestamaz cruce esa información con la suya sin pedirla a mano.
 
 1. Abre Postman → **Import** → arrastra `api-contactados.postman_collection.json`.
 2. Clic en la colección → pestaña **Variables**.
-3. En `api_key`, pega la llave que te dieron. **Save**.
+3. En `api_key`, pega la llave que te dieron.
 4. En `fecha_con_datos`, pon un día en el que sepas que hubo envíos.
-5. Clic derecho en la colección → **Run collection** → **Run**.
+5. **Save** (Ctrl+S).
+6. Clic derecho en la colección → **Run collection** → **Run**.
+
+> ⚠️ Llena la columna **CURRENT VALUE**, no solo *Initial Value*. Postman manda la primera, y
+> si la dejas vacía las peticiones salen con la variable sin resolver y fallan por formato.
 
 **Qué debes ver:** las cuatro primeras peticiones en verde, y las cuatro de la carpeta
-*Errores* también en verde — ésas comprueban que el API **rechaza** lo que debe rechazar.
+*Errores* también en verde - ésas comprueban que el API **rechaza** lo que debe rechazar.
 
 Si todo pasa, el API está funcionando de tu lado.
 
@@ -104,13 +108,21 @@ Cuenta **los dos canales**, WhatsApp y SMS.
 
 | Código HTTP | `code` | Qué pasó |
 |---|---|---|
-| 401 | — | Falta la cabecera `X-API-Key`, o la llave no coincide |
+| 401 | `UNAUTHORIZED` | Falta la cabecera `X-API-Key`, o la llave no coincide |
 | 422 | `MISSING_DATE` | No mandaste `date` ni `from`/`to` |
 | 422 | `AMBIGUOUS_RANGE` | Mandaste `date` **y** rango a la vez |
 | 422 | `INVALID_RANGE` | La fecha final es anterior a la inicial |
-| 429 | — | Más de 60 peticiones en un minuto |
+| 422 | `INVALID_PARAMS` | Una fecha mal escrita, o `page`/`per_page` inválidos |
+| 429 | - | Más de 60 peticiones en un minuto |
 
-Todos responden en JSON con un `message` explicando qué corregir.
+**Todos** responden con la misma forma, sin excepción:
+
+```json
+{ "status": "error", "message": "...", "code": "..." }
+```
+
+Puedes programar contra `code` y mostrar `message` tal cual: viene en español y dice qué
+corregir. No hay ninguna respuesta con otro formato.
 
 ---
 
@@ -120,16 +132,3 @@ Todos responden en JSON con un `message` explicando qué corregir.
 - Es un secreto: no la subas a un repositorio ni la mandes por chat.
 - Si se filtra, avísanos: se cambia y se te entrega una nueva. Nada más del sistema se ve
   afectado.
-
----
-
-## Dudas
-
-Escríbenos con: la **URL completa** que llamaste (sin la llave), el **código HTTP** que te
-respondió y el **cuerpo de la respuesta**. Con eso se resuelve casi siempre a la primera.
-
----
-
-> **Nota interna (borrar antes de enviar):** este paquete son dos archivos de esta carpeta más
-> `docs/api-contactados.md`, que vive fuera a propósito — es la fuente única y se actualiza con
-> el código. No la dupliques aquí: se desincronizaría.

@@ -268,4 +268,66 @@ class ContactedApiTest extends TestCase
         $this->assertSame('2026-08-01', $res->json('meta.from'));
         $this->assertSame('2026-08-17', $res->json('meta.to'));
     }
+
+    // -- Un solo contrato de error ------------------------------------------
+
+    /**
+     * Lo encontro el CLIENTE probando la coleccion de Postman, no nosotros: una fecha mal
+     * escrita devolvia el formato crudo de Laravel, en ingles y sin `code`, mientras que los
+     * demas errores devolvian el nuestro. El API contestaba de dos formas segun el error.
+     */
+    public function test_una_fecha_mal_escrita_responde_con_el_formato_del_api(): void
+    {
+        $res = $this->consultar('/api/contacted?date=24/08/2026');
+
+        $res->assertStatus(422);
+        $this->assertSame('error', $res->json('status'));
+        $this->assertSame('INVALID_PARAMS', $res->json('code'));
+        $this->assertStringContainsString('AAAA-MM-DD', $res->json('message'));
+        // La forma de Laravel NO debe aparecer.
+        $this->assertNull($res->json('errors'));
+    }
+
+    public function test_el_401_tambien_usa_el_formato_del_api(): void
+    {
+        $res = $this->getJson('/api/contacted?date=2026-08-24');
+
+        $res->assertStatus(401);
+        $this->assertSame('error', $res->json('status'));
+        $this->assertSame('UNAUTHORIZED', $res->json('code'));
+        $this->assertNotEmpty($res->json('message'));
+    }
+
+    public function test_todos_los_errores_traen_status_message_y_code(): void
+    {
+        // El contrato que se le documento al cliente: puede programar contra `code` y
+        // mostrar `message` sin revisar de que error se trata.
+        $casos = [
+            ['/api/contacted',                                          'MISSING_DATE'],
+            ['/api/contacted?date=2026-08-24&from=2026-08-01&to=2026-08-31', 'AMBIGUOUS_RANGE'],
+            ['/api/contacted?from=2026-08-31&to=2026-08-01',            'INVALID_RANGE'],
+            ['/api/contacted?date=24-08-2026',                          'INVALID_PARAMS'],
+            ['/api/contacted?date=2026-08-24&page=0',                   'INVALID_PARAMS'],
+            ['/api/contacted?date=2026-08-24&per_page=0',               'INVALID_PARAMS'],
+            ['/api/contacted?from=2026-08-01',                          'INVALID_PARAMS'],
+        ];
+
+        foreach ($casos as [$url, $code]) {
+            $res = $this->consultar($url);
+
+            $res->assertStatus(422);
+            $this->assertSame('error', $res->json('status'), "status en {$url}");
+            $this->assertSame($code, $res->json('code'), "code en {$url}");
+            $this->assertNotEmpty($res->json('message'), "message en {$url}");
+        }
+    }
+
+    public function test_los_mensajes_de_error_van_en_espanol(): void
+    {
+        // Nunca debe llegarle al programador del cliente el texto por default de Laravel.
+        $res = $this->consultar('/api/contacted?date=nope');
+
+        $this->assertStringNotContainsString('The date field', $res->json('message'));
+        $this->assertStringContainsString('fecha', mb_strtolower($res->json('message')));
+    }
 }

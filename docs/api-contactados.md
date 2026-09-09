@@ -104,15 +104,6 @@ Todos responden **422** con `{ "status": "error", "message": "...", "code": "...
 
 Y el **401** por llave faltante o inválida responde igual, con `code: UNAUTHORIZED`.
 
-> **No hay excepciones al formato.** Antes una fecha mal escrita salía con la forma por default
-> de Laravel (`{message, errors:{...}}`, en inglés y sin `code`), así que el API contestaba de
-> dos maneras según el error. Lo detectó el cliente probando la colección de Postman. Ahora
-> todo pasa por `App\Http\Requests\ContactedRequest`, que devuelve el mismo contrato, y el
-> middleware de la llave hace lo propio con el 401.
->
-> Quien lo consume puede programar contra `code` y mostrar `message` tal cual, sin ramificar
-> por tipo de error.
-
 ---
 
 ## Ejemplos

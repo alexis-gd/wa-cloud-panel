@@ -336,6 +336,8 @@ const helpContent = {
             { icon: 'pi-chart-line',    label: 'Gráfica',     text: 'Envíos día a día del mes actual. Usa ↺ para refrescar.' },
             { icon: 'pi-history',       label: 'Histórico',   text: 'Enviados vs. capacidad de los últimos 6 meses. Útil para ver tendencia de crecimiento.' },
             { icon: 'pi-list',          label: 'Últimos',     text: 'Los 10 mensajes más recientes con su estado actual. Filtra por estado con el selector.' },
+            { icon: 'pi-info-circle',   label: 'Motivo',     text: 'Columna al lado del Estado: dice en español por qué no llegó un mensaje. Los que rechazó el proveedor salen en rojo y dicen quién lo dijo ("Meta respondió: ..." o "El gateway de SMS respondió: ..."). Los que frenó el panel salen en naranja (enfriamiento, baja, ya recibió hoy). Pasa el cursor encima para el texto completo.' },
+            { icon: 'pi-search',        label: 'Buscar por número', text: 'Escribe el celular y la tabla se queda solo con sus mensajes. Da igual con lada o sin ella, con espacios o guiones. También sirven los últimos dígitos: "1146" trae los que terminan así.' },
             { icon: 'pi-bolt',          label: 'En vivo',     text: 'El tablero se actualiza solo con la actividad (semáforo, cifras, últimos mensajes) mientras corren las campañas. No hace falta recargar. El histórico por mes se carga una vez.' },
         ],
         warning: 'Si el semáforo está ROJO o PAUSADO, no ejecutar campañas hasta que se revise.',

@@ -133,4 +133,58 @@ class ExportLabelsTest extends TestCase
         $this->assertStringContainsString('2026-08-01 21:00:00', $texto);
         $this->assertStringNotContainsString('2026-08-02 03:00:00', $texto);
     }
+
+    // ── Columna "Motivo": el Excel decia solo "Fallido" y el cliente preguntaba por que ──
+
+    public function test_el_excel_de_mensajes_dice_que_respondio_meta_cuando_falla_whatsapp(): void
+    {
+        $phone = PhoneNumber::factory()->create();
+
+        MessageLog::factory()->create([
+            'phone_number_id'      => $phone->id,
+            'channel'              => 'whatsapp',
+            'status'               => 'failed',
+            'delivery_error_code'  => 131026,
+            'delivery_error_title' => 'Message undeliverable',
+        ]);
+
+        $texto = json_encode($this->hojaDe('/api/export/messages'), JSON_UNESCAPED_UNICODE);
+
+        $this->assertStringContainsString('Motivo', $texto);
+        $this->assertStringContainsString('Meta respondió: El mensaje no pudo ser entregado al destinatario.', $texto);
+    }
+
+    public function test_el_excel_de_mensajes_no_le_echa_la_culpa_a_meta_de_un_sms(): void
+    {
+        $phone = PhoneNumber::factory()->create();
+
+        MessageLog::factory()->create([
+            'phone_number_id' => $phone->id,
+            'channel'         => 'sms',
+            'status'          => 'failed',
+            'error_message'   => 'El gateway reportó el envío como fallido (sin detalle)',
+        ]);
+
+        $texto = json_encode($this->hojaDe('/api/export/messages'), JSON_UNESCAPED_UNICODE);
+
+        $this->assertStringContainsString('El gateway de SMS respondió:', $texto);
+        $this->assertStringNotContainsString('Meta respondió', $texto);
+    }
+
+    public function test_el_excel_de_mensajes_deja_el_motivo_vacio_cuando_el_mensaje_si_llego(): void
+    {
+        $phone = PhoneNumber::factory()->create();
+
+        MessageLog::factory()->create([
+            'phone_number_id' => $phone->id,
+            'channel'         => 'whatsapp',
+            'status'          => 'delivered',
+        ]);
+
+        $filas = $this->hojaDe('/api/export/messages');
+
+        // Encabezado en A1..J1: "Motivo" es la octava columna (indice 7).
+        $this->assertSame('Motivo', $filas[0][7]);
+        $this->assertEmpty($filas[1][7]);
+    }
 }

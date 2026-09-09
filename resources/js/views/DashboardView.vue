@@ -202,6 +202,23 @@
                         size="small"
                         @change="loadMessages(1)"
                     />
+                    <IconField class="logs-search">
+                        <InputIcon class="pi pi-search" />
+                        <InputText
+                            v-model="logsSearch"
+                            placeholder="Buscar por número"
+                            size="small"
+                            @keyup.enter="loadMessages(1)"
+                        />
+                    </IconField>
+                    <Button
+                        v-if="logsSearch"
+                        icon="pi pi-times"
+                        text
+                        size="small"
+                        title="Limpiar búsqueda"
+                        @click="clearLogsSearch"
+                    />
                 </div>
                 <DataTable :value="logs" size="small" stripedRows :loading="loadingLogs" class="mt-2">
                     <Column field="id" header="ID" style="width: 60px" />
@@ -222,7 +239,20 @@
                     </Column>
                     <Column header="Estado">
                         <template #body="{ data }">
-                            <Tag :value="data.status" :severity="statusSeverity(data.status)" />
+                            <Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" />
+                        </template>
+                    </Column>
+                    <Column header="Motivo" style="min-width: 220px">
+                        <template #body="{ data }">
+                            <!-- El backend manda el motivo ya traducido (DeliveryReason), igual
+                                 que el detalle de campaña. El tooltip trae el texto largo con
+                                 el prefijo de quién lo dijo ("Meta respondió: ..."). -->
+                            <span
+                                v-if="data.reason"
+                                :class="data.discard_reason ? 'discard-reason' : 'error-msg'"
+                                :title="data.reason_detail"
+                            >{{ data.reason }}</span>
+                            <span v-else class="muted-cell">-</span>
                         </template>
                     </Column>
                     <Column header="Fecha">
@@ -259,6 +289,9 @@ import Select    from 'primevue/select';
 import DataTable from 'primevue/datatable';
 import Column    from 'primevue/column';
 import Tag       from 'primevue/tag';
+import InputText from 'primevue/inputtext';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
 import Chart     from 'primevue/chart';
 import { api }          from '../api.js';
 import TablePaginator   from '../components/TablePaginator.vue';
@@ -272,6 +305,7 @@ const logsMeta         = ref(null);
 // Tamaño de página elegido por el operador (número o 'all'). Ver TablePaginator.
 const logsPerPage      = ref(10);
 const logsStatusFilter = ref(null);
+const logsSearch       = ref('');
 const stats            = ref({});
 const contacts         = ref({});
 const monthly          = ref({});
@@ -382,6 +416,17 @@ const portfolioLimitLabel = computed(() => {
     return daily ? Number(daily).toLocaleString('es-MX') : String(raw);
 });
 
+// Los estados viajan en inglés a propósito, pero nunca deben LLEGAR al operador: esta tabla
+// mostraba "failed" tal cual.
+const statusLabel = (status) => ({
+    pending   : 'Pendiente',
+    sent      : 'Enviado',
+    delivered : 'Entregado',
+    read      : 'Leído',
+    failed    : 'Fallido',
+    discarded : 'Descartado',
+}[status] ?? status);
+
 const statusSeverity = (status) => ({
     sent      : 'info',
     delivered : 'success',
@@ -418,10 +463,16 @@ function changeLogsPageSize(size) {
     loadMessages(1);
 }
 
+function clearLogsSearch() {
+    logsSearch.value = '';
+    loadMessages(1);
+}
+
 async function loadMessages(page = 1) {
     loadingLogs.value = true;
     const params = { page, per_page: logsPerPage.value };
     if (logsStatusFilter.value) params.status = logsStatusFilter.value;
+    if (logsSearch.value.trim()) params.search = logsSearch.value.trim();
     const res = await api.dashboardMessages(params);
     if (res.status === 'ok') {
         logs.value     = res.data ?? [];
@@ -652,7 +703,10 @@ onUnmounted(() => {
 .ch-sms { color: var(--p-blue-500); font-size: 1.05rem; }
 .mt-2      { margin-top: 8px; }
 
-.logs-filter-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.logs-filter-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
+.logs-search input { min-width: 200px; }
+.error-msg      { color: var(--p-red-600);    font-size: .8rem; cursor: help; }
+.discard-reason { color: var(--p-orange-700); font-size: .8rem; cursor: help; }
 
 @media (max-width: 900px) {
     .stats-row { grid-template-columns: repeat(2, 1fr); }

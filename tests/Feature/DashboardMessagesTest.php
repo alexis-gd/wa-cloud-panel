@@ -96,4 +96,88 @@ class DashboardMessagesTest extends TestCase
         // El endpoint de stats ya no debe incluir recent_messages
         $this->assertArrayNotHasKey('recent_messages', $res->json('data'));
     }
+
+    // ── Motivo del fallo: la tabla decia solo "failed" y el operador no sabia por que ──
+
+    public function test_messages_endpoint_returns_translated_reason_for_delivery_error(): void
+    {
+        $this->actingAsAdmin();
+
+        MessageLog::factory()->create([
+            'phone_number_id'      => $this->phone->id,
+            'channel'              => 'whatsapp',
+            'status'               => 'failed',
+            'delivery_error_code'  => 131049,
+            'delivery_error_title' => 'Message undeliverable',
+        ]);
+
+        $res = $this->getJson('/api/dashboard/messages')->assertOk();
+
+        $this->assertStringContainsString('límite de mensajes de marketing', $res->json('data.0.reason'));
+        $this->assertStringContainsString('Meta respondió:', $res->json('data.0.reason_detail'));
+        $this->assertStringContainsString('(código 131049)', $res->json('data.0.reason_detail'));
+    }
+
+    public function test_messages_endpoint_does_not_blame_meta_for_an_sms_failure(): void
+    {
+        $this->actingAsAdmin();
+
+        MessageLog::factory()->create([
+            'phone_number_id' => $this->phone->id,
+            'channel'         => 'sms',
+            'status'          => 'failed',
+            'error_message'   => 'El gateway reportó el envío como fallido (sin detalle)',
+        ]);
+
+        $detalle = $this->getJson('/api/dashboard/messages')->assertOk()->json('data.0.reason_detail');
+
+        $this->assertStringContainsString('gateway de SMS', $detalle);
+        $this->assertStringNotContainsString('Meta', $detalle);
+    }
+
+    public function test_messages_endpoint_leaves_reason_empty_when_the_message_went_through(): void
+    {
+        $this->actingAsAdmin();
+        $this->createLogs(['delivered']);
+
+        $this->assertNull($this->getJson('/api/dashboard/messages')->assertOk()->json('data.0.reason'));
+    }
+
+    // ── Busqueda por numero ──
+
+    public function test_messages_endpoint_finds_a_number_typed_with_separators(): void
+    {
+        $this->actingAsAdmin();
+
+        MessageLog::factory()->create(['phone_number_id' => $this->phone->id, 'to_number' => '529231311146']);
+        MessageLog::factory()->create(['phone_number_id' => $this->phone->id, 'to_number' => '526691273636']);
+
+        $res = $this->getJson('/api/dashboard/messages?search=' . urlencode('923 131 1146'))->assertOk();
+
+        $this->assertCount(1, $res->json('data'));
+        $this->assertSame('529231311146', $res->json('data.0.to_number'));
+    }
+
+    public function test_messages_endpoint_finds_a_number_by_its_last_digits(): void
+    {
+        $this->actingAsAdmin();
+
+        MessageLog::factory()->create(['phone_number_id' => $this->phone->id, 'to_number' => '529231311146']);
+        MessageLog::factory()->create(['phone_number_id' => $this->phone->id, 'to_number' => '526691273636']);
+
+        $res = $this->getJson('/api/dashboard/messages?search=1146')->assertOk();
+
+        $this->assertCount(1, $res->json('data'));
+        $this->assertSame('529231311146', $res->json('data.0.to_number'));
+    }
+
+    public function test_messages_endpoint_ignores_an_empty_search(): void
+    {
+        $this->actingAsAdmin();
+        $this->createLogs(['sent', 'sent']);
+
+        $res = $this->getJson('/api/dashboard/messages?search=' . urlencode('   '))->assertOk();
+
+        $this->assertEquals(2, $res->json('meta.total'));
+    }
 }

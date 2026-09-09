@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
+use App\Services\WhatsApp\DeliveryReason;
 use App\Services\WhatsApp\PortfolioLimit;
 use App\Support\PageSize;
 use Illuminate\Http\JsonResponse;
@@ -100,12 +101,42 @@ class DashboardController extends Controller
             $query->where('phone_number_id', (int) $request->phone_number_id);
         }
 
+        // Buscar por número. El operador teclea como le sale: con lada, sin ella, con espacios
+        // o guiones. Se queda con los dígitos y decide:
+        //   - 10 dígitos o más -> se normaliza a 52XXXXXXXXXX y se compara EXACTO, que usa el
+        //     índice de `to_number` (importante: esta tabla crece a cientos de miles de filas).
+        //   - menos dígitos -> "termina en", para el caso de "búscame los que acaban en 1146".
+        //     Ese sí recorre el índice, por eso se pide un mínimo de 4 dígitos: con 1 o 2 la
+        //     consulta no discrimina nada y sale cara para nada.
+        if ($request->filled('search')) {
+            $digitos = preg_replace('/\D/', '', (string) $request->input('search'));
+
+            if ($digitos !== '') {
+                $normalizado = strlen($digitos) >= 10 ? Contact::normalizePhone($digitos) : null;
+
+                if ($normalizado !== null) {
+                    $query->where('to_number', $normalizado);
+                } elseif (strlen($digitos) >= 4) {
+                    $query->where('to_number', 'like', '%' . $digitos);
+                } else {
+                    $query->where('to_number', 'like', '%' . $digitos . '%');
+                }
+            }
+        }
+
         $paginated = $query->paginate(PageSize::from($request, 20));
 
-        $items = collect($paginated->items())->map(fn (MessageLog $log) => array_merge(
-            $log->toArray(),
-            ['created_at' => $log->created_at->setTimezone('America/Mexico_City')->format('Y-m-d H:i')]
-        ));
+        // `reason` viene ya traducido (DeliveryReason), igual que en el detalle de campaña: la
+        // tabla mostraba solo "failed" y el operador no tenía forma de saber qué había pasado.
+        $items = collect($paginated->items())->map(function (MessageLog $log) {
+            $reason = DeliveryReason::forLog($log);
+
+            return array_merge($log->toArray(), [
+                'created_at'    => $log->created_at->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
+                'reason'        => $reason['short']  ?? null,
+                'reason_detail' => $reason['full']   ?? null,
+            ]);
+        });
 
         return response()->json([
             'status' => 'ok',

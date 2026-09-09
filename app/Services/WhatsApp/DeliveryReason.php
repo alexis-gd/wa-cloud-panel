@@ -54,14 +54,24 @@ class DeliveryReason
     /**
      * Motivo de un registro, listo para mostrar. null si el mensaje va bien.
      *
-     * @return array{short: string, detail: string}|null
+     * `origin` dice QUIEN lo dijo, y de ahi sale el prefijo de `full`. Importa porque no es lo
+     * mismo "nosotros decidimos no enviarlo" (enfriamiento, baja) que "el proveedor lo rechazo":
+     * atribuirle a Meta una decision nuestra confunde al operador y lo manda a revisar la cuenta
+     * de Meta cuando no hay nada que revisar.
+     *
+     * @return array{short: string, detail: string, origin: string, full: string}|null
      */
     public static function forLog(MessageLog $log): ?array
     {
+        // Decision NUESTRA: el mensaje nunca salio. Sin prefijo de proveedor.
         if ($log->discard_reason) {
+            $detail = self::DISCARD_REASONS[$log->discard_reason] ?? $log->discard_reason;
+
             return [
                 'short'  => self::SHORT_DISCARD[$log->discard_reason] ?? $log->discard_reason,
-                'detail' => self::DISCARD_REASONS[$log->discard_reason] ?? $log->discard_reason,
+                'detail' => $detail,
+                'origin' => 'sistema',
+                'full'   => $detail,
             ];
         }
 
@@ -71,17 +81,38 @@ class DeliveryReason
             $detail = self::DELIVERY_ERRORS[$code]
                 ?? ($log->delivery_error_title ?: "Meta reportó el error {$code}.");
 
-            return ['short' => $detail, 'detail' => "{$detail} (código {$code})"];
+            return self::deProveedor($log, $detail, "{$detail} (código {$code})");
         }
 
         // Falla AL DESPACHAR: Meta rechazó la llamada. `error_message` trae el JSON crudo.
         if ($log->error_message) {
             $detail = self::fromRawError($log->error_message);
 
-            return ['short' => $detail, 'detail' => $detail];
+            return self::deProveedor($log, $detail, $detail);
         }
 
         return null;
+    }
+
+    /**
+     * Arma el motivo de una falla que reportó el proveedor, no nosotros.
+     *
+     * El proveedor depende del canal: WhatsApp es Meta, SMS es el gateway. Decir "Meta respondió"
+     * en un SMS seria mentir - Meta ni se entera de ese canal.
+     *
+     * @return array{short: string, detail: string, origin: string, full: string}
+     */
+    private static function deProveedor(MessageLog $log, string $short, string $detail): array
+    {
+        $origin  = $log->channel === 'sms' ? 'gateway' : 'meta';
+        $prefijo = $origin === 'gateway' ? 'El gateway de SMS respondió' : 'Meta respondió';
+
+        return [
+            'short'  => $short,
+            'detail' => $detail,
+            'origin' => $origin,
+            'full'   => "{$prefijo}: {$detail}",
+        ];
     }
 
     /**

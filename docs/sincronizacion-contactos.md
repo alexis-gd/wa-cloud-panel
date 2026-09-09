@@ -84,6 +84,21 @@ la cuenta una sola vez.
 php artisan contactos:sincronizar
 ```
 
+### 5. Ver qué pasó en la última corrida
+
+```bash
+php artisan contactos:ultima-corrida
+php artisan contactos:ultima-corrida --cartera   # desglose actual por estado
+```
+
+El cron corre a las 4 AM y nadie ve esa consola, así que el resumen **se guarda** en el
+`Setting contact_sync_last_run` y este comando lo muestra igual que si se hubiera visto correr.
+Los fallos también se guardan, con su motivo.
+
+> Se guarda en la base y no solo en el log **a propósito**: en producción el nivel de log puede
+> estar en `warning`, y entonces el `Log::info` de la corrida no se escribe nunca. El modo seco
+> NO deja registro: una prueba no es una corrida.
+
 Y ya queda solo: el scheduler lo corre **todos los días a las 4:00 AM** (hora de México),
 antes del warm-up de las 5:00 y de la ventana de envíos de las 9:00, para que lo que entre
 esté disponible para las campañas del día.

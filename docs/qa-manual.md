@@ -211,6 +211,10 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 - [ ] **Excluido que ya existe**: con `SYNC_STATUS_EXCLUDE=BURÓ`, a un contacto que YA está y pasa a BURÓ **sí** se le actualiza la Cartera (excluir impide el alta, no el reflejo)
 - [ ] **API caído**: si no responde, el comando falla con mensaje claro y no deja nada a medias
 - [ ] **Scheduler**: `php artisan schedule:list` muestra `contactos:sincronizar` a las 04:00
+- [ ] **Queda registro de la corrida**: tras sincronizar, `contactos:ultima-corrida` muestra la misma tabla que salió en pantalla
+- [ ] **El modo seco NO deja registro**: correr `--dry-run` no cambia lo que muestra `contactos:ultima-corrida`
+- [ ] **Un fallo queda registrado**: apagar el API y sincronizar → `contactos:ultima-corrida` dice que falló y el motivo
+- [ ] **Desglose de cartera**: `contactos:ultima-corrida --cartera` lista los contactos por estado, y los que no vinieron del API salen como "(sin estado)"
 
 ---
 

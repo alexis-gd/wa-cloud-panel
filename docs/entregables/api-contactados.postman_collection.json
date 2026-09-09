@@ -1,0 +1,275 @@
+{
+  "info": {
+    "name": "Prestamaz - API de contactados",
+    "description": "Consulta a quien contacto Prestamaz en una fecha o rango.\n\nANTES DE EMPEZAR:\n1. Abre la pestana 'Variables' de esta coleccion.\n2. Pon tu llave en `api_key` (Prestamaz te la entrega por separado).\n3. Cambia `fecha_con_datos` por un dia en el que sepas que hubo envios.\n\nLuego corre las peticiones de arriba hacia abajo. Las cuatro primeras deben responder 200; las de la carpeta 'Errores' deben fallar a proposito.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sender.prestamaz.site", "type": "string" },
+    { "key": "api_key", "value": "PEGA_AQUI_TU_LLAVE", "type": "string" },
+    { "key": "fecha_con_datos", "value": "2026-08-24", "type": "string" },
+    { "key": "fecha_inicio", "value": "2026-08-01", "type": "string" },
+    { "key": "fecha_fin", "value": "2026-08-31", "type": "string" }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key", "value": "X-API-Key", "type": "string" },
+      { "key": "value", "value": "{{api_key}}", "type": "string" },
+      { "key": "in", "value": "header", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Un solo dia",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/contacted?date={{fecha_con_datos}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "contacted"],
+          "query": [{ "key": "date", "value": "{{fecha_con_datos}}" }]
+        },
+        "description": "Devuelve a quien se contacto ese dia.\n\nCada contacto sale UNA vez, aunque haya recibido varios mensajes. Las fechas son dias naturales en hora de Mexico: un mensaje de las 23:30 del 17 pertenece al 17."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('El status es ok', () => pm.expect(j.status).to.eql('ok'));",
+              "pm.test('Trae data y meta', () => { pm.expect(j).to.have.property('data'); pm.expect(j).to.have.property('meta'); });",
+              "pm.test('Cada fila trae name y phone', () => {",
+              "  if (j.data.length) { pm.expect(j.data[0]).to.have.property('name'); pm.expect(j.data[0]).to.have.property('phone'); }",
+              "});",
+              "pm.test('No hay telefonos repetidos', () => {",
+              "  const t = j.data.map(x => x.phone);",
+              "  pm.expect(new Set(t).size).to.eql(t.length);",
+              "});",
+              "console.log('Contactados ese dia:', j.meta.total);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Un rango de fechas",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/contacted?from={{fecha_inicio}}&to={{fecha_fin}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "contacted"],
+          "query": [
+            { "key": "from", "value": "{{fecha_inicio}}" },
+            { "key": "to", "value": "{{fecha_fin}}" }
+          ]
+        },
+        "description": "Las dos fechas se incluyen. Un contacto alcanzado varios dias del rango sale una sola vez."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('El rango se respeta', () => {",
+              "  pm.expect(j.meta.from).to.eql(pm.variables.get('fecha_inicio'));",
+              "  pm.expect(j.meta.to).to.eql(pm.variables.get('fecha_fin'));",
+              "});",
+              "console.log('Contactados en el rango:', j.meta.total);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Paginado - pagina 1",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/contacted?date={{fecha_con_datos}}&per_page=50&page=1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "contacted"],
+          "query": [
+            { "key": "date", "value": "{{fecha_con_datos}}" },
+            { "key": "per_page", "value": "50" },
+            { "key": "page", "value": "1" }
+          ]
+        },
+        "description": "Por default trae 1,000 por pagina, maximo 5,000.\n\n`meta.pages` dice cuantas paginas hay: recorrelas hasta llegar a ese numero."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('Respeta el tamano de pagina', () => pm.expect(j.data.length).to.be.at.most(50));",
+              "pm.test('Dice cuantas paginas hay', () => pm.expect(j.meta).to.have.property('pages'));",
+              "pm.collectionVariables.set('primera_pagina', JSON.stringify(j.data.map(x => x.phone)));",
+              "console.log('Paginas totales:', j.meta.pages);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Paginado - pagina 2 (no debe repetir)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/contacted?date={{fecha_con_datos}}&per_page=50&page=2",
+          "host": ["{{base_url}}"],
+          "path": ["api", "contacted"],
+          "query": [
+            { "key": "date", "value": "{{fecha_con_datos}}" },
+            { "key": "per_page", "value": "50" },
+            { "key": "page", "value": "2" }
+          ]
+        },
+        "description": "Correla DESPUES de la pagina 1: la prueba compara las dos y verifica que ningun contacto se repita entre paginas."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "const previa = pm.collectionVariables.get('primera_pagina');",
+              "if (previa) {",
+              "  const p1 = new Set(JSON.parse(previa));",
+              "  const repetidos = j.data.filter(x => p1.has(x.phone));",
+              "  pm.test('La pagina 2 no repite contactos de la 1', () => pm.expect(repetidos.length).to.eql(0));",
+              "} else {",
+              "  console.log('Corre primero la peticion 3 para poder comparar.');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Errores",
+      "item": [
+        {
+          "name": "Sin llave - debe dar 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/contacted?date={{fecha_con_datos}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "contacted"],
+              "query": [{ "key": "date", "value": "{{fecha_con_datos}}" }]
+            },
+            "description": "Sin la cabecera X-API-Key no se devuelve nada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 401', () => pm.response.to.have.status(401));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sin fecha - debe dar MISSING_DATE",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/contacted", "host": ["{{base_url}}"], "path": ["api", "contacted"] },
+            "description": "Hay que mandar `date`, o bien `from` y `to`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 422', () => pm.response.to.have.status(422));",
+                  "pm.test('El codigo es MISSING_DATE', () => pm.expect(pm.response.json().code).to.eql('MISSING_DATE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fecha y rango juntos - debe dar AMBIGUOUS_RANGE",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/contacted?date={{fecha_con_datos}}&from={{fecha_inicio}}&to={{fecha_fin}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "contacted"],
+              "query": [
+                { "key": "date", "value": "{{fecha_con_datos}}" },
+                { "key": "from", "value": "{{fecha_inicio}}" },
+                { "key": "to", "value": "{{fecha_fin}}" }
+              ]
+            },
+            "description": "O una fecha, o un rango. Mandando las dos cosas no se sabe cual se quiso."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 422', () => pm.response.to.have.status(422));",
+                  "pm.test('El codigo es AMBIGUOUS_RANGE', () => pm.expect(pm.response.json().code).to.eql('AMBIGUOUS_RANGE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rango al reves - debe dar INVALID_RANGE",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/contacted?from={{fecha_fin}}&to={{fecha_inicio}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "contacted"],
+              "query": [
+                { "key": "from", "value": "{{fecha_fin}}" },
+                { "key": "to", "value": "{{fecha_inicio}}" }
+              ]
+            },
+            "description": "La fecha final no puede ser anterior a la inicial."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 422', () => pm.response.to.have.status(422));",
+                  "pm.test('El codigo es INVALID_RANGE', () => pm.expect(pm.response.json().code).to.eql('INVALID_RANGE'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Prestamaz - API de contactados",
-    "description": "Consulta a quien contacto Prestamaz en una fecha o rango.\n\nANTES DE EMPEZAR:\n1. Abre la pestana 'Variables' de esta coleccion.\n2. Pon tu llave en `api_key` (Prestamaz te la entrega por separado).\n3. En `fecha_con_datos` pon un dia en el que sepas que hubo envios.\n   IMPORTANTE: llena la columna CURRENT VALUE, no solo INITIAL VALUE - Postman manda\n   la primera. Si la dejas vacia, las peticiones fallaran con error de formato.\n\nLuego corre la coleccion completa (Run collection). Las cuatro primeras deben responder\n200; las cinco de la carpeta 'Errores' deben fallar A PROPOSITO, y sus pruebas verifican\njusto eso. Todas las pruebas en verde = el API funciona.\n\nLas peticiones de la carpeta 'Errores' NO usan variables: llevan fechas fijas para que\ndemuestren el error que les toca aunque no hayas configurado nada.",
+    "description": "Consulta a quien contacto Prestamaz en una fecha o rango.\n\nANTES DE EMPEZAR:\n1. Abre la pestana 'Variables' de esta coleccion.\n2. Pon tu llave en `api_key` (Prestamaz te la entrega por separado).\n3. En `fecha_con_datos` pon un dia en el que sepas que hubo envios.\n4. Guarda (Ctrl+S).\n\nLuego corre la coleccion completa (Run collection). Las cuatro primeras deben responder\n200; las cinco de la carpeta 'Errores' deben fallar A PROPOSITO, y sus pruebas verifican\njusto eso. Todas en verde = el API funciona.\n\nLas peticiones de 'Errores' llevan fechas fijas, asi que demuestran su error aunque no\nhayas configurado nada.\n\nDocumentacion completa: api-contactados.md",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [

@@ -222,7 +222,7 @@ Marcar `[x]` al verificar. Resetear a `[ ]` antes de la siguiente ronda de QA.
 
 - [ ] **Un solo formato de error**: todos los errores (401 incluido) responden `{status, message, code}`. Ninguno devuelve la forma de Laravel (`{message, errors:{...}}`) ni texto en inglés
 - [ ] **Fecha mal escrita**: `?date=24/08/2026` → 422 con `INVALID_PARAMS` y un mensaje que dice cómo escribirla
-- [ ] **Colección de Postman**: importarla, poner la llave en CURRENT VALUE y correrla completa → las 4 peticiones y los 5 errores en verde
+- [ ] **Colección de Postman**: importar `docs/api-contactados.postman_collection.json`, poner la llave y correrla completa → las 4 peticiones y los 5 errores en verde
 - [ ] **Documento en PDF**: `php artisan guias:build docs/api-contactados.md` → abrir el HTML → el botón "Imprimir / Guardar PDF" da un PDF legible con las tablas completas
 
 - [ ] **Sin llave**: `GET /api/contacted?date=...` sin `X-API-Key` → 401

@@ -487,16 +487,76 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
 - [ ] **PL1** - plantillas SMS con variables desde el API. Novena partida de la cotización,
   nunca se arrancó. Fuera de esta fase a propósito.
 
-### Abierto: no cuadran los contactos que cargó el API (2026-09-08)
+### Resuelto: no cuadraban los contactos que cargó el API (2026-09-08 / 2026-09-09)
 
-- [ ] **Hay 6,179 contactos y deberían ser ~14,700.** El `--dry-run` del 2026-09-05 reportó
-  **11,719 altas** sobre 14,872 registros, con 3,039 que ya existían. Si la base tenía ~3,000
-  antes, el total esperado era ~14,758. Faltan más de 8,000.
-  **Hipótesis a descartar, en orden:** (1) el cron falló a media corrida y el insert por lotes
-  de 500 quedó parcial; (2) alguien puso `SYNC_STATUS_EXCLUDE` en el `.env`; (3) el API devolvió
-  menos registros ese día; (4) la corrida nunca terminó (timeout del comando).
-  **Con qué empezar:** `contactos:ultima-corrida` - si no hay registro, es que la corrida es
-  anterior al commit que lo guarda, y entonces toca mirar el log y contar por `created_at`.
+- [x] **Causa raíz: un permiso de archivo, no el API ni el código de sincronización.**
+  El panel tenía 6,179 contactos y ninguno con `source = 'api'`: la sincronización **nunca
+  llegó a ejecutarse**. Las cuatro hipótesis que habíamos anotado eran todas falsas.
+  **La cadena real:** `deploy.sh` y los comandos manuales corren `artisan` como `adminsender`
+  con `umask 0022`, así que los archivos nacen `0644` (sin escritura para el grupo). Entre el
+  5 y el 6 de septiembre uno de esos comandos creó el archivo de candado de
+  `withoutOverlapping()` del job (`storage/framework/cache/data/19/08/190878355cf3...`) a
+  nombre de `adminsender`. El cron corre como `www-data`, que necesita **abrirlo en escritura**
+  para evaluar el mutex; sin el bit de grupo tira `Permission denied`. La excepción no está
+  capturada en `ScheduleRunCommand`, así que **muere el `schedule:run` completo de ese minuto**
+  y el comando ni arranca. Se repitió idéntico el 6, 7 y 8 de septiembre a las 10:00:01 UTC
+  (4:00:01 AM CST), y el deploy del 8-sep a las 21:46 borró el archivo, que es por lo que ya
+  no aparecía al diagnosticar.
+  **Por qué el latido del cron no avisó:** solo moría ese minuto. Los otros 1,439 del día
+  `schedule:run` corría bien y `SchedulerHeartbeat` seguía latiendo. El panel decía "cron vivo"
+  con razón, y aun así el job llevaba tres días sin ejecutarse.
+  **Arreglo aplicado en el VPS:** `chown -R www-data:www-data storage bootstrap/cache`,
+  directorios a `2775` y archivos a `0664`. `adminsender` ya estaba en el grupo `www-data`.
+- [x] **Descartado en el camino, con evidencia.** (1) Lote parcial: habría dejado un múltiplo
+  de 500, dejó **cero**. (2) `SYNC_STATUS_EXCLUDE`: no existe en el `.env`, y el dry-run reporta
+  `Excluidos por su estado = 0`. (3) API con menos registros: responde 200 con 14,940. (4)
+  Timeout: nunca hubo corrida que pudiera expirar. Aparte se encontró y ya estaba corregido un
+  `login rechazado {"status":401}` del 5-sep (contraseña mal en el `.env`).
+- [x] **Trampa de diagnóstico que costó una vuelta.** Los logs están rotados por día
+  (`storage/logs/laravel-YYYY-MM-DD.log`); el `storage/logs/laravel.log` monolítico dejó de
+  escribirse el **3 de julio**. Grepear ese archivo devuelve vacío y parece que no hay nada.
+  Buscar siempre en `laravel-2026-*.log`. Segunda trampa: `find ... 2>/dev/null` corriendo como
+  `adminsender` se traga los "Permission denied" del propio `find` y **oculta** los directorios
+  de `www-data`; para auditar permisos hay que usar `sudo find`.
+- [x] **Sincronizado.** Total en el panel: **14,908 contactos** (8,729 altas nuevas, 6,097 ya
+  existían y recibieron su estado de cartera, 4 teléfonos ilegibles, 110 repetidos en la
+  respuesta del API). Cartera: LIQUIDADO ~12,692, ACTIVO ~1,707, BURÓ ~410, BAJA ~17.
+  Se decidió **no** usar `SYNC_STATUS_EXCLUDE`: BURÓ entra a la base y se filtra al armar la
+  campaña, por la columna Cartera. Excluir al insertar perdería el dato para siempre.
+  Los 8,729 quedaron con la etiqueta `SYNC_TAG="API cliente"` (con comillas: sin ellas el
+  `.env` corta el valor en el espacio).
+- [x] **Descubierto de paso:** entre el 7 y el 8 de septiembre alguien subió ~3,000 contactos
+  por Excel que el API ya traía. Por eso los "ya existían" pasaron de 3,039 (5-sep) a 6,097
+  (9-sep). Se estaba capturando a mano lo que el cron debía traer solo.
+
+**Pendientes que dejó este caso:**
+
+- [x] **`umask 0002` en `deploy.sh`** (hecho). Con el comentario que explica el caso, para que
+  nadie lo borre pensando que sobra. Falta lo del servidor: agregarlo también al `~/.bashrc` de
+  `adminsender`, que cubre los comandos que Alexis corre a mano fuera del deploy.
+- [ ] **Sin auditoría de quién toca los contactos.** `contacts` no tiene `created_by` ni hay
+  tabla de actividad, y `POST /api/contacts/upload` no registra al usuario. Hoy es imposible
+  saber quién subió los Excel del 7 y 8 de septiembre: solo se reconstruye por `created_at`,
+  el log de nginx (IP) y `personal_access_tokens.last_used_at`. Propuesto: tabla `activity_log`
+  propia (quién, acción, cuándo, cuántos, IP) cubriendo importar contactos, dar de baja, borrar,
+  etiquetar en bloque, cambiar configuración y actualizar el token de Meta.
+- [ ] **Reporte de rechazados para el cliente.** El comando solo enseña 5 ejemplos y no guarda
+  nada. Propuesto: `contactos:sincronizar --rechazados=archivo.csv` con el listado completo y el
+  motivo de cada fila, para mandárselo al cliente y que corrija su captura. Las 4 filas de hoy:
+  un celular vacío, un número de EEUU (`0014084142727` - Meta ni entrega marketing a +1), uno de
+  9 dígitos y uno de 11.
+- [ ] **La etiqueta "API cliente" es borrable y no se repone.** `etiquetar()` solo corre sobre
+  los recién insertados, y la FK de `contact_tag` es `cascadeOnDelete`. Si el operador borra la
+  etiqueta desde la pantalla de Etiquetas, los 8,729 la pierden y ninguna corrida futura se la
+  devuelve. Lo indestructible es `contacts.source = 'api'`, pero **no está expuesto en la UI**.
+  Propuesto: filtro "Origen" (API / Excel / Manual) en Contactos, y que la etiqueta quede como
+  adorno. Encaja con el principio de que el cliente no pueda romper algo sin querer.
+- [ ] **El registro de corridas guarda solo la última.** El Setting `contact_sync_last_run` se
+  sobrescribe cada noche. Si se quiere historial consultable, va tabla propia.
+- [ ] **`Contact::insert()` sigue sin `try/catch`.** Con `contacts.name` en `varchar(100)`, un
+  solo nombre largo aborta el lote de 500 **y todos los siguientes**. Hoy se verificó contra el
+  API real (`max=45`, ninguno pasa de 100) y por eso la corrida fue segura, pero el dato es del
+  cliente y puede cambiar sin avisar. Envolver el lote y reportar la fila que falla.
 
 ### Bugs reportados por el cliente operando (2026-09-03)
 

@@ -10,6 +10,15 @@
 
 set -euo pipefail
 
+# Los archivos que crea artisan nacen con escritura para el GRUPO (0664), no solo para el
+# dueno. Sin esto el deploy corre como `adminsender` con el umask 0022 de Ubuntu, deja
+# archivos 0644 dentro de storage/, y el cron -que corre como `www-data`- no los puede
+# abrir en escritura. Paso de verdad: del 6 al 8-sep-2026 el candado de
+# `withoutOverlapping()` quedo a nombre de adminsender, `schedule:run` reventaba con
+# Permission denied y `contactos:sincronizar` no corrio en tres dias, sin log y con el
+# latido del cron en verde.
+umask 0002
+
 cd "$(dirname "$0")"
 
 echo "==> [1/10] Modo mantenimiento ON"

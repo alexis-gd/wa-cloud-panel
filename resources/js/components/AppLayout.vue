@@ -795,12 +795,16 @@ async function logout() {
    alcanza: su ancho SOLO se puede tocar desde aqui. PrimeVue los deja en 12.5rem (200px), y
    los textos largos de ayuda (el de la tabla de Contactos son 10 renglones) salian como una
    columna angosta e ilegible. */
+/* El !important no es pereza: PrimeVue inyecta el CSS de su tema en runtime, DESPUES de los
+   estilos de la app, asi que un selector de la misma especificidad pierde siempre. */
 .p-tooltip,
 .p-tooltip .p-tooltip-text {
-    max-width: min(440px, calc(100vw - 32px));
+    max-width: min(440px, calc(100vw - 32px)) !important;
+    width: max-content !important;
 }
 .p-tooltip .p-tooltip-text {
     line-height: 1.45;
     text-align: left;
+    white-space: normal;
 }
 </style>

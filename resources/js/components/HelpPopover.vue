@@ -65,7 +65,14 @@ const pop = ref(null);
 .help-btn:hover { color: var(--p-primary-500); background: var(--p-primary-50); }
 
 /* Popover interior */
-.help-content { width: 300px; padding: 4px 2px; }
+/* 300px fijos dejaban la lista de Contactos (16 puntos) en una columna angosta y larguisima
+   que no cabia en pantalla. Ancho segun el viewport y scroll propio cuando se pasa de alto. */
+.help-content {
+  width: min(440px, calc(100vw - 48px));
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  padding: 4px 8px 4px 2px;
+}
 
 .help-title {
   font-size: .85rem;

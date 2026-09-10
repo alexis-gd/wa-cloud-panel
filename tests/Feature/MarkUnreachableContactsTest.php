@@ -141,6 +141,66 @@ class MarkUnreachableContactsTest extends TestCase
         $this->assertEquals('unreachable', $contact->fresh()->status);
     }
 
+    // ── Fallas explicitas de Meta (131026 y compania) ────────────────────────
+    // Antes solo contaba el silencio (`sent`). Un `failed` es una falla EXPLICITA y no
+    // contaba para nada: 820 numeros sin WhatsApp seguian entrando a cada campana.
+
+    public function test_marca_con_tres_failed_seguidos(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '521111111111', 'status' => 'active']);
+
+        $this->log('521111111111', 'failed', now()->subDays(3));
+        $this->log('521111111111', 'failed', now()->subDays(2));
+        $this->log('521111111111', 'failed', now()->subDay());
+
+        $this->artisan('wa:mark-unreachable');
+
+        $this->assertEquals('unreachable', $contact->refresh()->status);
+    }
+
+    public function test_marca_mezclando_sent_y_failed(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '521111111112', 'status' => 'active']);
+
+        $this->log('521111111112', 'sent',   now()->subDays(3));
+        $this->log('521111111112', 'failed', now()->subDays(2));
+        $this->log('521111111112', 'sent',   now()->subDay());
+
+        $this->artisan('wa:mark-unreachable');
+
+        $this->assertEquals('unreachable', $contact->refresh()->status);
+    }
+
+    /**
+     * Lo que le importaba a Alexis: si al segundo intento SI llega, la cuenta se reinicia y el
+     * contacto no sale. Cubre a quien instalo WhatsApp despues de la primera falla.
+     */
+    public function test_una_entrega_reinicia_la_cuenta_aunque_antes_hubiera_failed(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '521111111113', 'status' => 'active']);
+
+        $this->log('521111111113', 'failed',    now()->subDays(4));
+        $this->log('521111111113', 'delivered', now()->subDays(3));
+        $this->log('521111111113', 'failed',    now()->subDays(2));
+        $this->log('521111111113', 'failed',    now()->subDay());
+
+        $this->artisan('wa:mark-unreachable');
+
+        $this->assertEquals('active', $contact->refresh()->status);
+    }
+
+    public function test_no_marca_con_solo_dos_failed(): void
+    {
+        $contact = Contact::factory()->create(['phone' => '521111111114', 'status' => 'active']);
+
+        $this->log('521111111114', 'failed', now()->subDays(2));
+        $this->log('521111111114', 'failed', now()->subDay());
+
+        $this->artisan('wa:mark-unreachable');
+
+        $this->assertEquals('active', $contact->refresh()->status);
+    }
+
     public function test_no_marca_contactos_opted_out_o_invalid(): void
     {
         $optedOut = Contact::factory()->create(['phone' => '521111111116', 'status' => 'opted_out']);

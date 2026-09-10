@@ -12,12 +12,29 @@ class MarkUnreachableContactsCommand extends Command
     protected $description  = 'Marca inalcanzables: 3 no-entregados seguidos, o 2+ con 30+ días sin ninguna entrega';
 
     /**
+     * Estados que cuentan como "no le llegó".
+     *
+     * `sent` es el silencio: salió y Meta nunca confirmó nada. `failed` es el fracaso explícito,
+     * el que llega por webhook (131026: el número no tiene WhatsApp). Antes solo se contaba el
+     * silencio, así que 820 números sin WhatsApp seguían entrando a cada campaña sin que nada los
+     * sacara - y volver a escribirle a un número inexistente es de las causas directas de que Meta
+     * le baje la calidad al número.
+     */
+    private const UNDELIVERED_STATUSES = ['sent', 'failed'];
+
+    /**
      * Tope fijo de mensajes "enviados" seguidos sin entrega antes de sacar al contacto.
      * NO depende del enfriamiento (cooldown_days): así la exposición a un número que no
      * entrega queda acotada aunque el cliente baje el enfriamiento. Cualquier 'delivered'/'read'
      * reinicia la cuenta. Es una protección de la cuenta - por eso no es configurable.
      */
     private const CONSECUTIVE_UNDELIVERED_LIMIT = 3;
+
+    /** Los estados de arriba, listos para meter en un IN (...) de SQL crudo. */
+    private static function listaSql(): string
+    {
+        return "'" . implode("','", self::UNDELIVERED_STATUSES) . "'";
+    }
 
     public function handle(): int
     {
@@ -34,12 +51,12 @@ class MarkUnreachableContactsCommand extends Command
                     $a->whereRaw(
                         '(SELECT COUNT(*) FROM message_log '
                         . 'WHERE message_log.to_number = contacts.phone '
-                        . "AND message_log.status = 'sent') >= 2"
+                        . 'AND message_log.status IN (' . self::listaSql() . ')) >= 2'
                     )
                     ->whereRaw(
                         '(SELECT MIN(message_log.sent_at) FROM message_log '
                         . 'WHERE message_log.to_number = contacts.phone '
-                        . "AND message_log.status = 'sent') < ?",
+                        . 'AND message_log.status IN (' . self::listaSql() . ')) < ?',
                         [$cutoff]
                     )
                     ->whereNotExists(function ($q) {
@@ -55,7 +72,7 @@ class MarkUnreachableContactsCommand extends Command
                 ->orWhereRaw(
                     '(SELECT COUNT(*) FROM message_log '
                     . 'WHERE message_log.to_number = contacts.phone '
-                    . "AND message_log.status = 'sent' "
+                    . 'AND message_log.status IN (' . self::listaSql() . ') '
                     . 'AND message_log.sent_at > COALESCE('
                     . '(SELECT MAX(m2.sent_at) FROM message_log m2 '
                     . 'WHERE m2.to_number = contacts.phone '

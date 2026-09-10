@@ -305,8 +305,10 @@ La tabla tiene dos columnas de estado. El ícono **?** junto al título las expl
 - **Activo** - normal.
 - **Baja** - pidió no recibir más.
 - **Inválido** - el número no tiene WhatsApp.
-- **Inalcanzable** - le mandamos 3 mensajes seguidos que no llegaron (probablemente bloqueó el
-  número). El administrador lo puede reactivar.
+- **Inalcanzable** - le mandamos 3 mensajes seguidos que no llegaron. Cuentan igual los que se
+  quedaron sin respuesta de WhatsApp y los que WhatsApp rechazó (por ejemplo, "el número no tiene
+  WhatsApp"). Si en medio le llega **uno solo**, la cuenta vuelve a cero. El administrador lo
+  puede reactivar.
 
 **Entregabilidad** (si le llega ahora mismo). Se muestra **por canal**, con dos etiquetas: una
 de WhatsApp y otra de SMS. Cada canal cuenta por su lado, así que un contacto puede estar
@@ -721,7 +723,7 @@ qué:
 | **No repetir el mismo día** | Un contacto no recibe dos veces el mismo día por el mismo canal | Evita saturarlo | No. |
 | **Enfriamiento** | Tras recibir, el contacto espera un tiempo antes de recibir otra vez (por el mismo canal) | Que no le lleguen campañas muy seguidas | Sí, soporte. Por defecto **30 días**, mínimo **7**. |
 | **Pospuesto** | Si el contacto pide "No por ahora", se pausa (solo WhatsApp) hasta que pase | Respeta que ahorita no quiere | Vuelve solo. Dura lo mismo que el enfriamiento. |
-| **Inalcanzable (WhatsApp)** | Si 3 mensajes seguidos no le llegan (sin ninguna entrega en medio), se saca de campañas. El tope de 3 es fijo, no depende del enfriamiento | Probablemente bloqueó; seguir enviándole baja la calidad y arriesga la cuenta | El admin lo puede reactivar. |
+| **Inalcanzable (WhatsApp)** | Si 3 mensajes seguidos no le llegan (sin ninguna entrega en medio), se saca de campañas. Cuentan tanto los que quedan sin confirmación como los que WhatsApp rechaza. El tope de 3 es fijo, no depende del enfriamiento | Probablemente bloqueó, o el número no tiene WhatsApp; seguir enviándole baja la calidad y arriesga la cuenta | El admin lo puede reactivar. |
 | **Autobaja por rebotes (SMS)** | Tras varios SMS que rebotan seguidos, se bloquea el SMS de ese contacto | Dejar de gastar en números que no reciben | Sí, soporte. **Apagada por defecto** (no bloquea salvo que se active). |
 
 **Cosas clave que conviene tener claras:**

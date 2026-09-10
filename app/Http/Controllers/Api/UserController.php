@@ -14,7 +14,10 @@ class UserController extends Controller
     // GET /api/users
     public function index(): JsonResponse
     {
-        $users = User::orderBy('name')
+        // Los ocultos no se listan para nadie, ni siquiera para otro superadmin: son cuentas
+        // técnicas nuestras y el cliente no tiene por qué administrarlas.
+        $users = User::where('hidden', false)
+            ->orderBy('name')
             ->get(['id', 'name', 'email', 'role', 'is_active', 'created_at']);
 
         return response()->json(['status' => 'ok', 'data' => $users]);
@@ -61,6 +64,10 @@ class UserController extends Controller
             ], 422);
         }
 
+        if ($blindado = $this->siNoPuedeAdministrar($request, $user)) {
+            return $blindado;
+        }
+
         $data = $request->validate([
             'role'      => 'sometimes|in:admin,operator,agent',
             'is_active' => 'sometimes|boolean',
@@ -95,10 +102,40 @@ class UserController extends Controller
             ], 422);
         }
 
+        if ($blindado = $this->siNoPuedeAdministrar($request, $user)) {
+            return $blindado;
+        }
+
         // Revocar tokens activos antes de eliminar
         $user->tokens()->delete();
         $user->delete();
 
         return response()->json(['status' => 'ok']);
+    }
+
+    /**
+     * Devuelve una respuesta de bloqueo si quien pide NO puede administrar esa cuenta, o null
+     * si sí puede. Dos reglas:
+     *
+     * 1. **Nadie administra una cuenta de su mismo nivel o superior.** Antes un `admin` podía
+     *    cambiarle la contraseña a un `superadmin` y entrar como él, con acceso al token de Meta.
+     * 2. **Las cuentas ocultas no se administran desde la UI.** Se responde 404, no 403: si
+     *    dijera "no puedes", estaría confirmando que ese id existe.
+     */
+    private function siNoPuedeAdministrar(Request $request, User $user): ?JsonResponse
+    {
+        if ($user->hidden) {
+            return response()->json(['status' => 'error', 'message' => 'Usuario no encontrado.'], 404);
+        }
+
+        if (! $request->user()->puedeAdministrarA($user)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No puedes administrar una cuenta de tu mismo nivel o superior.',
+                'code'    => 'INSUFFICIENT_RANK',
+            ], 403);
+        }
+
+        return null;
     }
 }

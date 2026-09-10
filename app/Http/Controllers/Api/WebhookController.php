@@ -96,23 +96,6 @@ class WebhookController extends Controller
                         'error_title'   => $errorTitle,
                     ]);
 
-                    // 131026: el número no tiene WhatsApp (o no aceptó los términos). Marcarlo
-                    // inválido para que no vuelva a entrar a una campaña. El job ya lo hace
-                    // cuando Meta rechaza AL DESPACHAR, pero por esta vía -Meta acepta y luego
-                    // avisa por webhook- nadie lo marcaba: el contacto seguía activo y volvía a
-                    // recibir en la siguiente campaña. Insistirle a números sin WhatsApp es una
-                    // de las causas directas de que baje la calidad del número en Meta.
-                    if ($errorCode === 131026 && $log?->to_number) {
-                        $contact = Contact::where('phone', $log->to_number)->first();
-                        if ($contact && $contact->status === 'active') {
-                            $contact->update(['status' => 'invalid']);
-                            Log::info('Webhook: número sin WhatsApp (131026) - contacto marcado inválido', [
-                                'contact_id' => $contact->id,
-                                'log_id'     => $log?->id,
-                            ]);
-                        }
-                    }
-
                     // 131049: tope de marketing POR USUARIO (frecuencia del destinatario,
                     // suma de todas las empresas). NO es un problema del número — no pausar.
                     // Solo falla ese mensaje. Meta exige esperar 24h antes de reintentar a

@@ -113,13 +113,18 @@ Esto incluye sin excepción:
 
 | Rama | Propósito |
 |---|---|
-| `main` | Producción validada — nunca commitear directo |
-| `develop` | Integración — toda la actividad de desarrollo va aquí |
-| `feature/*` | Features nuevos — nacen y mueren en `develop` |
-| `fix/*` | Bugs — nacen y mueren en `develop` |
-| `hotfix/*` | Urgencias en prod — desde `main`, merge a `main` + `develop` |
+| `main` | Producción - nunca commitear directo, siempre por PR |
+| `feature/*` | Features nuevos - nacen de `main`, PR a `main` |
+| `fix/*` | Bugs - nacen de `main`, PR a `main` |
+| `chore/*` `docs/*` | Mantenimiento y documentación - igual, de `main` a `main` |
 
-Rama activa de trabajo: **`develop`**. Merge a `main` solo cuando el usuario valide.
+**`develop` se retiró (2026-09-09).** No hay ambiente de pruebas: el deploy va de `main`
+directo a producción, así que pasar por una rama de integración era un salto sin destino.
+Las ramas de trabajo salen de `main` y vuelven a `main` por PR.
+
+**Una rama por tanda.** Cada tanda de trabajo nace en su propia rama, aunque la anterior ya
+esté mergeada. No reutilizar una rama vieja para trabajo nuevo: mezcla cosas que se
+desplegaron con cosas que no, y el PR deja de contar una sola historia.
 
 ## Prompt de retoma
 

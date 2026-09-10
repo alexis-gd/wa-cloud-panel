@@ -29,6 +29,26 @@ class DeliveryReason
         132016 => 'La plantilla se desactivó de forma permanente por baja calidad.',
     ];
 
+    /**
+     * Motivos que manda el gateway SMS. Son los códigos de Android tal cual
+     * (`RESULT_ERROR_NO_SERVICE`), en inglés y en mayúsculas: al operador le salían crudos.
+     */
+    public const SMS_ERRORS = [
+        'RESULT_ERROR_GENERIC_FAILURE'    => 'El teléfono no pudo enviar el SMS.',
+        'RESULT_ERROR_NO_SERVICE'         => 'El teléfono que envía los SMS se quedó sin señal.',
+        'RESULT_ERROR_RADIO_OFF'          => 'El teléfono que envía los SMS tiene la señal apagada (modo avión).',
+        'RESULT_ERROR_NULL_PDU'           => 'El teléfono rechazó el mensaje por un error interno.',
+        'RESULT_ERROR_LIMIT_EXCEEDED'     => 'El teléfono alcanzó su tope de SMS por ahora.',
+        'RESULT_ERROR_NO_DEFAULT_SMS_APP' => 'El teléfono no tiene configurada la app de SMS.',
+        'RESULT_ERROR_SHORT_CODE_NOT_ALLOWED' => 'La compañía no permite enviar a ese número.',
+        'RESULT_RIL_SMS_SEND_FAIL_RETRY'  => 'La compañía rechazó el SMS y el teléfono ya reintentó.',
+        'RESULT_RIL_NETWORK_NOT_READY'    => 'La red de la compañía no estaba lista.',
+        'RESULT_RIL_MODEM_ERR'            => 'Error del módem del teléfono que envía los SMS.',
+        'RESULT_NETWORK_REJECT'           => 'La compañía rechazó el envío.',
+        'RESULT_NO_MEMORY'                => 'El teléfono se quedó sin memoria para enviar.',
+        'RESULT_NO_RESOURCES'             => 'El teléfono no tenía recursos para enviar en ese momento.',
+    ];
+
     /** Por qué el sistema decidió NO enviar (nunca salió, no se cobra). */
     public const DISCARD_REASONS = [
         'cooldown'       => 'En enfriamiento: se le envió hace poco.',
@@ -78,8 +98,7 @@ class DeliveryReason
         // Falla de ENTREGA: Meta aceptó el mensaje pero después avisó que no llegó.
         if ($log->delivery_error_code !== null) {
             $code   = (int) $log->delivery_error_code;
-            $detail = self::DELIVERY_ERRORS[$code]
-                ?? ($log->delivery_error_title ?: "Meta reportó el error {$code}.");
+            $detail = self::DELIVERY_ERRORS[$code] ?? self::sinTraduccion($code);
 
             return self::deProveedor($log, $detail, "{$detail} (código {$code})");
         }
@@ -116,23 +135,60 @@ class DeliveryReason
     }
 
     /**
+     * Qué decirle al operador cuando Meta manda un código que no tenemos traducido.
+     *
+     * NUNCA se muestra el `delivery_error_title` de Meta: viene en inglés ("User's number is
+     * part of an experiment") y el operador no tiene por qué leer eso. El título sigue guardado
+     * en la base para soporte; lo que cambia es que no llega a la pantalla.
+     *
+     * El código sí se muestra: es lo único accionable, porque permite pedirlo a soporte.
+     */
+    /**
+     * Motivo del gateway SMS que no tenemos mapeado.
+     *
+     * Si ya viene en español es texto nuestro (`SmsWebhookController`) y pasa tal cual. Si trae
+     * pinta de código de Android (MAYUSCULAS_CON_GUION_BAJO) se envuelve, para no soltarle al
+     * operador un `RESULT_RIL_SMS_SEND_FAIL` a secas.
+     */
+    private static function sinTraducirSms(string $raw): string
+    {
+        $limpio = trim($raw);
+
+        if (preg_match('/^[A-Z][A-Z0-9_]{3,}$/', $limpio) !== 1) {
+            return $limpio;
+        }
+
+        return "El teléfono no pudo enviar el SMS. Si se repite mucho, pásale el código {$limpio} a soporte.";
+    }
+
+    private static function sinTraduccion(int $code): string
+    {
+        return "Meta no entregó el mensaje y no dio un motivo que podamos explicar. "
+            . "Si se repite mucho, pásale el código {$code} a soporte.";
+    }
+
+    /**
      * Saca el mensaje legible del JSON que devuelve Meta (o el texto plano del gateway SMS).
-     * Si viene un código conocido, gana el texto en español sobre el de Meta (que va en inglés).
+     *
+     * El `message` de Meta viene en inglés, así que solo se usa el texto en español: con código
+     * conocido, el nuestro; sin él, el genérico. El texto plano del gateway SMS sí pasa tal cual
+     * porque ese ya viene en español y lo escribimos nosotros.
      */
     private static function fromRawError(string $raw): string
     {
         $decoded = json_decode($raw, true);
 
+        // El gateway SMS manda texto plano, no JSON: o un código de Android o un texto nuestro.
         if (! is_array($decoded)) {
-            return $raw; // El gateway SMS manda texto plano.
+            return self::SMS_ERRORS[trim($raw)] ?? self::sinTraducirSms($raw);
         }
 
         $code = $decoded['code'] ?? null;
 
-        if ($code !== null && isset(self::DELIVERY_ERRORS[(int) $code])) {
-            return self::DELIVERY_ERRORS[(int) $code];
+        if ($code === null) {
+            return 'No se pudo enviar el mensaje. Si se repite, avisa a soporte.';
         }
 
-        return $decoded['message'] ?? $decoded['error'] ?? $raw;
+        return self::DELIVERY_ERRORS[(int) $code] ?? self::sinTraduccion((int) $code);
     }
 }

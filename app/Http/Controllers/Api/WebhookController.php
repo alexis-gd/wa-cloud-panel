@@ -298,7 +298,12 @@ class WebhookController extends Controller
             return;
         }
 
-        $humanMessage = DeliveryReason::DELIVERY_ERRORS[$errorCode] ?? 'Error de entrega desconocido.';
+        // Mismo texto que la columna Motivo del panel: si el codigo no esta traducido, se dice
+        // en espanol y con el numero, nunca el titulo en ingles que manda Meta.
+        $humanMessage = DeliveryReason::DELIVERY_ERRORS[$errorCode]
+            ?? ($errorCode !== null
+                ? "Meta no dio un motivo que podamos explicar. Si se repite mucho, pásale el código {$errorCode} a soporte."
+                : 'Meta no dio un motivo.');
 
         $contact     = Contact::where('phone', $log->to_number)->first();
         $contactDesc = $contact

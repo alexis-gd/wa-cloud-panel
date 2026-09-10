@@ -255,7 +255,7 @@ Detalles útiles:
 - Los números repetidos se cuentan **una sola vez**.
 - Se pueden pegar hasta **5,000 números** de una vez.
 - El pegado **manda sobre el buscador de texto**: si hay lista pegada, el texto se ignora.
-  Los demás filtros (estado, tag, entregabilidad) **sí** se aplican encima de la lista.
+  Los demás filtros (estado, etiqueta, entregabilidad) **sí** se aplican encima de la lista.
 
 ### Filtrar por entregabilidad
 
@@ -281,7 +281,7 @@ Se pueden **marcar varios estados a la vez** y se suman. Ejemplos:
   WhatsApp por haberlo recibido hace poco.
 - **Disponible - WhatsApp** + **Disponible - SMS** → los que reciben por cualquiera de los dos canales.
 
-El filtro se combina con los demás (estado, tag, lista pegada): esos se aplican encima.
+El filtro se combina con los demás (estado, etiqueta, lista pegada): esos se aplican encima.
 
 Uso típico: antes de lanzar una campaña de WhatsApp, filtra **Disponible - WhatsApp** para ver
 a cuántos les va a llegar de verdad.

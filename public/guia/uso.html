@@ -480,7 +480,7 @@ números con <code>+</code>, guiones o paréntesis, y con solo 10 dígitos (el s
 <li>Los números repetidos se cuentan <strong>una sola vez</strong>.</li>
 <li>Se pueden pegar hasta <strong>5,000 números</strong> de una vez.</li>
 <li>El pegado <strong>manda sobre el buscador de texto</strong>: si hay lista pegada, el texto se ignora.
-Los demás filtros (estado, tag, entregabilidad) <strong>sí</strong> se aplican encima de la lista.</li>
+Los demás filtros (estado, etiqueta, entregabilidad) <strong>sí</strong> se aplican encima de la lista.</li>
 </ul>
 <h3 id="filtrar-por-entregabilidad">Filtrar por entregabilidad</h3>
 <p>El selector <strong>Entregabilidad</strong> busca por el estado de la columna del mismo nombre, y siempre
@@ -530,7 +530,7 @@ estar en enfriamiento de SMS y disponible en WhatsApp al mismo tiempo. <strong>P
 WhatsApp por haberlo recibido hace poco.</li>
 <li><strong>Disponible - WhatsApp</strong> + <strong>Disponible - SMS</strong> → los que reciben por cualquiera de los dos canales.</li>
 </ul>
-<p>El filtro se combina con los demás (estado, tag, lista pegada): esos se aplican encima.</p>
+<p>El filtro se combina con los demás (estado, etiqueta, lista pegada): esos se aplican encima.</p>
 <p>Uso típico: antes de lanzar una campaña de WhatsApp, filtra <strong>Disponible - WhatsApp</strong> para ver
 a cuántos les va a llegar de verdad.</p>
 <h3 id="cuantos-registros-ver-por-pagina">Cuántos registros ver por página</h3>
@@ -550,8 +550,10 @@ cientos de miles de filas de golpe. Para llevarte la lista completa usa <strong>
 <li><strong>Activo</strong> - normal.</li>
 <li><strong>Baja</strong> - pidió no recibir más.</li>
 <li><strong>Inválido</strong> - el número no tiene WhatsApp.</li>
-<li><strong>Inalcanzable</strong> - le mandamos 3 mensajes seguidos que no llegaron (probablemente bloqueó el
-número). El administrador lo puede reactivar.</li>
+<li><strong>Inalcanzable</strong> - le mandamos 3 mensajes seguidos que no llegaron. Cuentan igual los que se
+quedaron sin respuesta de WhatsApp y los que WhatsApp rechazó (por ejemplo, &quot;el número no tiene
+WhatsApp&quot;). Si en medio le llega <strong>uno solo</strong>, la cuenta vuelve a cero. El administrador lo
+puede reactivar.</li>
 </ul>
 <p><strong>Entregabilidad</strong> (si le llega ahora mismo). Se muestra <strong>por canal</strong>, con dos etiquetas: una
 de WhatsApp y otra de SMS. Cada canal cuenta por su lado, así que un contacto puede estar
@@ -1103,8 +1105,8 @@ qué:</p>
 </tr>
 <tr>
 <td><strong>Inalcanzable (WhatsApp)</strong></td>
-<td>Si 3 mensajes seguidos no le llegan (sin ninguna entrega en medio), se saca de campañas. El tope de 3 es fijo, no depende del enfriamiento</td>
-<td>Probablemente bloqueó; seguir enviándole baja la calidad y arriesga la cuenta</td>
+<td>Si 3 mensajes seguidos no le llegan (sin ninguna entrega en medio), se saca de campañas. Cuentan tanto los que quedan sin confirmación como los que WhatsApp rechaza. El tope de 3 es fijo, no depende del enfriamiento</td>
+<td>Probablemente bloqueó, o el número no tiene WhatsApp; seguir enviándole baja la calidad y arriesga la cuenta</td>
 <td>El admin lo puede reactivar.</td>
 </tr>
 <tr>

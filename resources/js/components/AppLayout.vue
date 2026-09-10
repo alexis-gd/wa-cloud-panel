@@ -377,7 +377,7 @@ const helpContent = {
             { icon: 'pi-list',          label: 'Pegar lista', text: 'Copia una columna de numeros de Excel y pegala en el buscador (o usa el boton "Pegar lista"): el panel filtra por esa lista y te dice cuantos no estan dados de alta, con un boton para copiarlos. Hasta 5,000 numeros por pegado.' },
             { icon: 'pi-table',         label: 'Cuantos ver', text: 'El selector "Mostrar" debajo de la tabla cambia cuantos registros se ven (10 a 500, o Todos). "Todos" trae hasta 5,000; si el filtro da mas, avisa y conviene usar Exportar.' },
             { icon: 'pi-mobile',        label: 'Baja SMS',   text: 'Chip rojo bajo el Estado cuando el contacto NO recibe SMS (pidió baja por SMS, bloqueado o número inválido). Es independiente del Estado de WhatsApp: puede estar Activo para WhatsApp y con Baja SMS. Filtra con "Solo bajas SMS".' },
-            { icon: 'pi-tag',           label: 'Tags masivos', text: 'Marca varios contactos con las casillas y usa la barra superior para asignar un tag a todos a la vez.' },
+            { icon: 'pi-tag',           label: 'Etiquetar en masa', text: 'Marca varios contactos con las casillas y usa la barra superior para asignar una etiqueta a todos a la vez.' },
             { icon: 'pi-download',      label: 'Exportar',   text: 'Descarga la lista actual de contactos en Excel.' },
         ],
         tip: 'Los contactos dados de baja nunca reaparecen aunque se vuelvan a importar.',

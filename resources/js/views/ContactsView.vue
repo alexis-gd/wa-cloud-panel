@@ -110,7 +110,7 @@
 
                 <div class="filter-row filter-row-selects">
                     <Select v-model="filter" :options="filterOptions" option-label="label" option-value="value" placeholder="Todos los estados" @change="loadContacts(1)" />
-                    <Select v-model="tagFilter" :options="tagFilterOptions" option-label="label" option-value="value" placeholder="Todos los tags" @change="loadContacts(1)" />
+                    <Select v-model="tagFilter" :options="tagFilterOptions" option-label="label" option-value="value" placeholder="Todas las etiquetas" @change="loadContacts(1)" />
                     <Select v-model="smsFilter" :options="smsFilterOptions" option-label="label" option-value="value" placeholder="SMS: todos" @change="loadContacts(1)" />
                     <Select
                         v-if="portfolioOptions.length"
@@ -179,19 +179,19 @@
                         :options="allTags"
                         option-label="name"
                         option-value="id"
-                        placeholder="Elegir tag..."
+                        placeholder="Elegir etiqueta..."
                         style="min-width: 180px"
                     />
                     <template v-if="!showBulkNewTag">
-                        <Button label="Nuevo tag" icon="pi pi-plus" size="small" severity="secondary" text @click="showBulkNewTag = true" />
+                        <Button label="Nueva etiqueta" icon="pi pi-plus" size="small" severity="secondary" text @click="showBulkNewTag = true" />
                     </template>
                     <template v-else>
-                        <InputText v-model="bulkNewTagName" placeholder="Nombre del tag..." @keyup.enter="createBulkTag" style="width: 160px" autofocus />
+                        <InputText v-model="bulkNewTagName" placeholder="Nombre de la etiqueta..." @keyup.enter="createBulkTag" style="width: 160px" autofocus />
                         <Button label="Crear" size="small" severity="secondary" :loading="creatingBulkTag" @click="createBulkTag" />
                         <Button icon="pi pi-times" text size="small" severity="secondary" @click="showBulkNewTag = false; bulkNewTagName = ''" />
                     </template>
                     <Button
-                        label="Asignar tag"
+                        label="Asignar etiqueta"
                         icon="pi pi-tag"
                         size="small"
                         :disabled="!bulkTagId || bulkBusy"
@@ -199,7 +199,7 @@
                         @click="bulkTagAction('attach')"
                     />
                     <Button
-                        label="Quitar tag"
+                        label="Quitar etiqueta"
                         icon="pi pi-minus-circle"
                         size="small"
                         severity="danger"
@@ -225,7 +225,7 @@
                         :options="allTags"
                         option-label="name"
                         option-value="id"
-                        placeholder="Elegir tag..."
+                        placeholder="Elegir etiqueta..."
                         style="min-width: 180px"
                     />
                     <Button
@@ -291,7 +291,7 @@
                             </div>
                         </template>
                     </Column>
-                    <Column header="Tags" style="min-width: 140px">
+                    <Column header="Etiquetas" style="min-width: 140px">
                         <template #body="{ data }">
                             <div class="tag-chips">
                                 <span v-for="t in data.tags" :key="t.id" class="tag-chip">{{ t.name }}</span>
@@ -326,7 +326,7 @@
                                     size="small"
                                     severity="secondary"
                                     @click="openTags(data)"
-                                    title="Asignar tags"
+                                    title="Asignar etiquetas"
                                 />
                                 <Button
                                     v-if="isAdmin"
@@ -391,7 +391,7 @@
     <ConfirmDialog />
 
     <!-- Dialog asignar tags a contacto -->
-    <Dialog v-model:visible="tagsDialog" header="Asignar tags" modal style="width: 420px">
+    <Dialog v-model:visible="tagsDialog" header="Asignar etiquetas" modal style="width: 420px">
         <p class="tags-dialog-contact">Contacto: <strong>{{ tagsContact?.phone }}</strong></p>
         <MultiSelect
             v-model="selectedTagIds"
@@ -404,7 +404,7 @@
             fluid
         />
         <div class="tags-manage-row">
-            <InputText v-model="newTagName" placeholder="Nuevo tag..." @keyup.enter="createTag" style="flex:1" />
+            <InputText v-model="newTagName" placeholder="Nueva etiqueta..." @keyup.enter="createTag" style="flex:1" />
             <Button label="Crear" size="small" severity="secondary" :loading="creatingTag" @click="createTag" />
         </div>
         <div class="tags-list-manage">
@@ -421,7 +421,7 @@
                     v-tooltip.top="'Borrar etiqueta'"
                 />
             </div>
-            <p v-if="!allTags.length" class="tags-empty-hint">No hay tags creados aún.</p>
+            <p v-if="!allTags.length" class="tags-empty-hint">No hay etiquetas creadas aún.</p>
         </div>
         <template #footer>
             <Button label="Cancelar" text @click="tagsDialog = false" />
@@ -526,9 +526,11 @@ import TablePaginator from '../components/TablePaginator.vue';
 const route   = useRoute();
 const confirm = useConfirm();
 const toast   = useToast();
-const { user: authState } = useAuth();
-const isAdmin = computed(() => authState.user?.role === 'admin');
-const canDelete = computed(() => ['admin', 'superadmin'].includes(authState.user?.role));
+// Se usa el isAdmin compartido de auth.js, no una copia local: esta pantalla tenia el suyo
+// comparando contra 'admin' a secas y dejaba al superadmin fuera de Editar y de Reactivar.
+const { user: authState, isAdmin: esAdmin } = useAuth();
+const isAdmin = computed(() => esAdmin());
+const canDelete = computed(() => esAdmin());
 
 // Selección masiva de tags
 const selected       = ref([]);

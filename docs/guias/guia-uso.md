@@ -255,7 +255,7 @@ Detalles útiles:
 - Los números repetidos se cuentan **una sola vez**.
 - Se pueden pegar hasta **5,000 números** de una vez.
 - El pegado **manda sobre el buscador de texto**: si hay lista pegada, el texto se ignora.
-  Los demás filtros (estado, tag, entregabilidad) **sí** se aplican encima de la lista.
+  Los demás filtros (estado, etiqueta, entregabilidad) **sí** se aplican encima de la lista.
 
 ### Filtrar por entregabilidad
 
@@ -281,7 +281,7 @@ Se pueden **marcar varios estados a la vez** y se suman. Ejemplos:
   WhatsApp por haberlo recibido hace poco.
 - **Disponible - WhatsApp** + **Disponible - SMS** → los que reciben por cualquiera de los dos canales.
 
-El filtro se combina con los demás (estado, tag, lista pegada): esos se aplican encima.
+El filtro se combina con los demás (estado, etiqueta, lista pegada): esos se aplican encima.
 
 Uso típico: antes de lanzar una campaña de WhatsApp, filtra **Disponible - WhatsApp** para ver
 a cuántos les va a llegar de verdad.
@@ -305,8 +305,10 @@ La tabla tiene dos columnas de estado. El ícono **?** junto al título las expl
 - **Activo** - normal.
 - **Baja** - pidió no recibir más.
 - **Inválido** - el número no tiene WhatsApp.
-- **Inalcanzable** - le mandamos 3 mensajes seguidos que no llegaron (probablemente bloqueó el
-  número). El administrador lo puede reactivar.
+- **Inalcanzable** - le mandamos 3 mensajes seguidos que no llegaron. Cuentan igual los que se
+  quedaron sin respuesta de WhatsApp y los que WhatsApp rechazó (por ejemplo, "el número no tiene
+  WhatsApp"). Si en medio le llega **uno solo**, la cuenta vuelve a cero. El administrador lo
+  puede reactivar.
 
 **Entregabilidad** (si le llega ahora mismo). Se muestra **por canal**, con dos etiquetas: una
 de WhatsApp y otra de SMS. Cada canal cuenta por su lado, así que un contacto puede estar
@@ -721,7 +723,7 @@ qué:
 | **No repetir el mismo día** | Un contacto no recibe dos veces el mismo día por el mismo canal | Evita saturarlo | No. |
 | **Enfriamiento** | Tras recibir, el contacto espera un tiempo antes de recibir otra vez (por el mismo canal) | Que no le lleguen campañas muy seguidas | Sí, soporte. Por defecto **30 días**, mínimo **7**. |
 | **Pospuesto** | Si el contacto pide "No por ahora", se pausa (solo WhatsApp) hasta que pase | Respeta que ahorita no quiere | Vuelve solo. Dura lo mismo que el enfriamiento. |
-| **Inalcanzable (WhatsApp)** | Si 3 mensajes seguidos no le llegan (sin ninguna entrega en medio), se saca de campañas. El tope de 3 es fijo, no depende del enfriamiento | Probablemente bloqueó; seguir enviándole baja la calidad y arriesga la cuenta | El admin lo puede reactivar. |
+| **Inalcanzable (WhatsApp)** | Si 3 mensajes seguidos no le llegan (sin ninguna entrega en medio), se saca de campañas. Cuentan tanto los que quedan sin confirmación como los que WhatsApp rechaza. El tope de 3 es fijo, no depende del enfriamiento | Probablemente bloqueó, o el número no tiene WhatsApp; seguir enviándole baja la calidad y arriesga la cuenta | El admin lo puede reactivar. |
 | **Autobaja por rebotes (SMS)** | Tras varios SMS que rebotan seguidos, se bloquea el SMS de ese contacto | Dejar de gastar en números que no reciben | Sí, soporte. **Apagada por defecto** (no bloquea salvo que se active). |
 
 **Cosas clave que conviene tener claras:**

@@ -63,12 +63,32 @@ class DeliveryReasonTest extends TestCase
         $this->assertStringContainsString('131049', $fila['reason_detail']);
     }
 
-    /** Un código que no tenemos mapeado no debe dejar la columna vacía. */
-    public function test_codigo_desconocido_cae_al_titulo_de_meta(): void
+    /**
+     * Un código sin traducir no deja la columna vacía NI escupe el título de Meta, que viene en
+     * inglés. Al operador le llegaba "User's number is part of an experiment" tal cual.
+     */
+    public function test_codigo_desconocido_no_muestra_el_titulo_en_ingles_de_meta(): void
     {
-        $this->log(['delivery_error_code' => 999999, 'delivery_error_title' => 'Something odd']);
+        $this->log([
+            'delivery_error_code'  => 999999,
+            'delivery_error_title' => "User's number is part of an experiment",
+        ]);
 
-        $this->assertEquals('Something odd', $this->logs()[0]['reason']);
+        $fila = $this->logs()[0];
+
+        $this->assertStringNotContainsString('experiment', $fila['reason']);
+        $this->assertStringNotContainsString('experiment', $fila['reason_detail']);
+        $this->assertStringContainsString('999999', $fila['reason']);
+        $this->assertStringContainsString('soporte', $fila['reason']);
+    }
+
+    /** Lo mismo para el rechazo AL DESPACHAR: el `message` de Meta también viene en inglés. */
+    public function test_error_al_despachar_sin_traduccion_no_muestra_el_texto_en_ingles(): void
+    {
+        $this->log(['error_message' => json_encode(['code' => 999999, 'message' => 'Something odd in English'])]);
+
+        $this->assertStringNotContainsString('English', $this->logs()[0]['reason']);
+        $this->assertStringContainsString('999999', $this->logs()[0]['reason']);
     }
 
     public function test_traduce_el_motivo_de_un_descarte(): void
@@ -88,12 +108,37 @@ class DeliveryReasonTest extends TestCase
         $this->assertStringContainsString('límite de mensajes de marketing', $this->logs()[0]['reason']);
     }
 
-    /** El gateway SMS manda texto plano, no JSON. */
-    public function test_conserva_el_texto_plano_del_gateway_sms(): void
+    /** El gateway SMS manda texto plano con el codigo de Android, en ingles. */
+    public function test_traduce_el_codigo_de_android_del_gateway_sms(): void
     {
-        $this->log(['channel' => 'sms', 'error_message' => 'RESULT_ERROR_GENERIC_FAILURE']);
+        $this->log(['channel' => 'sms', 'error_message' => 'RESULT_ERROR_NO_SERVICE']);
 
-        $this->assertEquals('RESULT_ERROR_GENERIC_FAILURE', $this->logs()[0]['reason']);
+        $motivo = $this->logs()[0]['reason'];
+
+        $this->assertStringContainsString('sin señal', $motivo);
+        $this->assertStringNotContainsString('RESULT_ERROR', $motivo);
+    }
+
+    /** Un codigo de Android que no tenemos mapeado no se suelta crudo. */
+    public function test_codigo_de_android_sin_mapear_se_envuelve_en_espanol(): void
+    {
+        $this->log(['channel' => 'sms', 'error_message' => 'RESULT_RIL_SMS_SEND_FAIL']);
+
+        $motivo = $this->logs()[0]['reason'];
+
+        $this->assertStringContainsString('El teléfono no pudo enviar el SMS', $motivo);
+        $this->assertStringContainsString('soporte', $motivo);
+    }
+
+    /** El texto que escribimos nosotros ya viene en español y pasa tal cual. */
+    public function test_conserva_el_texto_propio_del_gateway_sms(): void
+    {
+        $this->log(['channel' => 'sms', 'error_message' => 'El gateway reportó el envío como fallido (sin detalle)']);
+
+        $this->assertEquals(
+            'El gateway reportó el envío como fallido (sin detalle)',
+            $this->logs()[0]['reason']
+        );
     }
 
     public function test_un_mensaje_entregado_no_tiene_motivo(): void

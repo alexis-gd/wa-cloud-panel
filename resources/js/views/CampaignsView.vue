@@ -462,7 +462,7 @@ const channelOptions = [
 // Sigue siendo una opcion elegible, pero el operador debe elegirla a proposito.
 const tagOptions = computed(() => [
     { label: 'Todos los contactos activos', value: 'all' },
-    ...availableTags.value.map(t => ({ label: `Tag: ${t.name}`, value: t.id })),
+    ...availableTags.value.map(t => ({ label: `Etiqueta: ${t.name}`, value: t.id })),
 ]);
 
 // Preview del texto SMS para campañas viejas sin plantilla vinculada (sms_template null):

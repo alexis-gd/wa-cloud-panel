@@ -110,7 +110,8 @@ Al entrar ves un resumen de todo. De arriba a abajo:
 
 **Botones de esta pantalla:**
 - **↺ (refrescar)** - actualiza la gráfica y los números. Úsalo si acabas de enviar una campaña.
-- **↓ (descargar)** en "Últimos mensajes" - baja el reporte de mensajes a Excel.
+- **↓ (descargar)** en "Últimos mensajes" - baja el reporte de mensajes a Excel. Se lleva lo que
+  tengas filtrado: con "Fallidos" puesto, el Excel trae solo los fallidos.
 - **Filtro de estado** - muestra solo enviados / entregados / leídos / fallidos.
 - **Enviar mensaje de prueba** *(solo administrador)* - prueba una plantilla con un contacto
   antes de lanzar la campaña. El operador no ve este botón.
@@ -747,7 +748,7 @@ qué:
 | Reporte | Cómo bajarlo | Qué trae |
 |---|---|---|
 | **Contactos** | Contactos → botón **Exportar Excel** | Teléfono, nombre, estado, de dónde salió el contacto, hasta cuándo está pospuesto y cuándo se dio de alta. |
-| **Mensajes** | Panel → botón ↓ en "Últimos mensajes" | Los últimos 10,000 envíos: canal (WhatsApp o SMS), número que envió, destino, plantilla, estado de entrega, **motivo del fallo** y fecha. |
+| **Mensajes** | Panel → botón ↓ en "Últimos mensajes" | Hasta 10,000 envíos: canal (WhatsApp o SMS), número que envió, destino, plantilla, estado de entrega, **motivo del fallo** y fecha. **Respeta el filtro de estado**: si tienes puesto "Fallidos", baja solo los fallidos, y el nombre del archivo lo dice. |
 
 Los dos archivos vienen en español y con la hora del Centro (CDMX), la misma que ves en el
 panel. Los puedes abrir en Excel o en Google Sheets tal cual.

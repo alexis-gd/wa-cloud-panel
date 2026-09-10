@@ -485,7 +485,13 @@ async function loadMonthlyHistory() {
 
 async function downloadMessages() {
     const token = localStorage.getItem('wa_token');
-    const res   = await fetch('/api/export/messages', {
+    // Se descarga lo que el operador está viendo, no toda la tabla: con el filtro en
+    // "Fallidos" bajaba las 8,000 filas completas en vez de las 1,368 de la pantalla.
+    const params = new URLSearchParams();
+    if (logsStatusFilter.value) params.set('status', logsStatusFilter.value);
+    const query = params.toString() ? `?${params}` : '';
+
+    const res = await fetch(`/api/export/messages${query}`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
     });
     if (!res.ok) return;

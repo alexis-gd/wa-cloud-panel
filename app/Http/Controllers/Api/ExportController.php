@@ -7,7 +7,9 @@ use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Services\StatusLabels;
 use App\Services\WhatsApp\DeliveryReason;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -64,14 +66,30 @@ class ExportController extends Controller
 
     /**
      * GET /api/export/messages
-     * Descarga los últimos 10,000 mensajes enviados como .xlsx
+     * Descarga hasta 10,000 mensajes como .xlsx, respetando el filtro del panel.
+     *
+     * El botón exportaba SIEMPRE todo: el operador filtraba "Fallidos", veía 1,368 y se
+     * descargaba 8,000 filas que no había pedido. Filtrar además abarata el export - menos
+     * filas que leer y que escribir en la hoja, y `status` va por índice.
      */
-    public function messages(): StreamedResponse
+    public function messages(Request $request): StreamedResponse
     {
         // Las tres columnas de error y `discard_reason` no se pintan tal cual: alimentan a
         // DeliveryReason, que es quien decide el texto. Sin ellas en el `get()` el Excel decia
         // solo "Fallido" y el cliente tenia que preguntarnos por que.
-        $logs = MessageLog::with('phoneNumber:id,display_name')
+        $query = MessageLog::with('phoneNumber:id,display_name');
+
+        // Mismos filtros que `DashboardController::messages()`, para que lo que se descarga sea
+        // exactamente lo que el operador está viendo.
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
+        }
+
+        if ($request->filled('phone_number_id')) {
+            $query->where('phone_number_id', $request->integer('phone_number_id'));
+        }
+
+        $logs = $query
             ->orderByDesc('sent_at')
             ->limit(10000)
             ->get([
@@ -109,7 +127,13 @@ class ExportController extends Controller
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
-        return $this->streamXlsx($spreadsheet, 'mensajes_' . now()->format('Ymd_His') . '.xlsx');
+        // El nombre del archivo dice qué trae: con varios exports en la carpeta de descargas,
+        // "mensajes_fallidos_..." y "mensajes_..." se distinguen de un vistazo.
+        $sufijo = $request->filled('status')
+            ? '_' . Str::slug(StatusLabels::messageStatus($request->string('status')))
+            : '';
+
+        return $this->streamXlsx($spreadsheet, 'mensajes' . $sufijo . '_' . now()->format('Ymd_His') . '.xlsx');
     }
 
     /**

@@ -335,7 +335,7 @@ const helpContent = {
             { icon: 'pi-users',         label: 'Contactos',   text: 'Estado actual de la base: total, activos (pueden recibir mensajes), dados de baja, inválidos e inalcanzables (recibieron varios mensajes sin entregarse; un admin los puede reactivar desde Contactos).' },
             { icon: 'pi-chart-line',    label: 'Gráfica',     text: 'Envíos día a día del mes actual. Usa ↺ para refrescar.' },
             { icon: 'pi-history',       label: 'Histórico',   text: 'Enviados vs. capacidad de los últimos 6 meses. Útil para ver tendencia de crecimiento.' },
-            { icon: 'pi-list',          label: 'Últimos',     text: 'Los 10 mensajes más recientes con su estado actual. Filtra por estado con el selector.' },
+            { icon: 'pi-list',          label: 'Últimos',     text: 'Los 10 mensajes más recientes con su estado actual. Filtra por estado con el selector. El botón de descargar respeta ese filtro: si tienes puesto "Fallidos", el Excel trae solo los fallidos.' },
             { icon: 'pi-info-circle',   label: 'Motivo',     text: 'Columna al lado del Estado: dice en español por qué no llegó un mensaje. Los que rechazó el proveedor salen en rojo y dicen quién lo dijo ("Meta respondió: ..." o "El gateway de SMS respondió: ..."). Los que frenó el panel salen en naranja (enfriamiento, baja, ya recibió hoy). Pasa el cursor encima para el texto completo.' },
             { icon: 'pi-bolt',          label: 'En vivo',     text: 'El tablero se actualiza solo con la actividad (semáforo, cifras, últimos mensajes) mientras corren las campañas. No hace falta recargar. El histórico por mes se carga una vez.' },
         ],

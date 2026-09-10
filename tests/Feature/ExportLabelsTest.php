@@ -23,6 +23,17 @@ class ExportLabelsTest extends TestCase
     /** Descarga el export y devuelve la hoja como matriz de filas. */
     private function hojaDe(string $ruta): array
     {
+        return $this->respuestaYHoja($ruta)[1];
+    }
+
+    /**
+     * Igual que `hojaDe`, pero devuelve también la respuesta: hace falta para revisar el nombre
+     * del archivo en el `Content-Disposition`.
+     *
+     * @return array{0: \Illuminate\Testing\TestResponse, 1: array}
+     */
+    private function respuestaYHoja(string $ruta): array
+    {
         $response = $this->actingAsAdmin()->get($ruta);
         $response->assertStatus(200);
 
@@ -32,7 +43,7 @@ class ExportLabelsTest extends TestCase
         $filas = IOFactory::load($archivo)->getActiveSheet()->toArray();
         unlink($archivo);
 
-        return $filas;
+        return [$response, $filas];
     }
 
     public function test_el_excel_de_contactos_trae_el_estado_en_espanol(): void
@@ -186,5 +197,43 @@ class ExportLabelsTest extends TestCase
         // Encabezado en A1..J1: "Motivo" es la octava columna (indice 7).
         $this->assertSame('Motivo', $filas[0][7]);
         $this->assertEmpty($filas[1][7]);
+    }
+
+    // ── El export respeta el filtro del panel ────────────────────────────────
+    // El boton bajaba SIEMPRE todo: el operador filtraba "Fallidos", veia 1,368 y se
+    // descargaba 8,000 filas que no habia pedido.
+
+    public function test_el_excel_de_mensajes_respeta_el_filtro_de_estado(): void
+    {
+        $phone = PhoneNumber::factory()->create();
+
+        MessageLog::factory()->count(3)->create(['phone_number_id' => $phone->id, 'status' => 'delivered']);
+        MessageLog::factory()->count(2)->create(['phone_number_id' => $phone->id, 'status' => 'failed']);
+
+        $filas = $this->hojaDe('/api/export/messages?status=failed');
+
+        // Encabezado + 2 fallidos, y ni uno entregado.
+        $this->assertCount(3, $filas);
+        $this->assertStringNotContainsString('Entregado', json_encode($filas, JSON_UNESCAPED_UNICODE));
+    }
+
+    public function test_el_excel_de_mensajes_sin_filtro_los_trae_todos(): void
+    {
+        $phone = PhoneNumber::factory()->create();
+
+        MessageLog::factory()->count(3)->create(['phone_number_id' => $phone->id, 'status' => 'delivered']);
+        MessageLog::factory()->count(2)->create(['phone_number_id' => $phone->id, 'status' => 'failed']);
+
+        $this->assertCount(6, $this->hojaDe('/api/export/messages'));
+    }
+
+    public function test_el_nombre_del_archivo_dice_que_filtro_trae(): void
+    {
+        $phone = PhoneNumber::factory()->create();
+        MessageLog::factory()->create(['phone_number_id' => $phone->id, 'status' => 'failed']);
+
+        [$response] = $this->respuestaYHoja('/api/export/messages?status=failed');
+
+        $this->assertStringContainsString('mensajes_fallido_', $response->headers->get('content-disposition'));
     }
 }

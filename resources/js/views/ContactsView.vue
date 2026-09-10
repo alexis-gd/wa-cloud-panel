@@ -526,9 +526,11 @@ import TablePaginator from '../components/TablePaginator.vue';
 const route   = useRoute();
 const confirm = useConfirm();
 const toast   = useToast();
-const { user: authState } = useAuth();
-const isAdmin = computed(() => authState.user?.role === 'admin');
-const canDelete = computed(() => ['admin', 'superadmin'].includes(authState.user?.role));
+// Se usa el isAdmin compartido de auth.js, no una copia local: esta pantalla tenia el suyo
+// comparando contra 'admin' a secas y dejaba al superadmin fuera de Editar y de Reactivar.
+const { user: authState, isAdmin: esAdmin } = useAuth();
+const isAdmin = computed(() => esAdmin());
+const canDelete = computed(() => esAdmin());
 
 // Selección masiva de tags
 const selected       = ref([]);

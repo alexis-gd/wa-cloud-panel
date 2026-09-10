@@ -142,42 +142,4 @@ class DashboardMessagesTest extends TestCase
 
         $this->assertNull($this->getJson('/api/dashboard/messages')->assertOk()->json('data.0.reason'));
     }
-
-    // ── Busqueda por numero ──
-
-    public function test_messages_endpoint_finds_a_number_typed_with_separators(): void
-    {
-        $this->actingAsAdmin();
-
-        MessageLog::factory()->create(['phone_number_id' => $this->phone->id, 'to_number' => '529231311146']);
-        MessageLog::factory()->create(['phone_number_id' => $this->phone->id, 'to_number' => '526691273636']);
-
-        $res = $this->getJson('/api/dashboard/messages?search=' . urlencode('923 131 1146'))->assertOk();
-
-        $this->assertCount(1, $res->json('data'));
-        $this->assertSame('529231311146', $res->json('data.0.to_number'));
-    }
-
-    public function test_messages_endpoint_finds_a_number_by_its_last_digits(): void
-    {
-        $this->actingAsAdmin();
-
-        MessageLog::factory()->create(['phone_number_id' => $this->phone->id, 'to_number' => '529231311146']);
-        MessageLog::factory()->create(['phone_number_id' => $this->phone->id, 'to_number' => '526691273636']);
-
-        $res = $this->getJson('/api/dashboard/messages?search=1146')->assertOk();
-
-        $this->assertCount(1, $res->json('data'));
-        $this->assertSame('529231311146', $res->json('data.0.to_number'));
-    }
-
-    public function test_messages_endpoint_ignores_an_empty_search(): void
-    {
-        $this->actingAsAdmin();
-        $this->createLogs(['sent', 'sent']);
-
-        $res = $this->getJson('/api/dashboard/messages?search=' . urlencode('   '))->assertOk();
-
-        $this->assertEquals(2, $res->json('meta.total'));
-    }
 }

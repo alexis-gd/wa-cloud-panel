@@ -202,23 +202,6 @@
                         size="small"
                         @change="loadMessages(1)"
                     />
-                    <IconField class="logs-search">
-                        <InputIcon class="pi pi-search" />
-                        <InputText
-                            v-model="logsSearch"
-                            placeholder="Buscar por número"
-                            size="small"
-                            @keyup.enter="loadMessages(1)"
-                        />
-                    </IconField>
-                    <Button
-                        v-if="logsSearch"
-                        icon="pi pi-times"
-                        text
-                        size="small"
-                        title="Limpiar búsqueda"
-                        @click="clearLogsSearch"
-                    />
                 </div>
                 <DataTable :value="logs" size="small" stripedRows :loading="loadingLogs" class="mt-2">
                     <Column field="id" header="ID" style="width: 60px" />
@@ -289,9 +272,6 @@ import Select    from 'primevue/select';
 import DataTable from 'primevue/datatable';
 import Column    from 'primevue/column';
 import Tag       from 'primevue/tag';
-import InputText from 'primevue/inputtext';
-import IconField from 'primevue/iconfield';
-import InputIcon from 'primevue/inputicon';
 import Chart     from 'primevue/chart';
 import { api }          from '../api.js';
 import TablePaginator   from '../components/TablePaginator.vue';
@@ -305,7 +285,6 @@ const logsMeta         = ref(null);
 // Tamaño de página elegido por el operador (número o 'all'). Ver TablePaginator.
 const logsPerPage      = ref(10);
 const logsStatusFilter = ref(null);
-const logsSearch       = ref('');
 const stats            = ref({});
 const contacts         = ref({});
 const monthly          = ref({});
@@ -463,16 +442,10 @@ function changeLogsPageSize(size) {
     loadMessages(1);
 }
 
-function clearLogsSearch() {
-    logsSearch.value = '';
-    loadMessages(1);
-}
-
 async function loadMessages(page = 1) {
     loadingLogs.value = true;
     const params = { page, per_page: logsPerPage.value };
     if (logsStatusFilter.value) params.status = logsStatusFilter.value;
-    if (logsSearch.value.trim()) params.search = logsSearch.value.trim();
     const res = await api.dashboardMessages(params);
     if (res.status === 'ok') {
         logs.value     = res.data ?? [];
@@ -703,8 +676,7 @@ onUnmounted(() => {
 .ch-sms { color: var(--p-blue-500); font-size: 1.05rem; }
 .mt-2      { margin-top: 8px; }
 
-.logs-filter-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
-.logs-search input { min-width: 200px; }
+.logs-filter-row { display: flex; gap: 8px; margin-bottom: 8px; }
 .error-msg      { color: var(--p-red-600);    font-size: .8rem; cursor: help; }
 .discard-reason { color: var(--p-orange-700); font-size: .8rem; cursor: help; }
 

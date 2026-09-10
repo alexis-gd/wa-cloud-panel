@@ -112,9 +112,6 @@ Al entrar ves un resumen de todo. De arriba a abajo:
 - **↺ (refrescar)** - actualiza la gráfica y los números. Úsalo si acabas de enviar una campaña.
 - **↓ (descargar)** en "Últimos mensajes" - baja el reporte de mensajes a Excel.
 - **Filtro de estado** - muestra solo enviados / entregados / leídos / fallidos.
-- **Buscar por número** - escribe el celular y la tabla se queda solo con sus mensajes. Da igual
-  cómo lo escribas: con lada o sin ella, con espacios o guiones. También puedes poner **los
-  últimos dígitos** (por ejemplo `1146`) y te trae los que terminan así. La ✕ limpia la búsqueda.
 - **Enviar mensaje de prueba** *(solo administrador)* - prueba una plantilla con un contacto
   antes de lanzar la campaña. El operador no ve este botón.
 

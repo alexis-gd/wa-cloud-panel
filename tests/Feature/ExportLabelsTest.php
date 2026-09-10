@@ -151,7 +151,7 @@ class ExportLabelsTest extends TestCase
         $texto = json_encode($this->hojaDe('/api/export/messages'), JSON_UNESCAPED_UNICODE);
 
         $this->assertStringContainsString('Motivo', $texto);
-        $this->assertStringContainsString('Meta respondió: El mensaje no pudo ser entregado al destinatario.', $texto);
+        $this->assertStringContainsString('Meta respondió: El número no tiene WhatsApp', $texto);
     }
 
     public function test_el_excel_de_mensajes_no_le_echa_la_culpa_a_meta_de_un_sms(): void

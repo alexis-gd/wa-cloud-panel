@@ -146,6 +146,49 @@ class WebhookTest extends TestCase
         $this->assertEqualsWithDelta(now()->addHours(24)->timestamp, $contact->wa_marketing_hold_until->timestamp, 60);
     }
 
+    // ── 131026: el número no tiene WhatsApp → marcar inválido ─────────────────
+
+    public function test_error_131026_marca_el_contacto_como_invalido(): void
+    {
+        $contact = \App\Models\Contact::factory()->create([
+            'phone'  => '529231311146',
+            'status' => 'active',
+        ]);
+
+        MessageLog::factory()->create([
+            'to_number'     => '529231311146',
+            'wa_message_id' => 'wamid.test.131026',
+            'status'        => 'sent',
+        ]);
+
+        $this->postWebhookStatus('wamid.test.131026', 'failed', [
+            ['code' => 131026, 'title' => 'Message undeliverable'],
+        ]);
+
+        $this->assertEquals('invalid', $contact->refresh()->status);
+    }
+
+    /** Una baja manda sobre esto: un 131026 no la puede degradar a "inválido". */
+    public function test_error_131026_no_pisa_una_baja_existente(): void
+    {
+        $contact = \App\Models\Contact::factory()->create([
+            'phone'  => '529231311146',
+            'status' => 'opted_out',
+        ]);
+
+        MessageLog::factory()->create([
+            'to_number'     => '529231311146',
+            'wa_message_id' => 'wamid.test.131026b',
+            'status'        => 'sent',
+        ]);
+
+        $this->postWebhookStatus('wamid.test.131026b', 'failed', [
+            ['code' => 131026, 'title' => 'Message undeliverable'],
+        ]);
+
+        $this->assertEquals('opted_out', $contact->refresh()->status);
+    }
+
     // ── 131050: baja a nivel WhatsApp → opt-out cross-channel ─────────────────
 
     public function test_error_131050_marca_opt_out_al_contacto(): void

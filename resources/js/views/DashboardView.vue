@@ -222,7 +222,20 @@
                     </Column>
                     <Column header="Estado">
                         <template #body="{ data }">
-                            <Tag :value="data.status" :severity="statusSeverity(data.status)" />
+                            <Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" />
+                        </template>
+                    </Column>
+                    <Column header="Motivo" style="min-width: 220px">
+                        <template #body="{ data }">
+                            <!-- El backend manda el motivo ya traducido (DeliveryReason), igual
+                                 que el detalle de campaña. El tooltip trae el texto largo con
+                                 el prefijo de quién lo dijo ("Meta respondió: ..."). -->
+                            <span
+                                v-if="data.reason"
+                                :class="data.discard_reason ? 'discard-reason' : 'error-msg'"
+                                :title="data.reason_detail"
+                            >{{ data.reason }}</span>
+                            <span v-else class="muted-cell">-</span>
                         </template>
                     </Column>
                     <Column header="Fecha">
@@ -381,6 +394,17 @@ const portfolioLimitLabel = computed(() => {
     if (String(raw).toUpperCase().includes('UNLIMITED')) return 'Ilimitado';
     return daily ? Number(daily).toLocaleString('es-MX') : String(raw);
 });
+
+// Los estados viajan en inglés a propósito, pero nunca deben LLEGAR al operador: esta tabla
+// mostraba "failed" tal cual.
+const statusLabel = (status) => ({
+    pending   : 'Pendiente',
+    sent      : 'Enviado',
+    delivered : 'Entregado',
+    read      : 'Leído',
+    failed    : 'Fallido',
+    discarded : 'Descartado',
+}[status] ?? status);
 
 const statusSeverity = (status) => ({
     sent      : 'info',
@@ -653,6 +677,8 @@ onUnmounted(() => {
 .mt-2      { margin-top: 8px; }
 
 .logs-filter-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.error-msg      { color: var(--p-red-600);    font-size: .8rem; cursor: help; }
+.discard-reason { color: var(--p-orange-700); font-size: .8rem; cursor: help; }
 
 @media (max-width: 900px) {
     .stats-row { grid-template-columns: repeat(2, 1fr); }

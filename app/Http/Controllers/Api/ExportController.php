@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Services\StatusLabels;
+use App\Services\WhatsApp\DeliveryReason;
 use Illuminate\Support\Carbon;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -67,16 +68,23 @@ class ExportController extends Controller
      */
     public function messages(): StreamedResponse
     {
+        // Las tres columnas de error y `discard_reason` no se pintan tal cual: alimentan a
+        // DeliveryReason, que es quien decide el texto. Sin ellas en el `get()` el Excel decia
+        // solo "Fallido" y el cliente tenia que preguntarnos por que.
         $logs = MessageLog::with('phoneNumber:id,display_name')
             ->orderByDesc('sent_at')
             ->limit(10000)
-            ->get(['id', 'phone_number_id', 'channel', 'to_number', 'template_name', 'language_code', 'status', 'wa_message_id', 'sent_at']);
+            ->get([
+                'id', 'phone_number_id', 'channel', 'to_number', 'template_name', 'language_code',
+                'status', 'wa_message_id', 'sent_at',
+                'error_message', 'delivery_error_code', 'delivery_error_title', 'discard_reason',
+            ]);
 
         $spreadsheet = new Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Mensajes');
 
-        $sheet->fromArray(['ID', 'Canal', 'Número origen', 'Destino', 'Plantilla', 'Idioma', 'Estado', 'ID del mensaje', 'Enviado'], null, 'A1');
+        $sheet->fromArray(['ID', 'Canal', 'Número origen', 'Destino', 'Plantilla', 'Idioma', 'Estado', 'Motivo', 'ID del mensaje', 'Enviado'], null, 'A1');
 
         $row = 2;
         foreach ($logs as $log) {
@@ -88,13 +96,16 @@ class ExportController extends Controller
                 $log->template_name,
                 $log->language_code,
                 StatusLabels::messageStatus($log->status),
+                // Texto largo y con prefijo de quien lo dijo ("Meta respondió: ..."): el Excel
+                // se lee fuera del panel, sin tooltip donde esconder el detalle.
+                DeliveryReason::forLog($log)['full'] ?? '',
                 $log->wa_message_id ?? '',
                 self::enHoraDeMexico($log->sent_at, conSegundos: true),
             ], null, "A{$row}");
             $row++;
         }
 
-        foreach (range('A', 'I') as $col) {
+        foreach (range('A', 'J') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

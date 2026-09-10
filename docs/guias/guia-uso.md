@@ -105,7 +105,8 @@ Al entrar ves un resumen de todo. De arriba a abajo:
 - **Salud del número**: un semáforo (verde / amarillo / rojo) que dice cómo está el número de
   WhatsApp, cuántos mensajes van hoy y si está pausado.
 - **Últimos mensajes**: tabla con los envíos recientes y su estado. Mezcla WhatsApp y SMS; la
-  columna **Canal** los distingue con un ícono.
+  columna **Canal** los distingue con un ícono. La columna **Motivo** dice por qué falló cuando
+  un mensaje no llegó.
 
 **Botones de esta pantalla:**
 - **↺ (refrescar)** - actualiza la gráfica y los números. Úsalo si acabas de enviar una campaña.
@@ -136,6 +137,26 @@ En "Últimos mensajes" (y en el detalle de una campaña) cada mensaje tiene un e
 
 > Es normal que un mensaje pase de Enviado a Entregado a Leído con unos minutos de diferencia.
 > Si estás en la pantalla, se actualiza solo.
+
+### Por qué falló un mensaje
+
+La columna **Motivo**, al lado del estado, explica en español qué pasó. Pasa el cursor encima
+para ver el texto completo. Hay dos clases de motivo, y la diferencia importa:
+
+| Clase | Qué significa | Ejemplo |
+|---|---|---|
+| **Lo dijo el proveedor** | El mensaje sí salió y WhatsApp (o la compañía de SMS) lo rechazó | "Meta respondió: El destinatario alcanzó su límite de mensajes de marketing." |
+| **Lo decidió el sistema** | El mensaje **nunca salió**: el panel lo frenó para protegerte | "En enfriamiento: se le envió hace poco." |
+
+Los del proveedor salen en rojo y siempre dicen quién lo dijo - **Meta** para WhatsApp, **el
+gateway de SMS** para SMS. Los que decidió el sistema salen en naranja.
+
+> Un motivo del proveedor **no siempre es un problema del número**. El más común, el límite de
+> mensajes de marketing, es un tope que Meta le pone a cada persona sumando lo que recibe de
+> todas las empresas: no hay nada que arreglar de nuestro lado. Si ves muchos fallos seguidos de
+> otro tipo, avisa a soporte antes de lanzar otra campaña.
+
+El Excel de mensajes trae esa misma columna **Motivo**, con el texto completo.
 
 ---
 
@@ -724,7 +745,7 @@ qué:
 | Reporte | Cómo bajarlo | Qué trae |
 |---|---|---|
 | **Contactos** | Contactos → botón **Exportar Excel** | Teléfono, nombre, estado, de dónde salió el contacto, hasta cuándo está pospuesto y cuándo se dio de alta. |
-| **Mensajes** | Panel → botón ↓ en "Últimos mensajes" | Los últimos 10,000 envíos: canal (WhatsApp o SMS), número que envió, destino, plantilla, estado de entrega y fecha. |
+| **Mensajes** | Panel → botón ↓ en "Últimos mensajes" | Los últimos 10,000 envíos: canal (WhatsApp o SMS), número que envió, destino, plantilla, estado de entrega, **motivo del fallo** y fecha. |
 
 Los dos archivos vienen en español y con la hora del Centro (CDMX), la misma que ves en el
 panel. Los puedes abrir en Excel o en Google Sheets tal cual.

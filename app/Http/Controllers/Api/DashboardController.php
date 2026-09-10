@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
+use App\Services\WhatsApp\DeliveryReason;
 use App\Services\WhatsApp\PortfolioLimit;
 use App\Support\PageSize;
 use Illuminate\Http\JsonResponse;
@@ -102,10 +103,17 @@ class DashboardController extends Controller
 
         $paginated = $query->paginate(PageSize::from($request, 20));
 
-        $items = collect($paginated->items())->map(fn (MessageLog $log) => array_merge(
-            $log->toArray(),
-            ['created_at' => $log->created_at->setTimezone('America/Mexico_City')->format('Y-m-d H:i')]
-        ));
+        // `reason` viene ya traducido (DeliveryReason), igual que en el detalle de campaña: la
+        // tabla mostraba solo "failed" y el operador no tenía forma de saber qué había pasado.
+        $items = collect($paginated->items())->map(function (MessageLog $log) {
+            $reason = DeliveryReason::forLog($log);
+
+            return array_merge($log->toArray(), [
+                'created_at'    => $log->created_at->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
+                'reason'        => $reason['short']  ?? null,
+                'reason_detail' => $reason['full']   ?? null,
+            ]);
+        });
 
         return response()->json([
             'status' => 'ok',

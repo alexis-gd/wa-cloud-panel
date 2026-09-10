@@ -19,10 +19,11 @@ git branch -vv
 ### Decidir si continuar en la rama actual o crear una nueva
 
 **Continuar en la rama actual si:**
-- Estamos en una rama activa (`feature/*`, `fix/*`, `chore/*`, etc.) **y** el cambio es del mismo scope **y** la rama aún NO ha sido mergeada a `develop`
+- Estamos en una rama activa (`feature/*`, `fix/*`, `chore/*`, etc.) **y** el cambio es del mismo scope **y** la rama aún NO ha sido mergeada a `main`
 
 **Crear rama nueva si:**
-- Estamos en `main` o `develop`
+- Estamos en `main`
+- **Empieza una tanda nueva de trabajo**, aunque la rama actual siga siendo del mismo tipo
 - La rama actual ya fue mergeada — aunque el scope sea el mismo, el ciclo de esa rama terminó. Mezclar historial viejo con cambios nuevos ensucia el PR
 - La rama es de un scope claramente distinto al cambio solicitado
 
@@ -30,10 +31,10 @@ git branch -vv
 
 | Situación | Acción |
 |---|---|
-| En `main` o `develop` | `git checkout develop && git pull && git checkout -b tipo/nombre` |
-| En rama mergeada, sin cambios | `git checkout develop && git pull && git checkout -b tipo/nombre` |
+| En `main` | `git fetch origin && git checkout -b tipo/nombre origin/main` |
+| En rama mergeada, sin cambios | `git fetch origin && git checkout -b tipo/nombre origin/main` |
 | En rama activa del mismo scope, limpia y al día | Continuar en esa rama |
-| Rama local desactualizada vs `origin/develop` | `git pull origin develop --rebase` antes de continuar |
+| Rama local desactualizada vs `origin/main` | `git pull origin main --rebase` antes de continuar |
 | Cambios sin commitear de scope diferente | Avisar al usuario — stash o commit antes de cambiar |
 
 ### Reporte obligatorio al usuario antes de empezar
@@ -129,10 +130,10 @@ Ejemplos que NO requieren actualizar:
 ## 8. Flujo de commit (obligatorio — nunca saltarse)
 
 ### Ramas
-- **Nunca commitear directo a `main` ni a `develop`** — siempre en rama propia
-- Toda rama nace desde `develop` y muere al hacer merge a `develop`
-- Merge a `main` solo cuando el usuario valide los cambios en `develop`
-- Hotfix urgente (bug en producción): rama `hotfix/kebab-name` desde `main`, merge a `main` + `develop`
+- **Nunca commitear directo a `main`** - siempre en rama propia, siempre por PR
+- Toda rama nace de `main` y muere al hacer merge a `main`
+- **Una rama por tanda**: no reutilizar una rama ya mergeada para trabajo nuevo, aunque el scope se parezca
+- `develop` se retiró el 2026-09-09: sin ambiente de pruebas, el deploy sale de `main` directo a producción y la rama de integración era un salto sin destino
 
 | Tipo | Prefijo | Ejemplo |
 |---|---|---|
@@ -143,7 +144,7 @@ Ejemplos que NO requieren actualizar:
 | Refactor | `refactor/` | `refactor/auth-service` |
 
 ### Proceso
-- [ ] Crear rama desde `develop`: `git checkout develop && git pull && git checkout -b tipo/kebab-name`
+- [ ] Crear rama desde `main`: `git fetch origin && git checkout -b tipo/kebab-name origin/main`
 - [ ] Mostrar preview al usuario ANTES de commitear:
   - Rama: `tipo/kebab-name`
   - Mensaje propuesto: seguir convención global (`~/.claude/CLAUDE.md` → Git commits)
@@ -151,8 +152,8 @@ Ejemplos que NO requieren actualizar:
 - [ ] Esperar aprobación explícita
 - [ ] Solo entonces ejecutar `git add` + `git commit`
 - [ ] `git push origin tipo/kebab-name`
-- [ ] Abrir PR en GitHub: rama → `develop`. **Siempre PR, sin merge local**
-- [ ] Merge a `main` igual: PR desde `develop` → `main` en GitHub, solo cuando el usuario valide
+- [ ] Abrir PR en GitHub: rama → `main`. **Siempre PR, sin merge local**
+- [ ] El merge lo hace el usuario cuando valide: ese PR va directo a producción
 
 ---
 

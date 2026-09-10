@@ -25,6 +25,7 @@ class Contact extends Model
         'opted_out_at',
         'opted_out_source',
         'snoozed_until',
+        'conversation_read_at',
         'wa_marketing_hold_until',
         'sms_opt_out',
         'sms_blocked',
@@ -35,6 +36,7 @@ class Contact extends Model
     protected $casts = [
         'opted_out_at'            => 'datetime',
         'snoozed_until'           => 'datetime',
+        'conversation_read_at'    => 'datetime',
         'wa_marketing_hold_until' => 'datetime',
         'sms_opt_out'             => 'boolean',
         'sms_blocked'   => 'boolean',
@@ -171,6 +173,27 @@ class Contact extends Model
     public function latestConversation(): HasOne
     {
         return $this->hasOne(Conversation::class)->latestOfMany();
+    }
+
+    /**
+     * Ultimo mensaje que ENTRO, o sea el que escribio el contacto.
+     *
+     * Es lo que ordena la bandeja: la lista responde "quien nos escribio mas recientemente y
+     * sigue esperando", no "que toque yo al ultimo". Ordenar por cualquier mensaje hacia que
+     * contestar empujara esa conversacion al primer lugar y tapara a quien llevaba horas
+     * esperando: el operador perdia de vista lo pendiente justo por atenderlo.
+     */
+    public function latestInboundConversation(): HasOne
+    {
+        // `ofMany` con closure, NO `->where(...)->latestOfMany()`: encadenar el `where` antes
+        // lo deja FUERA del subquery, que entonces busca el maximo de TODOS los mensajes y
+        // luego descarta el resultado si resulto ser saliente. Con eso, toda conversacion ya
+        // contestada devolvia null y se ordenaba por el mensaje del operador, justo al reves
+        // de lo que se pidio. La condicion tiene que viajar DENTRO del subquery.
+        return $this->hasOne(Conversation::class)->ofMany(
+            ['created_at' => 'max'],
+            fn ($q) => $q->where('direction', 'inbound')
+        );
     }
 
     public function tags(): BelongsToMany

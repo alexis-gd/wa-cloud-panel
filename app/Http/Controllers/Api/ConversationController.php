@@ -41,11 +41,23 @@ class ConversationController extends Controller
             // limit, el eager load devolvía UNA fila para toda la consulta y el resto de los
             // contactos quedaba sin último mensaje (sin vista previa y sin fecha para ordenar).
             ->with([
-                'latestConversation',
+                'latestConversation.user:id,name',
                 // `latestAssignment` es un `latestOfMany`, no un `limit(1)` sobre el hasMany:
                 // con limit, el eager load devolvía UNA fila para toda la consulta y el resto
                 // de los contactos salía "Sin asignar" aunque tuvieran agente.
                 'latestAssignment.user:id,name',
+                // Ordena la lista. Ver `Contact::latestInboundConversation`.
+                'latestInboundConversation',
+            ])
+            // Mensajes del contacto que nadie ha leído. El "leído" es COMPARTIDO por el equipo
+            // (decisión del cliente): abrir la conversación la marca leída para todos, así que
+            // basta una marca de tiempo en el contacto y no una tabla por usuario.
+            // El COALESCE cubre a los que nunca se han abierto: sin él, `NULL >` no compara y
+            // esas conversaciones salían con cero sin leer, que es justo al revés.
+            ->withCount([
+                'conversations as unread_count' => fn ($q) => $q
+                    ->where('direction', 'inbound')
+                    ->whereRaw('conversations.created_at > COALESCE(contacts.conversation_read_at, ?)', ['1000-01-01 00:00:00']),
             ]);
 
         // Agentes solo ven conversaciones que tienen asignadas
@@ -66,12 +78,25 @@ class ConversationController extends Controller
                 'snoozed_until'   => $c->snoozed_until,
                 'last_message'    => $c->latestConversation?->body,
                 'last_message_at' => $c->latestConversation?->created_at,
+                // Quién escribió el último mensaje. El operador necesita distinguir "el cliente
+                // me escribió y espera" de "ya le contestó un compañero", que desde la lista se
+                // veían idénticos.
+                'last_message_from' => $c->latestConversation?->direction === 'outbound'
+                    ? ($c->latestConversation->user?->name ?? 'Sistema')
+                    : null,
+                'last_message_user_id' => $c->latestConversation?->user_id,
+                'unread_count'    => (int) $c->unread_count,
                 'window_open'     => (bool) $c->window_open,
                 'assigned_to'     => $c->latestAssignment?->user
                     ? ['id' => $c->latestAssignment->user->id, 'name' => $c->latestAssignment->user->name]
                     : null,
+                // Clave de orden, no se muestra. Si un contacto nunca escribió (conversación que
+                // abrimos nosotros y sigue sin respuesta) cae al último mensaje que haya: sin ese
+                // respaldo se irían todos al fondo de la lista, revueltos entre sí.
+                'sort_key'        => $c->latestInboundConversation?->created_at
+                    ?? $c->latestConversation?->created_at,
             ])
-            ->sortByDesc('last_message_at')
+            ->sortByDesc('sort_key')
             ->values();
 
         return response()->json(['status' => 'ok', 'data' => $contacts]);
@@ -239,6 +264,12 @@ class ConversationController extends Controller
             ->where('created_at', '>=', now()->subHours(24))
             ->exists();
 
+        // Abrirla es haberla leído, igual que en WhatsApp. Va aquí y no en un endpoint aparte
+        // porque este mismo `show` es el que refresca el chat abierto cuando entra un mensaje
+        // en vivo: así el globo tampoco aparece si el operador ya está mirando la conversación.
+        // Es compartido: queda leída para todo el equipo.
+        $contact->forceFill(['conversation_read_at' => now()])->save();
+
         return response()->json([
             'status' => 'ok',
             'data'   => [
@@ -365,6 +396,9 @@ class ConversationController extends Controller
 
         $conversation = Conversation::create([
             'contact_id'    => $contact->id,
+            // Quién contestó. La lista lo usa para decir "Tú:" o el nombre del compañero, que
+            // es lo que distingue una conversación atendida de una que sigue esperando.
+            'user_id'       => $request->user()?->id,
             'direction'     => 'outbound',
             'message_type'  => 'text',
             'body'          => $request->body,

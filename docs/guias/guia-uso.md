@@ -540,6 +540,22 @@ Cuando un contacto responde a un WhatsApp, su mensaje aparece en **Conversacione
 > ⚡ **En vivo:** si estás en esta pantalla, todo se actualiza solo sin recargar: respuestas
 > nuevas, quién atiende, el estado y las palomitas de entregado/leído.
 
+### Cómo está ordenada la lista
+
+Arriba va **quien te escribió más reciente**, sin importar si ya le contestaste. La lista es tu
+fila de pendientes: lo de hasta arriba es lo que lleva más tiempo esperando.
+
+Que tú respondas **no mueve la conversación de lugar**. Es a propósito: si contestar la subiera
+al primer sitio, taparía a quien lleva horas esperando y que sí falta atender.
+
+- **Globo verde con un número** a la derecha: mensajes nuevos que nadie ha leído. El nombre y la
+  vista previa salen en negritas mientras haya sin leer.
+- **Se limpia al abrir la conversación**, igual que en WhatsApp. Es compartido: si un compañero
+  la abre, se limpia para todo el equipo.
+- **La vista previa dice quién escribió el último mensaje**: `Tú:` si fuiste tú, el nombre del
+  compañero si fue otro, y sin nada cuando el último fue del contacto. Ése último es el que hay
+  que atender.
+
 ### Cómo responder
 
 1. Ve a **Conversaciones** en el menú.

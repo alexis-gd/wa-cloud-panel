@@ -3,18 +3,28 @@
         @click="$emit('select', contact)"
         :class="['sidebar-item',
                  active ? 'sidebar-item--active' : '',
-                 esMia ? 'sidebar-item--mine' : '']"
+                 esMia ? 'sidebar-item--mine' : '',
+                 sinLeer ? 'sidebar-item--unread' : '']"
     >
         <div class="item-row">
             <span class="item-name">
                 <span class="state-dot" :class="'dot--' + ciclo" v-tooltip.top="cicloTag.label"></span>
                 <span class="item-name-text">{{ contact.name || contact.phone }}</span>
             </span>
-            <span class="item-time">{{ hora }}</span>
+            <span class="item-time" :class="{ 'item-time--unread': sinLeer }">{{ hora }}</span>
         </div>
         <div class="item-row">
-            <span class="item-preview">{{ contact.last_message }}</span>
+            <span class="item-preview">
+                <!-- Prefijo con quien contesto: distingue "el cliente espera" de "ya le
+                     respondio un companero", que desde la lista se veian igual. -->
+                <span v-if="contact.last_message_from" class="preview-from">{{ prefijo }}</span>{{ contact.last_message }}
+            </span>
             <span class="item-badges">
+                <span
+                    v-if="sinLeer"
+                    class="unread-badge"
+                    v-tooltip.top="contact.unread_count === 1 ? '1 mensaje sin leer' : `${contact.unread_count} mensajes sin leer`"
+                >{{ contact.unread_count > 99 ? '99+' : contact.unread_count }}</span>
                 <Tag :value="cicloTag.label" :severity="cicloTag.severity" class="item-tag" />
                 <span class="assign-mini" :class="'assign--' + asignacion.cls" v-tooltip.top="asignacion.title">
                     {{ asignacion.label }}
@@ -85,6 +95,22 @@ const asignacion = computed(() => {
     return { label: iniciales(asignado.name), cls: 'other', title: `Asignada a ${asignado.name}` };
 });
 
+const sinLeer = computed(() => (props.contact.unread_count ?? 0) > 0);
+
+// "Tu:" cuando el ultimo mensaje lo mando quien esta viendo la lista; el nombre del companero
+// si fue otro. Sin prefijo cuando escribio el contacto: ese es el caso que hay que atender.
+const prefijo = computed(() => {
+    const de = props.contact.last_message_from;
+    if (! de) return '';
+    const propio = props.contact.last_message_user_id
+        && props.contact.last_message_user_id === props.currentUserId;
+    return propio ? 'Tú: ' : `${primerNombre(de)}: `;
+});
+
+function primerNombre(nombre) {
+    return (nombre || '').trim().split(/\s+/)[0] || nombre;
+}
+
 const hora = computed(() => {
     const iso = props.contact.last_message_at;
     if (! iso) return '';
@@ -116,6 +142,27 @@ function iniciales(nombre) {
 .item-preview{ font-size: .75rem; color: var(--p-text-muted-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .item-badges { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 .item-tag    { flex-shrink: 0; font-size: .65rem !important; }
+
+/* Sin leer: negritas + globo con el conteo, como WhatsApp. El operador barre la lista con la
+   vista y lo pendiente salta solo; antes todas las filas se veian identicas. */
+.sidebar-item--unread .item-name    { font-weight: 800; }
+.sidebar-item--unread .item-preview { color: var(--p-text-color); font-weight: 600; }
+.item-time--unread { color: var(--p-green-600); font-weight: 700; }
+
+.unread-badge {
+  background: var(--p-green-500);
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 17px;
+  padding: 4px 5px;
+  border-radius: 9px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.preview-from { color: var(--p-text-muted-color); font-weight: 600; }
 
 /* Punto de estado (ciclo de vida) junto al nombre */
 .state-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }

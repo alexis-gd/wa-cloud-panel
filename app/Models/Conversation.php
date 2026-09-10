@@ -9,6 +9,7 @@ class Conversation extends Model
 {
     protected $fillable = [
         'contact_id',
+        'user_id',
         'direction',
         'message_type',
         'body',
@@ -24,5 +25,13 @@ class Conversation extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * Quien mando el mensaje. Null en los entrantes: esos los manda el contacto, no un usuario.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

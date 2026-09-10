@@ -313,7 +313,8 @@ function subscribeRealtime() {
     if (e.channel === 'sms') return;
     // Si el chat abierto es de ese contacto, recargar sus mensajes (y bajar al final).
     if (selected.value && e.contact_id === selected.value.id) {
-      refreshOpenChat(true);
+      refreshOpenChat(true);   // este `show` tambien la marca leida en el servidor
+      marcarLeidaEnLista(e.contact_id);
     }
     loadContacts(true); // refresca la lista sin spinner
     toast.add({
@@ -365,8 +366,20 @@ async function loadContacts(silent = false) {
   if (! silent) loadingContacts.value = false;
 }
 
+/**
+ * Baja el globo de sin leer en la lista sin esperar al backend.
+ *
+ * `show` ya la marca leida del lado del servidor, pero la lista vive en memoria: sin esto el
+ * globo se quedaba puesto hasta el siguiente refetch y parecia que abrir no servia de nada.
+ */
+function marcarLeidaEnLista(contactId) {
+  const fila = contacts.value.find(c => c.id === contactId);
+  if (fila) fila.unread_count = 0;
+}
+
 async function selectContact(contact) {
   selected.value    = contact;
+  marcarLeidaEnLista(contact.id);
   loadingChat.value = true;
   messages.value    = [];
   currentAssignment.value = contact.assigned_to ?? null;

@@ -81,7 +81,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.40.1</span>
+                <span class="version">v0.41.0</span>
             </div>
         </aside>
 
@@ -406,6 +406,9 @@ const helpContent = {
     '/conversations': {
         title: 'Conversaciones',
         items: [
+            { icon: 'pi-sort-amount-down', label: 'Orden de la lista', text: 'Arriba va quien te escribio mas reciente, aunque ya le hayas contestado. Tu respuesta NO mueve la conversacion de lugar: si la subiera, taparia a quien lleva mas tiempo esperando. Es una fila de pendientes, no un historial.' },
+            { icon: 'pi-bell', label: 'Sin leer', text: 'El globo verde con numero son mensajes nuevos que nadie ha leido; el nombre va en negritas mientras haya. Se limpia al abrir la conversacion, como WhatsApp, y es compartido: si un companero la abre, se limpia para todos.' },
+            { icon: 'pi-user-edit', label: 'Quien contesto', text: 'La vista previa dice quien mando el ultimo mensaje: "Tu:" si fuiste tu, el nombre del companero si fue otro, y sin nada cuando el ultimo fue del contacto. Ese ultimo es el que falta atender.' },
             { icon: 'pi-history', label: 'Historial', text: 'En Asignacion, el boton Ver historial abre todos los movimientos de esa conversacion: que movimiento fue, a que agente quedo, cuando y quien lo hizo (o el sistema, si fue reparto automatico). No se borra nunca, ni al soltarla.' },
             { icon: 'pi-user-minus', label: 'Cambio de turno', text: 'Reasignar se la pasa a otro agente; Dejar sin asignar la suelta para que la tome quien entre. Las dos quedan registradas en el historial.' },
             { icon: 'pi-circle-fill',   label: 'Estado',      text: 'El punto de color y el chip dicen en qué anda la conversación: Abierta (verde, ventana 24h abierta, se puede responder libre), Cerrada (gris, 24h vencidas, solo plantilla reabre), Pospuesto (ámbar, pidió "no por ahora"), Baja (rojo, dado de baja).' },

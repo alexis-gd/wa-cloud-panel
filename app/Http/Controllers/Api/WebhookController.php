@@ -6,9 +6,9 @@ use App\Events\CampaignProgressUpdated;
 use App\Events\ConversationUpdated;
 use App\Events\InboundMessageReceived;
 use App\Http\Controllers\Controller;
+use App\Jobs\DownloadWhatsAppMedia;
 use App\Models\AppNotification;
 use App\Models\Campaign;
-use App\Jobs\DownloadWhatsAppMedia;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\MessageLog;
@@ -29,7 +29,7 @@ class WebhookController extends Controller
 
     public function __construct(private readonly AssignmentService $assignmentService) {}
 
-    // GET /webhook — Meta verifica la URL enviando un hub.challenge
+    // GET /webhook - Meta verifica la URL enviando un hub.challenge
     public function verify(Request $request): Response
     {
         $mode      = $request->query('hub_mode');
@@ -43,7 +43,7 @@ class WebhookController extends Controller
         return response('Forbidden', 403);
     }
 
-    // POST /webhook — eventos de Meta (delivery, read, inbound)
+    // POST /webhook - eventos de Meta (delivery, read, inbound)
     public function handle(Request $request): Response
     {
         // Validar firma X-Hub-Signature-256
@@ -66,7 +66,7 @@ class WebhookController extends Controller
         $touchedConversationContactIds = [];
 
         // Procesar cambios de status (delivered, read, failed)
-        // data_get con wildcards retorna array anidado — Arr::collapse lo aplana un nivel
+        // data_get con wildcards retorna array anidado - Arr::collapse lo aplana un nivel
         foreach (Arr::collapse(data_get($body, 'entry.*.changes.*.value.statuses', [[]])) as $statusEvent) {
             $waMessageId = $statusEvent['id']     ?? null;
             $status      = $statusEvent['status'] ?? null;
@@ -98,7 +98,7 @@ class WebhookController extends Controller
                     ]);
 
                     // 131049: tope de marketing POR USUARIO (frecuencia del destinatario,
-                    // suma de todas las empresas). NO es un problema del número — no pausar.
+                    // suma de todas las empresas). NO es un problema del número - no pausar.
                     // Solo falla ese mensaje. Meta exige esperar 24h antes de reintentar a
                     // ESE contacto (reintentar antes lo bloquea hasta 24h más) → hold 24h.
                     if ($errorCode === 131049 && $log?->to_number) {
@@ -106,7 +106,7 @@ class WebhookController extends Controller
                         if ($contact) {
                             $contact->holdWaMarketingFor24h();
                         }
-                        Log::info('Webhook: tope de marketing por usuario (131049) — hold 24h al contacto, número sin pausar', [
+                        Log::info('Webhook: tope de marketing por usuario (131049) - hold 24h al contacto, número sin pausar', [
                             'log_id'    => $log?->id,
                             'to_number' => $log?->to_number,
                         ]);
@@ -118,7 +118,7 @@ class WebhookController extends Controller
                         $contact = Contact::where('phone', $log->to_number)->first();
                         if ($contact && $contact->status !== 'opted_out') {
                             $contact->optOut('whatsapp_131050');
-                            Log::info("Webhook: baja a nivel WhatsApp (131050) — contacto {$contact->id} marcado opt-out");
+                            Log::info("Webhook: baja a nivel WhatsApp (131050) - contacto {$contact->id} marcado opt-out");
                         }
                     }
 
@@ -129,7 +129,7 @@ class WebhookController extends Controller
                         if ($phoneNumber && ! $phoneNumber->isPaused()) {
                             $phoneNumber->pauseFor(60);
                             $phoneNumber->backOffDailyLimit();
-                            Log::critical('Webhook: límite por categorización de plantillas (131064) — número pausado 60 min', [
+                            Log::critical('Webhook: límite por categorización de plantillas (131064) - número pausado 60 min', [
                                 'phone_number_id' => $log->phone_number_id,
                                 'paused_until'    => $phoneNumber->fresh()->paused_until,
                             ]);
@@ -188,7 +188,7 @@ class WebhookController extends Controller
         }
 
         // Normalizar número: Meta envía 5219XXXXXXXX (13 dígitos) para México móvil
-        // Nosotros guardamos 529XXXXXXXX (12 dígitos) — quitamos el 1 extra
+        // Nosotros guardamos 529XXXXXXXX (12 dígitos) - quitamos el 1 extra
         $phone = ltrim($from, '+');
         if (str_starts_with($phone, '521') && strlen($phone) === 13) {
             $phone = '52' . substr($phone, 3);
@@ -259,7 +259,7 @@ class WebhookController extends Controller
             $contact->id,
             $contact->name,
             // Sin esto, el aviso de un archivo sin pie de foto llegaba vacio y parecia un bug.
-            $body !== '' ? $body : self::etiquetaDeArchivo($messageType),
+            $body !== '' ? $body : Conversation::etiquetaDeTipo($messageType),
             'whatsapp',
             $conversation->created_at->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
         );
@@ -300,7 +300,7 @@ class WebhookController extends Controller
 
         // Botón "Me interesa" → marcar como lead (sin cambio de status por ahora, solo log)
         if (str_contains(strtolower($title), 'me interesa') || $buttonId === 'interested') {
-            Log::info("Contacto {$contact->id} marcó interés — pendiente de atención por agente");
+            Log::info("Contacto {$contact->id} marcó interés - pendiente de atención por agente");
         }
     }
 
@@ -350,14 +350,4 @@ class WebhookController extends Controller
      * Como se nombra un archivo cuando no trae pie de foto, para el toast y la vista previa.
      * El operador necesita ver "Foto" y no un renglon vacio.
      */
-    private static function etiquetaDeArchivo(string $messageType): string
-    {
-        return match ($messageType) {
-            'image'    => 'Foto',
-            'document' => 'Documento',
-            'audio'    => 'Nota de voz',
-            'video'    => 'Video',
-            default    => '',
-        };
-    }
 }

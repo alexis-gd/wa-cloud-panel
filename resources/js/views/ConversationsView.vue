@@ -52,7 +52,14 @@
           <div v-for="msg in messages" :key="msg.id"
             :class="['msg-row', msg.direction === 'outbound' ? 'msg-row--out' : 'msg-row--in']">
             <div :class="['msg-bubble', msg.direction === 'outbound' ? 'msg-bubble--out' : 'msg-bubble--in']">
-              <p class="msg-text">{{ msg.body }}</p>
+              <MessageAttachment
+                v-if="msg.media_status"
+                :message="msg"
+                @open="abrirVisor"
+              />
+              <!-- Una foto sin pie de foto llega con el cuerpo vacio: sin el v-if quedaba un
+                   renglon de aire debajo de la imagen. -->
+              <p v-if="msg.body" class="msg-text">{{ msg.body }}</p>
               <div class="msg-meta">
                 <span>{{ formatTime(msg.created_at) }}</span>
                 <i v-if="msg.direction==='outbound'" class="pi msg-status"
@@ -213,6 +220,23 @@
       <Button label="Cerrar" text @click="historyDialog = false" />
     </template>
   </Dialog>
+
+  <!-- Foto en grande. El `src` es la URL local que ya bajo la burbuja: no se vuelve a pedir
+       el archivo al abrir el visor. -->
+  <Dialog
+    v-model:visible="visorAbierto"
+    :header="visor.filename"
+    modal
+    dismissableMask
+    class="visor-dialog"
+  >
+    <img v-if="visor.url" :src="visor.url" :alt="visor.filename" class="visor-img" />
+
+    <template #footer>
+      <Button label="Descargar" icon="pi pi-download" text @click="descargarFoto" />
+      <Button label="Cerrar" text @click="visorAbierto = false" />
+    </template>
+  </Dialog>
 </template>
 
 <script setup>
@@ -229,6 +253,7 @@ import Tag       from 'primevue/tag';
 import Dialog    from 'primevue/dialog';
 import ConversationListItem from '../components/ConversationListItem.vue';
 import ConversationComposer from '../components/ConversationComposer.vue';
+import MessageAttachment    from '../components/MessageAttachment.vue';
 
 const toast = useToast();
 const { user: authState } = useAuth();
@@ -269,6 +294,31 @@ const currentAssignment = ref(null);
 const assignUserId     = ref(null);
 const assigning        = ref(false);
 const releasing        = ref(false);
+
+// Visor de fotos. Guarda la URL que ya bajo la burbuja (ver MessageAttachment): la burbuja es
+// la duena de esa URL y la revoca al desmontarse, asi que aqui no se revoca nada.
+const visorAbierto = ref(false);
+const visor        = ref({ url: null, filename: '' });
+
+function abrirVisor({ url, filename }) {
+  if (! url) return;
+  visor.value   = { url, filename };
+  visorAbierto.value = true;
+}
+
+/**
+ * Guarda la foto en la computadora del operador.
+ *
+ * Un `<a download>` con una URL `blob:` es la unica forma de bajar un archivo que ya esta en
+ * memoria sin volver a pedirlo al servidor.
+ */
+function descargarFoto() {
+  if (! visor.value.url) return;
+  const a = document.createElement('a');
+  a.href     = visor.value.url;
+  a.download = visor.value.filename || 'foto.jpg';
+  a.click();
+}
 
 // Historial de movimientos (P2): para cambios de turno y para medir el seguimiento.
 const historyDialog    = ref(false);
@@ -581,6 +631,8 @@ function formatDate(iso) {
 .msg-bubble--in  { background: #fff; color: var(--p-text-color); border: 1px solid var(--p-surface-200); border-bottom-left-radius: 4px; }
 
 .msg-text { margin: 0; white-space: pre-wrap; word-break: break-word; }
+
+.visor-img { display: block; max-width: 100%; max-height: 70vh; margin: 0 auto; }
 .msg-meta  { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 4px; font-size: .68rem; opacity: .7; }
 .msg-status{ font-size: .7rem; }
 

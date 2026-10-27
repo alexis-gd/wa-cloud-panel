@@ -81,7 +81,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.41.0</span>
+                <span class="version">v0.42.0</span>
             </div>
         </aside>
 
@@ -810,5 +810,12 @@ async function logout() {
     line-height: 1.45;
     text-align: left;
     white-space: normal;
+}
+
+/* Visor de fotos de Conversaciones. Mismo motivo que los tooltips: el Dialog se teleporta al
+   <body> y el ancho no se puede fijar desde la vista. Sin esto el modal se queda del ancho de
+   su contenido y una foto vertical sale como una tira. */
+.p-dialog.visor-dialog {
+    width: min(760px, calc(100vw - 32px));
 }
 </style>

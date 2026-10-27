@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ContactedController;
 use App\Http\Controllers\Api\ConversationController;
+use App\Http\Controllers\Api\ConversationMediaController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PhoneNumberController;
@@ -24,7 +25,7 @@ use App\Http\Controllers\Api\WebhookController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-// ── Health check — público ───────────────────────────────────────────────────
+// ── Health check - público ───────────────────────────────────────────────────
 Route::get('/health', function () {
     try {
         DB::connection()->getPdo();
@@ -35,33 +36,33 @@ Route::get('/health', function () {
     return response()->json(['status' => 'ok', 'db' => $db]);
 });
 
-// ── Webhook Meta — sin API key, valida X-Hub-Signature-256 ──────────────────
+// ── Webhook Meta - sin API key, valida X-Hub-Signature-256 ──────────────────
 Route::get('/webhook',  [WebhookController::class, 'verify']);
 Route::post('/webhook', [WebhookController::class, 'handle']);
 
-// ── Webhook gateway SMS — sin API key, valida HMAC X-Signature ──────────────
+// ── Webhook gateway SMS - sin API key, valida HMAC X-Signature ──────────────
 Route::post('/sms/webhook', [SmsWebhookController::class, 'handle']);
 
-// ── API para sistemas externos del cliente — X-API-Key, no Sanctum ──────────
+// ── API para sistemas externos del cliente - X-API-Key, no Sanctum ──────────
 // La consume otro servidor, no el panel: un servidor no hace login, manda una llave.
 Route::middleware(['api_key', 'throttle:60,1'])->group(function () {
     Route::get('/contacted', [ContactedController::class, 'index']);
 });
 
-// ── Auth — público, con rate limit anti-brute-force ─────────────────────────
-// 5 intentos por minuto por IP — bloquea ataques de fuerza bruta sin molestar
+// ── Auth - público, con rate limit anti-brute-force ─────────────────────────
+// 5 intentos por minuto por IP - bloquea ataques de fuerza bruta sin molestar
 // a usuarios legítimos (un operador no hace 5 logins en 60 segundos).
 Route::prefix('auth')->middleware('throttle:5,1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
-// ── Panel — requiere token Sanctum + rate limiting ───────────────────────────
+// ── Panel - requiere token Sanctum + rate limiting ───────────────────────────
 Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me',      [AuthController::class, 'me']);
 
-    // Dashboard, templates, configuración — admin y operator
+    // Dashboard, templates, configuración - admin y operator
     Route::middleware('role:admin,operator')->group(function () {
         // Salud del cron. Una sola línea de crontab mueve todo lo automático; si muere,
         // el sistema se degrada en silencio y esto es lo que lo hace visible.
@@ -114,16 +115,20 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::delete('/campaigns/{id}',             [CampaignController::class, 'destroy']);
     });
 
-    // Notificaciones — todos los roles autenticados
+    // Notificaciones - todos los roles autenticados
     Route::middleware('role:admin,operator,agent')->group(function () {
         Route::get('/notifications',              [NotificationController::class, 'index']);
         Route::post('/notifications/read-all',    [NotificationController::class, 'markReadAll']);
         Route::delete('/notifications/{id}',      [NotificationController::class, 'destroy']);
     });
 
-    // Conversaciones (chat con contactos) — admin, operator y agent
+    // Conversaciones (chat con contactos) - admin, operator y agent
     Route::middleware('role:admin,operator,agent')->group(function () {
         Route::get('/conversations',                            [ConversationController::class, 'index']);
+        // Archivo adjunto de un mensaje. Va ANTES de `/conversations/{contactId}` aunque el
+        // whereNumber ya lo separa, para que el orden de lectura siga al de coincidencia.
+        // El id es del MENSAJE, no del contacto: un contacto manda varios archivos.
+        Route::get('/conversations/media/{conversationId}', [ConversationMediaController::class, 'show'])->whereNumber('conversationId');
         // whereNumber: sin esto, /conversations/assignable-users entraría por {contactId}
         // (se registra antes) y acabaría en show('assignable-users').
         Route::get('/conversations/{contactId}',               [ConversationController::class, 'show'])->whereNumber('contactId');
@@ -132,7 +137,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/quick-replies',                           [ConversationController::class, 'quickReplies']);
     });
 
-    // Asignación de conversaciones — solo admin y operator
+    // Asignación de conversaciones - solo admin y operator
     Route::middleware('role:admin,operator')->group(function () {
         // Reporte de conversaciones por agente: de operador hacia arriba (el agente no ve
         // la carga de sus companeros).
@@ -149,23 +154,23 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/conversations/{contactId}/history', [ConversationController::class, 'history'])->whereNumber('contactId');
     });
 
-    // Quick replies — solo admin puede crear/eliminar
+    // Quick replies - solo admin puede crear/eliminar
     Route::middleware('role:admin')->group(function () {
         Route::post('/quick-replies',        [ConversationController::class, 'storeQuickReply']);
         Route::delete('/quick-replies/{id}', [ConversationController::class, 'destroyQuickReply']);
     });
 
-    // SMS — envío de prueba solo admin (probar el gateway sin crear campaña)
+    // SMS - envío de prueba solo admin (probar el gateway sin crear campaña)
     Route::middleware('role:admin')->group(function () {
         Route::post('/sms/send-test', [SmsController::class, 'sendTest']);
     });
 
-    // Respuestas SMS entrantes — lista plana (admin y operator)
+    // Respuestas SMS entrantes - lista plana (admin y operator)
     Route::middleware('role:admin,operator')->group(function () {
         Route::get('/sms/inbound', [SmsInboundController::class, 'index']);
     });
 
-    // Plantillas — escritura solo admin
+    // Plantillas - escritura solo admin
     Route::middleware('role:admin')->group(function () {
         Route::post('/templates/send-test',  [TemplateController::class, 'sendTest']);
         Route::post('/templates',            [TemplateController::class, 'store']);
@@ -186,18 +191,18 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/export/messages', [ExportController::class, 'messages']);
     });
 
-    // Feature flags — GET para todos los roles autenticados
+    // Feature flags - GET para todos los roles autenticados
     Route::middleware('role:admin,operator,agent')->group(function () {
         Route::get('/settings/features', [SettingsController::class, 'getFeatures']);
     });
 
-    // Info operativa — admin y operator pueden leer (dato del dashboard)
+    // Info operativa - admin y operator pueden leer (dato del dashboard)
     Route::middleware('role:admin,operator')->group(function () {
         Route::get('/settings/phone-health', [SettingsController::class, 'phoneHealth']);
         Route::get('/settings/sms-webhook-health', [SettingsController::class, 'smsWebhookHealth']);
     });
 
-    // Configuración — solo superadmin (superadmin bypasa el check en RoleMiddleware)
+    // Configuración - solo superadmin (superadmin bypasa el check en RoleMiddleware)
     Route::middleware('role:superadmin')->group(function () {
         Route::put('/settings/features',         [SettingsController::class, 'updateFeatures']);
         Route::get('/settings/token-status',     [SettingsController::class, 'tokenStatus']);
@@ -218,14 +223,14 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::put('/phone-numbers/{id}',        [PhoneNumberController::class, 'update']);
         Route::post('/phone-numbers/{id}/verify', [PhoneNumberVerificationController::class, 'store']);
 
-        // Visibilidad de plantillas — mostrar/ocultar (no borra)
+        // Visibilidad de plantillas - mostrar/ocultar (no borra)
         Route::put('/templates/{id}/visibility', [TemplateController::class, 'setVisibility']);
     });
 
     // Operaciones admin (superadmin hereda vía bypass en RoleMiddleware)
     Route::middleware('role:admin')->group(function () {
         Route::put('/contacts/{id}',        [ContactController::class, 'update']);
-        Route::delete('/contacts/{id}',     [ContactController::class, 'destroy']); // soft delete — solo admin/superadmin
+        Route::delete('/contacts/{id}',     [ContactController::class, 'destroy']); // soft delete - solo admin/superadmin
 
         // Gestión de usuarios
         Route::get('/users',        [UserController::class, 'index']);

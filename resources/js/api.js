@@ -327,6 +327,43 @@ export const api = {
 
     conversation: (contactId) => request(`/conversations/${contactId}`),
 
+    /**
+     * Baja el archivo de un mensaje y devuelve una URL para mostrarlo.
+     *
+     * No es un `request()` normal porque la respuesta es binaria, no JSON. Y no se pone la ruta
+     * directo en un `<img src>` porque ahi el navegador no manda el encabezado de sesion: la
+     * ruta exige estar dentro del panel, asi que el archivo se pide con fetch y se convierte en
+     * una URL local (`blob:`) que solo existe en esta pestana.
+     *
+     * Quien la use TIENE que llamar a `URL.revokeObjectURL` al terminar: mientras la URL exista,
+     * el navegador se queda el archivo en memoria.
+     */
+    conversationMedia: async (conversationId) => {
+        const res = await fetch(`${BASE}/conversations/media/${conversationId}`, {
+            headers: authHeaders(),
+        });
+
+        if (res.status === 401) {
+            localStorage.removeItem('wa_token');
+            window.dispatchEvent(new CustomEvent('wa:session-expired'));
+            return { status: 'error', code: 'UNAUTHENTICATED', message: 'Sesión expirada' };
+        }
+
+        if (! res.ok) {
+            // Los errores de esta ruta SI vienen en JSON (no listo, no disponible, no existe).
+            const data = await res.json().catch(() => ({}));
+            return {
+                status  : 'error',
+                code    : data.code ?? 'MEDIA_ERROR',
+                message : data.message ?? 'No se pudo abrir el archivo.',
+            };
+        }
+
+        const blob = await res.blob();
+
+        return { status: 'ok', url: URL.createObjectURL(blob), blob };
+    },
+
     sendMessage: (contactId, body) => request(`/conversations/${contactId}/messages`, {
         method : 'POST',
         body   : JSON.stringify({ body }),

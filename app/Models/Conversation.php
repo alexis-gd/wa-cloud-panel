@@ -56,4 +56,22 @@ class Conversation extends Model
     {
         return $this->media_status === 'stored' && $this->media_path !== null;
     }
+
+    /**
+     * Como se le dice a un archivo en el panel.
+     *
+     * Se usa donde no hay nada que mostrar del mensaje: el aviso de respuesta nueva y la vista
+     * previa de la lista. Una foto sin pie de foto llega con el cuerpo vacio, y sin esto la fila
+     * salia en blanco: el operador no tenia forma de saber que le habian mandado algo.
+     */
+    public static function etiquetaDeTipo(?string $messageType): string
+    {
+        return match ($messageType) {
+            'image'    => 'Foto',
+            'document' => 'Documento',
+            'audio'    => 'Nota de voz',
+            'video'    => 'Video',
+            default    => '',
+        };
+    }
 }

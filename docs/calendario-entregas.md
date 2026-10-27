@@ -567,3 +567,69 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
   tocar código, comprobar: (1) ¿le aparece el toast "Nueva respuesta"? Si no, el tiempo real no
   está llegando (Soketi) y la lista se queda congelada como cargó; (2) con 938 filas, si el
   operador está scrolleado abajo puede no ver que la fila brincó arriba.
+
+---
+
+## Proyecto aceptado 2026-10-27: archivos en conversaciones + OTP
+
+El cliente aprobo la cotizacion (subtotal $25,000, $29,000 con IVA). Dos bloques: manejar
+archivos en las conversaciones (fotos, documentos, notas de voz, video) y el API de OTP por
+WhatsApp para su app.
+
+Decisiones del cliente al arrancar: **OTP de 6 digitos**, su app es **Android**, y el plazo de
+retencion de los archivos se define al final (no se implemento borrado por retencion todavia).
+
+| # | Entrega | Estado | Depende de |
+|---|---|---|---|
+| M0 | Plantilla de Autenticacion a revision de Meta + pedir la SIM dedicada | [ ] | Meta y el cliente |
+| M1 | Dejar de perder lo que ya entra (webhook + descarga a disco) | [x] | - |
+| M2 | Verlas en el panel: ruta autenticada, burbuja, visor | [x] | M1 |
+| M3 | Enviar imagenes desde el panel | [ ] | M1 |
+| M4 | PDF, notas de voz y video de salida | [ ] | M3 |
+| M5 | OTP: API, carril prioritario, tabla de envios | [ ] | M0 aprobada |
+| M6 | Numero de WhatsApp dedicado para OTP | [ ] | SIM del cliente |
+
+### M1 - recepcion y guardado (2026-10-27)
+
+- [x] `message_type` ampliado a `image`, `document`, `audio`, `video` + 6 columnas `media_*`.
+- [x] El webhook reconoce los 5 tipos (el sticker entra como imagen) y guarda el pie de foto
+  como cuerpo del mensaje. Antes una foto caia en el `default` del match y se guardaba como
+  **texto vacio**: la burbuja salia en blanco y el archivo se perdia. En un negocio de
+  prestamos eso son INE y comprobantes que nadie recibio.
+- [x] La descarga va en cola (`DownloadWhatsAppMedia`), no en el webhook: Meta corta la
+  conexion si tardamos y reintenta el aviso completo, asi que bajar un video de 16 MB ahi
+  adentro provocaria mensajes duplicados. El `media_id` vive 30 dias, por eso reintentar sirve
+  (lo que caduca en minutos es la URL, no el id).
+- [x] Los archivos van al disco `local` (`storage/app`), **nunca** a `public/`: ahi los abriria
+  cualquiera que adivine la URL, sin login.
+- [x] El nombre en disco lo inventamos nosotros. Un contacto puede mandar un archivo llamado
+  `../../.env`; el nombre que el eligio se guarda aparte, solo para mostrarlo.
+
+**Lo que no se puede recuperar:** los archivos que llegaron antes de esto. Solo se guardo el
+texto vacio, nunca el `media_id`, y del lado de Meta ya caducaron. Para dimensionarlo:
+`SELECT COUNT(*) FROM conversations WHERE direction='inbound' AND body=''`.
+
+### M2 - verlos en el panel (2026-10-27)
+
+- [x] `GET /api/conversations/media/{conversationId}`: exige sesion, respeta lo del agente, y
+  no deja que el archivo se ejecute en nuestro dominio. Se descarto la URL firmada temporal: una
+  URL que funciona sin sesion se copia, se comparte y queda en el log de nginx.
+- [x] **Lista blanca de tipos que se abren en linea.** Un `image/svg+xml` o un `text/html` que un
+  contacto mande como documento SI ejecutan JavaScript en nuestro dominio si se abren en linea,
+  y ahi vive el token del operador. Todo lo que no este en la lista se descarga. El PDF se queda
+  en linea: el operador necesita revisar el comprobante y el visor del navegador lo aisla.
+- [x] El panel pide el archivo con `fetch` y lo convierte en una URL local (`blob:`), porque un
+  `<img src="/api/...">` no manda el encabezado de sesion. Las fotos se bajan **cuando entran a
+  la pantalla**, no al abrir la conversacion: en un chat con 50 fotos, bajarlas todas de golpe
+  tira decenas de peticiones a la vez.
+- [x] Burbuja por tipo: foto con miniatura y visor, nota de voz con reproductor, documento y
+  video como ficha descargable. Estados *descargando* y *no se pudo recibir*.
+- [x] La vista previa de la lista dice "Foto" / "Documento" cuando el mensaje no trae texto.
+- [x] **Hueco cerrado de paso:** `GET /api/conversations/{id}` no aplicaba la regla del agente.
+  La lista si le escondia lo que no era suyo, pero pidiendo el id a mano un agente leia el chat
+  completo de cualquier otro. La regla vive ahora en `Contact::scopeAsignadoA` /
+  `esVisibleEnConversacionesPara`, en un solo lugar para lista, detalle y archivos.
+
+**Pendiente de M2 (no bloquea):** el video se entrega como archivo descargable, no con
+reproductor en linea. El reproductor necesita soporte de `Range` y subir los limites del
+servidor (nginx y PHP estan en 8 MB); va en M4, que es la partida que lo cubre.

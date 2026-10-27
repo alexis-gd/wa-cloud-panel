@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Contact;
 use App\Models\Conversation;
+use App\Models\ConversationAssignment;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
+use App\Models\User;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ConversationControllerTest extends TestCase
@@ -72,7 +75,7 @@ class ConversationControllerTest extends TestCase
 
     /**
      * Crea un mensaje inbound con timestamp en el pasado.
-     * No usa create() porque created_at no está en $fillable —
+     * No usa create() porque created_at no está en $fillable -
      * se asigna directamente antes del save() para que Eloquent
      * no lo sobreescriba (solo auto-asigna si el campo no está dirty).
      */
@@ -333,7 +336,7 @@ class ConversationControllerTest extends TestCase
     {
         $this->openWindow();
 
-        $response = $this->actingAsAgent()
+        $response = $this->actingAsAdmin()
             ->getJson("/api/conversations/{$this->contact->id}")
             ->assertStatus(200)
             ->assertJsonPath('status', 'ok')
@@ -349,7 +352,7 @@ class ConversationControllerTest extends TestCase
     {
         $this->createOldInbound();
 
-        $this->actingAsAgent()
+        $this->actingAsAdmin()
             ->getJson("/api/conversations/{$this->contact->id}")
             ->assertStatus(200)
             ->assertJsonPath('data.window_open', false);
@@ -369,7 +372,7 @@ class ConversationControllerTest extends TestCase
             'window_open'  => true,
         ]);
 
-        $response = $this->actingAsAgent()
+        $response = $this->actingAsAdmin()
             ->getJson("/api/conversations/{$this->contact->id}")
             ->assertStatus(200);
 
@@ -390,17 +393,31 @@ class ConversationControllerTest extends TestCase
 
     // ── Control de acceso ─────────────────────────────────────────────────────
 
-    public function test_agent_puede_listar_y_ver_conversaciones(): void
+    /**
+     * El agente entra a Conversaciones y abre LO SUYO.
+     *
+     * Antes este test abria una conversacion sin asignar y pasaba: el detalle no aplicaba la
+     * regla que la lista si aplicaba, asi que un agente podia leer el chat de cualquiera
+     * pidiendo el id a mano. El resto de los casos de acceso estan en ConversationMediaTest.
+     */
+    public function test_agent_puede_listar_y_ver_las_conversaciones_que_tiene_asignadas(): void
     {
         $this->openWindow();
 
-        $this->actingAsAgent()
-            ->getJson('/api/conversations')
-            ->assertStatus(200);
+        $agente = User::factory()->create(['role' => 'agent', 'is_active' => true]);
+        Sanctum::actingAs($agente);
 
-        $this->actingAsAgent()
-            ->getJson("/api/conversations/{$this->contact->id}")
-            ->assertStatus(200);
+        $this->getJson('/api/conversations')->assertStatus(200);
+
+        ConversationAssignment::create([
+            'contact_id'     => $this->contact->id,
+            'user_id'        => $agente->id,
+            'assigned_by_id' => null,
+            'action'         => ConversationAssignment::ACTION_AUTO,
+            'assigned_at'    => now(),
+        ]);
+
+        $this->getJson("/api/conversations/{$this->contact->id}")->assertStatus(200);
     }
 
     public function test_agent_puede_enviar_mensajes(): void

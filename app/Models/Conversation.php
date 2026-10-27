@@ -16,6 +16,12 @@ class Conversation extends Model
         'wa_message_id',
         'status',
         'window_open',
+        'media_id',
+        'media_path',
+        'media_mime',
+        'media_size',
+        'media_filename',
+        'media_status',
     ];
 
     protected $casts = [
@@ -33,5 +39,21 @@ class Conversation extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Tipos de mensaje que llevan un archivo adjunto. */
+    public const TIPOS_CON_ARCHIVO = ['image', 'document', 'audio', 'video'];
+
+    /** ¿Este mensaje lleva archivo? Lo usan la vista, la ruta de descarga y la retencion. */
+    public function tieneArchivo(): bool
+    {
+        return in_array($this->message_type, self::TIPOS_CON_ARCHIVO, true)
+            && $this->media_id !== null;
+    }
+
+    /** El archivo ya esta en disco y se puede servir. */
+    public function archivoListo(): bool
+    {
+        return $this->media_status === 'stored' && $this->media_path !== null;
     }
 }

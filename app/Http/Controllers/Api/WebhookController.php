@@ -8,6 +8,7 @@ use App\Events\InboundMessageReceived;
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
 use App\Models\Campaign;
+use App\Jobs\DownloadWhatsAppMedia;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\MessageLog;
@@ -209,14 +210,35 @@ class WebhookController extends Controller
                 data_get($message, 'interactive.button_reply.title', ''),
                 'button_reply',
             ],
+            // Archivos. Meta NO manda el archivo, manda su id y hay que ir por el aparte.
+            // Antes estos caian en el `default` y se guardaban como texto vacio: el operador
+            // veia una burbuja en blanco sin saber que le habian mandado una INE.
+            'image', 'document', 'audio', 'video', 'sticker' => [
+                // El pie de foto es el unico texto que trae; un archivo sin pie va vacio.
+                data_get($message, "{$type}.caption", ''),
+                $type === 'sticker' ? 'image' : $type,
+            ],
             default => ['', 'text'],
         };
+
+        // Datos del archivo, si el mensaje trae uno. `media_status = pending` porque la
+        // descarga ocurre despues, en la cola: aqui solo se apunta que existe.
+        $media = in_array($type, ['image', 'document', 'audio', 'video', 'sticker'], true)
+            ? [
+                'media_id'       => data_get($message, "{$type}.id"),
+                'media_mime'     => data_get($message, "{$type}.mime_type"),
+                // Solo los documentos traen nombre. Se guarda para MOSTRARLO, nunca para
+                // construir una ruta: lo elige quien manda el archivo.
+                'media_filename' => data_get($message, "{$type}.filename"),
+                'media_status'   => 'pending',
+            ]
+            : [];
 
         $buttonId = data_get($message, 'interactive.button_reply.id')
                  ?? data_get($message, 'button.payload', '');
 
         // Guardar mensaje en tabla conversations (abre ventana 24h)
-        $conversation = Conversation::create([
+        $conversation = Conversation::create(array_merge([
             'contact_id'   => $contact->id,
             'direction'    => 'inbound',
             'message_type' => $messageType,
@@ -224,13 +246,20 @@ class WebhookController extends Controller
             'wa_message_id' => $message['id'] ?? null,
             'status'       => 'received',
             'window_open'  => true,
-        ]);
+        ], $media));
+
+        // La descarga va en cola: bajar un video de 16 MB aqui haria que Meta corte la
+        // conexion por tardanza y reintente el aviso completo, duplicando el mensaje.
+        if ($media !== [] && $media['media_id']) {
+            DownloadWhatsAppMedia::dispatch($conversation->id);
+        }
 
         // Tiempo real: avisar al panel que llego una respuesta (se muestra sin recargar).
         InboundMessageReceived::dispatch(
             $contact->id,
             $contact->name,
-            $body,
+            // Sin esto, el aviso de un archivo sin pie de foto llegaba vacio y parecia un bug.
+            $body !== '' ? $body : self::etiquetaDeArchivo($messageType),
             'whatsapp',
             $conversation->created_at->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
         );
@@ -315,5 +344,20 @@ class WebhookController extends Controller
             'title' => 'Entrega fallida',
             'body'  => "El mensaje a {$contactDesc} no fue entregado. {$humanMessage}",
         ]);
+    }
+
+    /**
+     * Como se nombra un archivo cuando no trae pie de foto, para el toast y la vista previa.
+     * El operador necesita ver "Foto" y no un renglon vacio.
+     */
+    private static function etiquetaDeArchivo(string $messageType): string
+    {
+        return match ($messageType) {
+            'image'    => 'Foto',
+            'document' => 'Documento',
+            'audio'    => 'Nota de voz',
+            'video'    => 'Video',
+            default    => '',
+        };
     }
 }

@@ -66,6 +66,16 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Los mensajes de archivo pasan a 'text' ANTES de angostar el enum. Sin esto, un
+        // rollback con fotos ya recibidas choca contra filas cuyo `message_type` no cabe en el
+        // enum viejo: MySQL las deja en blanco o revienta el ALTER, segun el modo estricto.
+        // Un rollback se hace en una emergencia, que es justo cuando no se quieren sorpresas.
+        // El archivo en disco se queda huerfano: el `media_path` se va con la columna, asi que
+        // hay que borrar `storage/app/media` a mano si la vuelta es definitiva.
+        DB::table('conversations')
+            ->whereIn('message_type', ['image', 'document', 'audio', 'video'])
+            ->update(['message_type' => 'text']);
+
         Schema::table('conversations', function (Blueprint $table) {
             $table->dropIndex('idx_conversations_media_status');
             $table->dropColumn([

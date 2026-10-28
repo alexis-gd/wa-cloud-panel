@@ -52,26 +52,19 @@ class MediaStore
     ];
 
     /**
-     * Escribe el archivo y devuelve su ruta relativa dentro del disco.
+     * Mete un archivo que ya esta en disco, sin pasarlo por la memoria.
+     *
+     * Es la UNICA forma de guardar que ofrece esta clase, a proposito. Hubo una que recibia el
+     * contenido en un string y se quito: era una trampa - usarla volveria a cargar el archivo
+     * completo a memoria y anularia el streaming sin que nada se vea roto. Si algo nuevo
+     * necesita guardar, primero deja el archivo en disco y lo pasa por aqui.
+     *
+     * El archivo llega en streaming a un temporal y de ahi solo se MUEVE a su lugar. Leerlo
+     * para volverlo a escribir haria pasar un documento de 100 MB completo por la memoria del
+     * worker.
      *
      * El `contactId` entra en la ruta para poder borrar todo lo de una persona de un golpe el
      * dia que ejerza su derecho de supresion, sin tener que recorrer la base.
-     */
-    public function guardar(string $contenido, ?string $mime, int $contactId): string
-    {
-        $ruta = $this->rutaPara($mime, $contactId);
-
-        Storage::disk(self::DISK)->put($ruta, $contenido);
-
-        return $ruta;
-    }
-
-    /**
-     * Mete un archivo que ya esta en disco, sin pasarlo por la memoria.
-     *
-     * Es lo que usa la descarga de WhatsApp: el archivo llega en streaming a un temporal y de
-     * ahi solo se MUEVE a su lugar. Leerlo para volverlo a escribir anularia el streaming - un
-     * documento de 100 MB volveria a pasar completo por la memoria del worker.
      *
      * El temporal vive bajo `storage/app`, el mismo sistema de archivos que el destino, asi que
      * mover es instantaneo (solo cambia el nombre, no copia bytes).
@@ -116,16 +109,6 @@ class MediaStore
             (string) Str::uuid(),
             $this->extension($mime),
         );
-    }
-
-    /** Contenido del archivo, o null si ya no esta (borrado por retencion, disco limpiado). */
-    public function leer(?string $ruta): ?string
-    {
-        if (! $ruta || ! Storage::disk(self::DISK)->exists($ruta)) {
-            return null;
-        }
-
-        return Storage::disk(self::DISK)->get($ruta);
     }
 
     /** Ruta absoluta en el sistema de archivos. La necesita la subida a Meta y el streaming. */

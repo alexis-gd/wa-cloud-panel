@@ -692,7 +692,12 @@ Esto es lo que un contacto nos puede mandar. Fuente: doc oficial de Cloud API, n
     streaming el tamano ya no es un riesgo de memoria, asi que el tope paso a ser decision de
     disco - y ahi 20 MB **rechazaria comprobantes legitimos** (un PDF de varias paginas
     escaneado con el telefono llega facil a 15-25 MB). Se puso el mismo limite de Meta para
-    documentos: nunca rechazamos algo que Meta si acepto.
+    documentos: nunca rechazamos algo que Meta si acepto. **Alexis lo confirmo en 100 el
+    2026-10-27** ("tenemos buen espacio"), sabiendo que nuestro tope ahi casi nunca se va a
+    disparar - Meta ya rechaza lo que pasa de 100 MB con el `131052` antes de que nos llegue.
+    Se queda como red por si Meta sube su limite (en la app de consumidor ya van en 2 GB) y
+    porque el disco es nuestro, no de un tercero. El disco se controla con la retencion, no
+    rechazando archivos. **No volver a proponer bajarlo sin un argumento nuevo.**
   - **El tope se revisa ANTES de bajar un byte.** El codigo ya pedia la ficha del archivo a
     Meta, y ahi viene `file_size`. Rechazar algo monstruoso no cuesta ni ancho de banda ni
     tiempo. Hay test de que la URL de descarga no se pide.

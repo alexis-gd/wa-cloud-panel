@@ -71,6 +71,39 @@ class WhatsAppClient
     }
 
     /**
+     * POST a un endpoint de administracion de Meta (plantillas, numeros).
+     *
+     * Existe porque `post()` esta clavado a `/{phone_number_id}/messages` - es el metodo de
+     * ENVIAR. Lo de administracion cuelga de la WABA, no del numero, y lleva otra ruta. La
+     * regla de seguridad es que todo el HTTP a Meta pase por este cliente, no que haya un solo
+     * metodo: asi el logueo y el manejo de errores siguen siendo uno.
+     *
+     * @param  string  $path  Ruta sin la version, p.ej. "{waba_id}/message_templates".
+     */
+    public function postPath(string $path, string $token, array $payload): array
+    {
+        $url = "{$this->baseUrl}/{$path}";
+
+        $response = Http::withToken($token)->timeout(30)->post($url, $payload);
+
+        if ($response->failed()) {
+            Log::error('WhatsApp API error (administracion)', [
+                'path'    => $path,
+                'status'  => $response->status(),
+                'body'    => $response->json(),
+                // El payload NO se loguea completo a proposito: en otros endpoints puede traer
+                // datos del contacto. Lo que hace falta para diagnosticar es la respuesta.
+            ]);
+        }
+
+        return [
+            'status' => $response->status(),
+            'body'   => $response->json() ?? [],
+            'ok'     => $response->successful(),
+        ];
+    }
+
+    /**
      * Descarga el binario de un archivo que mando un contacto.
      *
      * Son DOS llamadas porque asi lo expone Meta: primero se pregunta por el id del archivo y
@@ -81,7 +114,7 @@ class WhatsAppClient
      * Timeout largo a proposito: un video de 16 MB por la red del servidor no baja en 10
      * segundos, y el timeout corto del resto del cliente lo cortaria a la mitad.
      *
-     * @return array{ok: bool, body: ?string, mime: ?string, size: ?int, error: ?string}
+     * @return array{ok: bool, path: ?string, mime: ?string, size: ?int, error: ?string}
      */
     public function downloadMedia(string $mediaId, string $token): array
     {

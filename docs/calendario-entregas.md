@@ -581,7 +581,7 @@ retencion de los archivos se define al final (no se implemento borrado por reten
 
 | # | Entrega | Estado | Depende de |
 |---|---|---|---|
-| M0 | Plantilla de Autenticacion a revision de Meta + pedir la SIM dedicada | [ ] | Meta y el cliente |
+| M0 | Plantilla de Autenticacion a revision de Meta + pedir la SIM dedicada | [~] | Meta y el cliente |
 | M1 | Dejar de perder lo que ya entra (webhook + descarga a disco) | [x] | - |
 | M2 | Verlas en el panel: ruta autenticada, burbuja, visor | [x] | M1 |
 | M3 | Enviar imagenes desde el panel | [ ] | M1 |
@@ -608,6 +608,45 @@ retencion de los archivos se define al final (no se implemento borrado por reten
 **Lo que no se puede recuperar:** los archivos que llegaron antes de esto. Solo se guardo el
 texto vacio, nunca el `media_id`, y del lado de Meta ya caducaron. Para dimensionarlo:
 `SELECT COUNT(*) FROM conversations WHERE direction='inbound' AND body=''`.
+
+### M0 - la plantilla de OTP (2026-10-28)
+
+Se adelanto a proposito: es lo unico del proyecto con espera que no controlamos. Sometida ahora,
+Meta revisa mientras se construye M3/M4; dejada para M5, el OTP se para en seco.
+
+- [x] Comando `wa:crear-plantilla-otp`, **dry-run por default** (`--enviar` para someterla de
+  verdad). Someter una plantilla no afecta el score de la cuenta - solo los rechazos repetidos
+  del mismo contenido - pero sigue siendo una accion sobre la cuenta del cliente.
+- [x] Al cliente `WhatsAppClient` se le agrego `postPath()`: `post()` esta clavado a
+  `/{phone_number_id}/messages` y los endpoints de administracion cuelgan de la WABA. La regla
+  de seguridad es que todo el HTTP a Meta pase por el cliente, no que haya un solo metodo.
+- [x] Documentado en `guia-meta.md` seccion 3.
+- [ ] **Pendiente de Alexis: correrlo con `--enviar`.** Luego `wa:sync-templates` cuando aprueben.
+- [ ] **Pendiente del cliente: la SIM dedicada** para el numero de OTP (M6).
+
+**Hallazgo que simplifica todo:** el texto de una plantilla de **Autenticacion** es **fijo**, lo
+pone Meta por idioma. No se escribe. Solo se configuran tres cosas: `add_security_recommendation`
+(la advertencia de no compartir), `code_expiration_minutes` (1-90) y el boton. No hay copy que
+revisar, asi que el riesgo de rechazo por redaccion es casi nulo. El `BODY` **no** lleva `text`:
+mandarlo hace que Meta rechace la peticion (es el error facil al copiar otra plantilla).
+
+**Decisiones de Alexis (2026-10-27):** OTP de **6 digitos**, la app del cliente es **Android**, y
+no se le van a pedir los datos tecnicos de la app.
+
+**Consecuencia de no tener los datos de la app:** el boton es **`COPY_CODE`**, no autocompletado.
+El autocompletado (`ONE_TAP`) exige `package_name` + `signature_hash` de la app Android. Con
+COPY_CODE el usuario toca el boton y pega el codigo - un paso mas, pero funciona en cualquier
+telefono, iPhone incluido. **Es reversible:** si algun dia dan esos datos, la plantilla se
+actualiza sin empezar de cero, porque el autocompletado siempre se cae a COPY_CODE cuando la
+verificacion falla.
+
+**Trampa anotada para M5:** los minutos del pie son **solo texto**. Que diga "caduca en 10
+minutos" no hace que caduque - eso lo tiene que cumplir nuestro API. Si no coinciden, el usuario
+lee una cosa y le pasa otra.
+
+**Dato para M5 al enviar el OTP:** segun las guias de proveedores, el codigo va **dos veces** en
+el payload de envio - como parametro del BODY y otra vez en un sub-componente de boton de tipo
+`coupon_code`. Verificarlo contra la doc de Meta al llegar ahi; es no obvio y va a morder.
 
 ### M2 - verlos en el panel (2026-10-27)
 

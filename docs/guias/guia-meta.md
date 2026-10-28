@@ -236,6 +236,44 @@ Es a propósito: mejor frenar la campaña que mandarla y que falle contacto por 
    mensaje real: se cobra y deja a ese contacto en enfriamiento.
 6. **Usarla en una campaña**.
 
+### La plantilla de códigos de verificación (OTP) es distinta
+
+Esta no se crea igual que las demás y conviene saber por qué, porque si alguien intenta crearla
+como una plantilla normal, Meta la rechaza.
+
+**El texto no se escribe: lo pone Meta.** Las plantillas de categoría **Autenticación** tienen
+redacción fija por idioma. Nosotros solo elegimos tres cosas: si lleva la advertencia de no
+compartir el código, en cuántos minutos dice que caduca, y qué botón trae. No hay copy que
+revisar, y por eso el riesgo de que la rechacen por redacción es casi nulo.
+
+Así le llega al usuario:
+
+```
+123456 es tu código de verificación.
+Por tu seguridad, no lo compartas.
+Este código caduca en 10 minutos.
+[ Copiar código ]
+```
+
+**El botón es "Copiar código", no autocompletado.** WhatsApp puede meter el código solo en la
+app (se llama autocompletado), pero para eso Meta exige dos datos técnicos de la app Android del
+cliente: el nombre del paquete y la firma del certificado. No los tenemos. Con "Copiar código"
+el usuario toca el botón y lo pega en la app - un paso más, pero funciona en cualquier teléfono,
+iPhone incluido.
+
+Si algún día el cliente nos da esos datos, la plantilla se puede actualizar sin empezar de cero:
+el autocompletado siempre se cae al botón de copiar cuando la verificación falla, así que ese
+botón nunca se pierde.
+
+**Se somete con un comando, no a mano:** `php artisan wa:crear-plantilla-otp`. Sin más nada solo
+imprime lo que se le enviaría a Meta, sin mandar nada. Para someterla de verdad se agrega
+`--enviar`. Va por comando y no por el Administrador de WhatsApp para que la configuración quede
+igual cada vez, y para poder repetirla si hubiera que volver a someterla.
+
+> ⚠️ **Los minutos del mensaje son solo texto.** Que diga "caduca en 10 minutos" no hace que
+> caduque: eso lo tiene que cumplir el sistema que genera el código. Si no coinciden, el usuario
+> lee una cosa y le pasa otra.
+
 ---
 
 ## 4. Palabras clave que el sistema entiende (lo más importante)

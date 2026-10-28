@@ -77,6 +77,13 @@ class Kernel extends ConsoleKernel
         $schedule->command('sms:reconcile-received')
             ->hourly()
             ->withoutOverlapping();
+
+        // Basura de las descargas de archivos de WhatsApp. Los fallos previsibles ya borran su
+        // temporal en codigo; esto cubre el caso que ningun `try/catch` alcanza: que al worker
+        // lo maten en seco a medio bajar. Diario de madrugada, que no compite con nada.
+        $schedule->command('media:limpiar-temporales')
+            ->dailyAt('04:30')
+            ->withoutOverlapping();
     }
 
     /**

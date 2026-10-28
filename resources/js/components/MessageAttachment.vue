@@ -6,10 +6,13 @@
             <span>Descargando archivo...</span>
         </div>
 
-        <!-- Se agotaron los intentos, o el archivo ya no esta en disco. -->
+        <!-- Se agotaron los intentos, el archivo paso del tope, o ya no esta en disco.
+             El texto cubre las dos causas a proposito: "que lo reenvie" seria mal consejo si
+             el archivo se rechazo por pesado, porque volveria a llegar igual de pesado. -->
         <div v-else-if="fallido" class="att-note att-note--error">
             <i class="pi pi-exclamation-triangle"></i>
-            <span>No se pudo recibir este archivo. Pídele al contacto que lo reenvíe.</span>
+            <span>No se pudo recibir este archivo. Puede ser muy pesado, o WhatsApp ya no lo
+                tiene disponible. Pídele al contacto que lo mande más ligero o por otro medio.</span>
         </div>
 
         <!-- Foto: miniatura, click para verla grande. -->

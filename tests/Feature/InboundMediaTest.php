@@ -192,14 +192,36 @@ class InboundMediaTest extends TestCase
         ]);
     }
 
+    /**
+     * Simula lo que deja la descarga: un archivo ya en disco, no su contenido en memoria.
+     *
+     * Devuelve la ruta porque es lo que `downloadMedia` devuelve desde que baja en streaming:
+     * el archivo nunca pasa completo por una variable de PHP.
+     */
+    private function temporalDescargado(string $contenido = 'contenido-binario-de-la-foto'): string
+    {
+        $carpeta = storage_path('app/tmp/media');
+
+        if (! is_dir($carpeta)) {
+            mkdir($carpeta, 0775, true);
+        }
+
+        $ruta = $carpeta . DIRECTORY_SEPARATOR . uniqid('test-', true) . '.part';
+        file_put_contents($ruta, $contenido);
+
+        return $ruta;
+    }
+
     public function test_el_job_baja_el_archivo_y_lo_deja_en_disco_privado(): void
     {
         Storage::fake(MediaStore::DISK);
 
-        $this->mock(WhatsAppClient::class, function ($mock) {
+        $temporal = $this->temporalDescargado();
+
+        $this->mock(WhatsAppClient::class, function ($mock) use ($temporal) {
             $mock->shouldReceive('downloadMedia')->once()->andReturn([
                 'ok'    => true,
-                'body'  => 'contenido-binario-de-la-foto',
+                'path'  => $temporal,
                 'mime'  => 'image/jpeg',
                 'size'  => 28,
                 'error' => null,
@@ -218,6 +240,9 @@ class InboundMediaTest extends TestCase
         $this->assertSame('stored', $conversation->media_status);
         $this->assertNotNull($conversation->media_path);
         Storage::disk(MediaStore::DISK)->assertExists($conversation->media_path);
+
+        // Se movio, no se copio: dejar el temporal duplicaria cada archivo en disco.
+        $this->assertFileDoesNotExist($temporal, 'El temporal de la descarga debe desaparecer');
     }
 
     /** El nombre en disco lo inventamos nosotros: el de afuera podria traer `../`. */
@@ -225,9 +250,11 @@ class InboundMediaTest extends TestCase
     {
         Storage::fake(MediaStore::DISK);
 
-        $this->mock(WhatsAppClient::class, function ($mock) {
+        $temporal = $this->temporalDescargado('x');
+
+        $this->mock(WhatsAppClient::class, function ($mock) use ($temporal) {
             $mock->shouldReceive('downloadMedia')->andReturn([
-                'ok' => true, 'body' => 'x', 'mime' => 'application/pdf', 'size' => 1, 'error' => null,
+                'ok' => true, 'path' => $temporal, 'mime' => 'application/pdf', 'size' => 1, 'error' => null,
             ]);
         });
 
@@ -272,7 +299,7 @@ class InboundMediaTest extends TestCase
 
         $this->mock(WhatsAppClient::class, function ($mock) {
             $mock->shouldReceive('downloadMedia')->andReturn([
-                'ok' => false, 'body' => null, 'mime' => null, 'size' => null,
+                'ok' => false, 'path' => null, 'mime' => null, 'size' => null,
                 'error' => 'La descarga respondio con error',
             ]);
         });

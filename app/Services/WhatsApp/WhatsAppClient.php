@@ -4,9 +4,18 @@ namespace App\Services\WhatsApp;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class WhatsAppClient
 {
+    /**
+     * Tope de tamano de un archivo que nos manda un contacto.
+     *
+     * Es el mismo de Meta para documentos (su limite mas alto), a proposito: asi nunca
+     * rechazamos algo que Meta si acepto. Con la descarga en streaming el tamano ya no es un
+     * riesgo de memoria, entonces el tope solo existe como red por si Meta cambia su limite.
+     */
+    public const MAX_MEDIA_BYTES = 100 * 1024 * 1024;
     private string $baseUrl;
 
     public function __construct()
@@ -93,11 +102,32 @@ class WhatsAppClient
             ]);
         }
 
+        $tamano = isset($meta['body']['file_size']) ? (int) $meta['body']['file_size'] : null;
+
+        // El tope se revisa con la ficha, ANTES de pedir el archivo: Meta ya nos dijo cuanto
+        // pesa, asi que rechazar algo monstruoso no cuesta ni ancho de banda ni tiempo.
+        if ($tamano !== null && $tamano > self::MAX_MEDIA_BYTES) {
+            return $this->fallaDeMedia('El archivo pasa del tamano maximo', [
+                'media_id' => $mediaId,
+                'size'     => $tamano,
+                'max'      => self::MAX_MEDIA_BYTES,
+            ]);
+        }
+
+        $destino = $this->rutaTemporal($mediaId);
+
         try {
+            // `sink` escribe la respuesta DIRECTO al archivo, en pedazos. Antes esto hacia
+            // `$response->body()`, que arma el archivo completo en una variable de PHP: un
+            // documento de 100 MB eran 100 MB de memoria en el worker, y si rebasaba el
+            // `memory_limit` el proceso moria. Asi la memoria no depende del tamano.
+            //
             // `withToken` es obligatorio tambien aqui: la URL de Meta no es publica, responde
             // 401 sin la cabecera aunque la tengas completa.
-            $response = Http::withToken($token)->timeout(60)->get($url);
+            $response = Http::withToken($token)->timeout(120)->sink($destino)->get($url);
         } catch (\Throwable $e) {
+            $this->borrarTemporal($destino);
+
             return $this->fallaDeMedia('No se pudo descargar el archivo', [
                 'media_id' => $mediaId,
                 'error'    => $e->getMessage(),
@@ -105,6 +135,10 @@ class WhatsAppClient
         }
 
         if ($response->failed()) {
+            // Con `sink` el cuerpo del error tambien se escribio en el archivo: hay que
+            // tirarlo o quedaria un archivo con un JSON de error adentro.
+            $this->borrarTemporal($destino);
+
             return $this->fallaDeMedia('La descarga respondio con error', [
                 'media_id' => $mediaId,
                 'status'   => $response->status(),
@@ -113,11 +147,41 @@ class WhatsAppClient
 
         return [
             'ok'    => true,
-            'body'  => $response->body(),
+            // Ruta local del archivo ya en disco. Quien lo reciba se queda a cargo de moverlo
+            // a su lugar definitivo o de borrarlo.
+            'path'  => $destino,
             'mime'  => $meta['body']['mime_type'] ?? $response->header('Content-Type'),
-            'size'  => isset($meta['body']['file_size']) ? (int) $meta['body']['file_size'] : null,
+            // El tamano real en disco, no el que dijo Meta: si la descarga se corto a medias,
+            // el de la ficha mentiria.
+            'size'  => is_file($destino) ? filesize($destino) : $tamano,
             'error' => null,
         ];
+    }
+
+    /**
+     * Archivo temporal donde cae la descarga.
+     *
+     * Vive bajo `storage/app` y no en el temporal del sistema a proposito: ahi mismo esta su
+     * destino final, y mover un archivo dentro del mismo sistema de archivos es instantaneo
+     * (solo cambia el nombre). Entre dos discos distintos, PHP tiene que copiar byte por byte.
+     */
+    private function rutaTemporal(string $mediaId): string
+    {
+        $carpeta = storage_path('app/tmp/media');
+
+        if (! is_dir($carpeta)) {
+            mkdir($carpeta, 0775, true);
+        }
+
+        // El id de Meta no se usa como nombre: viene de afuera. Un uuid nuestro y listo.
+        return $carpeta . DIRECTORY_SEPARATOR . Str::uuid() . '.part';
+    }
+
+    private function borrarTemporal(string $ruta): void
+    {
+        if (is_file($ruta)) {
+            @unlink($ruta);
+        }
     }
 
     /**
@@ -168,6 +232,6 @@ class WhatsAppClient
     {
         Log::error("WhatsApp: {$mensaje}", $contexto);
 
-        return ['ok' => false, 'body' => null, 'mime' => null, 'size' => null, 'error' => $mensaje];
+        return ['ok' => false, 'path' => null, 'mime' => null, 'size' => null, 'error' => $mensaje];
     }
 }

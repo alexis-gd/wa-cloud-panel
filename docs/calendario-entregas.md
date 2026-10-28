@@ -679,15 +679,38 @@ Esto es lo que un contacto nos puede mandar. Fuente: doc oficial de Cloud API, n
 
 ### Riesgos abiertos de M1/M2 - sin arreglar
 
-- [ ] **No hay tope de tamano nuestro, y el archivo completo pasa por la memoria de PHP.**
-  `DownloadWhatsAppMedia` hace `$response->body()`, que es un string con todo el archivo, y
-  luego lo escribe. Un documento de 100 MB son ~200 MB de pico en el worker; si rebasa el
-  `memory_limit`, el job muere, reintenta 3 veces, muere igual, y **mientras tanto el worker se
-  puede caer y atorar la cola de envios**. Es el unico de estos puntos que puede tumbar algo en
-  produccion. Propuesto: tope de 20 MB antes de escribir (marcar `failed` con motivo claro) +
-  bajar a disco en streaming con `Http::sink()` para que el tamano deje de depender del
-  `memory_limit`. **No esta probado con un archivo grande - es analisis de codigo, no un caso
-  medido.**
+- [x] **RESUELTO (2026-10-27): la descarga baja a disco, no a memoria.** `downloadMedia` usa
+  `Http::sink()` y devuelve la **ruta** de un temporal en vez del contenido; `MediaStore` tiene
+  un `guardarArchivo()` que lo **mueve** en lugar de releerlo (releerlo anularia el streaming
+  justo en el ultimo paso). Un documento de 100 MB usa ahora la misma memoria que uno de 1 MB.
+  - **Correccion de lo que se dijo antes:** se afirmo que el worker podia "atorar la cola de
+    envios". Al verificar la configuracion real (`queue:work --tries=3 --max-time=3600`, sin
+    `--memory`), si un job revienta por memoria **Supervisor revive el worker en segundos**: la
+    cola no se queda trabada. El costo real era el archivo perdido y ruido en el log. Era
+    menos grave de lo que se pinto.
+  - **El tope quedo en 100 MB, no en 20.** Se propuso 20 MB como medida de seguridad, pero con
+    streaming el tamano ya no es un riesgo de memoria, asi que el tope paso a ser decision de
+    disco - y ahi 20 MB **rechazaria comprobantes legitimos** (un PDF de varias paginas
+    escaneado con el telefono llega facil a 15-25 MB). Se puso el mismo limite de Meta para
+    documentos: nunca rechazamos algo que Meta si acepto.
+  - **El tope se revisa ANTES de bajar un byte.** El codigo ya pedia la ficha del archivo a
+    Meta, y ahi viene `file_size`. Rechazar algo monstruoso no cuesta ni ancho de banda ni
+    tiempo. Hay test de que la URL de descarga no se pide.
+  - **El temporal vive bajo `storage/app/tmp/media`**, el mismo sistema de archivos que su
+    destino, para que moverlo sea instantaneo (solo cambia el nombre). Entre dos discos
+    distintos `rename` falla y PHP tendria que copiar byte por byte; hay respaldo para ese caso.
+  - **Basura: `media:limpiar-temporales`** (scheduler, diario 04:30). Los fallos previsibles ya
+    borran su temporal en codigo (la descarga y el job), pero ningun `try/catch` alcanza que al
+    worker lo maten en seco - `kill -9`, memoria agotada, reinicio del servidor. Ahi el `.part`
+    se quedaria para siempre sin nombre por el que buscarlo. Borra lo de mas de 24h; una
+    descarga en curso no se toca (su tope es de 120 segundos).
+  - **`131052` ya esta en `DeliveryReason`** (archivo entrante > 100 MB). Antes ese caso habria
+    salido en ingles al operador.
+  - **El aviso de la burbuja se reescribio.** Decia "pidele al contacto que lo reenvie", que es
+    mal consejo si el archivo se rechazo por pesado: volveria a llegar igual de pesado. Ahora
+    nombra las dos causas. La guia del operador quedo alineada.
+  - Sigue sin probarse con un archivo grande de verdad en produccion: lo que hay son 14 tests
+    (`MediaDownloadStreamingTest`), que es otra cosa.
 - [ ] **Nada borra nunca.** El plazo de retencion lo definira el cliente al final, pero el
   mecanismo tampoco existe. Conviene tener el comando listo y apagado en vez de acordarse con el
   disco al 90%. La ruta de guardado ya quedo preparada para esto: `media/ANO/MES/{contacto}/`

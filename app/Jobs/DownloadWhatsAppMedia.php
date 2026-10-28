@@ -62,6 +62,8 @@ class DownloadWhatsAppMedia implements ShouldQueue
             return;
         }
 
+        // El archivo llega en streaming a un temporal: `path`, no el contenido. Nunca se arma
+        // completo en memoria (ver `WhatsAppClient::downloadMedia`).
         $descarga = $client->downloadMedia($conversation->media_id, $phoneNumber->token);
 
         if (! $descarga['ok']) {
@@ -74,16 +76,28 @@ class DownloadWhatsAppMedia implements ShouldQueue
             throw new \RuntimeException($descarga['error'] ?? 'Descarga de archivo fallida');
         }
 
-        $ruta = $store->guardar(
-            contenido: $descarga['body'],
-            mime: $descarga['mime'] ?? $conversation->media_mime,
-            contactId: $conversation->contact_id,
-        );
+        $temporal = $descarga['path'];
+
+        try {
+            $ruta = $store->guardarArchivo(
+                rutaOrigen: $temporal,
+                mime: $descarga['mime'] ?? $conversation->media_mime,
+                contactId: $conversation->contact_id,
+            );
+        } catch (\Throwable $e) {
+            // Sin esto el temporal se queda ocupando disco para siempre: la descarga ya paso,
+            // nadie mas lo va a reclamar y no tiene un nombre por el que buscarlo.
+            if (is_file($temporal)) {
+                @unlink($temporal);
+            }
+
+            throw $e;
+        }
 
         $conversation->update([
             'media_path'   => $ruta,
             'media_mime'   => $descarga['mime'] ?? $conversation->media_mime,
-            'media_size'   => $descarga['size'] ?? strlen($descarga['body']),
+            'media_size'   => $descarga['size'],
             'media_status' => 'stored',
         ]);
 

@@ -59,7 +59,56 @@ class MediaStore
      */
     public function guardar(string $contenido, ?string $mime, int $contactId): string
     {
-        $ruta = sprintf(
+        $ruta = $this->rutaPara($mime, $contactId);
+
+        Storage::disk(self::DISK)->put($ruta, $contenido);
+
+        return $ruta;
+    }
+
+    /**
+     * Mete un archivo que ya esta en disco, sin pasarlo por la memoria.
+     *
+     * Es lo que usa la descarga de WhatsApp: el archivo llega en streaming a un temporal y de
+     * ahi solo se MUEVE a su lugar. Leerlo para volverlo a escribir anularia el streaming - un
+     * documento de 100 MB volveria a pasar completo por la memoria del worker.
+     *
+     * El temporal vive bajo `storage/app`, el mismo sistema de archivos que el destino, asi que
+     * mover es instantaneo (solo cambia el nombre, no copia bytes).
+     *
+     * @param  string  $rutaOrigen  Ruta absoluta del archivo ya descargado. Se consume: si todo
+     *                              sale bien, deja de existir en su lugar anterior.
+     */
+    public function guardarArchivo(string $rutaOrigen, ?string $mime, int $contactId): string
+    {
+        $ruta = $this->rutaPara($mime, $contactId);
+
+        $destino = Storage::disk(self::DISK)->path($ruta);
+        $carpeta = dirname($destino);
+
+        if (! is_dir($carpeta)) {
+            mkdir($carpeta, 0775, true);
+        }
+
+        // `rename` y no `copy`: copiar duplicaria el archivo en disco un instante y en un
+        // documento grande eso es I/O que no hace falta.
+        if (! @rename($rutaOrigen, $destino)) {
+            // Entre dos sistemas de archivos distintos `rename` falla. El respaldo copia por
+            // pedazos (`copy` de PHP no carga el archivo a memoria) y borra el origen.
+            if (! @copy($rutaOrigen, $destino)) {
+                throw new \RuntimeException("No se pudo guardar el archivo en {$ruta}");
+            }
+
+            @unlink($rutaOrigen);
+        }
+
+        return $ruta;
+    }
+
+    /** Donde va a vivir un archivo nuevo. */
+    private function rutaPara(?string $mime, int $contactId): string
+    {
+        return sprintf(
             '%s/%s/%d/%s.%s',
             self::CARPETA,
             now()->format('Y/m'),
@@ -67,10 +116,6 @@ class MediaStore
             (string) Str::uuid(),
             $this->extension($mime),
         );
-
-        Storage::disk(self::DISK)->put($ruta, $contenido);
-
-        return $ruta;
     }
 
     /** Contenido del archivo, o null si ya no esta (borrado por retencion, disco limpiado). */

@@ -23,6 +23,7 @@ class DeliveryReason
         131026 => 'El número no tiene WhatsApp o no acepta mensajes. Se marcó como inválido y no se le vuelve a escribir.',
         130472 => 'Meta dejó a esta persona fuera de un experimento suyo y no le entregó el mensaje. No es un problema del número ni de la plantilla.',
         131047 => 'Pasaron más de 24 horas desde el último mensaje del contacto.',
+        131052 => 'El archivo pasa del tamaño que WhatsApp permite (100 MB). Pídele al contacto que lo mande más ligero o en partes.',
         368    => 'Cuenta temporalmente restringida por Meta.',
         132001 => 'La plantilla no está aprobada en Meta.',
         132007 => 'La plantilla infringe una política de WhatsApp.',

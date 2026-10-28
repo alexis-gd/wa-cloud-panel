@@ -592,7 +592,7 @@ Si el contacto escribió algo junto con la foto, ese texto sale debajo de la ima
 | Lo que dice | Qué significa | Qué hacer |
 |---|---|---|
 | *Descargando archivo...* | Acaba de llegar y se está guardando. Tarda unos segundos. | Esperar. Se cambia solo, sin recargar. |
-| *No se pudo recibir este archivo* | WhatsApp ya no lo tiene disponible y no se pudo guardar. | Pedirle al contacto que lo mande otra vez. |
+| *No se pudo recibir este archivo* | Dos causas: el archivo pasa del tope de WhatsApp (100 MB), o WhatsApp ya no lo tiene disponible. | Pedirle que lo mande más ligero, en partes, o por otro medio. Si era un archivo chico, pedirle que lo reenvíe. |
 
 > 🔒 **Los archivos son privados.** Solo se abren estando dentro del panel, y un agente
 > únicamente ve los de las conversaciones que tiene asignadas. No hay forma de pasarle a nadie

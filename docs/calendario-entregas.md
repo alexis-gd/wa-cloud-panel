@@ -633,3 +633,78 @@ texto vacio, nunca el `media_id`, y del lado de Meta ya caducaron. Para dimensio
 **Pendiente de M2 (no bloquea):** el video se entrega como archivo descargable, no con
 reproductor en linea. El reproductor necesita soporte de `Range` y subir los limites del
 servidor (nginx y PHP estan en 8 MB); va en M4, que es la partida que lo cubre.
+
+### Mejoras de archivos - anotadas, NO programadas
+
+Decision de Alexis (2026-10-27): se dejan como mejoras y se ven si hacen falta cuando el cliente
+use el panel. No entran a una tanda todavia.
+
+- [ ] **Zoom en el visor de fotos.** Hoy la burbuja muestra 240 px y el visor crece hasta 760 px
+  de ancho (70% de la altura). No hay zoom. **El caso que lo pediria:** leer el CURP o un
+  domicilio en la letra chica de una INE fotografiada - a 760 px no se alcanza a leer, y el
+  operador tiene que descargar la foto y abrirla con el visor de su computadora. Dos salidas:
+  (A) boton "Abrir en pestana nueva", 3 lineas, da el zoom nativo del navegador (rueda para
+  acercar, arrastrar para moverse, resolucion completa); (B) componente `Image` de PrimeVue (ya
+  instalado, v4), trae zoom y **rotar** - rotar sirve porque la gente fotografia documentos de
+  lado - pero reemplaza el visor actual y se pierden el boton Descargar y el nombre en el
+  encabezado. Recomendado: A, y rotar aparte si lo piden.
+- [ ] **Miniatura de las fotos.** La burbuja baja el original (100-500 KB) y lo encoge con CSS.
+  Una miniatura WebP de 400 px pesaria 15-30 KB. **Importante: NO se comprime el original.**
+  WhatsApp ya comprime las fotos en el telefono antes de mandarlas (una de 5.68 MB llega como
+  1.43 MB, lo normal es entre 100 y 500 KB), asi que lo que recibimos ya es un JPEG con perdida;
+  volverlo a comprimir seria perdida generacional - tira detalle sobre el detalle ya tirado, y
+  ahorra casi nada. El diseno correcto es original intacto + miniatura aparte. **Esto gana
+  velocidad de pantalla, no disco:** si el 5% de los 14,908 contactos manda una foto al mes son
+  ~224 MB/mes (~2.7 GB/ano) sobre 192 GB libres. Se decidio esperar a **M3**, donde una libreria
+  de imagenes deja de ser opcional (ver abajo).
+
+### Topes de Meta - verificados en su documentacion (2026-10-27)
+
+Esto es lo que un contacto nos puede mandar. Fuente: doc oficial de Cloud API, no blogs.
+
+| Tipo | Tope | Formatos |
+|---|---|---|
+| Imagen | **5 MB** | JPEG, PNG (8-bit RGB/RGBA) |
+| Audio | **16 MB** | AAC, AMR, MP3, M4A, OGG/Opus |
+| Video | **16 MB** | MP4, 3GPP (H.264 + AAC) |
+| **Documento** | **100 MB** | PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, TXT |
+| Sticker | 100 KB estatico / 500 KB animado | WebP |
+
+- **Codigo de error nuevo: `131052`** - archivo entrante que pasa de 100 MB. NO esta en nuestro
+  catalogo de errores traducidos (`DeliveryReason`), asi que hoy saldria en ingles al operador.
+- **El peso NO esta en las fotos, esta en los documentos.** Un PDF de 40 MB pesa como 133 fotos,
+  y un PDF no se comprime sin rasterizarlo (deja de ser texto seleccionable y se ve borroso al
+  hacer zoom, justo donde importan las cifras de un comprobante). El disco se controla con tope
+  de tamano y retencion, no comprimiendo.
+
+### Riesgos abiertos de M1/M2 - sin arreglar
+
+- [ ] **No hay tope de tamano nuestro, y el archivo completo pasa por la memoria de PHP.**
+  `DownloadWhatsAppMedia` hace `$response->body()`, que es un string con todo el archivo, y
+  luego lo escribe. Un documento de 100 MB son ~200 MB de pico en el worker; si rebasa el
+  `memory_limit`, el job muere, reintenta 3 veces, muere igual, y **mientras tanto el worker se
+  puede caer y atorar la cola de envios**. Es el unico de estos puntos que puede tumbar algo en
+  produccion. Propuesto: tope de 20 MB antes de escribir (marcar `failed` con motivo claro) +
+  bajar a disco en streaming con `Http::sink()` para que el tamano deje de depender del
+  `memory_limit`. **No esta probado con un archivo grande - es analisis de codigo, no un caso
+  medido.**
+- [ ] **Nada borra nunca.** El plazo de retencion lo definira el cliente al final, pero el
+  mecanismo tampoco existe. Conviene tener el comando listo y apagado en vez de acordarse con el
+  disco al 90%. La ruta de guardado ya quedo preparada para esto: `media/ANO/MES/{contacto}/`
+  permite borrar por fecha y tambien todo lo de una persona de golpe (derecho de supresion).
+- [ ] **Libreria de imagenes: se decide en M3, no antes.** En M3 el operador va a subir fotos de
+  su telefono de 8-12 MB y **el tope de Meta para imagen es 5 MB**: sin redimensionar, el envio
+  falla. Ahi el procesamiento deja de ser mejora y pasa a requisito. Ojo con el precedente:
+  `TemplateImage::MAX_KB = 5120` y el controlador **rechaza** lo que se pasa - para la imagen de
+  plantilla esta bien (la sube un admin una vez), pero en M3 rechazar significa decirle al
+  operador "no puedes mandar la foto que tienes", y eso choca con el principio de ser a prueba de
+  errores del cliente. Opciones evaluadas: **GD** (ya viene en PHP, un `apt install php8.2-gd`,
+  sin FFI; es el mas flojo de los tres pero hace el unico trabajo que se necesita - reducir y
+  guardar; **trampa: `imagewebp()` falla en silencio y escribe un archivo corrupto si PHP no se
+  compilo con WebP**, o sea que funciona en local y se rompe en el VPS si no se verifica);
+  **Imagick** (mas formatos, y `jpeg:size` decodifica ya reducido = memoria plana, aunque esa
+  evidencia son notas de usuarios del manual, no doc oficial); **libvips** (el mejor en memoria y
+  velocidad, su autor reporta 4x mas rapido y 10x menos memoria que Imagick, pero necesita FFI y
+  compilar - resuelve un problema de volumen que a esta escala no tenemos). Con GD hay que leer
+  las dimensiones con `getimagesize()` **antes** de decodificar (solo lee el encabezado) y
+  saltarse la miniatura si el conteo de pixeles es absurdo, para acotar la memoria por diseno.

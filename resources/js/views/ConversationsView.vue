@@ -78,6 +78,7 @@
           :sending="sending"
           :quick-replies="quickReplies"
           @send="sendMessage"
+          @send-image="sendImage"
         />
       </template>
     </div>
@@ -525,6 +526,38 @@ async function sendMessage(texto) {
   } else {
     toast.add({ severity: 'error', summary: 'Error', detail: res.message || 'No se pudo enviar', life: 4000 });
   }
+  sending.value = false;
+}
+
+/**
+ * Manda la foto que eligio el operador.
+ *
+ * Tarda mas que un texto: sube a Meta y despues manda el mensaje. Por eso `sending` queda
+ * encendido todo el rato - el boton muestra su spinner y no se puede mandar dos veces.
+ *
+ * El servidor reduce la imagen al tope de Meta (5 MB); el panel no la toca.
+ */
+async function sendImage({ file, caption }) {
+  if (!file || sending.value) return;
+
+  sending.value = true;
+
+  const res = await api.sendConversationMedia(selected.value.id, file, caption);
+
+  if (res.status === 'ok') {
+    messages.value.push(res.data);
+    composer.value?.limpiar();
+    await nextTick();
+    scrollToBottom();
+  } else {
+    toast.add({
+      severity: 'error',
+      summary : 'No se pudo enviar la foto',
+      detail  : res.message,
+      life    : 6000,
+    });
+  }
+
   sending.value = false;
 }
 

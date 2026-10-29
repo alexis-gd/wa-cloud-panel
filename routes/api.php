@@ -133,6 +133,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         // (se registra antes) y acabaría en show('assignable-users').
         Route::get('/conversations/{contactId}',               [ConversationController::class, 'show'])->whereNumber('contactId');
         Route::post('/conversations/{contactId}/messages',     [ConversationController::class, 'send'])->whereNumber('contactId');
+        Route::post('/conversations/{contactId}/media',        [ConversationMediaController::class, 'store'])->whereNumber('contactId');
         Route::post('/conversations/{contactId}/claim',        [ConversationController::class, 'claim'])->whereNumber('contactId');
         Route::get('/quick-replies',                           [ConversationController::class, 'quickReplies']);
     });

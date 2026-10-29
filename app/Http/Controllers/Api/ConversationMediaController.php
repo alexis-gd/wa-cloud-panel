@@ -2,11 +2,17 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\ConversationUpdated;
 use App\Http\Controllers\Controller;
+use App\Models\Contact;
 use App\Models\Conversation;
+use App\Services\WhatsApp\ImageForWhatsApp;
 use App\Services\WhatsApp\MediaStore;
+use App\Services\WhatsApp\OutboundGuard;
+use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
@@ -104,6 +110,154 @@ class ConversationMediaController extends Controller
         );
 
         return $response;
+    }
+
+    /**
+     * Manda una imagen al contacto desde Conversaciones.
+     * POST /api/conversations/{contactId}/media
+     *
+     * Pasa por el MISMO guardia que el texto (`OutboundGuard`): una foto a alguien que se dio
+     * de baja es igual de grave que un texto. Y por `ImageForWhatsApp`, porque el tope de Meta
+     * para imagen es de 5 MB y una foto de telefono pesa el doble o el triple.
+     *
+     * El envio es sincrono, no por cola: el operador esta mirando el chat y necesita saber si
+     * salio o no. Un job le daria un "listo" que todavia no es cierto.
+     */
+    public function store(
+        Request $request,
+        int $contactId,
+        WhatsAppClient $client,
+        OutboundGuard $guard,
+        ImageForWhatsApp $imagenes,
+    ): JsonResponse {
+        $archivo = $request->file('file');
+
+        // PHP descarta el archivo ANTES de que Laravel lo valide si supera `upload_max_filesize`.
+        // Sin esto la respuesta seria "elige un archivo", que despista: el operador si eligio uno.
+        if ($archivo !== null
+            && ! $archivo->isValid()
+            && in_array($archivo->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+            return $this->error(
+                'La imagen supera el límite de subida del servidor (' . ini_get('upload_max_filesize')
+                    . '). Usa una más ligera o pide a soporte que suba ese límite.',
+                'UPLOAD_LIMIT_EXCEEDED',
+            );
+        }
+
+        $request->validate([
+            'file'    => 'required|file|mimetypes:image/jpeg,image/png,image/webp',
+            'caption' => 'nullable|string|max:1024',
+        ]);
+
+        $contact = Contact::findOrFail($contactId);
+
+        // Misma regla que para leer el chat: un agente solo atiende lo suyo. Se responde 404 y
+        // no 403 para no confirmar que ese contacto existe.
+        if (! $contact->esVisibleEnConversacionesPara($request->user())) {
+            return $this->noEncontrado();
+        }
+
+        $permiso = $guard->revisar($contact);
+
+        if (! $permiso['ok']) {
+            return $this->error($permiso['message'], $permiso['code'], $permiso['status']);
+        }
+
+        $listo = $imagenes->preparar($archivo->getRealPath(), $archivo->getMimeType());
+
+        if (! $listo['ok']) {
+            return $this->error($listo['error'], 'IMAGE_NOT_SUPPORTED');
+        }
+
+        $phone  = $permiso['phone'];
+        $subida = $client->uploadMedia($phone->phone_number_id, $phone->token, $listo['path'], $listo['mime']);
+
+        if (! $subida['ok']) {
+            $this->limpiar($listo);
+
+            return $this->error('WhatsApp no aceptó la imagen: ' . $subida['error'], 'UPLOAD_REJECTED');
+        }
+
+        $caption = $request->input('caption');
+
+        $envio = $client->post($phone->phone_number_id, $phone->token, array_filter([
+            'messaging_product' => 'whatsapp',
+            'to'                => $contact->phone,
+            'type'              => 'image',
+            'image'             => array_filter([
+                'id'      => $subida['media_id'],
+                'caption' => $caption,
+            ]),
+        ]));
+
+        if (! $envio['ok']) {
+            $this->limpiar($listo);
+            Log::error('Envio de imagen rechazado', [
+                'contact_id' => $contactId,
+                'response'   => $envio['body'],
+            ]);
+
+            return $this->error('No se pudo enviar la imagen.', 'SEND_FAILED', 500);
+        }
+
+        // Se guarda una copia propia para que la burbuja la muestre. Sin esto el chat tendria
+        // un hueco donde el operador mando algo, y no habria rastro de QUE mando.
+        $ruta = $this->store->guardarArchivo($listo['path'], $listo['mime'], $contact->id);
+
+        $conversation = Conversation::create([
+            'contact_id'     => $contact->id,
+            'user_id'        => $request->user()?->id,
+            'direction'      => 'outbound',
+            'message_type'   => 'image',
+            'body'           => $caption ?? '',
+            'wa_message_id'  => data_get($envio, 'body.messages.0.id'),
+            'status'         => 'sent',
+            'window_open'    => true,
+            // El id que Meta le dio al archivo al subirlo. Es el mismo concepto que en los
+            // mensajes que entran (el id del archivo en Meta), y vale 30 dias: con el, un
+            // reenvio del mismo archivo no tendria que volver a subirlo.
+            'media_id'       => $subida['media_id'],
+            'media_path'     => $ruta,
+            'media_mime'     => $listo['mime'],
+            'media_size'     => filesize($this->store->rutaAbsoluta($ruta)) ?: null,
+            'media_filename' => $archivo->getClientOriginalName(),
+            'media_status'   => 'stored',
+        ]);
+
+        event(new ConversationUpdated($contact->id));
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => [
+                'id'           => $conversation->id,
+                'body'         => $conversation->body,
+                'direction'    => 'outbound',
+                'status'       => 'sent',
+                'message_type' => 'image',
+                'media_status' => 'stored',
+                'media_mime'   => $conversation->media_mime,
+                'media_size'   => $conversation->media_size,
+                'media_inline' => true,
+                'created_at'   => $conversation->created_at,
+            ],
+        ], 201);
+    }
+
+    /** Borra el archivo que genero el procesador, si genero uno. */
+    private function limpiar(array $listo): void
+    {
+        if ($listo['temporal'] && $listo['path'] && is_file($listo['path'])) {
+            @unlink($listo['path']);
+        }
+    }
+
+    private function error(string $message, string $code, int $status = 422): JsonResponse
+    {
+        return response()->json([
+            'status'  => 'error',
+            'message' => $message,
+            'code'    => $code,
+        ], $status);
     }
 
     private function noEncontrado(): JsonResponse

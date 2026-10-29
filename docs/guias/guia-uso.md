@@ -229,10 +229,16 @@ Para un prospecto suelto (un referido, una llamada):
 2. Escribe **solo los 10 dígitos** del celular (sin 52 ni +). El sistema pone el resto. Al
    terminar te avisa al instante:
    - ✅ **Disponible** - se puede agregar.
-   - ⚠️ **Ya existe** - te dice en qué estado está.
+   - ❌ **Ya existe** - te dice en qué estado está. No se puede agregar dos veces.
+   - ↩️ **Ya estuvo aquí y fue borrado** - sí puedes guardarlo: en vez de crear uno nuevo,
+     el sistema **lo restaura**.
    - ❌ **Deben ser 10 dígitos** - faltan o sobran números.
-3. Escribe el nombre (opcional) y clic en **Guardar**. El botón solo se activa si el número es
-   válido y no existe.
+3. Escribe el nombre (opcional) y clic en **Guardar**.
+
+> ⚠️ **Si el número estaba borrado, vuelve completo.** Recupera su historial, sus etiquetas
+> y **su estado de antes**. Eso incluye la baja: si esa persona se había dado de baja, sigue
+> dada de baja y **no le va a llegar ninguna campaña** aunque la acabes de agregar. Volver a
+> darla de alta no borra una baja - eso no se puede deshacer desde el panel, y es a propósito.
 
 ### Buscar muchos números de golpe (pegar una lista)
 

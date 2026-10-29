@@ -6,6 +6,7 @@ use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
+use App\Models\Tag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -133,5 +134,126 @@ class ContactManualAddTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.sent_today', true)
             ->assertJsonPath('data.deliverable', false);
+    }
+
+    // ── Números borrados (soft delete) ────────────────────────────────────
+
+    /**
+     * `contacts.phone` tiene indice UNIQUE y el modelo usa SoftDeletes, asi que un contacto
+     * borrado SIGUE ocupando el numero. Antes del arreglo esto era un 500: el chequeo previo
+     * no veia la fila borrada, decia "disponible" en verde, y el insert chocaba contra el
+     * UNIQUE. Es la misma trampa que ya habia mordido en la importacion de CSV.
+     */
+    public function test_restaura_un_numero_borrado_en_vez_de_reventar(): void
+    {
+        $this->actingAsOperator();
+        $contacto = Contact::factory()->create(['phone' => '529231311146']);
+        $contacto->delete();
+
+        $this->postJson('/api/contacts', ['phone' => '9231311146'])
+            ->assertStatus(200)
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonPath('restored', true)
+            ->assertJsonPath('data.phone', '529231311146');
+
+        // La misma fila, no una nueva: el UNIQUE no permitiria dos.
+        $this->assertDatabaseCount('contacts', 1);
+        $this->assertNotSoftDeleted('contacts', ['id' => $contacto->id]);
+    }
+
+    /** Restaurar trae de vuelta la ficha completa, no un contacto en blanco. */
+    public function test_restaurar_conserva_su_historial(): void
+    {
+        $this->actingAsOperator();
+        $tag      = Tag::create(['name' => 'Interesados']);
+        $contacto = Contact::factory()->create([
+            'phone' => '529231311146',
+            'notes' => 'Pidio informes en sucursal',
+        ]);
+        $contacto->tags()->attach($tag->id);
+        $contacto->delete();
+
+        $this->postJson('/api/contacts', ['phone' => '9231311146'])
+            ->assertStatus(200)
+            ->assertJsonPath('data.notes', 'Pidio informes en sucursal')
+            ->assertJsonPath('data.tags.0.id', $tag->id);
+    }
+
+    /**
+     * **Lo que no se puede deshacer nunca.** Restaurar devuelve la ficha, no el permiso: quien
+     * se dio de baja sigue de baja aunque alguien lo vuelva a agregar. Si esto se rompiera, el
+     * panel estaria reviviendo contactos que pidieron no ser contactados.
+     */
+    public function test_restaurar_no_revive_una_baja(): void
+    {
+        $this->actingAsOperator();
+        $contacto = Contact::factory()->create([
+            'phone'            => '529231311146',
+            'status'           => 'opted_out',
+            'opted_out_at'     => now(),
+            'opted_out_source' => 'whatsapp_text',
+        ]);
+        $contacto->delete();
+
+        $this->postJson('/api/contacts', ['phone' => '9231311146'])
+            ->assertStatus(200)
+            ->assertJsonPath('data.status', 'opted_out');
+
+        $this->assertDatabaseHas('contacts', [
+            'phone'  => '529231311146',
+            'status' => 'opted_out',
+        ]);
+    }
+
+    public function test_el_nombre_que_escribe_el_operador_gana_al_restaurar(): void
+    {
+        $this->actingAsOperator();
+        $contacto = Contact::factory()->create(['phone' => '529231311146', 'name' => 'Nombre viejo']);
+        $contacto->delete();
+
+        $this->postJson('/api/contacts', ['phone' => '9231311146', 'name' => 'Nombre nuevo'])
+            ->assertStatus(200)
+            ->assertJsonPath('data.name', 'Nombre nuevo');
+    }
+
+    public function test_restaurar_sin_nombre_conserva_el_que_tenia(): void
+    {
+        $this->actingAsOperator();
+        $contacto = Contact::factory()->create(['phone' => '529231311146', 'name' => 'Nombre viejo']);
+        $contacto->delete();
+
+        $this->postJson('/api/contacts', ['phone' => '9231311146'])
+            ->assertStatus(200)
+            ->assertJsonPath('data.name', 'Nombre viejo');
+    }
+
+    /**
+     * El aviso en vivo es lo que el operador lee ANTES de dar Guardar. Si dice "disponible"
+     * sobre un numero borrado, lo manda derecho al error. El aviso y el insert tienen que
+     * mirar lo mismo.
+     */
+    public function test_check_avisa_que_el_numero_esta_borrado(): void
+    {
+        $this->actingAsOperator();
+        $contacto = Contact::factory()->create(['phone' => '529231311146']);
+        $contacto->delete();
+
+        $this->getJson('/api/contacts/check?phone=9231311146')
+            ->assertOk()
+            ->assertJsonPath('data.exists', true)
+            ->assertJsonPath('data.deleted', true)
+            // Un contacto borrado no esta en ninguna campana, asi que no es "entregable".
+            ->assertJsonPath('data.deliverable', false);
+    }
+
+    public function test_check_de_un_numero_vivo_no_lo_marca_borrado(): void
+    {
+        $this->actingAsOperator();
+        Contact::factory()->create(['phone' => '529231311146']);
+
+        $this->getJson('/api/contacts/check?phone=9231311146')
+            ->assertOk()
+            ->assertJsonPath('data.exists', true)
+            ->assertJsonPath('data.deleted', false);
     }
 }

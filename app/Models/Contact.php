@@ -63,7 +63,7 @@ class Contact extends Model
     /**
      * Registra un rebote SMS. El contador SIEMPRE sube (sirve para reporte), pero el
      * auto-bloqueo del canal es configurable: solo bloquea si el umbral > 0 y el contador
-     * lo alcanza (Setting `sms_auto_blacklist_bounces`, default 0 = nunca bloquea — el
+     * lo alcanza (Setting `sms_auto_blacklist_bounces`, default 0 = nunca bloquea - el
      * cliente es blando con SMS). Nunca afecta el canal WhatsApp. Ver contexto-sms.
      */
     public function registerSmsBounce(): void
@@ -231,5 +231,39 @@ class Contact extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    /**
+     * Solo las conversaciones cuyo responsable actual es este agente.
+     *
+     * El responsable actual es la fila de asignacion mas reciente, de ahi la subconsulta con
+     * MAX(id): con un simple `where('user_id', ...)` saldrian tambien las que el agente tuvo
+     * antes y ya le pasaron a alguien mas.
+     *
+     * Vive aqui y no en el controlador porque la misma regla la necesitan la lista, el detalle
+     * del chat y la descarga de archivos. Cuando estaba suelta, la lista si la aplicaba pero el
+     * detalle no: un agente que pidiera `/api/conversations/{id}` leia la conversacion de
+     * cualquier otro.
+     */
+    public function scopeAsignadoA($query, User $user)
+    {
+        return $query->whereHas('assignments', fn ($q) => $q
+            ->where('user_id', $user->id)
+            ->whereRaw('id = (SELECT MAX(id) FROM conversation_assignments ca2 WHERE ca2.contact_id = conversation_assignments.contact_id)'));
+    }
+
+    /**
+     * Puede este usuario abrir esta conversacion.
+     *
+     * Solo el agente esta limitado a lo suyo; admin, operador y superadmin ven todas (asi
+     * funciona la lista desde siempre y asi lo necesitan para repartir el trabajo).
+     */
+    public function esVisibleEnConversacionesPara(User $user): bool
+    {
+        if ($user->role !== 'agent') {
+            return true;
+        }
+
+        return $this->currentAssignment()?->user_id === $user->id;
     }
 }

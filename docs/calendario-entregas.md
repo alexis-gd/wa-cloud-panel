@@ -567,3 +567,211 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
   tocar código, comprobar: (1) ¿le aparece el toast "Nueva respuesta"? Si no, el tiempo real no
   está llegando (Soketi) y la lista se queda congelada como cargó; (2) con 938 filas, si el
   operador está scrolleado abajo puede no ver que la fila brincó arriba.
+
+---
+
+## Proyecto aceptado 2026-10-27: archivos en conversaciones + OTP
+
+El cliente aprobo la cotizacion (subtotal $25,000, $29,000 con IVA). Dos bloques: manejar
+archivos en las conversaciones (fotos, documentos, notas de voz, video) y el API de OTP por
+WhatsApp para su app.
+
+Decisiones del cliente al arrancar: **OTP de 6 digitos**, su app es **Android**, y el plazo de
+retencion de los archivos se define al final (no se implemento borrado por retencion todavia).
+
+| # | Entrega | Estado | Depende de |
+|---|---|---|---|
+| M0 | Plantilla de Autenticacion a revision de Meta + pedir la SIM dedicada | [~] | Meta y el cliente |
+| M1 | Dejar de perder lo que ya entra (webhook + descarga a disco) | [x] | - |
+| M2 | Verlas en el panel: ruta autenticada, burbuja, visor | [x] | M1 |
+| M3 | Enviar imagenes desde el panel | [ ] | M1 |
+| M4 | PDF, notas de voz y video de salida | [ ] | M3 |
+| M5 | OTP: API, carril prioritario, tabla de envios | [ ] | M0 aprobada |
+| M6 | Numero de WhatsApp dedicado para OTP | [ ] | SIM del cliente |
+
+### M1 - recepcion y guardado (2026-10-27)
+
+- [x] `message_type` ampliado a `image`, `document`, `audio`, `video` + 6 columnas `media_*`.
+- [x] El webhook reconoce los 5 tipos (el sticker entra como imagen) y guarda el pie de foto
+  como cuerpo del mensaje. Antes una foto caia en el `default` del match y se guardaba como
+  **texto vacio**: la burbuja salia en blanco y el archivo se perdia. En un negocio de
+  prestamos eso son INE y comprobantes que nadie recibio.
+- [x] La descarga va en cola (`DownloadWhatsAppMedia`), no en el webhook: Meta corta la
+  conexion si tardamos y reintenta el aviso completo, asi que bajar un video de 16 MB ahi
+  adentro provocaria mensajes duplicados. El `media_id` vive 30 dias, por eso reintentar sirve
+  (lo que caduca en minutos es la URL, no el id).
+- [x] Los archivos van al disco `local` (`storage/app`), **nunca** a `public/`: ahi los abriria
+  cualquiera que adivine la URL, sin login.
+- [x] El nombre en disco lo inventamos nosotros. Un contacto puede mandar un archivo llamado
+  `../../.env`; el nombre que el eligio se guarda aparte, solo para mostrarlo.
+
+**Lo que no se puede recuperar:** los archivos que llegaron antes de esto. Solo se guardo el
+texto vacio, nunca el `media_id`, y del lado de Meta ya caducaron. Para dimensionarlo:
+`SELECT COUNT(*) FROM conversations WHERE direction='inbound' AND body=''`.
+
+### M0 - la plantilla de OTP (2026-10-28)
+
+Se adelanto a proposito: es lo unico del proyecto con espera que no controlamos. Sometida ahora,
+Meta revisa mientras se construye M3/M4; dejada para M5, el OTP se para en seco.
+
+- [x] Comando `wa:crear-plantilla-otp`, **dry-run por default** (`--enviar` para someterla de
+  verdad). Someter una plantilla no afecta el score de la cuenta - solo los rechazos repetidos
+  del mismo contenido - pero sigue siendo una accion sobre la cuenta del cliente.
+- [x] Al cliente `WhatsAppClient` se le agrego `postPath()`: `post()` esta clavado a
+  `/{phone_number_id}/messages` y los endpoints de administracion cuelgan de la WABA. La regla
+  de seguridad es que todo el HTTP a Meta pase por el cliente, no que haya un solo metodo.
+- [x] Documentado en `guia-meta.md` seccion 3.
+- [ ] **Pendiente de Alexis: correrlo con `--enviar`.** Luego `wa:sync-templates` cuando aprueben.
+- [ ] **Pendiente del cliente: la SIM dedicada** para el numero de OTP (M6).
+
+**Hallazgo que simplifica todo:** el texto de una plantilla de **Autenticacion** es **fijo**, lo
+pone Meta por idioma. No se escribe. Solo se configuran tres cosas: `add_security_recommendation`
+(la advertencia de no compartir), `code_expiration_minutes` (1-90) y el boton. No hay copy que
+revisar, asi que el riesgo de rechazo por redaccion es casi nulo. El `BODY` **no** lleva `text`:
+mandarlo hace que Meta rechace la peticion (es el error facil al copiar otra plantilla).
+
+**Decisiones de Alexis (2026-10-27):** OTP de **6 digitos**, la app del cliente es **Android**, y
+no se le van a pedir los datos tecnicos de la app.
+
+**Consecuencia de no tener los datos de la app:** el boton es **`COPY_CODE`**, no autocompletado.
+El autocompletado (`ONE_TAP`) exige `package_name` + `signature_hash` de la app Android. Con
+COPY_CODE el usuario toca el boton y pega el codigo - un paso mas, pero funciona en cualquier
+telefono, iPhone incluido. **Es reversible:** si algun dia dan esos datos, la plantilla se
+actualiza sin empezar de cero, porque el autocompletado siempre se cae a COPY_CODE cuando la
+verificacion falla.
+
+**Trampa anotada para M5:** los minutos del pie son **solo texto**. Que diga "caduca en 10
+minutos" no hace que caduque - eso lo tiene que cumplir nuestro API. Si no coinciden, el usuario
+lee una cosa y le pasa otra.
+
+**Dato para M5 al enviar el OTP:** segun las guias de proveedores, el codigo va **dos veces** en
+el payload de envio - como parametro del BODY y otra vez en un sub-componente de boton de tipo
+`coupon_code`. Verificarlo contra la doc de Meta al llegar ahi; es no obvio y va a morder.
+
+### M2 - verlos en el panel (2026-10-27)
+
+- [x] `GET /api/conversations/media/{conversationId}`: exige sesion, respeta lo del agente, y
+  no deja que el archivo se ejecute en nuestro dominio. Se descarto la URL firmada temporal: una
+  URL que funciona sin sesion se copia, se comparte y queda en el log de nginx.
+- [x] **Lista blanca de tipos que se abren en linea.** Un `image/svg+xml` o un `text/html` que un
+  contacto mande como documento SI ejecutan JavaScript en nuestro dominio si se abren en linea,
+  y ahi vive el token del operador. Todo lo que no este en la lista se descarga. El PDF se queda
+  en linea: el operador necesita revisar el comprobante y el visor del navegador lo aisla.
+- [x] El panel pide el archivo con `fetch` y lo convierte en una URL local (`blob:`), porque un
+  `<img src="/api/...">` no manda el encabezado de sesion. Las fotos se bajan **cuando entran a
+  la pantalla**, no al abrir la conversacion: en un chat con 50 fotos, bajarlas todas de golpe
+  tira decenas de peticiones a la vez.
+- [x] Burbuja por tipo: foto con miniatura y visor, nota de voz con reproductor, documento y
+  video como ficha descargable. Estados *descargando* y *no se pudo recibir*.
+- [x] La vista previa de la lista dice "Foto" / "Documento" cuando el mensaje no trae texto.
+- [x] **Hueco cerrado de paso:** `GET /api/conversations/{id}` no aplicaba la regla del agente.
+  La lista si le escondia lo que no era suyo, pero pidiendo el id a mano un agente leia el chat
+  completo de cualquier otro. La regla vive ahora en `Contact::scopeAsignadoA` /
+  `esVisibleEnConversacionesPara`, en un solo lugar para lista, detalle y archivos.
+
+**Pendiente de M2 (no bloquea):** el video se entrega como archivo descargable, no con
+reproductor en linea. El reproductor necesita soporte de `Range` y subir los limites del
+servidor (nginx y PHP estan en 8 MB); va en M4, que es la partida que lo cubre.
+
+### Mejoras de archivos - anotadas, NO programadas
+
+Decision de Alexis (2026-10-27): se dejan como mejoras y se ven si hacen falta cuando el cliente
+use el panel. No entran a una tanda todavia.
+
+- [ ] **Zoom en el visor de fotos.** Hoy la burbuja muestra 240 px y el visor crece hasta 760 px
+  de ancho (70% de la altura). No hay zoom. **El caso que lo pediria:** leer el CURP o un
+  domicilio en la letra chica de una INE fotografiada - a 760 px no se alcanza a leer, y el
+  operador tiene que descargar la foto y abrirla con el visor de su computadora. Dos salidas:
+  (A) boton "Abrir en pestana nueva", 3 lineas, da el zoom nativo del navegador (rueda para
+  acercar, arrastrar para moverse, resolucion completa); (B) componente `Image` de PrimeVue (ya
+  instalado, v4), trae zoom y **rotar** - rotar sirve porque la gente fotografia documentos de
+  lado - pero reemplaza el visor actual y se pierden el boton Descargar y el nombre en el
+  encabezado. Recomendado: A, y rotar aparte si lo piden.
+- [ ] **Miniatura de las fotos.** La burbuja baja el original (100-500 KB) y lo encoge con CSS.
+  Una miniatura WebP de 400 px pesaria 15-30 KB. **Importante: NO se comprime el original.**
+  WhatsApp ya comprime las fotos en el telefono antes de mandarlas (una de 5.68 MB llega como
+  1.43 MB, lo normal es entre 100 y 500 KB), asi que lo que recibimos ya es un JPEG con perdida;
+  volverlo a comprimir seria perdida generacional - tira detalle sobre el detalle ya tirado, y
+  ahorra casi nada. El diseno correcto es original intacto + miniatura aparte. **Esto gana
+  velocidad de pantalla, no disco:** si el 5% de los 14,908 contactos manda una foto al mes son
+  ~224 MB/mes (~2.7 GB/ano) sobre 192 GB libres. Se decidio esperar a **M3**, donde una libreria
+  de imagenes deja de ser opcional (ver abajo).
+
+### Topes de Meta - verificados en su documentacion (2026-10-27)
+
+Esto es lo que un contacto nos puede mandar. Fuente: doc oficial de Cloud API, no blogs.
+
+| Tipo | Tope | Formatos |
+|---|---|---|
+| Imagen | **5 MB** | JPEG, PNG (8-bit RGB/RGBA) |
+| Audio | **16 MB** | AAC, AMR, MP3, M4A, OGG/Opus |
+| Video | **16 MB** | MP4, 3GPP (H.264 + AAC) |
+| **Documento** | **100 MB** | PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, TXT |
+| Sticker | 100 KB estatico / 500 KB animado | WebP |
+
+- **Codigo de error nuevo: `131052`** - archivo entrante que pasa de 100 MB. NO esta en nuestro
+  catalogo de errores traducidos (`DeliveryReason`), asi que hoy saldria en ingles al operador.
+- **El peso NO esta en las fotos, esta en los documentos.** Un PDF de 40 MB pesa como 133 fotos,
+  y un PDF no se comprime sin rasterizarlo (deja de ser texto seleccionable y se ve borroso al
+  hacer zoom, justo donde importan las cifras de un comprobante). El disco se controla con tope
+  de tamano y retencion, no comprimiendo.
+
+### Riesgos abiertos de M1/M2 - sin arreglar
+
+- [x] **RESUELTO (2026-10-27): la descarga baja a disco, no a memoria.** `downloadMedia` usa
+  `Http::sink()` y devuelve la **ruta** de un temporal en vez del contenido; `MediaStore` tiene
+  un `guardarArchivo()` que lo **mueve** en lugar de releerlo (releerlo anularia el streaming
+  justo en el ultimo paso). Un documento de 100 MB usa ahora la misma memoria que uno de 1 MB.
+  - **Correccion de lo que se dijo antes:** se afirmo que el worker podia "atorar la cola de
+    envios". Al verificar la configuracion real (`queue:work --tries=3 --max-time=3600`, sin
+    `--memory`), si un job revienta por memoria **Supervisor revive el worker en segundos**: la
+    cola no se queda trabada. El costo real era el archivo perdido y ruido en el log. Era
+    menos grave de lo que se pinto.
+  - **El tope quedo en 100 MB, no en 20.** Se propuso 20 MB como medida de seguridad, pero con
+    streaming el tamano ya no es un riesgo de memoria, asi que el tope paso a ser decision de
+    disco - y ahi 20 MB **rechazaria comprobantes legitimos** (un PDF de varias paginas
+    escaneado con el telefono llega facil a 15-25 MB). Se puso el mismo limite de Meta para
+    documentos: nunca rechazamos algo que Meta si acepto. **Alexis lo confirmo en 100 el
+    2026-10-27** ("tenemos buen espacio"), sabiendo que nuestro tope ahi casi nunca se va a
+    disparar - Meta ya rechaza lo que pasa de 100 MB con el `131052` antes de que nos llegue.
+    Se queda como red por si Meta sube su limite (en la app de consumidor ya van en 2 GB) y
+    porque el disco es nuestro, no de un tercero. El disco se controla con la retencion, no
+    rechazando archivos. **No volver a proponer bajarlo sin un argumento nuevo.**
+  - **El tope se revisa ANTES de bajar un byte.** El codigo ya pedia la ficha del archivo a
+    Meta, y ahi viene `file_size`. Rechazar algo monstruoso no cuesta ni ancho de banda ni
+    tiempo. Hay test de que la URL de descarga no se pide.
+  - **El temporal vive bajo `storage/app/tmp/media`**, el mismo sistema de archivos que su
+    destino, para que moverlo sea instantaneo (solo cambia el nombre). Entre dos discos
+    distintos `rename` falla y PHP tendria que copiar byte por byte; hay respaldo para ese caso.
+  - **Basura: `media:limpiar-temporales`** (scheduler, diario 04:30). Los fallos previsibles ya
+    borran su temporal en codigo (la descarga y el job), pero ningun `try/catch` alcanza que al
+    worker lo maten en seco - `kill -9`, memoria agotada, reinicio del servidor. Ahi el `.part`
+    se quedaria para siempre sin nombre por el que buscarlo. Borra lo de mas de 24h; una
+    descarga en curso no se toca (su tope es de 120 segundos).
+  - **`131052` ya esta en `DeliveryReason`** (archivo entrante > 100 MB). Antes ese caso habria
+    salido en ingles al operador.
+  - **El aviso de la burbuja se reescribio.** Decia "pidele al contacto que lo reenvie", que es
+    mal consejo si el archivo se rechazo por pesado: volveria a llegar igual de pesado. Ahora
+    nombra las dos causas. La guia del operador quedo alineada.
+  - Sigue sin probarse con un archivo grande de verdad en produccion: lo que hay son 14 tests
+    (`MediaDownloadStreamingTest`), que es otra cosa.
+- [ ] **Nada borra nunca.** El plazo de retencion lo definira el cliente al final, pero el
+  mecanismo tampoco existe. Conviene tener el comando listo y apagado en vez de acordarse con el
+  disco al 90%. La ruta de guardado ya quedo preparada para esto: `media/ANO/MES/{contacto}/`
+  permite borrar por fecha y tambien todo lo de una persona de golpe (derecho de supresion).
+- [ ] **Libreria de imagenes: se decide en M3, no antes.** En M3 el operador va a subir fotos de
+  su telefono de 8-12 MB y **el tope de Meta para imagen es 5 MB**: sin redimensionar, el envio
+  falla. Ahi el procesamiento deja de ser mejora y pasa a requisito. Ojo con el precedente:
+  `TemplateImage::MAX_KB = 5120` y el controlador **rechaza** lo que se pasa - para la imagen de
+  plantilla esta bien (la sube un admin una vez), pero en M3 rechazar significa decirle al
+  operador "no puedes mandar la foto que tienes", y eso choca con el principio de ser a prueba de
+  errores del cliente. Opciones evaluadas: **GD** (ya viene en PHP, un `apt install php8.2-gd`,
+  sin FFI; es el mas flojo de los tres pero hace el unico trabajo que se necesita - reducir y
+  guardar; **trampa: `imagewebp()` falla en silencio y escribe un archivo corrupto si PHP no se
+  compilo con WebP**, o sea que funciona en local y se rompe en el VPS si no se verifica);
+  **Imagick** (mas formatos, y `jpeg:size` decodifica ya reducido = memoria plana, aunque esa
+  evidencia son notas de usuarios del manual, no doc oficial); **libvips** (el mejor en memoria y
+  velocidad, su autor reporta 4x mas rapido y 10x menos memoria que Imagick, pero necesita FFI y
+  compilar - resuelve un problema de volumen que a esta escala no tenemos). Con GD hay que leer
+  las dimensiones con `getimagesize()` **antes** de decodificar (solo lee el encabezado) y
+  saltarse la miniatura si el conteo de pixeles es absurdo, para acotar la memoria por diseno.

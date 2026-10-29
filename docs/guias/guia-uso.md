@@ -574,6 +574,30 @@ al primer sitio, taparía a quien lleva horas esperando y que sí falta atender.
 texto; luego envías. *(El administrador puede crear y borrar estas respuestas rápidas desde el
 panel derecho.)*
 
+### Fotos y archivos que te mandan
+
+Si un contacto te manda una **foto**, un **documento** (su INE, un comprobante), una **nota de
+voz** o un **video**, lo ves dentro de la conversación:
+
+- **Fotos**: se ven en la burbuja. Clic en la foto para verla en grande, y ahí hay un botón
+  **Descargar** para guardarla en tu computadora.
+- **Documentos y videos**: aparece una ficha con el nombre del archivo y su peso. Clic en el
+  botón de descarga y se abre en otra pestaña.
+- **Notas de voz**: se reproducen desde la burbuja con el botón de play.
+
+Si el contacto escribió algo junto con la foto, ese texto sale debajo de la imagen.
+
+**Dos avisos que puedes ver en lugar del archivo:**
+
+| Lo que dice | Qué significa | Qué hacer |
+|---|---|---|
+| *Descargando archivo...* | Acaba de llegar y se está guardando. Tarda unos segundos. | Esperar. Se cambia solo, sin recargar. |
+| *No se pudo recibir este archivo* | Dos causas: el archivo pasa del tope de WhatsApp (100 MB), o WhatsApp ya no lo tiene disponible. | Pedirle que lo mande más ligero, en partes, o por otro medio. Si era un archivo chico, pedirle que lo reenvíe. |
+
+> 🔒 **Los archivos son privados.** Solo se abren estando dentro del panel, y un agente
+> únicamente ve los de las conversaciones que tiene asignadas. No hay forma de pasarle a nadie
+> un enlace al archivo: para verlo hay que entrar al panel.
+
 ### Quién atiende cada conversación (multi-agente)
 
 Varias personas pueden atender conversaciones a la vez. Para que no se pisen, cada conversación

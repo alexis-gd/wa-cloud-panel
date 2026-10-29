@@ -25,7 +25,7 @@ class ConversationController extends Controller
     {
     }
 
-    // GET /api/conversations — lista de contactos con conversaciones abiertas
+    // GET /api/conversations - lista de contactos con conversaciones abiertas
     public function index(Request $request): JsonResponse
     {
         /** @var \App\Models\User $authUser */
@@ -60,13 +60,11 @@ class ConversationController extends Controller
                     ->whereRaw('conversations.created_at > COALESCE(contacts.conversation_read_at, ?)', ['1000-01-01 00:00:00']),
             ]);
 
-        // Agentes solo ven conversaciones que tienen asignadas
+        // Agentes solo ven las conversaciones que tienen asignadas. La regla vive en el modelo
+        // (ver `Contact::scopeAsignadoA`) porque el detalle y la descarga de archivos la
+        // necesitan igual, y cuando estaba suelta aquí el detalle se quedó sin ella.
         if ($authUser->role === 'agent') {
-            $query->whereHas('assignments', function ($q) use ($authUser) {
-                // La asignación más reciente debe ser a este agente
-                $q->where('user_id', $authUser->id)
-                  ->whereRaw('id = (SELECT MAX(id) FROM conversation_assignments ca2 WHERE ca2.contact_id = conversation_assignments.contact_id)');
-            });
+            $query->asignadoA($authUser);
         }
 
         $contacts = $query->get()
@@ -76,7 +74,11 @@ class ConversationController extends Controller
                 'phone'           => $c->phone,
                 'status'          => $c->status,
                 'snoozed_until'   => $c->snoozed_until,
-                'last_message'    => $c->latestConversation?->body,
+                // Una foto sin pie de foto llega con el cuerpo vacío: sin el respaldo la fila
+                // salía en blanco y no se notaba que había mensaje nuevo.
+                'last_message'    => $c->latestConversation?->body !== ''
+                    ? $c->latestConversation?->body
+                    : Conversation::etiquetaDeTipo($c->latestConversation?->message_type),
                 'last_message_at' => $c->latestConversation?->created_at,
                 // Quién escribió el último mensaje. El operador necesita distinguir "el cliente
                 // me escribió y espera" de "ya le contestó un compañero", que desde la lista se
@@ -103,7 +105,7 @@ class ConversationController extends Controller
     }
 
     /**
-     * GET /api/conversations/assignable-users — a quién se le puede pasar una conversación.
+     * GET /api/conversations/assignable-users - a quién se le puede pasar una conversación.
      *
      * Existe porque el desplegable de "Asignar a" se llenaba con `GET /users`, que es solo
      * admin: al operador le respondía 403 y el selector salía en "No available options",
@@ -120,7 +122,7 @@ class ConversationController extends Controller
         return response()->json(['status' => 'ok', 'data' => $users]);
     }
 
-    // POST /api/conversations/{contactId}/assign — asignar a un agente (admin/operator)
+    // POST /api/conversations/{contactId}/assign - asignar a un agente (admin/operator)
     public function assign(Request $request, int $contactId): JsonResponse
     {
         $request->validate(['user_id' => 'required|integer|exists:users,id']);
@@ -164,7 +166,7 @@ class ConversationController extends Controller
         ]);
     }
 
-    // POST /api/conversations/{contactId}/release — dejarla sin asignar (admin/operator)
+    // POST /api/conversations/{contactId}/release - dejarla sin asignar (admin/operator)
     public function release(Request $request, int $contactId): JsonResponse
     {
         $contact = Contact::find($contactId);
@@ -180,7 +182,7 @@ class ConversationController extends Controller
         return response()->json(['status' => 'ok', 'data' => ['assigned_to' => null]]);
     }
 
-    // GET /api/conversations/{contactId}/history — quién la ha tenido y quién la movió
+    // GET /api/conversations/{contactId}/history - quién la ha tenido y quién la movió
     public function history(int $contactId): JsonResponse
     {
         $contact = Contact::find($contactId);
@@ -205,7 +207,7 @@ class ConversationController extends Controller
         return response()->json(['status' => 'ok', 'data' => $movimientos]);
     }
 
-    // POST /api/conversations/{contactId}/claim — el agente se autoasigna
+    // POST /api/conversations/{contactId}/claim - el agente se autoasigna
     public function claim(Request $request, int $contactId): JsonResponse
     {
         $contact = Contact::find($contactId);
@@ -233,10 +235,20 @@ class ConversationController extends Controller
         ]);
     }
 
-    // GET /api/conversations/{contactId} — historial de chat con un contacto
-    public function show(int $contactId): JsonResponse
+    // GET /api/conversations/{contactId} - historial de chat con un contacto
+    public function show(Request $request, int $contactId): JsonResponse
     {
         $contact = Contact::findOrFail($contactId);
+
+        // La lista ya le escondía al agente lo que no es suyo, pero este endpoint no: pedir
+        // `/api/conversations/{id}` a mano devolvía la conversación de cualquiera. Se responde
+        // 404 y no 403 a propósito: un 403 confirmaría que ese contacto existe.
+        if (! $contact->esVisibleEnConversacionesPara($request->user())) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Contacto no encontrado.',
+            ], 404);
+        }
 
         // Asignación actual (más reciente) para que el panel derecho la muestre y se
         // sincronice en vivo al refetch el chat. Ordena por `id`, igual que el listado y el
@@ -257,6 +269,14 @@ class ConversationController extends Controller
                 'body'         => $m->body,
                 'status'       => $m->status,
                 'created_at'   => $m->created_at,
+                // Datos del archivo adjunto, si lleva. `media_status` es lo que deja a la
+                // burbuja decir "descargando" en vez de mostrarse rota: la descarga ocurre en
+                // una cola, después de que el webhook ya respondió.
+                // El contenido NO va aquí - se pide aparte a la ruta autenticada de descarga.
+                'media_status'   => $m->media_status,
+                'media_mime'     => $m->media_mime,
+                'media_size'     => $m->media_size,
+                'media_filename' => $m->media_filename,
             ]);
 
         $windowOpen = Conversation::where('contact_id', $contactId)
@@ -289,7 +309,7 @@ class ConversationController extends Controller
         ]);
     }
 
-    // POST /api/conversations/{contactId}/messages — enviar mensaje desde el panel
+    // POST /api/conversations/{contactId}/messages - enviar mensaje desde el panel
     public function send(Request $request, int $contactId, WhatsAppClient $client): JsonResponse
     {
         $request->validate(['body' => 'required|string|max:1024']);
@@ -422,7 +442,7 @@ class ConversationController extends Controller
         ], 201);
     }
 
-    // GET /api/quick-replies — catálogo de respuestas rápidas
+    // GET /api/quick-replies - catálogo de respuestas rápidas
     public function quickReplies(): JsonResponse
     {
         $replies = QuickReply::orderBy('sort_order')->get(['id', 'title', 'body']);
@@ -430,7 +450,7 @@ class ConversationController extends Controller
         return response()->json(['status' => 'ok', 'data' => $replies]);
     }
 
-    // POST /api/quick-replies — crear respuesta rápida (solo admin)
+    // POST /api/quick-replies - crear respuesta rápida (solo admin)
     public function storeQuickReply(Request $request): JsonResponse
     {
         $request->validate([
@@ -444,7 +464,7 @@ class ConversationController extends Controller
         return response()->json(['status' => 'ok', 'data' => $reply], 201);
     }
 
-    // DELETE /api/quick-replies/{id} — eliminar respuesta rápida (solo admin)
+    // DELETE /api/quick-replies/{id} - eliminar respuesta rápida (solo admin)
     public function destroyQuickReply(int $id): JsonResponse
     {
         QuickReply::findOrFail($id)->delete();

@@ -441,6 +441,36 @@ aprueba un contenido y el sistema debe entregar ese mismo.</p>
 mensaje real: se cobra y deja a ese contacto en enfriamiento.</li>
 <li><strong>Usarla en una campaña</strong>.</li>
 </ol>
+<h3 id="la-plantilla-de-codigos-de-verificacion-otp-es-distinta">La plantilla de códigos de verificación (OTP) es distinta</h3>
+<p>Esta no se crea igual que las demás y conviene saber por qué, porque si alguien intenta crearla
+como una plantilla normal, Meta la rechaza.</p>
+<p><strong>El texto no se escribe: lo pone Meta.</strong> Las plantillas de categoría <strong>Autenticación</strong> tienen
+redacción fija por idioma. Nosotros solo elegimos tres cosas: si lleva la advertencia de no
+compartir el código, en cuántos minutos dice que caduca, y qué botón trae. No hay copy que
+revisar, y por eso el riesgo de que la rechacen por redacción es casi nulo.</p>
+<p>Así le llega al usuario:</p>
+<pre><code>123456 es tu código de verificación.
+Por tu seguridad, no lo compartas.
+Este código caduca en 10 minutos.
+[ Copiar código ]
+</code></pre>
+<p><strong>El botón es &quot;Copiar código&quot;, no autocompletado.</strong> WhatsApp puede meter el código solo en la
+app (se llama autocompletado), pero para eso Meta exige dos datos técnicos de la app Android del
+cliente: el nombre del paquete y la firma del certificado. No los tenemos. Con &quot;Copiar código&quot;
+el usuario toca el botón y lo pega en la app - un paso más, pero funciona en cualquier teléfono,
+iPhone incluido.</p>
+<p>Si algún día el cliente nos da esos datos, la plantilla se puede actualizar sin empezar de cero:
+el autocompletado siempre se cae al botón de copiar cuando la verificación falla, así que ese
+botón nunca se pierde.</p>
+<p><strong>Se somete con un comando, no a mano:</strong> <code>php artisan wa:crear-plantilla-otp</code>. Sin más nada solo
+imprime lo que se le enviaría a Meta, sin mandar nada. Para someterla de verdad se agrega
+<code>--enviar</code>. Va por comando y no por el Administrador de WhatsApp para que la configuración quede
+igual cada vez, y para poder repetirla si hubiera que volver a someterla.</p>
+<blockquote>
+<p>⚠️ <strong>Los minutos del mensaje son solo texto.</strong> Que diga &quot;caduca en 10 minutos&quot; no hace que
+caduque: eso lo tiene que cumplir el sistema que genera el código. Si no coinciden, el usuario
+lee una cosa y le pasa otra.</p>
+</blockquote>
 <hr />
 <h2 id="4-palabras-clave-que-el-sistema-entiende-lo-mas-importante">4. Palabras clave que el sistema entiende (lo más importante)</h2>
 <p><strong>Esta es la sección más crítica de toda la guía.</strong> El sistema reacciona a las respuestas

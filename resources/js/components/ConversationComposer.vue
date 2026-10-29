@@ -13,11 +13,36 @@
                     {{ qr.title }}
                 </button>
             </div>
+            <!-- La foto elegida, antes de mandarla. Se ve para que el operador confirme que
+                 es la que queria: una vez enviada no hay forma de retirarla. -->
+            <div v-if="foto" class="adjunto">
+                <img :src="fotoUrl" alt="" class="adjunto-img" />
+                <div class="adjunto-datos">
+                    <span class="adjunto-nombre">{{ foto.name }}</span>
+                    <span class="adjunto-peso">{{ pesoFoto }}</span>
+                </div>
+                <Button
+                    icon="pi pi-times"
+                    text
+                    size="small"
+                    :disabled="sending"
+                    v-tooltip.top="'Quitar'"
+                    @click="quitarFoto"
+                />
+            </div>
+
             <div class="input-row">
+                <Button
+                    icon="pi pi-image"
+                    text
+                    :disabled="!windowOpen || sending"
+                    v-tooltip.top="'Enviar una foto'"
+                    @click="elegirFoto"
+                />
                 <Textarea
                     v-model="texto"
                     :disabled="!windowOpen"
-                    placeholder="Escribe tu mensaje..."
+                    :placeholder="foto ? 'Texto de la foto (opcional)...' : 'Escribe tu mensaje...'"
                     :autoResize="true"
                     rows="1"
                     class="msg-input"
@@ -26,11 +51,23 @@
                 <Button
                     icon="pi pi-send"
                     :loading="sending"
-                    :disabled="!texto.trim() || !windowOpen"
+                    :disabled="!puedeEnviar"
                     @click="enviar"
                 />
             </div>
-            <p v-if="windowOpen" class="input-hint">Enter para enviar · Shift+Enter para nueva línea</p>
+
+            <input
+                ref="selector"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                class="selector-oculto"
+                @change="alElegir"
+            />
+
+            <p v-if="windowOpen" class="input-hint">
+                <template v-if="foto">El texto va como pie de la foto · Enter para enviar</template>
+                <template v-else>Enter para enviar · Shift+Enter para nueva línea</template>
+            </p>
         </template>
     </div>
 </template>
@@ -49,9 +86,10 @@
  * solo avisa qué escribió. Y no se limpia solo al enviar: el padre llama a `limpiar()` si el
  * envío salió bien, para que un fallo de red no le borre al operador lo que ya había escrito.
  */
-import { ref } from 'vue';
+import { ref, computed, onBeforeUnmount } from 'vue';
 import Textarea from 'primevue/textarea';
 import Button   from 'primevue/button';
+import { formatPeso } from '../media.js';
 
 defineProps({
     windowOpen  : { type: Boolean, default: false },
@@ -60,13 +98,56 @@ defineProps({
     quickReplies: { type: Array,   default: () => [] },
 });
 
-const emit = defineEmits(['send']);
+const emit = defineEmits(['send', 'send-image']);
 
-const texto = ref('');
+const texto    = ref('');
+const foto     = ref(null);
+const fotoUrl  = ref(null);
+const selector = ref(null);
+
+const pesoFoto    = computed(() => (foto.value ? formatPeso(foto.value.size) : ''));
+const puedeEnviar = computed(() => !!(foto.value || texto.value.trim()));
+
+function elegirFoto() {
+    selector.value?.click();
+}
+
+function alElegir(e) {
+    const elegida = e.target.files?.[0];
+
+    // Se limpia el input o elegir dos veces la misma foto seguidas no dispara el evento.
+    e.target.value = '';
+
+    if (! elegida) return;
+
+    soltarUrl();
+    foto.value    = elegida;
+    fotoUrl.value = URL.createObjectURL(elegida);
+}
+
+function quitarFoto() {
+    soltarUrl();
+    foto.value = null;
+}
+
+/** Sin esto el navegador se queda la foto en memoria mientras viva la pestana. */
+function soltarUrl() {
+    if (fotoUrl.value) URL.revokeObjectURL(fotoUrl.value);
+    fotoUrl.value = null;
+}
 
 function enviar() {
     const limpio = texto.value.trim();
-    if (!limpio) return;
+
+    // Con foto, el texto es el pie y puede ir vacio. Sin foto, un mensaje vacio no se manda.
+    if (foto.value) {
+        emit('send-image', { file: foto.value, caption: limpio });
+
+        return;
+    }
+
+    if (! limpio) return;
+
     emit('send', limpio);
 }
 
@@ -74,10 +155,13 @@ function usar(qr) {
     texto.value = qr.body;
 }
 
-/** La llama el padre cuando el mensaje sí salió. */
+/** La llama el padre cuando el mensaje si salio. */
 function limpiar() {
     texto.value = '';
+    quitarFoto();
 }
+
+onBeforeUnmount(soltarUrl);
 
 defineExpose({ limpiar });
 </script>
@@ -99,6 +183,22 @@ defineExpose({ limpiar });
   cursor: pointer; color: var(--p-text-color); transition: background .12s;
 }
 .qr-chip:hover { background: var(--p-primary-100); color: var(--p-primary-700); }
+
+.selector-oculto { display: none; }
+
+.adjunto {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px; margin-bottom: 8px;
+  border: 1px solid var(--p-content-border-color); border-radius: 8px;
+  background: var(--p-surface-50);
+}
+.adjunto-img    { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+.adjunto-datos  { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.adjunto-nombre {
+  font-size: .78rem; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.adjunto-peso   { font-size: .68rem; color: var(--p-text-muted-color); }
 
 .input-row  { display: flex; gap: 8px; align-items: flex-end; }
 .msg-input  { flex: 1; }

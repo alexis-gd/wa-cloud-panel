@@ -101,7 +101,7 @@ class ConversationControllerTest extends TestCase
         $this->openWindow();
         $this->mockSuccessfulClient();
 
-        $this->actingAsAgent()
+        $this->actingAsOperator()
             ->postJson("/api/conversations/{$this->contact->id}/messages", [
                 'body' => 'Hola, ¿cómo le podemos ayudar?',
             ])
@@ -121,7 +121,7 @@ class ConversationControllerTest extends TestCase
     public function test_send_con_ventana_cerrada_devuelve_422_window_closed(): void
     {
         // Sin mensajes inbound recientes → ventana cerrada
-        $this->actingAsAgent()
+        $this->actingAsOperator()
             ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
             ->assertStatus(422)
             ->assertJsonPath('status', 'error')
@@ -132,7 +132,7 @@ class ConversationControllerTest extends TestCase
     {
         $this->createOldInbound();
 
-        $this->actingAsAgent()
+        $this->actingAsOperator()
             ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
             ->assertStatus(422)
             ->assertJsonPath('code', 'WINDOW_CLOSED');
@@ -142,7 +142,7 @@ class ConversationControllerTest extends TestCase
     {
         $this->contact->update(['status' => 'opted_out']);
 
-        $this->actingAsAgent()
+        $this->actingAsOperator()
             ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
             ->assertStatus(422)
             ->assertJsonPath('status', 'error')
@@ -154,7 +154,7 @@ class ConversationControllerTest extends TestCase
         $this->openWindow();
         $this->phone->update(['is_active' => false]);
 
-        $this->actingAsAgent()
+        $this->actingAsOperator()
             ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
             ->assertStatus(500)
             ->assertJsonPath('status', 'error')
@@ -165,7 +165,7 @@ class ConversationControllerTest extends TestCase
     {
         $this->openWindow();
 
-        $this->actingAsAgent()
+        $this->actingAsOperator()
             ->postJson("/api/conversations/{$this->contact->id}/messages", [])
             ->assertStatus(422);
     }
@@ -420,16 +420,52 @@ class ConversationControllerTest extends TestCase
         $this->getJson("/api/conversations/{$this->contact->id}")->assertStatus(200);
     }
 
-    public function test_agent_puede_enviar_mensajes(): void
+    public function test_agent_puede_enviar_mensajes_en_su_conversacion(): void
     {
         $this->openWindow();
         $this->mockSuccessfulClient();
 
+        $agente = User::factory()->create(['role' => 'agent', 'is_active' => true]);
+        Sanctum::actingAs($agente);
+
+        ConversationAssignment::create([
+            'contact_id'     => $this->contact->id,
+            'user_id'        => $agente->id,
+            'assigned_by_id' => null,
+            'action'         => ConversationAssignment::ACTION_AUTO,
+            'assigned_at'    => now(),
+        ]);
+
+        $this->postJson("/api/conversations/{$this->contact->id}/messages", [
+            'body' => 'Mensaje de agente',
+        ])->assertStatus(201);
+    }
+
+    /**
+     * El hueco que faltaba: la regla del agente estaba en la lista y en el detalle, pero no en
+     * el envio. Un agente podia CONTESTARLE a un contacto que atiende otro, apuntando su id.
+     * Peor que leerlo: el contacto recibe el mensaje y la conversacion ajena queda alterada.
+     */
+    public function test_agent_no_puede_enviar_en_la_conversacion_de_otro(): void
+    {
+        $this->openWindow();
+        $this->mockSuccessfulClient();
+
+        $otro = User::factory()->create(['role' => 'agent', 'is_active' => true]);
+
+        ConversationAssignment::create([
+            'contact_id'     => $this->contact->id,
+            'user_id'        => $otro->id,
+            'assigned_by_id' => null,
+            'action'         => ConversationAssignment::ACTION_AUTO,
+            'assigned_at'    => now(),
+        ]);
+
         $this->actingAsAgent()
-            ->postJson("/api/conversations/{$this->contact->id}/messages", [
-                'body' => 'Mensaje de agente',
-            ])
-            ->assertStatus(201);
+            ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
+            ->assertStatus(404);
+
+        $this->assertDatabaseMissing('conversations', ['body' => 'Hola', 'direction' => 'outbound']);
     }
 
     public function test_send_con_numero_pausado_devuelve_422_phone_paused(): void
@@ -437,7 +473,7 @@ class ConversationControllerTest extends TestCase
         $this->openWindow();
         $this->phone->update(['paused_until' => now()->addHours(1)]);
 
-        $response = $this->actingAsAgent()
+        $response = $this->actingAsOperator()
             ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
             ->assertStatus(422)
             ->assertJsonPath('status', 'error')
@@ -457,7 +493,7 @@ class ConversationControllerTest extends TestCase
             'delivery_error_title' => 'Quality rate limit hit',
         ]);
 
-        $response = $this->actingAsAgent()
+        $response = $this->actingAsOperator()
             ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
             ->assertStatus(422)
             ->assertJsonPath('code', 'DELIVERY_BLOCKED');
@@ -475,7 +511,7 @@ class ConversationControllerTest extends TestCase
             'status'    => 'delivered',
         ]);
 
-        $this->actingAsAgent()
+        $this->actingAsOperator()
             ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
             ->assertStatus(201);
     }
@@ -492,7 +528,7 @@ class ConversationControllerTest extends TestCase
             'delivery_error_code' => null,
         ]);
 
-        $this->actingAsAgent()
+        $this->actingAsOperator()
             ->postJson("/api/conversations/{$this->contact->id}/messages", ['body' => 'Hola'])
             ->assertStatus(201);
     }

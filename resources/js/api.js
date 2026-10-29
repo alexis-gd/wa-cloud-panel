@@ -377,6 +377,39 @@ export const api = {
         return { status: 'ok', url: URL.createObjectURL(blob), blob, inline: enLinea };
     },
 
+    /**
+     * Manda una imagen al contacto.
+     *
+     * No usa `request()` porque va multipart: poner `Content-Type: application/json` romperia
+     * el `boundary` que arma el navegador. Pero `Accept: application/json` SI va, o Laravel
+     * responde los errores de validacion con un redirect en vez de 422.
+     */
+    sendConversationMedia: (contactId, file, caption) => {
+        const formData = new FormData();
+
+        formData.append('file', file);
+        if (caption) formData.append('caption', caption);
+
+        const token = getToken();
+
+        return fetch(`${BASE}/conversations/${contactId}/media`, {
+            method : 'POST',
+            headers: {
+                'Accept': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: formData,
+        })
+            .then(async (res) => {
+                const data = await res.json().catch(() => ({}));
+
+                return res.ok
+                    ? data
+                    : { status: 'error', message: data.message ?? 'No se pudo enviar la imagen.' };
+            })
+            .catch(() => ({ status: 'error', message: 'No se pudo conectar con el servidor.' }));
+    },
+
     sendMessage: (contactId, body) => request(`/conversations/${contactId}/messages`, {
         method : 'POST',
         body   : JSON.stringify({ body }),

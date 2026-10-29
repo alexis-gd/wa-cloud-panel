@@ -7,13 +7,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationAssignment;
-use App\Models\MessageLog;
-use App\Models\PhoneNumber;
 use App\Models\QuickReply;
 use App\Models\User;
 use App\Services\AssignmentService;
 use App\Services\StatusLabels;
 use App\Services\WhatsApp\MediaStore;
+use App\Services\WhatsApp\OutboundGuard;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -318,85 +317,41 @@ class ConversationController extends Controller
     }
 
     // POST /api/conversations/{contactId}/messages - enviar mensaje desde el panel
-    public function send(Request $request, int $contactId, WhatsAppClient $client): JsonResponse
+    public function send(
+        Request $request,
+        int $contactId,
+        WhatsAppClient $client,
+        OutboundGuard $guard,
+    ): JsonResponse
     {
         $request->validate(['body' => 'required|string|max:1024']);
 
         $contact = Contact::findOrFail($contactId);
 
-        if ($contact->status === 'opted_out') {
+        // Misma regla que para leer el chat: un agente solo atiende lo suyo. Faltaba aqui: se
+        // podia contestarle a cualquier contacto apuntando su id, aunque el chat fuera de otro
+        // agente. Se responde 404 y no 403 para no confirmar que ese contacto existe.
+        if (! $contact->esVisibleEnConversacionesPara($request->user())) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'El contacto tiene opt-out activo.',
-                'code'    => 'OPTED_OUT',
-            ], 422);
+                'message' => 'Contacto no encontrado.',
+            ], 404);
         }
 
-        // Bloquear si el último mensaje a este contacto fue un fallo de entrega conocido
-        $lastLog = MessageLog::where('to_number', $contact->phone)
-            ->whereIn('status', ['failed', 'sent', 'delivered', 'read'])
-            ->latest('updated_at')
-            ->first();
+        // Las reglas de envio viven en el guardia, no aqui: son las mismas para un texto y
+        // para una imagen, y si una se olvidara en uno de los dos caminos el agujero no se
+        // veria hasta que Meta reaccionara.
+        $permiso = $guard->revisar($contact);
 
-        if ($lastLog && $lastLog->status === 'failed' && $lastLog->delivery_error_code) {
-            // Si el contacto respondió después del fallo, el bloqueo no aplica
-            $repliedAfterFailure = Conversation::where('contact_id', $contactId)
-                ->where('direction', 'inbound')
-                ->where('created_at', '>', $lastLog->updated_at)
-                ->exists();
-
-            if (!$repliedAfterFailure) {
-                $friendlyErrors = [
-                    131049 => 'Meta bloqueó temporalmente las entregas a este número por calidad. Intenta más tarde.',
-                    131048 => 'Meta detectó actividad inusual. Los mensajes a este número están pausados.',
-                    131026 => 'Este número no tiene WhatsApp activo.',
-                    368    => 'La cuenta de WhatsApp fue bloqueada temporalmente por Meta.',
-                    470    => 'La plantilla usada no fue aprobada por Meta.',
-                ];
-                $reason = $friendlyErrors[$lastLog->delivery_error_code]
-                    ?? 'El último mensaje a este contacto no fue entregado por Meta.';
-
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => "No se puede enviar: {$reason}",
-                    'code'    => 'DELIVERY_BLOCKED',
-                ], 422);
-            }
-        }
-
-        // Verificar ventana de 24h
-        $windowOpen = Conversation::where('contact_id', $contactId)
-            ->where('direction', 'inbound')
-            ->where('created_at', '>=', now()->subHours(24))
-            ->exists();
-
-        if (!$windowOpen) {
+        if (! $permiso['ok']) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'La ventana de 24h está cerrada. Usa una plantilla para reabrir la conversación.',
-                'code'    => 'WINDOW_CLOSED',
-            ], 422);
+                'message' => $permiso['message'],
+                'code'    => $permiso['code'],
+            ], $permiso['status']);
         }
 
-        // Obtener número de envío activo
-        $phoneNumber = PhoneNumber::where('is_active', true)->first();
-
-        if (!$phoneNumber) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'No hay número de WhatsApp activo configurado.',
-                'code'    => 'NO_PHONE_NUMBER',
-            ], 500);
-        }
-
-        if ($phoneNumber->isPaused()) {
-            $retryAt = $phoneNumber->paused_until->setTimezone('America/Mexico_City')->format('g:i A');
-            return response()->json([
-                'status'  => 'error',
-                'message' => "Este número no puede recibir mensajes ahora. Meta bloqueó temporalmente las entregas. Vuelve a intentarlo después de las {$retryAt}.",
-                'code'    => 'PHONE_PAUSED',
-            ], 422);
-        }
+        $phoneNumber = $permiso['phone'];
 
         $payload = [
             'messaging_product' => 'whatsapp',

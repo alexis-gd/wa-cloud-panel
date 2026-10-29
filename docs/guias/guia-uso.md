@@ -587,10 +587,12 @@ voz** o un **video**, lo ves dentro de la conversación:
 
 - **Fotos**: se ven en la burbuja. Clic en la foto para verla en grande, y ahí hay un botón
   **Descargar** para guardarla en tu computadora.
-- **Documentos y videos**: aparece una ficha con el nombre del archivo y su peso. El botón de
-  la derecha te dice qué va a hacer: si tiene el icono de **pestaña**, lo abre para verlo; si
-  tiene el de **descarga**, lo guarda en tu computadora. Hay archivos que el sistema no abre
-  dentro del panel por seguridad, y esos siempre se descargan.
+- **Videos**: sale una carátula con el botón de **Ver video**. Se descarga al darle clic, no
+  antes, porque un video pesa y casi nunca se ven todos. Después se reproduce ahí mismo.
+- **Documentos**: aparece una ficha con el nombre del archivo y su peso. El botón de la derecha
+  te dice qué va a hacer: si tiene el icono de **pestaña**, lo abre para verlo; si tiene el de
+  **descarga**, lo guarda en tu computadora. Hay archivos que el sistema no abre dentro del
+  panel por seguridad, y esos siempre se descargan.
 - **Notas de voz**: se reproducen desde la burbuja con el botón de play.
 
 Si el contacto escribió algo junto con la foto, ese texto sale debajo de la imagen.
@@ -602,39 +604,53 @@ Si el contacto escribió algo junto con la foto, ese texto sale debajo de la ima
 | *Descargando archivo...* | Acaba de llegar y se está guardando. Tarda unos segundos. | Esperar. Se cambia solo, sin recargar. |
 | *No se pudo recibir este archivo* | Dos causas: el archivo pasa del tope de WhatsApp (100 MB), o WhatsApp ya no lo tiene disponible. | Pedirle que lo mande más ligero, en partes, o por otro medio. Si era un archivo chico, pedirle que lo reenvíe. |
 
-### Mandarle una foto al contacto
+### Mandarle un archivo al contacto
 
-Dentro de una conversación, a la izquierda de donde escribes hay un botón con un **icono de
-imagen**. Con él le mandas una foto al contacto.
+Dentro de una conversación, a la izquierda de donde escribes hay un botón con un **clip**. Con
+él le mandas un archivo al contacto.
 
-1. Clic en el icono de imagen y elige la foto de tu computadora.
-2. Aparece una **vista previa** con el nombre y el peso. Revísala: una vez enviada **no se
-   puede retirar**. Si te equivocaste de archivo, la quitas con la **X**.
-3. Si quieres, escribe un texto en la cajita: va **debajo de la foto**, como pie.
+1. Clic en el clip y elige el archivo de tu computadora.
+2. Aparece una **vista previa** con el nombre y el peso. Revísala: una vez enviado **no se
+   puede retirar**. Si te equivocaste, lo quitas con la **X**.
+3. Si quieres, escribe un texto en la cajita: va junto al archivo.
 4. Clic en **Enviar**.
 
-Tarda un poco más que un mensaje de texto, porque la foto primero se sube a WhatsApp. El botón
-se queda girando mientras tanto.
+Tarda un poco más que un mensaje de texto, porque el archivo primero se sube a WhatsApp. El
+botón se queda girando mientras tanto.
 
-**No te preocupes por el tamaño ni por el formato.** WhatsApp solo acepta fotos de hasta 5 MB,
-y las de un celular suelen pesar el doble o el triple. El sistema la reduce solo, sin que
-tengas que hacer nada. Se ve igual de bien en el teléfono de quien la recibe.
+**Qué puedes mandar y cuánto pesa cada cosa:**
 
-Puedes mandar **JPG, PNG o WebP**. Por ahora **solo fotos**: documentos, notas de voz y videos
-se pueden recibir pero todavía no enviar.
+| Tipo | Límite de WhatsApp | Formatos |
+|---|---|---|
+| **Fotos** | 5 MB | JPG, PNG, WebP |
+| **Documentos** | 100 MB | PDF, Word, Excel, PowerPoint, texto |
+| **Videos** | 16 MB | MP4, 3GP |
+| **Notas de voz** | 16 MB | MP3, M4A, AAC, OGG, AMR |
+
+**Con las fotos no te preocupes por el tamaño.** Las de un celular suelen pesar el doble o el
+triple de lo que acepta WhatsApp, y el sistema las reduce solo. Se ven igual de bien en el
+teléfono de quien las recibe.
+
+**Con los videos y los documentos sí importa el peso.** Esos no se pueden encoger sin
+estropearlos, así que si se pasan, el panel te avisa antes de mandar nada.
+
+> ℹ️ **Las notas de voz no llevan texto.** WhatsApp no lo permite. Si eliges un audio, la
+> cajita te lo recuerda y el texto que escribas no se envía. Si quieres acompañarlo, manda el
+> audio y luego un mensaje aparte.
 
 > ⚠️ **Solo con la ventana de 24h abierta.** Igual que con los mensajes de texto: si el
-> contacto no te ha escrito en las últimas 24 horas, no se le puede mandar nada, ni foto ni
-> texto. Primero hay que reabrir la conversación con una plantilla.
+> contacto no te ha escrito en las últimas 24 horas, no se le puede mandar nada. Primero hay
+> que reabrir la conversación con una plantilla.
 
 **Si algo sale mal, el panel te dice qué pasó:**
 
 | Lo que dice | Qué hacer |
 |---|---|
-| *Solo se pueden mandar imágenes JPG, PNG o WebP* | Elegiste un archivo que no es una foto. |
-| *La imagen supera el límite de subida del servidor* | La foto es enorme. Pide a soporte que suba ese límite, o mandala más ligera. |
+| *Ese tipo de archivo no se puede mandar por WhatsApp* | WhatsApp no acepta ese formato. Conviértelo a PDF o a una imagen. |
+| *El video pasa del máximo que acepta WhatsApp (16 MB)* | Recorta el video o mándalo por otro medio. |
+| *La imagen es demasiado pesada para el servidor* | Pide a soporte que suba ese límite, o mándala más ligera. |
 | *La ventana de 24h está cerrada* | El contacto no te ha escrito hoy. Usa una plantilla primero. |
-| *WhatsApp no aceptó la imagen* | Algo del archivo no le gustó a WhatsApp. Prueba con otra foto. |
+| *WhatsApp no aceptó el archivo* | Algo del archivo no le gustó. Prueba con otro. |
 
 > 🔒 **Los archivos son privados.** Solo se abren estando dentro del panel, y un agente
 > únicamente ve los de las conversaciones que tiene asignadas. No hay forma de pasarle a nadie

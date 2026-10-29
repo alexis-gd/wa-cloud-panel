@@ -289,13 +289,17 @@ class SendImageTest extends TestCase
 
     // -- Lo que el operador puede mandar ---------------------------------------
 
-    public function test_rechaza_lo_que_no_es_una_imagen(): void
+    /**
+     * Un BMP es una imagen para quien la sube, pero Meta solo acepta JPEG y PNG, y GD no la
+     * convierte desde aqui. El rechazo de otros formatos (zip, svg) vive en `SendFileTest`.
+     */
+    public function test_rechaza_un_formato_de_imagen_que_meta_no_acepta(): void
     {
         $this->actingAsOperator();
         $this->metaAcepta();
 
         $this->post("/api/conversations/{$this->contact->id}/media", [
-            'file' => UploadedFile::fake()->create('contrato.pdf', 100, 'application/pdf'),
+            'file' => UploadedFile::fake()->create('dibujo.bmp', 100, 'image/bmp'),
         ], ['Accept' => 'application/json'])->assertStatus(422);
 
         Http::assertNothingSent();

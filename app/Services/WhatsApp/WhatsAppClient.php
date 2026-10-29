@@ -231,9 +231,19 @@ class WhatsAppClient
         $url = "{$this->baseUrl}/{$phoneNumberId}/media";
 
         try {
+            // `fopen` y no `file_get_contents`: el archivo viaja leyendose de disco, no cargado
+            // entero en memoria. Con imagenes no se notaba (ya vienen reducidas), pero un video
+            // de 16 MB o un documento de 20 MB por cada envio si. Es la misma razon por la que
+            // la descarga usa `sink()`.
+            $flujo = fopen($rutaLocal, 'r');
+
+            if ($flujo === false) {
+                return ['ok' => false, 'media_id' => null, 'error' => 'No se pudo leer el archivo'];
+            }
+
             $response = Http::withToken($token)
-                ->timeout(60)
-                ->attach('file', file_get_contents($rutaLocal), basename($rutaLocal), ['Content-Type' => $mime])
+                ->timeout(120)
+                ->attach('file', $flujo, basename($rutaLocal), ['Content-Type' => $mime])
                 ->post($url, [
                     'messaging_product' => 'whatsapp',
                     'type'              => $mime,

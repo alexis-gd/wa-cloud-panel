@@ -13,13 +13,14 @@
                     {{ qr.title }}
                 </button>
             </div>
-            <!-- La foto elegida, antes de mandarla. Se ve para que el operador confirme que
-                 es la que queria: una vez enviada no hay forma de retirarla. -->
-            <div v-if="foto" class="adjunto">
-                <img :src="fotoUrl" alt="" class="adjunto-img" />
+            <!-- El archivo elegido, antes de mandarlo. Se ve para que el operador confirme
+                 que es el que queria: una vez enviado no hay forma de retirarlo. -->
+            <div v-if="archivo" class="adjunto">
+                <img v-if="vistaPrevia" :src="vistaPrevia" alt="" class="adjunto-img" />
+                <i v-else :class="['adjunto-icono', 'pi', iconoArchivo]"></i>
                 <div class="adjunto-datos">
-                    <span class="adjunto-nombre">{{ foto.name }}</span>
-                    <span class="adjunto-peso">{{ pesoFoto }}</span>
+                    <span class="adjunto-nombre">{{ archivo.name }}</span>
+                    <span class="adjunto-peso">{{ pesoArchivo }}</span>
                 </div>
                 <Button
                     icon="pi pi-times"
@@ -27,22 +28,22 @@
                     size="small"
                     :disabled="sending"
                     v-tooltip.top="'Quitar'"
-                    @click="quitarFoto"
+                    @click="quitarArchivo"
                 />
             </div>
 
             <div class="input-row">
                 <Button
-                    icon="pi pi-image"
+                    icon="pi pi-paperclip"
                     text
                     :disabled="!windowOpen || sending"
-                    v-tooltip.top="'Enviar una foto'"
-                    @click="elegirFoto"
+                    v-tooltip.top="'Adjuntar un archivo'"
+                    @click="elegirArchivo"
                 />
                 <Textarea
                     v-model="texto"
                     :disabled="!windowOpen"
-                    :placeholder="foto ? 'Texto de la foto (opcional)...' : 'Escribe tu mensaje...'"
+                    :placeholder="placeholder"
                     :autoResize="true"
                     rows="1"
                     class="msg-input"
@@ -59,13 +60,14 @@
             <input
                 ref="selector"
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,video/mp4,video/3gpp,audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/amr"
                 class="selector-oculto"
                 @change="alElegir"
             />
 
             <p v-if="windowOpen" class="input-hint">
-                <template v-if="foto">El texto va como pie de la foto · Enter para enviar</template>
+                <template v-if="esAudio">Las notas de voz no llevan texto · Enter para enviar</template>
+                <template v-else-if="archivo">El texto va junto al archivo · Enter para enviar</template>
                 <template v-else>Enter para enviar · Shift+Enter para nueva línea</template>
             </p>
         </template>
@@ -98,50 +100,70 @@ defineProps({
     quickReplies: { type: Array,   default: () => [] },
 });
 
-const emit = defineEmits(['send', 'send-image']);
+const emit = defineEmits(['send', 'send-file']);
 
-const texto    = ref('');
-const foto     = ref(null);
-const fotoUrl  = ref(null);
-const selector = ref(null);
+const texto       = ref('');
+const archivo     = ref(null);
+const vistaPrevia = ref(null);
+const selector    = ref(null);
 
-const pesoFoto    = computed(() => (foto.value ? formatPeso(foto.value.size) : ''));
-const puedeEnviar = computed(() => !!(foto.value || texto.value.trim()));
+const ICONOS = {
+    video: 'pi-video',
+    audio: 'pi-volume-up',
+};
 
-function elegirFoto() {
+const tipoArchivo = computed(() => (archivo.value?.type ?? '').split('/')[0]);
+const esAudio     = computed(() => tipoArchivo.value === 'audio');
+const iconoArchivo = computed(() => ICONOS[tipoArchivo.value] ?? 'pi-file');
+const pesoArchivo  = computed(() => (archivo.value ? formatPeso(archivo.value.size) : ''));
+const puedeEnviar  = computed(() => !!(archivo.value || texto.value.trim()));
+
+const placeholder = computed(() => {
+    if (esAudio.value)    return 'Las notas de voz no llevan texto...';
+    if (archivo.value)    return 'Texto para acompañar el archivo (opcional)...';
+
+    return 'Escribe tu mensaje...';
+});
+
+function elegirArchivo() {
     selector.value?.click();
 }
 
 function alElegir(e) {
-    const elegida = e.target.files?.[0];
+    const elegido = e.target.files?.[0];
 
-    // Se limpia el input o elegir dos veces la misma foto seguidas no dispara el evento.
+    // Se limpia el input o elegir dos veces el mismo archivo seguidas no dispara el evento.
     e.target.value = '';
 
-    if (! elegida) return;
+    if (! elegido) return;
 
     soltarUrl();
-    foto.value    = elegida;
-    fotoUrl.value = URL.createObjectURL(elegida);
+    archivo.value = elegido;
+
+    // Solo las imagenes se previsualizan. Un video o un PDF no tienen nada que ensenar aqui
+    // sin descargarlos, y ya pesan: se muestran con su icono y su nombre.
+    if (elegido.type.startsWith('image/')) {
+        vistaPrevia.value = URL.createObjectURL(elegido);
+    }
 }
 
-function quitarFoto() {
+function quitarArchivo() {
     soltarUrl();
-    foto.value = null;
+    archivo.value = null;
 }
 
-/** Sin esto el navegador se queda la foto en memoria mientras viva la pestana. */
+/** Sin esto el navegador se queda la imagen en memoria mientras viva la pestana. */
 function soltarUrl() {
-    if (fotoUrl.value) URL.revokeObjectURL(fotoUrl.value);
-    fotoUrl.value = null;
+    if (vistaPrevia.value) URL.revokeObjectURL(vistaPrevia.value);
+    vistaPrevia.value = null;
 }
 
 function enviar() {
     const limpio = texto.value.trim();
 
-    // Con foto, el texto es el pie y puede ir vacio. Sin foto, un mensaje vacio no se manda.
-    if (foto.value) {
-        emit('send-image', { file: foto.value, caption: limpio });
+    // Con archivo, el texto es opcional. Sin archivo, un mensaje vacio no se manda.
+    if (archivo.value) {
+        emit('send-file', { file: archivo.value, caption: esAudio.value ? '' : limpio });
 
         return;
     }
@@ -158,7 +180,7 @@ function usar(qr) {
 /** La llama el padre cuando el mensaje si salio. */
 function limpiar() {
     texto.value = '';
-    quitarFoto();
+    quitarArchivo();
 }
 
 onBeforeUnmount(soltarUrl);
@@ -193,6 +215,7 @@ defineExpose({ limpiar });
   background: var(--p-surface-50);
 }
 .adjunto-img    { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+.adjunto-icono  { font-size: 1.6rem; width: 44px; text-align: center; color: var(--p-text-muted-color); flex-shrink: 0; }
 .adjunto-datos  { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .adjunto-nombre {
   font-size: .78rem; font-weight: 600;

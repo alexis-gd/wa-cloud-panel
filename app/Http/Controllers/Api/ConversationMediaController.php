@@ -6,8 +6,8 @@ use App\Events\ConversationUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\Conversation;
-use App\Services\WhatsApp\ImageForWhatsApp;
 use App\Services\WhatsApp\MediaStore;
+use App\Services\WhatsApp\OutboundAttachment;
 use App\Services\WhatsApp\OutboundGuard;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
@@ -128,7 +128,7 @@ class ConversationMediaController extends Controller
         int $contactId,
         WhatsAppClient $client,
         OutboundGuard $guard,
-        ImageForWhatsApp $imagenes,
+        OutboundAttachment $adjuntos,
     ): JsonResponse {
         $archivo = $request->file('file');
 
@@ -156,7 +156,7 @@ class ConversationMediaController extends Controller
         }
 
         $request->validate([
-            'file'    => 'required|file|mimetypes:image/jpeg,image/png,image/webp',
+            'file'    => 'required|file|mimetypes:' . implode(',', OutboundAttachment::mimesAceptados()),
             'caption' => 'nullable|string|max:1024',
         ]);
 
@@ -174,11 +174,13 @@ class ConversationMediaController extends Controller
             return $this->error($permiso['message'], $permiso['code'], $permiso['status']);
         }
 
-        $listo = $imagenes->preparar($archivo->getRealPath(), $archivo->getMimeType());
+        $listo = $adjuntos->preparar($archivo);
 
         if (! $listo['ok']) {
-            return $this->error($listo['error'], 'IMAGE_NOT_SUPPORTED');
+            return $this->error($listo['error'], 'FILE_NOT_SUPPORTED');
         }
+
+        $tipo = $listo['tipo'];
 
         $phone  = $permiso['phone'];
         $subida = $client->uploadMedia($phone->phone_number_id, $phone->token, $listo['path'], $listo['mime']);
@@ -191,15 +193,12 @@ class ConversationMediaController extends Controller
 
         $caption = $request->input('caption');
 
-        $envio = $client->post($phone->phone_number_id, $phone->token, array_filter([
+        $envio = $client->post($phone->phone_number_id, $phone->token, [
             'messaging_product' => 'whatsapp',
             'to'                => $contact->phone,
-            'type'              => 'image',
-            'image'             => array_filter([
-                'id'      => $subida['media_id'],
-                'caption' => $caption,
-            ]),
-        ]));
+            'type'              => $tipo,
+            $tipo               => $this->contenido($tipo, $subida['media_id'], $caption, $archivo),
+        ]);
 
         if (! $envio['ok']) {
             $this->limpiar($listo);
@@ -219,8 +218,11 @@ class ConversationMediaController extends Controller
             'contact_id'     => $contact->id,
             'user_id'        => $request->user()?->id,
             'direction'      => 'outbound',
-            'message_type'   => 'image',
-            'body'           => $caption ?? '',
+            'message_type'   => $tipo,
+            // Vacio para el audio: WhatsApp no admite pie en una nota de voz, asi que ese
+            // texto nunca le llego al contacto. Guardarlo mostraria en el chat algo que el
+            // otro lado no vio.
+            'body'           => ($tipo === 'audio' ? '' : $caption) ?? '',
             'wa_message_id'  => data_get($envio, 'body.messages.0.id'),
             'status'         => 'sent',
             'window_open'    => true,
@@ -244,11 +246,12 @@ class ConversationMediaController extends Controller
                 'body'         => $conversation->body,
                 'direction'    => 'outbound',
                 'status'       => 'sent',
-                'message_type' => 'image',
-                'media_status' => 'stored',
-                'media_mime'   => $conversation->media_mime,
-                'media_size'   => $conversation->media_size,
-                'media_inline' => true,
+                'message_type'   => $tipo,
+                'media_status'   => 'stored',
+                'media_mime'     => $conversation->media_mime,
+                'media_size'     => $conversation->media_size,
+                'media_filename' => $conversation->media_filename,
+                'media_inline'   => MediaStore::seMuestraEnLinea($conversation->media_mime),
                 'created_at'   => $conversation->created_at,
             ],
         ], 201);
@@ -286,6 +289,32 @@ class ConversationMediaController extends Controller
             'k'     => $numero * 1024,
             default => $numero,
         };
+    }
+
+    /**
+     * El contenido del mensaje segun su tipo.
+     *
+     * No todos admiten lo mismo y Meta rechaza lo que sobra:
+     *
+     * - **Documento**: lleva `filename`. Sin el, el contacto recibe un archivo con un nombre
+     *   inventado por WhatsApp y no sabe que le mandaron. Es el unico tipo donde el nombre
+     *   viaja en el mensaje.
+     * - **Audio**: NO admite `caption`. Una nota de voz con texto no existe en WhatsApp.
+     * - **Imagen y video**: el texto va como pie.
+     */
+    private function contenido(string $tipo, string $mediaId, ?string $caption, $archivo): array
+    {
+        $contenido = ['id' => $mediaId];
+
+        if ($tipo === 'document') {
+            $contenido['filename'] = $archivo->getClientOriginalName();
+        }
+
+        if ($caption && $tipo !== 'audio') {
+            $contenido['caption'] = $caption;
+        }
+
+        return $contenido;
     }
 
     /** Borra el archivo que genero el procesador, si genero uno. */

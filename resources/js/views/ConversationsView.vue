@@ -77,8 +77,10 @@
           :opted-out="selected.status === 'opted_out'"
           :sending="sending"
           :quick-replies="quickReplies"
+          :voice-notes="voiceNotes"
           @send="sendMessage"
           @send-file="sendFile"
+          @send-voice="sendVoice"
         />
       </template>
     </div>
@@ -279,6 +281,8 @@ const contacts     = ref([]);
 const selected     = ref(null);
 const messages     = ref([]);
 const windowOpen   = ref(false);
+// Si este servidor puede mandar notas de voz. Lo contesta el servidor al abrir el chat.
+const voiceNotes   = ref(false);
 const quickReplies = ref([]);
 const composer     = ref(null);   // ConversationComposer, para poder limpiarlo al enviar
 const sending      = ref(false);
@@ -396,6 +400,7 @@ async function refreshOpenChat(scroll = false) {
   if (res.status === 'ok') {
     messages.value          = res.data.messages;
     windowOpen.value        = res.data.window_open;
+    voiceNotes.value        = res.data.voice_notes;
     selected.value          = { ...selected.value, ...res.data.contact };
     currentAssignment.value = res.data.contact.assigned_to ?? null;
     if (scroll) {
@@ -439,6 +444,7 @@ async function selectContact(contact) {
   if (res.status === 'ok') {
     messages.value   = res.data.messages;
     windowOpen.value = res.data.window_open;
+    voiceNotes.value = res.data.voice_notes;
     selected.value   = { ...contact, ...res.data.contact };
   }
   loadingChat.value = false;
@@ -554,6 +560,36 @@ async function sendFile({ file, caption }) {
     toast.add({
       severity: 'error',
       summary : 'No se pudo enviar el archivo',
+      detail  : res.message,
+      life    : 6000,
+    });
+  }
+
+  sending.value = false;
+}
+
+/**
+ * Manda la nota de voz que acaba de grabar el operador.
+ *
+ * Llega como un Blob sin nombre, en el formato que supo grabar el navegador. El servidor lo
+ * convierte a lo que acepta WhatsApp; aqui solo se marca que es una grabacion (`voice`) para
+ * que tome ese camino y no el de un archivo cualquiera.
+ */
+async function sendVoice(blob) {
+  if (!blob || sending.value) return;
+
+  sending.value = true;
+
+  const res = await api.sendConversationMedia(selected.value.id, blob, null, true);
+
+  if (res.status === 'ok') {
+    messages.value.push(res.data);
+    await nextTick();
+    scrollToBottom();
+  } else {
+    toast.add({
+      severity: 'error',
+      summary : 'No se pudo enviar la nota de voz',
       detail  : res.message,
       life    : 6000,
     });

@@ -9,6 +9,7 @@ use App\Models\Conversation;
 use App\Services\WhatsApp\MediaStore;
 use App\Services\WhatsApp\OutboundAttachment;
 use App\Services\WhatsApp\OutboundGuard;
+use App\Services\WhatsApp\VoiceNote;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -129,8 +130,15 @@ class ConversationMediaController extends Controller
         WhatsAppClient $client,
         OutboundGuard $guard,
         OutboundAttachment $adjuntos,
+        VoiceNote $notasDeVoz,
     ): JsonResponse {
         $archivo = $request->file('file');
+
+        // Una nota de voz entra por aqui mismo, pero no sigue el mismo camino: el navegador la
+        // graba en WebM, que WhatsApp no acepta, y no trae nombre de archivo. Lo marca el panel
+        // con este campo y no se adivina por el formato, porque un `.webm` que el operador
+        // eligiera a mano SI debe rechazarse: ahi no hay grabador de por medio.
+        $esVoz = $request->boolean('voice');
 
         // PHP descarta el archivo ANTES de que Laravel lo valide si supera `upload_max_filesize`.
         // Sin esto la respuesta seria "elige un archivo", que despista: el operador si eligio uno.
@@ -138,8 +146,8 @@ class ConversationMediaController extends Controller
             && ! $archivo->isValid()
             && in_array($archivo->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
             return $this->error(
-                'La imagen supera el límite de subida del servidor (' . ini_get('upload_max_filesize')
-                    . '). Usa una más ligera o pide a soporte que suba ese límite.',
+                'El archivo supera el límite de subida del servidor (' . ini_get('upload_max_filesize')
+                    . '). Usa uno más ligero o pide a soporte que suba ese límite.',
                 'UPLOAD_LIMIT_EXCEEDED',
             );
         }
@@ -149,16 +157,26 @@ class ConversationMediaController extends Controller
         // campo file es obligatorio", que al operador no le dice nada: el si eligio un archivo.
         if ($archivo === null && $this->superaElTamanoDePeticion($request)) {
             return $this->error(
-                'La imagen es demasiado pesada para el servidor (máximo ' . ini_get('post_max_size')
-                    . '). Usa una más ligera o pide a soporte que suba ese límite.',
+                'El archivo es demasiado pesado para el servidor (máximo ' . ini_get('post_max_size')
+                    . '). Usa uno más ligero o pide a soporte que suba ese límite.',
                 'UPLOAD_LIMIT_EXCEEDED',
             );
         }
 
+        $formatos = $esVoz ? VoiceNote::mimesAceptados() : OutboundAttachment::mimesAceptados();
+
         $request->validate([
-            'file'    => 'required|file|mimetypes:' . implode(',', OutboundAttachment::mimesAceptados()),
+            'file'    => 'required|file|mimetypes:' . implode(',', $formatos),
             'caption' => 'nullable|string|max:1024',
+            'voice'   => 'nullable|boolean',
         ]);
+
+        if ($esVoz && ! VoiceNote::disponible()) {
+            return $this->error(
+                'Este servidor no puede enviar notas de voz. Avisa a soporte.',
+                'VOICE_UNAVAILABLE',
+            );
+        }
 
         $contact = Contact::findOrFail($contactId);
 
@@ -174,7 +192,7 @@ class ConversationMediaController extends Controller
             return $this->error($permiso['message'], $permiso['code'], $permiso['status']);
         }
 
-        $listo = $adjuntos->preparar($archivo);
+        $listo = $esVoz ? $notasDeVoz->preparar($archivo) : $adjuntos->preparar($archivo);
 
         if (! $listo['ok']) {
             return $this->error($listo['error'], 'FILE_NOT_SUPPORTED');
@@ -188,7 +206,7 @@ class ConversationMediaController extends Controller
         if (! $subida['ok']) {
             $this->limpiar($listo);
 
-            return $this->error('WhatsApp no aceptó la imagen: ' . $subida['error'], 'UPLOAD_REJECTED');
+            return $this->error('WhatsApp no aceptó el archivo: ' . $subida['error'], 'UPLOAD_REJECTED');
         }
 
         $caption = $request->input('caption');
@@ -202,12 +220,12 @@ class ConversationMediaController extends Controller
 
         if (! $envio['ok']) {
             $this->limpiar($listo);
-            Log::error('Envio de imagen rechazado', [
+            Log::error('Envio de archivo rechazado', [
                 'contact_id' => $contactId,
                 'response'   => $envio['body'],
             ]);
 
-            return $this->error('No se pudo enviar la imagen.', 'SEND_FAILED', 500);
+            return $this->error('No se pudo enviar el archivo.', 'SEND_FAILED', 500);
         }
 
         // Se guarda una copia propia para que la burbuja la muestre. Sin esto el chat tendria
@@ -233,7 +251,10 @@ class ConversationMediaController extends Controller
             'media_path'     => $ruta,
             'media_mime'     => $listo['mime'],
             'media_size'     => filesize($this->store->rutaAbsoluta($ruta)) ?: null,
-            'media_filename' => $archivo->getClientOriginalName(),
+            // Una grabacion no trae nombre: el navegador entrega bytes sueltos. Sin esto se
+            // descargaria con el nombre que invente el reproductor, que es un identificador
+            // interno sin significado.
+            'media_filename' => $esVoz ? VoiceNote::NOMBRE : $archivo->getClientOriginalName(),
             'media_status'   => 'stored',
         ]);
 

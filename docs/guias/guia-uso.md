@@ -650,13 +650,51 @@ estropearlos, así que si se pasan, el panel te avisa antes de mandar nada.
 |---|---|
 | *Ese tipo de archivo no se puede mandar por WhatsApp* | WhatsApp no acepta ese formato. Conviértelo a PDF o a una imagen. |
 | *El video pasa del máximo que acepta WhatsApp (16 MB)* | Recorta el video o mándalo por otro medio. |
-| *La imagen es demasiado pesada para el servidor* | Pide a soporte que suba ese límite, o mándala más ligera. |
+| *El archivo es demasiado pesado para el servidor* | Pide a soporte que suba ese límite, o mándalo más ligero. |
 | *La ventana de 24h está cerrada* | El contacto no te ha escrito hoy. Usa una plantilla primero. |
 | *WhatsApp no aceptó el archivo* | Algo del archivo no le gustó. Prueba con otro. |
 
 > 🔒 **Los archivos son privados.** Solo se abren estando dentro del panel, y un agente
 > únicamente ve los de las conversaciones que tiene asignadas. No hay forma de pasarle a nadie
 > un enlace al archivo: para verlo hay que entrar al panel.
+
+### Grabar una nota de voz
+
+Además de mandar un audio que ya tengas, puedes **grabar uno ahí mismo**, como en WhatsApp.
+
+Cuando la cajita de escribir está vacía, el botón de la derecha es un **micrófono**. En cuanto
+escribes algo o eliges un archivo, ese botón se convierte en el de **Enviar**: siempre es el
+mismo lugar y siempre manda lo que tengas delante.
+
+1. Clic en el **micrófono**. La primera vez el navegador te pregunta si puede usarlo: dale
+   **Permitir**.
+2. La fila cambia a la **barra de grabación**: un punto rojo, el tiempo que llevas y la onda de
+   tu voz moviéndose.
+3. Cuando termines, clic en **Enviar**.
+
+| Botón | Qué hace |
+|---|---|
+| 🗑️ **Bote** (izquierda) | Descarta la grabación. No se manda nada y no queda rastro. |
+| ⏸️ **Pausar** | Deja de grabar sin perder lo que llevas. Clic en **Seguir** para continuar en el mismo audio. |
+| ➤ **Enviar** (derecha) | Manda la nota de voz al contacto. |
+
+**La onda te dice si te está escuchando.** Es tu voz de verdad, no una animación: si hablas y
+las barras no se mueven, el micrófono no está captando y la nota llegaría muda.
+
+> ℹ️ **Máximo 2 minutos.** Al llegar ahí la grabación se detiene sola y la barra te lo dice.
+> Lo que grabaste no se pierde: puedes enviarlo o descartarlo. Para algo más largo, conviene
+> una llamada.
+
+> ℹ️ **Una nota de voz no lleva texto**, igual que un audio que mandes desde tu computadora. Si
+> quieres acompañarla, mándala y luego escribe un mensaje aparte.
+
+**Si el micrófono no aparece:**
+
+| Causa | Qué hacer |
+|---|---|
+| El navegador no tiene permiso | Clic en el candado de la barra de direcciones y permite el micrófono para esta página. |
+| La ventana de 24h está cerrada | El contacto no te ha escrito hoy. Usa una plantilla primero. |
+| No aparece nunca, en ninguna conversación | Le falta algo al servidor. Avísale a soporte. |
 
 ### Quién atiende cada conversación (multi-agente)
 

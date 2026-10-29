@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\AssignmentService;
 use App\Services\StatusLabels;
 use App\Services\WhatsApp\MediaStore;
+use App\Services\WhatsApp\VoiceNote;
 use App\Services\WhatsApp\OutboundGuard;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
@@ -312,6 +313,11 @@ class ConversationController extends Controller
                 ],
                 'messages'    => $messages,
                 'window_open' => $windowOpen,
+                // Si este servidor puede convertir una grabacion a lo que acepta WhatsApp. Va
+                // aqui, y no en los feature flags, porque no es algo que nadie elija: es si la
+                // maquina tiene ffmpeg o no. Sin esto el panel ofreceria el microfono y el
+                // envio fallaria despues de grabar, que es el peor momento para enterarse.
+                'voice_notes' => VoiceNote::disponible(),
             ],
         ]);
     }

@@ -49,11 +49,11 @@
                 <span class="att-file-meta">{{ meta }}</span>
             </span>
             <Button
-                :icon="abriendo ? 'pi pi-spin pi-spinner' : 'pi pi-download'"
+                :icon="abriendo ? 'pi pi-spin pi-spinner' : (seAbre ? 'pi pi-external-link' : 'pi pi-download')"
                 text
                 size="small"
                 :disabled="abriendo"
-                v-tooltip.top="'Abrir archivo'"
+                v-tooltip.top="seAbre ? 'Abrir en otra pestaña' : 'Descargar archivo'"
                 @click="abrirArchivo"
             />
         </div>
@@ -79,6 +79,13 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import Button from 'primevue/button';
 import { api } from '../api.js';
+import {
+    etiquetaDeTipo,
+    formatPeso,
+    guardarComo,
+    nombreDeDescarga,
+    nombreVisible,
+} from '../media.js';
 
 const props = defineProps({
     message: { type: Object, required: true },
@@ -89,6 +96,8 @@ defineEmits(['open']);
 const url      = ref(null);
 const error    = ref(null);
 const abriendo = ref(false);
+// Veredicto del servidor, ya con el archivo en mano. Null hasta que se baja.
+const inline   = ref(null);
 const caja     = ref(null);
 
 let observer = null;
@@ -98,75 +107,32 @@ const fallido     = computed(() => props.message.media_status === 'failed');
 const esImagen    = computed(() => props.message.message_type === 'image');
 const esAudio     = computed(() => props.message.message_type === 'audio');
 
-const ETIQUETAS = {
-    image   : 'Foto',
-    document: 'Documento',
-    audio   : 'Nota de voz',
-    video   : 'Video',
-};
+/**
+ * Este archivo se abre en una pestana, o se descarga.
+ *
+ * Lo decide el servidor (`MediaStore::seMuestraEnLinea`) y viaja en el mensaje. No se decide
+ * aqui a proposito: si el panel tuviera su propia lista, podria ofrecer "Abrir" sobre un
+ * archivo que el servidor considera peligroso de mostrar.
+ */
+const seAbre = computed(() => props.message.media_inline === true);
 
 const ICONOS = {
     document: 'pi-file-pdf',
     video   : 'pi-video',
 };
 
-const nombre = computed(() =>
-    props.message.media_filename || ETIQUETAS[props.message.message_type] || 'Archivo'
-);
-
-/**
- * Extension por tipo de archivo. Espejo de `MediaStore::EXTENSIONES` en el backend.
- */
-const EXTENSIONES = {
-    'image/jpeg'     : 'jpg',
-    'image/png'      : 'png',
-    'image/webp'     : 'webp',
-    'image/gif'      : 'gif',
-    'application/pdf': 'pdf',
-    'audio/ogg'      : 'ogg',
-    'audio/mpeg'     : 'mp3',
-    'audio/mp4'      : 'm4a',
-    'audio/aac'      : 'aac',
-    'audio/amr'      : 'amr',
-    'video/mp4'      : 'mp4',
-    'video/3gpp'     : '3gp',
-};
-
-/**
- * Nombre con el que se guarda el archivo en la computadora del operador.
- *
- * Tiene que llevar extension. Sin ella el navegador la adivina del tipo de archivo, y en
- * Windows `image/jpeg` esta asociado a `.jfif` en el registro: una foto se bajaba como
- * `Foto.jfif` y varios programas no la abren. Solo los documentos traen nombre propio desde
- * WhatsApp; una foto o una nota de voz llegan sin nombre y caian justo en ese hueco.
- */
-const nombreDescarga = computed(() => {
-    const original = props.message.media_filename;
-
-    if (original && /\.[a-z0-9]{2,5}$/i.test(original)) return original;
-
-    const mime = (props.message.media_mime || '').split(';')[0].trim();
-    const ext  = EXTENSIONES[mime];
-    const base = original || `${ETIQUETAS[props.message.message_type] || 'Archivo'}-${props.message.id}`;
-
-    return ext ? `${base}.${ext}` : base;
-});
-
-const icono = computed(() => ICONOS[props.message.message_type] ?? 'pi-file');
+const nombre         = computed(() => nombreVisible(props.message));
+const nombreDescarga = computed(() => nombreDeDescarga(props.message));
+const icono          = computed(() => ICONOS[props.message.message_type] ?? 'pi-file');
 
 const meta = computed(() => {
-    const partes = [ETIQUETAS[props.message.message_type]].filter(Boolean);
+    const partes = [etiquetaDeTipo(props.message.message_type)].filter(Boolean);
     const peso   = formatPeso(props.message.media_size);
+
     if (peso) partes.push(peso);
+
     return partes.join(' · ');
 });
-
-function formatPeso(bytes) {
-    if (! bytes) return '';
-    if (bytes < 1024)        return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 async function bajar() {
     if (url.value || error.value) return null;
@@ -178,25 +144,26 @@ async function bajar() {
         return null;
     }
 
-    url.value = res.url;
+    url.value    = res.url;
+    inline.value = res.inline;
+
     return res.url;
 }
 
 /**
- * Abre el documento o el video en otra pestana.
+ * Abre el archivo si se puede mostrar; si no, lo descarga.
  *
- * La pestana se abre EN el click, antes de esperar la descarga. Un `window.open` que ocurre
- * despues de un `await` ya no cuenta como gesto del usuario y el navegador lo bloquea: al
- * operador le salia la barra de "ventana emergente bloqueada" cada vez que abria un PDF.
+ * La pestana se abre EN el click, antes de esperar la descarga. Un `window.open` posterior a
+ * un `await` ya no cuenta como gesto del usuario y el navegador lo bloquea: al operador le
+ * salia la barra de "ventana emergente bloqueada" cada vez que abria un PDF.
  *
- * Si aun asi no se pudo abrir (el bloqueador quedo activo de antes), el archivo se descarga.
- * Nunca se queda sin nada.
+ * Pase lo que pase el operador se queda con el archivo: si el bloqueador gana de todas
+ * formas, se descarga.
  */
 async function abrirArchivo() {
-    // Sin `noopener`: con esa opcion `window.open` devuelve null y no habria a quien darle
-    // la direccion. El archivo es una URL `blob:` de nuestro propio origen, asi que la
-    // pestana no queda apuntando a nada ajeno.
-    const ventana = url.value ? null : window.open('', '_blank');
+    // Sin `noopener`: con esa opcion `window.open` devuelve null y no habria a quien darle la
+    // direccion. El archivo es una URL `blob:` de nuestro propio origen.
+    const ventana = (seAbre.value && ! url.value) ? window.open('', '_blank') : null;
 
     abriendo.value = true;
     const destino  = url.value ?? await bajar();
@@ -207,18 +174,21 @@ async function abrirArchivo() {
         return;
     }
 
+    // `inline` del servidor manda sobre `seAbre`: si por lo que sea no coinciden, gana el que
+    // dice que NO se puede mostrar.
+    if (! seAbre.value || inline.value === false) {
+        ventana?.close();
+        guardarComo(destino, nombreDescarga.value);
+        return;
+    }
+
     if (ventana && ! ventana.closed) {
         ventana.location.href = destino;
         return;
     }
 
-    if (window.open(destino, '_blank')) return;
-
-    // Bloqueado: al menos que se lo lleve.
-    const a = document.createElement('a');
-    a.href     = destino;
-    a.download = nombreDescarga.value;
-    a.click();
+    // Quedo bloqueado de todas formas: que al menos se lo lleve.
+    if (! window.open(destino, '_blank')) guardarComo(destino, nombreDescarga.value);
 }
 
 onMounted(() => {

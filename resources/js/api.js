@@ -359,9 +359,22 @@ export const api = {
             };
         }
 
-        const blob = await res.blob();
+        // El servidor dice si este archivo se puede mostrar o hay que descargarlo.
+        const enLinea = res.headers.get('X-Media-Disposition') !== 'attachment';
 
-        return { status: 'ok', url: URL.createObjectURL(blob), blob };
+        let blob = await res.blob();
+
+        // Una URL `blob:` hereda el origen de QUIEN la crea, o sea el panel. Si se abriera asi
+        // un SVG o un HTML, su JavaScript correria en nuestro dominio, con el token del
+        // operador al alcance. El `Content-Disposition: attachment` del servidor no cubre este
+        // camino, porque aqui el navegador nunca ve la respuesta: la vemos nosotros y la
+        // volvemos a envolver. Por eso al que no es seguro mostrar se le quita el tipo: sin un
+        // tipo que sepa pintar, el navegador solo puede descargarlo.
+        if (! enLinea) {
+            blob = new Blob([blob], { type: 'application/octet-stream' });
+        }
+
+        return { status: 'ok', url: URL.createObjectURL(blob), blob, inline: enLinea };
     },
 
     sendMessage: (contactId, body) => request(`/conversations/${contactId}/messages`, {

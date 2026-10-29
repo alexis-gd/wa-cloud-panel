@@ -148,6 +148,45 @@ class MediaStore
     }
 
     /**
+     * Tipos que es seguro MOSTRAR, en vez de obligar a descargarlos.
+     *
+     * Todo lo que no este aqui se descarga. El caso que esto ataja: un contacto manda un SVG
+     * o un HTML como documento. Esos formatos llevan JavaScript adentro, y mostrarlos lo
+     * ejecutaria en nuestro dominio, donde vive el token del operador.
+     *
+     * El PDF se queda porque el operador tiene que poder leer un comprobante sin bajarlo, y
+     * el visor de PDF del navegador corre aislado.
+     */
+    private const EN_LINEA = [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'application/pdf',
+        'audio/ogg',
+        'audio/mpeg',
+        'audio/mp4',
+        'audio/aac',
+        'audio/amr',
+        'video/mp4',
+        'video/3gpp',
+    ];
+
+    /**
+     * Se puede mostrar este archivo, o hay que obligar a descargarlo.
+     *
+     * Vive aqui y no en el controlador porque la respuesta la necesitan DOS lugares: la ruta
+     * que entrega el archivo y el detalle del chat, que es donde el panel decide si el boton
+     * dice "Abrir" o "Descargar". Con la regla en un solo sitio no pueden contradecirse.
+     */
+    public static function seMuestraEnLinea(?string $mime): bool
+    {
+        $limpio = trim(explode(';', (string) $mime)[0]);
+
+        return in_array($limpio, self::EN_LINEA, true);
+    }
+
+    /**
      * Extension que le corresponde a un mime, o null si no la conocemos.
      *
      * Publica porque la necesita tambien el nombre con el que el operador GUARDA el archivo,

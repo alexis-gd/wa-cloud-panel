@@ -225,6 +225,96 @@ class ConversationMediaTest extends TestCase
         $this->assertStringNotContainsString("\n", $disposicion);
     }
 
+    /**
+     * El panel NO navega a esta ruta: baja el archivo con `fetch` y lo envuelve en una URL
+     * `blob:`, que hereda el origen del panel. Por ese camino el navegador nunca ve el
+     * `Content-Disposition`, asi que el `attachment` de arriba no alcanza a proteger nada:
+     * un SVG abierto desde un `blob:` correria su JavaScript en el dominio del panel, con el
+     * token del operador al alcance.
+     *
+     * Este encabezado es como el servidor le pasa esa decision al panel. Si se cae, el panel
+     * se queda sin saber que un archivo es peligroso de mostrar.
+     */
+    public function test_el_servidor_avisa_al_panel_que_el_svg_no_se_puede_mostrar(): void
+    {
+        $this->actingAsAdmin();
+
+        $conversation = $this->conArchivo([
+            'message_type'   => 'document',
+            'media_mime'     => 'image/svg+xml',
+            'media_filename' => 'comprobante.svg',
+        ]);
+
+        $this->get("/api/conversations/media/{$conversation->id}")
+             ->assertOk()
+             ->assertHeader('X-Media-Disposition', 'attachment');
+    }
+
+    public function test_el_servidor_avisa_que_un_pdf_si_se_puede_mostrar(): void
+    {
+        $this->actingAsAdmin();
+
+        $conversation = $this->conArchivo([
+            'message_type' => 'document',
+            'media_mime'   => 'application/pdf',
+        ]);
+
+        $this->get("/api/conversations/media/{$conversation->id}")
+             ->assertOk()
+             ->assertHeader('X-Media-Disposition', 'inline');
+    }
+
+    /**
+     * El boton del adjunto decide con esto si dice "Abrir" o "Descargar". Tiene que coincidir
+     * con lo que hace la ruta de descarga: un boton que ofrece abrir un archivo que el
+     * servidor va a mandar como descarga es una promesa que no se cumple, y al reves es peor.
+     */
+    public function test_el_detalle_del_chat_dice_si_el_archivo_se_puede_mostrar(): void
+    {
+        $this->actingAsAdmin();
+
+        $contacto = Contact::factory()->create();
+
+        $pdf = $this->conArchivo([
+            'contact_id'   => $contacto->id,
+            'message_type' => 'document',
+            'media_mime'   => 'application/pdf',
+        ]);
+
+        $svg = $this->conArchivo([
+            'contact_id'   => $contacto->id,
+            'message_type' => 'document',
+            'media_mime'   => 'image/svg+xml',
+        ]);
+
+        $mensajes = collect(
+            $this->getJson("/api/conversations/{$contacto->id}")->json('data.messages')
+        )->keyBy('id');
+
+        $this->assertTrue($mensajes[$pdf->id]['media_inline']);
+        $this->assertFalse($mensajes[$svg->id]['media_inline']);
+    }
+
+    /** Un mensaje de texto no tiene archivo: no puede decir que se muestra en linea. */
+    public function test_un_mensaje_de_texto_no_se_marca_como_mostrable(): void
+    {
+        $this->actingAsAdmin();
+
+        $contacto = Contact::factory()->create();
+
+        Conversation::create([
+            'contact_id'   => $contacto->id,
+            'direction'    => 'inbound',
+            'message_type' => 'text',
+            'body'         => 'Hola',
+            'status'       => 'received',
+        ]);
+
+        $mensajes = $this->getJson("/api/conversations/{$contacto->id}")->json('data.messages');
+
+        $this->assertFalse($mensajes[0]['media_inline']);
+    }
+
     // -- El nombre con el que se guarda ----------------------------------------
 
     /**

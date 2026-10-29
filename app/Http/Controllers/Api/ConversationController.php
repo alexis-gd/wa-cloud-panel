@@ -13,6 +13,7 @@ use App\Models\QuickReply;
 use App\Models\User;
 use App\Services\AssignmentService;
 use App\Services\StatusLabels;
+use App\Services\WhatsApp\MediaStore;
 use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -277,6 +278,13 @@ class ConversationController extends Controller
                 'media_mime'     => $m->media_mime,
                 'media_size'     => $m->media_size,
                 'media_filename' => $m->media_filename,
+                // Si este archivo se puede mostrar o hay que descargarlo. Lo decide el
+                // servidor, no el panel: es la misma regla que aplica la ruta de descarga
+                // (`MediaStore::seMuestraEnLinea`). Viaja aqui para que el boton del adjunto
+                // diga desde el principio lo que realmente va a hacer - antes el icono era
+                // siempre de descarga aunque el archivo se abriera en otra pestana.
+                'media_inline'   => $m->media_mime !== null
+                    && MediaStore::seMuestraEnLinea($m->media_mime),
             ]);
 
         $windowOpen = Conversation::where('contact_id', $contactId)

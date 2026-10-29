@@ -37,21 +37,6 @@ class ConversationMediaController extends Controller
      * abrirse. El PDF se queda: el operador necesita ver el comprobante, y el visor del
      * navegador lo corre aislado.
      */
-    private const INLINE = [
-        'image/jpeg',
-        'image/png',
-        'image/webp',
-        'image/gif',
-        'application/pdf',
-        'audio/ogg',
-        'audio/mpeg',
-        'audio/mp4',
-        'audio/aac',
-        'audio/amr',
-        'video/mp4',
-        'video/3gpp',
-    ];
-
     public function __construct(private readonly MediaStore $store)
     {
     }
@@ -93,6 +78,8 @@ class ConversationMediaController extends Controller
 
         $mime = $conversation->media_mime ?: 'application/octet-stream';
 
+        $enLinea = MediaStore::seMuestraEnLinea($mime);
+
         $response = response()->file($ruta, [
             'Content-Type' => $mime,
             // Sin esto el navegador adivina el tipo por el contenido: un archivo guardado como
@@ -100,13 +87,19 @@ class ConversationMediaController extends Controller
             'X-Content-Type-Options' => 'nosniff',
             // Son datos personales: que no queden en cache de proxies ni del navegador.
             'Cache-Control' => 'private, no-store',
+            // El panel NO navega a esta URL: baja el archivo con `fetch` y lo envuelve en una
+            // URL `blob:`. Un `blob:` hereda NUESTRO origen, asi que abrir ahi un SVG o un
+            // HTML ejecutaria su JavaScript en el dominio del panel - justo lo que el
+            // `attachment` de abajo evita en una navegacion directa, pero que no alcanza a
+            // cubrir por ese camino. Este encabezado le pasa la misma decision al panel.
+            'X-Media-Disposition' => $enLinea ? 'inline' : 'attachment',
         ]);
 
         // `setContentDisposition` y no un encabezado armado a mano: el nombre lo escribio el
         // contacto, y Symfony es quien sabe citarlo y codificarlo (acentos incluidos) sin que
         // se pueda romper el encabezado desde adentro.
         $response->setContentDisposition(
-            in_array($this->mimeBase($mime), self::INLINE, true) ? 'inline' : 'attachment',
+            $enLinea ? 'inline' : 'attachment',
             $this->nombreSeguro($conversation),
         );
 
@@ -119,12 +112,6 @@ class ConversationMediaController extends Controller
             'status'  => 'error',
             'message' => 'Archivo no encontrado.',
         ], 404);
-    }
-
-    /** El mime puede traer parametros: "audio/ogg; codecs=opus". */
-    private function mimeBase(string $mime): string
-    {
-        return strtolower(trim(explode(';', $mime)[0]));
     }
 
     /**

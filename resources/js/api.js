@@ -383,6 +383,9 @@ export const api = {
      * No usa `request()` porque va multipart: poner `Content-Type: application/json` romperia
      * el `boundary` que arma el navegador. Pero `Accept: application/json` SI va, o Laravel
      * responde los errores de validacion con un redirect en vez de 422.
+     *
+     * La respuesta pasa por `parseUpload`, igual que las otras subidas: es quien sabe que un
+     * 413 de nginx no viene en JSON y hay que traducirlo a un mensaje que el operador entienda.
      */
     sendConversationMedia: (contactId, file, caption) => {
         const formData = new FormData();
@@ -400,13 +403,7 @@ export const api = {
             },
             body: formData,
         })
-            .then(async (res) => {
-                const data = await res.json().catch(() => ({}));
-
-                return res.ok
-                    ? data
-                    : { status: 'error', message: data.message ?? 'No se pudo enviar la imagen.' };
-            })
+            .then(parseUpload)
             .catch(() => ({ status: 'error', message: 'No se pudo conectar con el servidor.' }));
     },
 

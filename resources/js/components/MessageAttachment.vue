@@ -22,7 +22,7 @@
             type="button"
             class="att-img-btn"
             :disabled="! url"
-            @click="$emit('open', { url, filename: nombre })"
+            @click="$emit('open', { url, filename: nombreDescarga })"
         >
             <img v-if="url" :src="url" :alt="nombre" class="att-img" />
             <span v-else-if="error" class="att-note att-note--error">
@@ -114,6 +114,44 @@ const nombre = computed(() =>
     props.message.media_filename || ETIQUETAS[props.message.message_type] || 'Archivo'
 );
 
+/**
+ * Extension por tipo de archivo. Espejo de `MediaStore::EXTENSIONES` en el backend.
+ */
+const EXTENSIONES = {
+    'image/jpeg'     : 'jpg',
+    'image/png'      : 'png',
+    'image/webp'     : 'webp',
+    'image/gif'      : 'gif',
+    'application/pdf': 'pdf',
+    'audio/ogg'      : 'ogg',
+    'audio/mpeg'     : 'mp3',
+    'audio/mp4'      : 'm4a',
+    'audio/aac'      : 'aac',
+    'audio/amr'      : 'amr',
+    'video/mp4'      : 'mp4',
+    'video/3gpp'     : '3gp',
+};
+
+/**
+ * Nombre con el que se guarda el archivo en la computadora del operador.
+ *
+ * Tiene que llevar extension. Sin ella el navegador la adivina del tipo de archivo, y en
+ * Windows `image/jpeg` esta asociado a `.jfif` en el registro: una foto se bajaba como
+ * `Foto.jfif` y varios programas no la abren. Solo los documentos traen nombre propio desde
+ * WhatsApp; una foto o una nota de voz llegan sin nombre y caian justo en ese hueco.
+ */
+const nombreDescarga = computed(() => {
+    const original = props.message.media_filename;
+
+    if (original && /\.[a-z0-9]{2,5}$/i.test(original)) return original;
+
+    const mime = (props.message.media_mime || '').split(';')[0].trim();
+    const ext  = EXTENSIONES[mime];
+    const base = original || `${ETIQUETAS[props.message.message_type] || 'Archivo'}-${props.message.id}`;
+
+    return ext ? `${base}.${ext}` : base;
+});
+
 const icono = computed(() => ICONOS[props.message.message_type] ?? 'pi-file');
 
 const meta = computed(() => {
@@ -144,13 +182,43 @@ async function bajar() {
     return res.url;
 }
 
-/** Abre el documento o el video en otra pestana. */
+/**
+ * Abre el documento o el video en otra pestana.
+ *
+ * La pestana se abre EN el click, antes de esperar la descarga. Un `window.open` que ocurre
+ * despues de un `await` ya no cuenta como gesto del usuario y el navegador lo bloquea: al
+ * operador le salia la barra de "ventana emergente bloqueada" cada vez que abria un PDF.
+ *
+ * Si aun asi no se pudo abrir (el bloqueador quedo activo de antes), el archivo se descarga.
+ * Nunca se queda sin nada.
+ */
 async function abrirArchivo() {
+    // Sin `noopener`: con esa opcion `window.open` devuelve null y no habria a quien darle
+    // la direccion. El archivo es una URL `blob:` de nuestro propio origen, asi que la
+    // pestana no queda apuntando a nada ajeno.
+    const ventana = url.value ? null : window.open('', '_blank');
+
     abriendo.value = true;
     const destino  = url.value ?? await bajar();
     abriendo.value = false;
 
-    if (destino) window.open(destino, '_blank', 'noopener');
+    if (! destino) {
+        ventana?.close();
+        return;
+    }
+
+    if (ventana && ! ventana.closed) {
+        ventana.location.href = destino;
+        return;
+    }
+
+    if (window.open(destino, '_blank')) return;
+
+    // Bloqueado: al menos que se lo lleve.
+    const a = document.createElement('a');
+    a.href     = destino;
+    a.download = nombreDescarga.value;
+    a.click();
 }
 
 onMounted(() => {

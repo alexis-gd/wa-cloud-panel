@@ -265,6 +265,28 @@ class SendImageTest extends TestCase
         Http::assertNothingSent();
     }
 
+    /**
+     * Pasarse de `post_max_size` no deja rastro que Laravel pueda mirar: PHP vacia `$_POST` y
+     * `$_FILES` antes. Sin este caso, el operador recibia "el campo file es obligatorio"
+     * despues de haber elegido un archivo, que es de las cosas que mas desorientan.
+     */
+    public function test_avisa_cuando_la_imagen_pasa_del_tope_del_servidor(): void
+    {
+        $this->actingAsOperator();
+        $this->metaAcepta();
+
+        // Peticion vacia que dice pesar mas de lo que PHP acepta: es exactamente como llega
+        // una subida que se paso de `post_max_size`.
+        $this->post("/api/conversations/{$this->contact->id}/media", [], [
+            'Accept'         => 'application/json',
+            'CONTENT_LENGTH' => '999999999',
+        ])
+             ->assertStatus(422)
+             ->assertJsonPath('code', 'UPLOAD_LIMIT_EXCEEDED');
+
+        Http::assertNothingSent();
+    }
+
     // -- Lo que el operador puede mandar ---------------------------------------
 
     public function test_rechaza_lo_que_no_es_una_imagen(): void

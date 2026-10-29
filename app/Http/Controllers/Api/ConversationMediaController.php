@@ -144,6 +144,17 @@ class ConversationMediaController extends Controller
             );
         }
 
+        // Pasarse de `post_max_size` es distinto y peor: PHP tira la peticion ENTERA, no solo
+        // el archivo, asi que no hay ni error de subida que mirar. La validacion diria "el
+        // campo file es obligatorio", que al operador no le dice nada: el si eligio un archivo.
+        if ($archivo === null && $this->superaElTamanoDePeticion($request)) {
+            return $this->error(
+                'La imagen es demasiado pesada para el servidor (máximo ' . ini_get('post_max_size')
+                    . '). Usa una más ligera o pide a soporte que suba ese límite.',
+                'UPLOAD_LIMIT_EXCEEDED',
+            );
+        }
+
         $request->validate([
             'file'    => 'required|file|mimetypes:image/jpeg,image/png,image/webp',
             'caption' => 'nullable|string|max:1024',
@@ -241,6 +252,40 @@ class ConversationMediaController extends Controller
                 'created_at'   => $conversation->created_at,
             ],
         ], 201);
+    }
+
+    /**
+     * La peticion venia vacia porque pesaba mas de lo que PHP acepta.
+     *
+     * Se mira `Content-Length` y no el archivo, porque cuando se pasa de `post_max_size` no
+     * queda archivo que mirar: PHP vacia `$_POST` y `$_FILES` antes de que Laravel exista. El
+     * encabezado sigue ahi: lo pone el servidor web, no PHP.
+     */
+    private function superaElTamanoDePeticion(Request $request): bool
+    {
+        $pesa = (int) $request->header('Content-Length', 0);
+        $tope = $this->enBytes((string) ini_get('post_max_size'));
+
+        return $tope > 0 && $pesa > $tope;
+    }
+
+    /** Convierte los tamanos de php.ini ("20M", "8192K", "1G") a bytes. */
+    private function enBytes(string $tamano): int
+    {
+        $tamano = trim($tamano);
+
+        if ($tamano === '') {
+            return 0;
+        }
+
+        $numero = (int) $tamano;
+
+        return match (strtolower(substr($tamano, -1))) {
+            'g'     => $numero * 1024 * 1024 * 1024,
+            'm'     => $numero * 1024 * 1024,
+            'k'     => $numero * 1024,
+            default => $numero,
+        };
     }
 
     /** Borra el archivo que genero el procesador, si genero uno. */

@@ -485,12 +485,18 @@
         </div>
         <div v-else-if="checkResult?.deleted" class="check-note check-warn">
             <i class="pi pi-replay"></i>
-            Este número ya estuvo aquí y fue borrado. Al guardarlo se restaura con su
-            historial y su estado (<strong>{{ statusLabel(checkResult.contact_status) }}</strong>).
+            <span>
+                Este número ya estuvo aquí y fue borrado. Al guardarlo se restaura con su
+                historial y su estado anterior:
+                <strong>{{ statusLabel(checkResult.contact_status) }}</strong>.
+            </span>
         </div>
         <div v-else-if="checkResult?.exists" class="check-note check-bad">
             <i class="pi pi-exclamation-triangle"></i>
-            Ya existe - <strong>{{ statusLabel(checkResult.contact_status) }}</strong>. No se puede agregar.
+            <span>
+                Ya existe - <strong>{{ statusLabel(checkResult.contact_status) }}</strong>.
+                No se puede agregar.
+            </span>
         </div>
         <div v-else-if="checkResult?.valid_format" class="check-note check-good">
             <i class="pi pi-check-circle"></i> Número disponible para agregar.
@@ -1410,14 +1416,14 @@ onMounted(() => {
 
 .check-note {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 6px;
     padding: 8px 12px;
     border-radius: 6px;
     font-size: .82rem;
     margin-bottom: 14px;
 }
-.check-note .pi  { flex-shrink: 0; }
+.check-note .pi  { flex-shrink: 0; margin-top: 2px; }
 .check-good  { background: var(--p-green-50);  color: var(--p-green-700); }
 .check-bad   { background: var(--p-red-50);    color: var(--p-red-700); }
 .check-warn  { background: var(--p-amber-50);   color: var(--p-amber-700); }

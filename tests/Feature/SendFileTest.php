@@ -162,6 +162,47 @@ class SendFileTest extends TestCase
         ]);
     }
 
+    /**
+     * Reenviar la nota de voz que el contacto acaba de mandar.
+     *
+     * Un `.ogg` no tiene un nombre de formato unico: segun lo que lleve dentro, el sistema lo
+     * reporta como `audio/ogg`, `application/ogg`, `audio/opus` o varios mas. La lista solo
+     * tenia el primero, asi que el panel rechazaba un archivo que el mismo acababa de entregar.
+     *
+     * @dataProvider nombresDeLaFamiliaOgg
+     */
+    public function test_acepta_la_nota_de_voz_la_nombre_como_la_nombre(string $mime): void
+    {
+        $this->enviar(UploadedFile::fake()->create('nota.ogg', 200, $mime))
+             ->assertStatus(201)
+             ->assertJsonPath('data.message_type', 'audio');
+    }
+
+    public static function nombresDeLaFamiliaOgg(): array
+    {
+        return [
+            'audio/ogg'        => ['audio/ogg'],
+            'application/ogg'  => ['application/ogg'],
+            'audio/opus'       => ['audio/opus'],
+            'audio/x-opus+ogg' => ['audio/x-opus+ogg'],
+        ];
+    }
+
+    /**
+     * Meta acepta exactamente `audio/ogg`. Subirlo con el nombre que adivino el sistema seria
+     * que lo rechace por un detalle de nomenclatura, no por el archivo.
+     */
+    public function test_le_dice_a_meta_el_nombre_de_formato_que_espera(): void
+    {
+        $this->enviar(UploadedFile::fake()->create('nota.ogg', 200, 'application/ogg'))
+             ->assertStatus(201);
+
+        Http::assertSent(function ($r) {
+            return str_contains($r->url(), '/media')
+                && str_contains((string) $r->body(), 'audio/ogg');
+        });
+    }
+
     // -- Lo que no se puede mandar ---------------------------------------------
 
     public function test_rechaza_un_formato_que_whatsapp_no_acepta(): void

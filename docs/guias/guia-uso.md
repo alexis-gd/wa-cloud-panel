@@ -593,7 +593,9 @@ voz** o un **video**, lo ves dentro de la conversación:
   te dice qué va a hacer: si tiene el icono de **pestaña**, lo abre para verlo; si tiene el de
   **descarga**, lo guarda en tu computadora. Hay archivos que el sistema no abre dentro del
   panel por seguridad, y esos siempre se descargan.
-- **Notas de voz**: se reproducen desde la burbuja con el botón de play.
+- **Notas de voz**: se reproducen desde la burbuja con el botón de play. Al lado hay un botón
+  para **guardarla** en tu computadora con un nombre entendible. Usa ese, no el del menú de
+  tres puntos del reproductor: ese la guarda con un nombre que no dice nada.
 
 Si el contacto escribió algo junto con la foto, ese texto sale debajo de la imagen.
 

@@ -143,6 +143,20 @@ class ConversationMediaController extends Controller
 
         $limpio = preg_replace('#[\x00-\x1F\x7F"\\/%]+#u', '', basename($nombre));
 
-        return trim((string) $limpio) ?: ('archivo-' . $conversation->id);
+        $limpio = trim((string) $limpio) ?: ('archivo-' . $conversation->id);
+
+        // Sin extension el navegador la adivina del mime. En Windows `image/jpeg` esta
+        // asociado a `.jfif` en el registro, asi que una foto se guardaba como `Foto.jfif`
+        // y varios programas no la abren. Solo los documentos traen nombre propio desde
+        // WhatsApp; una foto o una nota de voz llegan sin nombre y caian justo en ese hueco.
+        if (! preg_match('/\.[A-Za-z0-9]{2,5}$/', $limpio)) {
+            $extension = MediaStore::extensionDe($conversation->media_mime);
+
+            if ($extension !== null) {
+                $limpio .= '.' . $extension;
+            }
+        }
+
+        return $limpio;
     }
 }

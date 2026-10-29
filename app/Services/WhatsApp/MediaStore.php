@@ -144,9 +144,22 @@ class MediaStore
 
     private function extension(?string $mime): string
     {
+        return self::extensionDe($mime) ?? 'bin';
+    }
+
+    /**
+     * Extension que le corresponde a un mime, o null si no la conocemos.
+     *
+     * Publica porque la necesita tambien el nombre con el que el operador GUARDA el archivo,
+     * no solo el nombre en disco. Un archivo sin extension deja que el navegador la adivine
+     * del mime, y en Windows `image/jpeg` cae en `.jfif` por una asociacion del registro:
+     * el operador termina con un archivo que varios programas no abren.
+     */
+    public static function extensionDe(?string $mime): ?string
+    {
         // El mime puede venir con parametros: "audio/ogg; codecs=opus".
         $limpio = trim(explode(';', (string) $mime)[0]);
 
-        return self::EXTENSIONES[$limpio] ?? 'bin';
+        return self::EXTENSIONES[$limpio] ?? null;
     }
 }

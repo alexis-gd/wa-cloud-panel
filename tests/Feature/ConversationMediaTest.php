@@ -225,6 +225,79 @@ class ConversationMediaTest extends TestCase
         $this->assertStringNotContainsString("\n", $disposicion);
     }
 
+    // -- El nombre con el que se guarda ----------------------------------------
+
+    /**
+     * Una foto llega sin nombre: WhatsApp solo manda `filename` en los documentos. Si el
+     * nombre sale sin extension, el navegador la adivina del mime, y en Windows `image/jpeg`
+     * esta asociado a `.jfif` en el registro: el operador acababa con un `Foto.jfif` que
+     * varios programas no abren.
+     */
+    public function test_una_foto_sin_nombre_se_descarga_con_extension(): void
+    {
+        $this->actingAsAdmin();
+
+        $conversation = $this->conArchivo([
+            'message_type'   => 'image',
+            'media_mime'     => 'image/jpeg',
+            'media_filename' => null,
+        ]);
+
+        $disposicion = $this->get("/api/conversations/media/{$conversation->id}")
+            ->headers->get('Content-Disposition');
+
+        $this->assertStringContainsString('.jpg', $disposicion);
+    }
+
+    public function test_una_nota_de_voz_tambien_lleva_extension(): void
+    {
+        $this->actingAsAdmin();
+
+        $conversation = $this->conArchivo([
+            'message_type'   => 'audio',
+            // Las notas de voz de WhatsApp vienen con parametros en el mime.
+            'media_mime'     => 'audio/ogg; codecs=opus',
+            'media_filename' => null,
+        ]);
+
+        $disposicion = $this->get("/api/conversations/media/{$conversation->id}")
+            ->headers->get('Content-Disposition');
+
+        $this->assertStringContainsString('.ogg', $disposicion);
+    }
+
+    /** El documento ya trae su nombre con extension: no se le agrega otra encima. */
+    public function test_un_documento_conserva_su_nombre_tal_cual(): void
+    {
+        $this->actingAsAdmin();
+
+        $conversation = $this->conArchivo([
+            'message_type'   => 'document',
+            'media_mime'     => 'application/pdf',
+            'media_filename' => 'comprobante.pdf',
+        ]);
+
+        $disposicion = $this->get("/api/conversations/media/{$conversation->id}")
+            ->headers->get('Content-Disposition');
+
+        $this->assertStringContainsString('comprobante.pdf', $disposicion);
+        $this->assertStringNotContainsString('comprobante.pdf.pdf', $disposicion);
+    }
+
+    /** Un mime que no conocemos no debe romper la descarga: se entrega sin extension. */
+    public function test_un_mime_desconocido_no_rompe_la_descarga(): void
+    {
+        $this->actingAsAdmin();
+
+        $conversation = $this->conArchivo([
+            'message_type'   => 'document',
+            'media_mime'     => 'application/x-cosa-rara',
+            'media_filename' => null,
+        ]);
+
+        $this->get("/api/conversations/media/{$conversation->id}")->assertOk();
+    }
+
     // -- Cuando no hay nada que entregar ---------------------------------------
 
     public function test_un_archivo_que_sigue_en_la_cola_avisa_que_espere(): void

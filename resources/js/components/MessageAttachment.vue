@@ -31,6 +31,21 @@
             <span v-else class="att-img-skeleton"><i class="pi pi-spin pi-spinner"></i></span>
         </button>
 
+        <!-- Video: NO se precarga. Uno de 16 MB bajandose solo al pasar el scroll es muy
+             distinto de una foto de 200 KB, asi que primero se ve una caratula y el archivo
+             se pide al darle play. -->
+        <div v-else-if="esVideo" class="att-video">
+            <video v-if="url" :src="url" controls preload="metadata" class="att-video-player"></video>
+            <button v-else type="button" class="att-video-poster" :disabled="abriendo" @click="verVideo">
+                <i :class="abriendo ? 'pi pi-spin pi-spinner' : 'pi pi-play-circle'"></i>
+                <span>{{ abriendo ? 'Cargando video...' : 'Ver video' }}</span>
+                <small v-if="meta">{{ meta }}</small>
+            </button>
+            <span v-if="error" class="att-note att-note--error">
+                <i class="pi pi-exclamation-triangle"></i>{{ error }}
+            </span>
+        </div>
+
         <!-- Nota de voz: el reproductor del navegador basta. -->
         <div v-else-if="esAudio" ref="caja" class="att-audio">
             <audio v-if="url" :src="url" controls preload="metadata"></audio>
@@ -64,21 +79,20 @@
 /**
  * El archivo que trae un mensaje: foto, documento, nota de voz o video.
  *
- * Por que es un componente aparte: cada adjunto maneja su propia descarga y su propia limpieza
- * de memoria, y la vista de Conversaciones ya es grande. Asi cada burbuja se encarga de lo suyo.
+ * Por que es un componente aparte: cada adjunto se ve distinto y decide por su cuenta cuando
+ * pedir su archivo, y la vista de Conversaciones ya es grande.
  *
- * Como llega el archivo: la ruta del panel exige sesion, y un `<img src="/api/...">` no manda
- * el encabezado de sesion. Entonces se pide con fetch y se convierte en una URL local
- * (`blob:`). Esa URL hay que revocarla al desmontar o el navegador se queda el archivo en
- * memoria mientras la pestana viva.
+ * Como se pide y como se suelta el archivo vive en `useArchivoDeMensaje`: es lo unico que los
+ * cuatro tipos comparten, y tiene la parte delicada (la sesion y la memoria).
  *
- * Las fotos se bajan cuando entran a la pantalla, no al abrir la conversacion: en un chat con
- * 50 fotos, bajarlas todas de golpe tira decenas de peticiones a la vez y el chat tarda en
- * aparecer. Las fotos que el operador nunca alcanza a ver no se bajan nunca.
+ * Cuando se pide cada uno:
+ * - **Foto y nota de voz**: al entrar a la pantalla. Pesan poco y se ven en la burbuja.
+ * - **Video**: al darle play. Uno de 16 MB bajandose solo al pasar el scroll es otra cosa.
+ * - **Documento**: al darle al boton. Casi nunca se abren todos.
  */
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import Button from 'primevue/button';
-import { api } from '../api.js';
+import { useArchivoDeMensaje } from '../composables/useArchivoDeMensaje.js';
 import {
     etiquetaDeTipo,
     formatPeso,
@@ -93,19 +107,16 @@ const props = defineProps({
 
 defineEmits(['open']);
 
-const url      = ref(null);
-const error    = ref(null);
-const abriendo = ref(false);
-// Veredicto del servidor, ya con el archivo en mano. Null hasta que se baja.
-const inline   = ref(null);
-const caja     = ref(null);
+const { url, error, inline, bajar, bajarCuandoSeVea } = useArchivoDeMensaje(props.message);
 
-let observer = null;
+const abriendo = ref(false);
+const caja     = ref(null);
 
 const descargando = computed(() => props.message.media_status === 'pending');
 const fallido     = computed(() => props.message.media_status === 'failed');
 const esImagen    = computed(() => props.message.message_type === 'image');
 const esAudio     = computed(() => props.message.message_type === 'audio');
+const esVideo     = computed(() => props.message.message_type === 'video');
 
 /**
  * Este archivo se abre en una pestana, o se descarga.
@@ -134,20 +145,11 @@ const meta = computed(() => {
     return partes.join(' · ');
 });
 
-async function bajar() {
-    if (url.value || error.value) return null;
-
-    const res = await api.conversationMedia(props.message.id);
-
-    if (res.status !== 'ok') {
-        error.value = res.message;
-        return null;
-    }
-
-    url.value    = res.url;
-    inline.value = res.inline;
-
-    return res.url;
+/** Baja el video y lo muestra en la burbuja. Solo al darle play, nunca solo. */
+async function verVideo() {
+    abriendo.value = true;
+    await bajar();
+    abriendo.value = false;
 }
 
 /**
@@ -192,31 +194,10 @@ async function abrirArchivo() {
 }
 
 onMounted(() => {
-    // Solo lo que se muestra en la burbuja se precarga; el documento espera al click.
+    // Solo lo que se muestra en la burbuja se precarga; el video y el documento esperan.
     if (! (esImagen.value || esAudio.value) || descargando.value || fallido.value) return;
 
-    // Sin IntersectionObserver (navegador viejo) se baja de inmediato: peor rendimiento,
-    // pero el operador ve su foto.
-    if (typeof IntersectionObserver === 'undefined') {
-        bajar();
-        return;
-    }
-
-    observer = new IntersectionObserver((entries) => {
-        if (! entries.some(e => e.isIntersecting)) return;
-        observer?.disconnect();
-        observer = null;
-        bajar();
-    }, { rootMargin: '200px' });
-
-    if (caja.value) observer.observe(caja.value);
-});
-
-onBeforeUnmount(() => {
-    observer?.disconnect();
-    // Sin esto el navegador se queda el archivo en memoria: un turno entero abriendo
-    // conversaciones con fotos acaba comiendose cientos de megas.
-    if (url.value) URL.revokeObjectURL(url.value);
+    bajarCuandoSeVea(caja.value);
 });
 </script>
 
@@ -241,6 +222,19 @@ onBeforeUnmount(() => {
     width: 180px; height: 120px; border-radius: 10px;
     background: var(--p-surface-200); color: var(--p-text-muted-color);
 }
+
+.att-video                 { max-width: 260px; }
+.att-video-player          { display: block; width: 100%; border-radius: 10px; }
+.att-video-poster {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    width: 240px; height: 135px; padding: 0; cursor: pointer;
+    border: 0; border-radius: 10px;
+    background: var(--p-surface-800); color: var(--p-surface-0);
+}
+.att-video-poster:disabled { cursor: default; }
+.att-video-poster i        { font-size: 2rem; }
+.att-video-poster span     { font-size: .78rem; font-weight: 600; }
+.att-video-poster small    { font-size: .68rem; opacity: .75; }
 
 .att-audio audio { display: block; max-width: 240px; height: 36px; }
 

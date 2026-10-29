@@ -78,7 +78,7 @@
           :sending="sending"
           :quick-replies="quickReplies"
           @send="sendMessage"
-          @send-image="sendImage"
+          @send-file="sendFile"
         />
       </template>
     </div>
@@ -530,14 +530,15 @@ async function sendMessage(texto) {
 }
 
 /**
- * Manda la foto que eligio el operador.
+ * Manda el archivo que eligio el operador: foto, documento, video o audio.
  *
  * Tarda mas que un texto: sube a Meta y despues manda el mensaje. Por eso `sending` queda
  * encendido todo el rato - el boton muestra su spinner y no se puede mandar dos veces.
  *
- * El servidor reduce la imagen al tope de Meta (5 MB); el panel no la toca.
+ * El servidor decide que hacer con el archivo: reduce las fotos al tope de Meta (5 MB) y avisa
+ * cuando un video o un documento se pasa del suyo. El panel no toca el archivo.
  */
-async function sendImage({ file, caption }) {
+async function sendFile({ file, caption }) {
   if (!file || sending.value) return;
 
   sending.value = true;
@@ -552,7 +553,7 @@ async function sendImage({ file, caption }) {
   } else {
     toast.add({
       severity: 'error',
-      summary : 'No se pudo enviar la foto',
+      summary : 'No se pudo enviar el archivo',
       detail  : res.message,
       life    : 6000,
     });

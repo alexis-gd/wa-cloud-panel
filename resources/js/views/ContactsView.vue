@@ -483,6 +483,11 @@
         <div v-else-if="checkResult && !checkResult.valid_format && addForm.phone" class="check-note check-bad">
             <i class="pi pi-times-circle"></i> Deben ser 10 dígitos (sin 52 ni +).
         </div>
+        <div v-else-if="checkResult?.deleted" class="check-note check-warn">
+            <i class="pi pi-replay"></i>
+            Este número ya estuvo aquí y fue borrado. Al guardarlo se restaura con su
+            historial y su estado (<strong>{{ statusLabel(checkResult.contact_status) }}</strong>).
+        </div>
         <div v-else-if="checkResult?.exists" class="check-note check-bad">
             <i class="pi pi-exclamation-triangle"></i>
             Ya existe - <strong>{{ statusLabel(checkResult.contact_status) }}</strong>. No se puede agregar.
@@ -583,7 +588,9 @@ const checkLoading = ref(false);
 let   checkTimer   = null;
 
 const canAdd = computed(() =>
-    !!checkResult.value && checkResult.value.valid_format && !checkResult.value.exists && !savingAdd.value
+    !!checkResult.value && checkResult.value.valid_format && !savingAdd.value
+    // Un borrado SI se puede guardar: el backend lo restaura en vez de crear otra fila.
+    && (!checkResult.value.exists || checkResult.value.deleted)
 );
 
 const tagFilterOptions = computed(() => [
@@ -933,7 +940,16 @@ async function saveAdd() {
     savingAdd.value = false;
 
     if (res.status === 'ok') {
-        toast.add({ severity: 'success', summary: 'Contacto agregado', detail: res.data.phone, life: 3000 });
+        // Restaurado y agregado no son lo mismo: el operador tiene que saber que ese contacto
+        // vuelve con su historial, sus etiquetas y su estado de antes.
+        toast.add({
+            severity: 'success',
+            summary : res.restored ? 'Contacto restaurado' : 'Contacto agregado',
+            detail  : res.restored
+                ? `${res.data.phone} ya existía y estaba borrado. Volvió con su historial.`
+                : res.data.phone,
+            life    : res.restored ? 6000 : 3000,
+        });
         addDialog.value = false;
         await loadContacts(1);
     } else {
@@ -1404,6 +1420,7 @@ onMounted(() => {
 .check-note .pi  { flex-shrink: 0; }
 .check-good  { background: var(--p-green-50);  color: var(--p-green-700); }
 .check-bad   { background: var(--p-red-50);    color: var(--p-red-700); }
+.check-warn  { background: var(--p-amber-50);   color: var(--p-amber-700); }
 .check-muted { background: var(--p-surface-100); color: var(--p-text-muted-color); }
 
 /* Tags */

@@ -159,15 +159,43 @@ class ContactController extends Controller
             ], 422);
         }
 
-        // Rechazar duplicados — incluye opt-out/inválidos/unreachable (no se reincorporan,
-        // se conservan para auditoría). El estado se devuelve para que el front lo explique.
-        if (Contact::where('phone', $normalized)->exists()) {
+        // `withTrashed()` no es opcional: `phone` tiene indice UNIQUE, asi que un contacto
+        // borrado SIGUE ocupando el numero. Sin esto el chequeo decia "disponible", el insert
+        // chocaba con la llave duplicada y el operador recibia un 500 sin explicacion. El
+        // importador ya documentaba esta trampa; el alta manual se habia quedado sin el arreglo.
+        $existente = Contact::withTrashed()->where('phone', $normalized)->first();
+
+        // Rechazar duplicados vivos - incluye opt-out/invalidos/unreachable (no se reincorporan,
+        // se conservan para auditoria). El estado se devuelve para que el front lo explique.
+        if ($existente && ! $existente->trashed()) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Este número ya existe en el sistema.',
                 'code'    => 'DUPLICATE',
                 'data'    => $this->deliverabilitySnapshot($normalized),
             ], 422);
+        }
+
+        // Borrado: se restaura en vez de crear otra fila. Rechazarlo dejaria al operador sin
+        // salida, porque el panel no tiene pantalla para resucitar un contacto: veria
+        // "disponible" en verde, daria Guardar y se quedaria con un error.
+        //
+        // La baja NO se toca a proposito. Si el contacto estaba `opted_out`, vuelve `opted_out`
+        // y sigue bloqueado: restaurar es traer de vuelta la ficha, nunca revivir un permiso
+        // que la persona retiro.
+        if ($existente) {
+            $existente->restore();
+
+            if ($data['name'] ?? null) {
+                $existente->name = $data['name'];
+                $existente->save();
+            }
+
+            return response()->json([
+                'status'   => 'ok',
+                'restored' => true,
+                'data'     => $existente->load('tags:id,name,slug'),
+            ]);
         }
 
         $contact = Contact::create([
@@ -178,8 +206,9 @@ class ContactController extends Controller
         ]);
 
         return response()->json([
-            'status' => 'ok',
-            'data'   => $contact->load('tags:id,name,slug'),
+            'status'   => 'ok',
+            'restored' => false,
+            'data'     => $contact->load('tags:id,name,slug'),
         ], 201);
     }
 
@@ -224,8 +253,11 @@ class ContactController extends Controller
      */
     private function deliverabilitySnapshot(string $phone): array
     {
-        $contact = Contact::where('phone', $phone)->first();
+        // Igual que en `store()`: sin `withTrashed()` el aviso decia "disponible" sobre un
+        // numero borrado que al guardar reventaba. El aviso y el insert tienen que mirar lo mismo.
+        $contact = Contact::withTrashed()->where('phone', $phone)->first();
         $status  = $contact?->status;
+        $deleted = (bool) $contact?->trashed();
         $blocked = in_array($status, ['opted_out', 'invalid', 'unreachable'], true);
 
         // Snooze: el contacto pidió "No por ahora"
@@ -263,6 +295,8 @@ class ContactController extends Controller
             'phone'           => $phone,
             'valid_format'    => true,
             'exists'          => (bool) $contact,
+            // Existe pero esta borrado: se puede restaurar, no es un duplicado sin salida.
+            'deleted'         => $deleted,
             'contact_status'  => $status,
             'name'            => $contact?->name,
             'blocked'         => $blocked,
@@ -271,7 +305,7 @@ class ContactController extends Controller
             'cooldown_active' => $cooldownActive,
             'cooldown_until'  => $cooldownUntil,
             'sent_today'      => $sentToday,
-            'deliverable'     => ! $blocked && ! $snoozeActive && ! $sentToday && ! $cooldownActive,
+            'deliverable'     => ! $deleted && ! $blocked && ! $snoozeActive && ! $sentToday && ! $cooldownActive,
         ];
     }
 
@@ -363,7 +397,7 @@ class ContactController extends Controller
     }
 
     /**
-     * Opt-out manual de un contacto (cumplimiento — nunca más se le envía).
+     * Opt-out manual de un contacto (cumplimiento - nunca más se le envía).
      * POST /api/contacts/{id}/opt-out
      */
     public function optOut(int $id): JsonResponse
@@ -375,7 +409,7 @@ class ContactController extends Controller
     }
 
     /**
-     * Soft delete de un contacto — para limpiar basura/pruebas (solo admin/superadmin).
+     * Soft delete de un contacto - para limpiar basura/pruebas (solo admin/superadmin).
      * El registro se conserva con deleted_at y queda fuera de listas y campañas.
      * Distinto del opt-out: esto es limpieza operativa, no cumplimiento.
      * DELETE /api/contacts/{id}

@@ -47,7 +47,16 @@ class OutboundAttachment
         'audio/amr'      => 'audio',
         'audio/mpeg'     => 'audio',
         'audio/mp4'      => 'audio',
+        'audio/x-m4a'    => 'audio',
+        // La familia Ogg: un mismo `.ogg` se identifica de varias formas segun lo que lleve
+        // dentro. Una nota de voz de WhatsApp es Opus dentro de Ogg, y el sistema la puede
+        // reportar con cualquiera de estos nombres. Sin ellos, reenviar una nota de voz que
+        // el contacto acababa de mandar se rechazaba.
         'audio/ogg'      => 'audio',
+        'audio/x-ogg'    => 'audio',
+        'audio/opus'     => 'audio',
+        'audio/x-opus+ogg' => 'audio',
+        'application/ogg'  => 'audio',
         'video/mp4'      => 'video',
         'video/3gpp'     => 'video',
         'application/pdf'                                                           => 'document',
@@ -58,6 +67,21 @@ class OutboundAttachment
         'application/vnd.ms-powerpoint'                                             => 'document',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'document',
         'text/plain'                                                                => 'document',
+    ];
+
+    /**
+     * Lo que le decimos a Meta cuando el sistema nombro el formato de otra manera.
+     *
+     * Meta acepta exactamente `audio/ogg`; los demas nombres de la familia son el mismo
+     * archivo visto por otro catalogo. Subirlo con el nombre que adivino el sistema seria que
+     * Meta lo rechace por un detalle de nomenclatura.
+     */
+    private const NORMALIZADOS = [
+        'audio/x-ogg'      => 'audio/ogg',
+        'audio/opus'       => 'audio/ogg',
+        'audio/x-opus+ogg' => 'audio/ogg',
+        'application/ogg'  => 'audio/ogg',
+        'audio/x-m4a'      => 'audio/mp4',
     ];
 
     /** Nombre en lenguaje de operador, para los mensajes de error. */
@@ -110,7 +134,7 @@ class OutboundAttachment
         return [
             'ok'       => true,
             'path'     => $archivo->getRealPath(),
-            'mime'     => $mime,
+            'mime'     => self::NORMALIZADOS[$mime] ?? $mime,
             'tipo'     => $tipo,
             // El temporal de la subida lo limpia PHP al terminar la peticion; no nos toca.
             'temporal' => false,

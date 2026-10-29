@@ -60,7 +60,7 @@
             <input
                 ref="selector"
                 type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,video/mp4,video/3gpp,audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/amr"
+                accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.mp4,.3gp,.mp3,.m4a,.aac,.ogg,.oga,.opus,.amr"
                 class="selector-oculto"
                 @change="alElegir"
             />

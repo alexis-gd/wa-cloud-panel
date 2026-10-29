@@ -48,7 +48,19 @@
 
         <!-- Nota de voz: el reproductor del navegador basta. -->
         <div v-else-if="esAudio" ref="caja" class="att-audio">
-            <audio v-if="url" :src="url" controls preload="metadata"></audio>
+            <template v-if="url">
+                <audio :src="url" controls preload="metadata"></audio>
+                <!-- Boton propio: el del reproductor del navegador guarda el archivo con el
+                     nombre interno del navegador (un codigo largo sin sentido), porque no
+                     conoce el nombre real. -->
+                <Button
+                    icon="pi pi-download"
+                    text
+                    size="small"
+                    v-tooltip.top="'Guardar la nota de voz'"
+                    @click="guardarComo(url, nombreDescarga)"
+                />
+            </template>
             <span v-else-if="error" class="att-note att-note--error">
                 <i class="pi pi-exclamation-triangle"></i>{{ error }}
             </span>
@@ -236,6 +248,7 @@ onMounted(() => {
 .att-video-poster span     { font-size: .78rem; font-weight: 600; }
 .att-video-poster small    { font-size: .68rem; opacity: .75; }
 
+.att-audio       { display: flex; align-items: center; gap: 2px; }
 .att-audio audio { display: block; max-width: 240px; height: 36px; }
 
 .att-file {

@@ -129,6 +129,13 @@ export const api = {
         body   : JSON.stringify({ sms_auto_blacklist_bounces: bounces }),
     }),
 
+    getOtpPhoneNumber: () => request('/settings/otp-phone-number'),
+
+    updateOtpPhoneNumber: (id) => request('/settings/otp-phone-number', {
+        method : 'PUT',
+        body   : JSON.stringify({ otp_phone_number_id: id }),
+    }),
+
     demoReset: () => request('/settings/demo-reset', { method: 'POST' }),
 
     // ── Templates ─────────────────────────────────────────────────────────────

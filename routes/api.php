@@ -233,6 +233,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::put('/settings/monthly-goal',     [SettingsController::class, 'updateMonthlyGoal']);
         Route::get('/settings/sms-auto-blacklist', [SettingsController::class, 'getSmsAutoBlacklist']);
         Route::put('/settings/sms-auto-blacklist', [SettingsController::class, 'updateSmsAutoBlacklist']);
+        Route::get('/settings/otp-phone-number', [SettingsController::class, 'getOtpPhoneNumber']);
+        Route::put('/settings/otp-phone-number', [SettingsController::class, 'updateOtpPhoneNumber']);
         Route::post('/settings/demo-reset',      [SettingsController::class, 'demoReset']);
 
         // Alta y gestión de números de WhatsApp (verificados contra Meta)

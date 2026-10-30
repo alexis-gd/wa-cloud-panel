@@ -630,3 +630,34 @@ comparten el tope diario. Sirven para redundancia y balanceo, no para multiplica
 **Salió una alerta rara en Business Manager y no sé qué es.**
 Anota el texto exacto y avisa a soporte antes de hacer nada. No improvises con la cuenta
 de Meta.
+
+## Numero dedicado para los codigos de verificacion (OTP)
+
+Los codigos que pide la app del cliente salen, de fabrica, por el **primer numero activo** - el
+mismo que manda publicidad. Se puede apartar uno solo para ellos.
+
+**Que se gana y que NO.** Se gana **reputacion separada**: si una campana quema el numero de
+publicidad, el de los codigos sigue limpio y la gente puede seguir entrando a la app. **No se
+gana capacidad**: el limite diario de WhatsApp es **por cuenta** (Business Portfolio) y lo
+comparten todos los numeros. Agregar numeros no multiplica el volumen.
+
+### Pasos
+
+1. **Conseguir la SIM.** Tiene que ser **nueva, nunca registrada en WhatsApp**. Una que ya haya
+   tenido la app da problemas al darla de alta en la API y ahi se pierden dias.
+2. **Darla de alta en Meta** (business.facebook.com), como cualquier otro numero. Ver la
+   seccion de alta de numeros de esta misma guia.
+3. **Darla de alta en el panel**: Configuracion -> "Numeros de WhatsApp" -> Phone ID y WABA ID.
+   El sistema lo verifica contra Meta antes de guardarlo.
+4. **Asignarlo a los codigos**: Configuracion -> "Numero para los codigos de verificacion" ->
+   elegirlo -> Guardar. Dejarlo vacio vuelve al automatico.
+
+### Comprobar que quedo
+
+Pedir un codigo de prueba y mirar la pantalla **Codigos**. Si sale "Entregado", salio por donde
+debe. El panel **no** muestra Phone IDs de Meta a proposito; los numeros se eligen por el nombre
+que se les puso al darlos de alta.
+
+**Si el numero elegido se apaga o se queda sin token**, el envio NO se detiene: cae al primer
+numero activo y lo deja anotado en el log. Un codigo que no sale es peor que un codigo que sale
+por otro numero.

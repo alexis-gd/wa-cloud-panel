@@ -102,6 +102,41 @@
             </template>
         </Card>
         <Card style="max-width: 560px; margin-top: 24px">
+            <template #title>Número para los códigos de verificación</template>
+            <template #content>
+                <p class="pn-help">
+                    Por cuál de tus números salen los códigos que pide la app. En
+                    <b>Automático</b> salen por el primero activo, que es como viene de fábrica.
+                </p>
+
+                <div class="form-group">
+                    <label>Número dedicado</label>
+                    <Select
+                        v-model="otpPhoneNumberId"
+                        :options="otpPhoneOptions"
+                        option-label="label"
+                        option-value="id"
+                        placeholder="Automático (el primero activo)"
+                        show-clear
+                        fluid
+                    />
+                    <small>
+                        Elegir uno dedicado separa la <b>reputación</b>, no la capacidad: el
+                        límite diario de WhatsApp es de la cuenta y lo comparten todos los
+                        números. Lo que ganas es que si una campaña quema el número de
+                        publicidad, el de los códigos sigue limpio.
+                    </small>
+                </div>
+
+                <Button label="Guardar" icon="pi pi-check" :loading="savingOtpPhone" @click="saveOtpPhoneNumber" />
+
+                <Message v-if="otpPhoneResult" :severity="otpPhoneResult.error ? 'error' : 'success'" class="mt-3">
+                    {{ otpPhoneResult.error ?? otpPhoneResult.mensaje }}
+                </Message>
+            </template>
+        </Card>
+
+        <Card style="max-width: 560px; margin-top: 24px">
             <template #title>Multi-agente - asignación automática</template>
             <template #content>
                 <div class="form-group">
@@ -366,6 +401,12 @@ const smsBounces    = ref(0);
 const savingBounces = ref(false);
 const bouncesResult = ref(null);
 
+// Numero por el que salen los codigos. null = automatico (el primero activo).
+const otpPhoneNumberId = ref(null);
+const otpPhoneOptions  = ref([]);
+const savingOtpPhone   = ref(false);
+const otpPhoneResult   = ref(null);
+
 const assignmentMode  = ref('least_chats');
 const savingMode      = ref(false);
 const modeResult      = ref(null);
@@ -591,9 +632,34 @@ async function saveSmsBounces() {
     savingBounces.value = false;
 }
 
+async function loadOtpPhoneNumber() {
+    const res = await api.getOtpPhoneNumber();
+
+    if (res.status === 'ok') {
+        otpPhoneNumberId.value = res.data.otp_phone_number_id;
+        otpPhoneOptions.value  = res.data.options;
+    }
+}
+
+async function saveOtpPhoneNumber() {
+    savingOtpPhone.value = true;
+    otpPhoneResult.value = null;
+
+    const res = await api.updateOtpPhoneNumber(otpPhoneNumberId.value);
+
+    otpPhoneResult.value = res.status === 'ok'
+        ? { mensaje: otpPhoneNumberId.value
+            ? 'Los códigos saldrán por ese número.'
+            : 'Los códigos saldrán por el primer número activo.' }
+        : { error: res.message };
+
+    savingOtpPhone.value = false;
+}
+
 onMounted(() => {
     loadStatus();
     loadPhoneNumbers();
+    loadOtpPhoneNumber();
     loadCooldown();
     loadAssignmentMode();
     loadFlags();

@@ -603,7 +603,7 @@ retencion de los archivos se define al final (no se implemento borrado por reten
 | M3 | Enviar imagenes desde el panel | [x] | M1 |
 | M4 | PDF, notas de voz y video de salida | [x] | **Validado en prod 2026-10-30** |
 | M5 | OTP: API, carril prioritario, tabla de envios | [x] | M0 aprobada |
-| M6 | Numero de WhatsApp dedicado para OTP | [ ] | SIM del cliente |
+| M6 | Numero de WhatsApp dedicado para OTP | [~] | **Panel listo**; falta la SIM del cliente |
 
 ### M1 - recepcion y guardado (2026-10-27)
 
@@ -777,6 +777,23 @@ Dos cambios:
 Segunda vez que un permiso de archivo nos cuesta tiempo (la primera fue el candado del cron, en
 septiembre). El patron es el mismo: algo creado por un usuario, leido por otro, sin que nadie
 mire el modo.
+
+### M6 / O3 - el numero dedicado, lado panel (2026-10-30)
+
+Lo unico que faltaba de la partida era **poder elegirlo**: el job ya leia el Setting
+`otp_phone_number_id` desde que se construyo el API, pero ponerlo exigia `tinker`.
+
+- [x] `GET/PUT /api/settings/otp-phone-number` (solo superadmin, como el resto de Configuracion)
+  + tarjeta en la pantalla. Vacio = automatico (el primer numero activo).
+- [x] Rechaza un numero apagado o sin token: aceptarlo mostraria en pantalla una cosa y el job
+  mandaria por otra, sin que nadie entienda por que.
+- [x] No expone Phone IDs de Meta al frontend (regla de seguridad): se elige por el nombre.
+- [x] Documentado en `guia-meta.md`, con la trampa de la SIM.
+- [ ] **Pendiente del cliente: la SIM.** Debe ser **nueva, nunca registrada en WhatsApp**.
+
+**Lo que este numero separa es la reputacion, no la capacidad.** El limite diario de Meta es por
+Business Portfolio y lo comparten todos los numeros (ver M5). Si el cliente espera mas volumen
+por tener otro numero, va a esperar mal.
 
 ### M2 - verlos en el panel (2026-10-27)
 

@@ -215,7 +215,7 @@ class ConversationMediaController extends Controller
             'messaging_product' => 'whatsapp',
             'to'                => $contact->phone,
             'type'              => $tipo,
-            $tipo               => $this->contenido($tipo, $subida['media_id'], $caption, $archivo),
+            $tipo               => $this->contenido($tipo, $subida['media_id'], $caption, $archivo, $esVoz),
         ]);
 
         if (! $envio['ok']) {
@@ -321,14 +321,24 @@ class ConversationMediaController extends Controller
      *   inventado por WhatsApp y no sabe que le mandaron. Es el unico tipo donde el nombre
      *   viaja en el mensaje.
      * - **Audio**: NO admite `caption`. Una nota de voz con texto no existe en WhatsApp.
+     *   Si ademas es una grabacion, lleva `voice: true`.
      * - **Imagen y video**: el texto va como pie.
+     *
+     * **`voice: true` es lo que separa una nota de voz de un archivo de audio.** Sin ese campo
+     * Meta entrega la grabacion como adjunto descargable, con su icono de audifonos, en vez de
+     * la burbuja con onda y boton de reproducir. Lo pide la doc oficial, junto con que el
+     * archivo sea Ogg/Opus mono - de eso se encarga `VoiceNote::convertir()`.
      */
-    private function contenido(string $tipo, string $mediaId, ?string $caption, $archivo): array
+    private function contenido(string $tipo, string $mediaId, ?string $caption, $archivo, bool $esVoz = false): array
     {
         $contenido = ['id' => $mediaId];
 
         if ($tipo === 'document') {
             $contenido['filename'] = $archivo->getClientOriginalName();
+        }
+
+        if ($esVoz) {
+            $contenido['voice'] = true;
         }
 
         if ($caption && $tipo !== 'audio') {

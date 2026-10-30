@@ -12,6 +12,7 @@ use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\MessageLog;
+use App\Models\OtpCode;
 use App\Models\PhoneNumber;
 use App\Models\Setting;
 use App\Services\AssignmentService;
@@ -72,6 +73,14 @@ class WebhookController extends Controller
             $status      = $statusEvent['status'] ?? null;
 
             if ($waMessageId && $status) {
+                // Los codigos de verificacion no viven en `message_log` (ahi envenenarian el
+                // dedup y el cooldown de campanas), asi que su confirmacion de entrega se
+                // atiende antes y por separado. Sin esto, el panel decia "Enviado" para
+                // siempre aunque el telefono del usuario estuviera apagado.
+                if ($this->entregaDeCodigo($waMessageId, $status, $statusEvent)) {
+                    continue;
+                }
+
                 $log = MessageLog::where('wa_message_id', $waMessageId)->first();
 
                 if ($log?->campaign_id) {
@@ -350,4 +359,35 @@ class WebhookController extends Controller
      * Como se nombra un archivo cuando no trae pie de foto, para el toast y la vista previa.
      * El operador necesita ver "Foto" y no un renglon vacio.
      */
+
+    /**
+     * Anota en el codigo lo que WhatsApp diga de su mensaje.
+     *
+     * @return bool true si el aviso era de un codigo (y entonces no hay nada mas que hacer con el)
+     */
+    private function entregaDeCodigo(string $waMessageId, string $status, array $statusEvent): bool
+    {
+        $otp = OtpCode::where('message_id', $waMessageId)->first();
+
+        if (! $otp) {
+            return false;
+        }
+
+        $error = $statusEvent['errors'][0] ?? [];
+
+        $otp->registrarEntrega(
+            $status,
+            isset($error['code']) ? (string) $error['code'] : null,
+            $error['title'] ?? null,
+        );
+
+        if ($status === 'failed') {
+            Log::warning('Webhook: no se pudo entregar un codigo de verificacion', [
+                'otp_id'     => $otp->id,
+                'error_code' => $error['code'] ?? null,
+            ]);
+        }
+
+        return true;
+    }
 }

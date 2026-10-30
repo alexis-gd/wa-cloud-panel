@@ -38,6 +38,10 @@
                         <small>Pedidos hoy</small>
                     </div>
                     <div class="tarjeta">
+                        <span class="n">{{ resumen.entregados }}</span>
+                        <small>Entregados</small>
+                    </div>
+                    <div class="tarjeta">
                         <span class="n ok">{{ resumen.verificados }}</span>
                         <small>Verificados</small>
                     </div>
@@ -73,6 +77,16 @@
                                     :value="etiqueta(data.status).texto"
                                     :severity="etiqueta(data.status).color"
                                 />
+                            </template>
+                        </Column>
+                        <Column header="Entrega" style="width: 140px">
+                            <template #body="{ data }">
+                                <Tag
+                                    v-if="data.delivery"
+                                    :value="entrega(data.delivery).texto"
+                                    :severity="entrega(data.delivery).color"
+                                />
+                                <span v-else class="vacio">Sin aviso</span>
                             </template>
                         </Column>
                         <Column header="Intentos" style="width: 100px">
@@ -126,7 +140,7 @@ const perPage = ref(30);
 const loading = ref(false);
 const q       = ref('');
 const estado  = ref(null);
-const resumen = ref({ pedidos_hoy: 0, verificados: 0, fallidos: 0, cupo_restante: null });
+const resumen = ref({ pedidos_hoy: 0, entregados: 0, verificados: 0, fallidos: 0, cupo_restante: null });
 
 const opcionesEstado = [
     { label: 'Todos',       value: null },
@@ -153,6 +167,23 @@ const etiquetas = {
 
 function etiqueta(estado) {
     return etiquetas[estado] ?? { texto: estado, color: 'secondary' };
+}
+
+/**
+ * Lo que WhatsApp contesto del mensaje, que no es lo mismo que el estado del codigo.
+ *
+ * "Sin aviso" no quiere decir que no llego: quiere decir que Meta todavia no ha dicho nada.
+ * Suele tardar segundos, pero si el telefono esta apagado puede tardar horas.
+ */
+const entregas = {
+    delivered : { texto: 'Entregado', color: 'success' },
+    read      : { texto: 'Leído',     color: 'success' },
+    failed    : { texto: 'Rebotó',    color: 'danger' },
+    sent      : { texto: 'En camino', color: 'info' },
+};
+
+function entrega(estado) {
+    return entregas[estado] ?? { texto: estado, color: 'secondary' };
 }
 
 async function load() {

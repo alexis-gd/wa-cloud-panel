@@ -147,8 +147,10 @@ el `code` no cambia.
 ## Lo que no te podemos garantizar
 
 **Que el mensaje llegue.** Eso depende de WhatsApp y del teléfono del usuario. Lo que sí
-podemos decirte es si salió: esa información está en el panel, pantalla **Códigos**, con el
-número, tu `reference` y el motivo si falló.
+sabemos es qué pasó con él: WhatsApp nos avisa si se **entregó**, si lo **leyeron** o si
+**rebotó**, y eso queda en el panel, pantalla **Códigos**, junto al número, tu `reference` y el
+motivo del fallo. Ese aviso llega después de que ya te respondimos el 201: no viaja en la
+respuesta del API.
 
 Casos en los que el mensaje no sale, y no hay forma de saberlo antes de intentarlo:
 

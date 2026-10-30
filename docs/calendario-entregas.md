@@ -560,7 +560,8 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
 
 ### Bugs reportados por el cliente operando (2026-09-03)
 
-- [ ] **"Los mensajes nuevos no suben al inicio de la lista"** - ÚNICO ABIERTO (reporte del
+- [x] **"Los mensajes nuevos no suben al inicio de la lista"** - **RESUELTO** (confirmado por
+  Alexis el 2026-10-29). Era lo que se sospechaba, no hizo falta tocar el reordenamiento. (reporte del
   cliente, **sin confirmar**). El código sí está hecho para reordenar: el backend ordena por `last_message_at`
   y el frontend hace refetch completo al recibir un inbound. En los screenshots la lista se ve
   **bien ordenada**. Falta que el cliente sea más específico; Alexis lo cree tema visual. Antes de
@@ -692,6 +693,32 @@ prospectos. Tabla propia (`otp_codes`), cupo compartido.
 **Decisiones de Alexis (2026-10-29):** el OTP **ignora la baja de publicidad** (la baja es de
 marketing; el codigo lo pide el usuario en ese momento para entrar a su cuenta), y la reserva es
 un **porcentaje** del techo, no un numero fijo, para que se ajuste sola cuando Meta suba el tier.
+
+### Dos huecos que destapo probar en prod (2026-10-29)
+
+**1. Las notas de voz llegaban como archivo adjunto, y ni se podian descargar.** Meta pide tres
+cosas para que una grabacion se vea como nota de voz: el campo **`voice: true`** en el objeto
+`audio`, el archivo en **Ogg/Opus** y **mono**. No se mandaba el campo, y la conversion rapida
+(`-c:a copy`) conservaba lo que grabara el navegador - que puede ser estereo, y en Safari ni
+siquiera es Ogg. Encima el Ogg que salia del copiado llegaba roto: WhatsApp lo mostraba y no lo
+podia descargar. Ahora toda grabacion se recodifica a Ogg/Opus mono 32k y viaja con `voice: true`.
+
+**La leccion:** el copiado de envase se eligio por elegante (milisegundos, sin perdida) sobre un
+requisito que no habiamos leido. Cuando el formato de salida lo dicta un tercero, la via rapida
+solo vale si cumple TODAS sus condiciones, no la que uno recuerda.
+
+**2. La partida O1.5 (confirmacion de entrega) no estaba construida.** El webhook de Meta busca
+los avisos de entrega en `message_log` por `wa_message_id`, y los codigos **no viven ahi** a
+proposito. Resultado: los avisos de *entregado*, *leido* y *fallido* de un OTP se descartaban en
+silencio, y el panel decia "Enviado" para siempre aunque el telefono estuviera apagado.
+
+Se agrego `otp_codes.delivery_status` + `delivered_at`, **aparte de `status`**: son dos
+preguntas distintas y mezclarlas pierde una. Un codigo entregado y nunca usado es normal; uno
+que nunca llego, no. Si el mensaje rebota el codigo muere con el. Columna **Entrega** en el
+panel y contador en el resumen.
+
+**Como se encontro:** no por un test, sino mirando la cotizacion renglon por renglon contra lo
+que habia en produccion. Vale la pena repetirlo al cerrar cada bloque.
 
 ### M2 - verlos en el panel (2026-10-27)
 

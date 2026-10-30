@@ -23,16 +23,17 @@ class OtpCode extends Model
     public const MAX_INTENTOS = 5;
 
     protected $fillable = [
-        'phone', 'code_hash', 'reference', 'status', 'attempts',
-        'expires_at', 'sent_at', 'verified_at',
+        'phone', 'code_hash', 'reference', 'status', 'delivery_status', 'attempts',
+        'expires_at', 'sent_at', 'delivered_at', 'verified_at',
         'message_id', 'error_code', 'error_message',
     ];
 
     protected $casts = [
         'attempts'    => 'integer',
-        'expires_at'  => 'datetime',
-        'sent_at'     => 'datetime',
-        'verified_at' => 'datetime',
+        'expires_at'   => 'datetime',
+        'sent_at'      => 'datetime',
+        'delivered_at' => 'datetime',
+        'verified_at'  => 'datetime',
     ];
 
     public function estaVigente(): bool
@@ -62,6 +63,32 @@ class OtpCode extends Model
             'sent_at'    => now(),
             'expires_at' => now()->addMinutes(self::MINUTOS_DE_VIDA),
         ]);
+    }
+
+    /**
+     * Lo que WhatsApp contesta sobre el mensaje: llego, lo leyo, o rebotó.
+     *
+     * Va aparte de `status` porque son dos preguntas distintas. Un codigo **entregado y nunca
+     * usado** es normal (la persona se distrajo); uno que **nunca llego** es un problema. Sin
+     * esta columna los dos se veian igual en el panel: "Enviado", para siempre.
+     *
+     * Si el mensaje rebotó, el codigo muere con el: nadie lo va a poder escribir.
+     */
+    public function registrarEntrega(string $estado, ?string $codigoError = null, ?string $mensaje = null): void
+    {
+        $cambios = ['delivery_status' => $estado];
+
+        if ($estado === 'delivered' && ! $this->delivered_at) {
+            $cambios['delivered_at'] = now();
+        }
+
+        if ($estado === 'failed') {
+            $cambios['status']        = 'failed';
+            $cambios['error_code']    = $codigoError;
+            $cambios['error_message'] = $mensaje ? substr($mensaje, 0, 500) : null;
+        }
+
+        $this->update($cambios);
     }
 
     public function marcarFallido(?string $codigo, ?string $mensaje): void

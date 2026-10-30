@@ -36,3 +36,4 @@ CLAUDE.local.md
 # (se sirve en produccion, igual que public/guia/*.html); lo demas es de un solo uso.
 /public/doc/*
 !/public/doc/api-contactados.html
+!/public/doc/api-otp.html

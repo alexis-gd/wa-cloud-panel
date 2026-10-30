@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API de códigos de verificación (OTP) por WhatsApp</title>
+<style>
+  /* Poppins self-host (subset latin) - sin depender de Google */
+  @font-face {
+    font-family: "Poppins"; font-style: normal; font-weight: 600; font-display: swap;
+    src: url("fonts/poppins-600.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Poppins"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("fonts/poppins-700.woff2") format("woff2");
+  }
+  :root {
+    --navy:      #0E2A47;
+    --navy-2:    #16385C;
+    --emerald:   #0C9E6D;
+    --emerald-d: #0A7C56;
+    --emerald-wash: #E8F5EF;
+    --paper:     #F7F5F1;
+    --card:      #FFFFFF;
+    --ink:       #1B2530;
+    --ink-soft:  #51606E;
+    --ink-faint: #7C8794;
+    --line:      #E4DFD5;
+    --warn-wash: #FBF1DA;
+    --warn-line: #E7B34D;
+    --display: "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --sidebar-w: 288px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); line-height: 1.65; font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Layout ---------- */
+  .layout { display: flex; align-items: flex-start; }
+
+  .sidebar {
+    width: var(--sidebar-w); flex: none; position: sticky; top: 0;
+    height: 100vh; overflow-y: auto; background: var(--navy); color: #DCE7F1;
+    padding: 22px 16px 40px;
+  }
+  .sidebar .brand {
+    display: flex; align-items: center; gap: 10px; padding: 6px 8px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 14px;
+  }
+  .sidebar .brand .dot {
+    width: 30px; height: 30px; border-radius: 8px; flex: none;
+    background: linear-gradient(135deg, var(--emerald), var(--navy-2));
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .sidebar .brand b { font-family: var(--display); font-size: 15px; font-weight: 600; color: #fff; line-height: 1.2; }
+  .sidebar .brand span { display: block; font-size: 11px; color: #8FA6BB; font-weight: 400; }
+
+  .toc { list-style: none; margin: 0; padding: 0; }
+  .toc a {
+    display: block; padding: 7px 10px; border-radius: 7px; color: #B9CBDC;
+    text-decoration: none; font-size: 13.5px; line-height: 1.35;
+    transition: background .12s, color .12s;
+  }
+  .toc a:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .toc a.active { background: var(--emerald); color: #fff; font-weight: 600; }
+
+  .main { flex: 1 1 auto; min-width: 0; display: flex; justify-content: center; }
+  .doc { width: 100%; max-width: 780px; padding: 34px 40px 90px; }
+
+  /* ---------- Doc header ---------- */
+  .doc-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+  .doc-top .eyebrow { font-family: var(--display); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--emerald-d); }
+  .print-btn {
+    display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink-soft); border-radius: 8px; padding: 8px 14px;
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .print-btn:hover { border-color: var(--emerald); color: var(--emerald-d); }
+
+  /* ---------- Typography ---------- */
+  .doc h1, .doc h2, .doc h3 { font-family: var(--display); }
+  .doc h1 { font-size: 31px; line-height: 1.12; margin: 0 0 6px; letter-spacing: -.02em; font-weight: 700; text-wrap: balance; }
+  .doc h2 {
+    font-size: 22px; margin: 44px 0 12px; padding-top: 12px; font-weight: 700; letter-spacing: -.01em;
+    border-top: 1px solid var(--line); scroll-margin-top: 16px; text-wrap: balance;
+  }
+  .doc h2:first-of-type { border-top: none; padding-top: 0; margin-top: 8px; }
+  .doc h3 { font-size: 16.5px; margin: 26px 0 8px; font-weight: 600; color: var(--navy); scroll-margin-top: 16px; }
+  .doc p { margin: 12px 0; }
+  .doc a { color: var(--emerald-d); text-decoration: none; border-bottom: 1px solid transparent; }
+  .doc a:hover { border-bottom-color: var(--emerald); }
+  .doc strong { font-family: var(--display); font-weight: 600; color: var(--ink); }
+  .doc ul, .doc ol { margin: 12px 0; padding-left: 22px; }
+  .doc li { margin: 6px 0; }
+  .doc li::marker { color: var(--emerald-d); }
+  .doc hr { border: none; border-top: 1px solid var(--line); margin: 30px 0; }
+
+  /* ---------- Callouts (blockquote) ---------- */
+  .doc blockquote {
+    margin: 16px 0; padding: 13px 16px; background: var(--emerald-wash);
+    border-left: 4px solid var(--emerald); border-radius: 0 10px 10px 0;
+    color: var(--ink); font-size: 14.5px;
+  }
+  .doc blockquote p { margin: 6px 0; }
+  .doc blockquote p:first-child { margin-top: 0; }
+  .doc blockquote p:last-child { margin-bottom: 0; }
+
+  /* ---------- Tables ---------- */
+  .table-wrap { overflow-x: auto; margin: 18px 0; border: 1px solid var(--line); border-radius: 10px; }
+  .doc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .doc thead th {
+    background: var(--navy); color: #EAF2FA; text-align: left; font-weight: 600;
+    font-family: var(--display); padding: 10px 14px; white-space: nowrap;
+  }
+  .doc tbody td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  .doc tbody tr:nth-child(even) { background: #FBFAF7; }
+
+  /* ---------- Code ---------- */
+  .doc code {
+    background: #EEF1F4; color: #0A3B63; padding: 1px 6px; border-radius: 5px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .88em;
+  }
+
+  /* ---------- Mobile ---------- */
+  .menu-toggle { display: none; }
+  @media (max-width: 900px) {
+    .sidebar {
+      position: fixed; z-index: 30; left: 0; top: 0; transform: translateX(-100%);
+      transition: transform .22s ease; box-shadow: 0 0 40px rgba(0,0,0,.3);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .doc { padding: 20px 20px 70px; }
+    .menu-toggle {
+      display: inline-flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 20;
+      width: 100%; background: var(--navy); color: #fff; border: none; padding: 12px 16px;
+      font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 25; }
+    .backdrop.show { display: block; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    .sidebar, .menu-toggle, .print-btn, .backdrop { display: none !important; }
+    body { background: #fff; font-size: 12pt; }
+    .doc { max-width: none; padding: 0; }
+    .doc h2 { break-after: avoid; }
+    .table-wrap, .doc blockquote { break-inside: avoid; }
+    a { color: inherit; border: none; }
+  }
+</style>
+</head>
+<body>
+  <button class="menu-toggle" onclick="document.body.classList.toggle('nav-open')">
+    &#9776; Contenido
+  </button>
+  <div class="backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="dot">&#128214;</span>
+        <b>Prestamaz Panel<span>Guía de uso</span></b>
+      </div>
+      <ul class="toc" id="toc">
+        <li><a href="#antes-de-empezar-como-funciona">Antes de empezar: cómo funciona</a></li>
+        <li><a href="#probarlo-en-postman-5-minutos">Probarlo en Postman (5 minutos)</a></li>
+        <li><a href="#autenticacion">Autenticación</a></li>
+        <li><a href="#1-pedir-un-codigo">1. Pedir un código</a></li>
+        <li><a href="#2-verificar-el-codigo">2. Verificar el código</a></li>
+        <li><a href="#errores">Errores</a></li>
+        <li><a href="#lo-que-no-te-podemos-garantizar">Lo que no te podemos garantizar</a></li>
+        <li><a href="#recomendaciones-para-tu-app">Recomendaciones para tu app</a></li>
+        <li><a href="#preguntas-frecuentes">Preguntas frecuentes</a></li>
+      </ul>
+    </nav>
+    <div class="main">
+      <article class="doc">
+        <div class="doc-top">
+          <span class="eyebrow">Guía de uso</span>
+          <button class="print-btn" onclick="window.print()">&#128424; Imprimir / Guardar PDF</button>
+        </div>
+        <h1>API de códigos de verificación (OTP) por WhatsApp</h1>
+<p>API para que la app de Prestamaz mande un <strong>código de un solo uso</strong> al WhatsApp del usuario y
+después lo verifique. No la usa el panel: la consume el servidor de la app.</p>
+<p>Son dos llamadas: una pide el código, la otra lo comprueba.</p>
+<hr />
+<h2 id="antes-de-empezar-como-funciona">Antes de empezar: cómo funciona</h2>
+<ol>
+<li>
+<p>Tu servidor llama a <strong><code>/api/otp/send</code></strong> con el número del usuario.</p>
+</li>
+<li>
+<p>El código de <strong>6 dígitos</strong> sale de uno de dos lados, tú eliges:</p>
+<ul>
+<li><strong>Lo generas tú</strong> y lo mandas en <code>code</code>. Útil si tu sistema ya lo guarda o lo necesita
+para otra cosa.</li>
+<li><strong>No mandas <code>code</code></strong> y lo generamos nosotros. Es lo más simple y lo recomendado.</li>
+</ul>
+<p>En los dos casos lo mandamos por WhatsApp y <strong>no te lo devolvemos</strong> en la respuesta.</p>
+</li>
+<li>
+<p>El usuario lee el código en su WhatsApp y lo escribe en tu app.</p>
+</li>
+<li>
+<p>Tu servidor llama a <strong><code>/api/otp/verify</code></strong> con el número y lo que escribió el usuario.</p>
+</li>
+<li>
+<p>Te contestamos si coincide o no.</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>El código nunca viaja en la respuesta, y eso es a propósito.</strong> Si te lo devolviéramos, el
+OTP dejaría de probar que la persona tiene ese teléfono en la mano: bastaría con tener la
+llave del API. Lo único que sabe el código es el usuario, en su WhatsApp.</p>
+</blockquote>
+<blockquote>
+<p><strong>El código dura 10 minutos exactos.</strong> El mensaje que le llega al usuario también lo dice. Si
+tu app muestra otro número en pantalla, el usuario va a leer una cosa y le va a pasar otra.</p>
+</blockquote>
+<hr />
+<h2 id="probarlo-en-postman-5-minutos">Probarlo en Postman (5 minutos)</h2>
+<p>Junto a este documento viene <strong><code>api-otp.postman_collection.json</code></strong>.</p>
+<ol>
+<li>Postman → <strong>Import</strong> → arrastra el archivo.</li>
+<li>Clic en la colección → pestaña <strong>Variables</strong>:
+<ul>
+<li><code>api_key</code> → la llave que te dieron</li>
+<li><code>telefono</code> → un celular de 10 dígitos que <strong>tenga WhatsApp</strong> y al que puedas ver los mensajes</li>
+</ul>
+</li>
+<li><strong>Save</strong> (Ctrl+S).</li>
+</ol>
+<p>Las de la carpeta <strong>Errores</strong> se pueden correr de golpe: fallan a propósito y sus pruebas
+verifican justo eso. Verde = el API rechaza lo que debe rechazar.</p>
+<p>Las dos principales van <strong>a mano y en orden</strong>, porque entre una y otra tienes que leer tu
+WhatsApp:</p>
+<ol>
+<li><strong>&quot;1. Pedir un codigo&quot;</strong> → debe dar 201. Una de sus pruebas comprueba que el código <strong>no</strong>
+viene en la respuesta.</li>
+<li>Lee el código que llegó → ponlo en la variable <code>codigo</code> → <strong>Save</strong>.</li>
+<li><strong>&quot;2. Verificar el codigo&quot;</strong> → debe dar 200 con <code>verified: true</code>.</li>
+</ol>
+<blockquote>
+<p>⚠️ <strong>Postman guarda dos columnas por variable: <em>Initial value</em> y <em>Current value</em>. La que se
+manda es Current.</strong> Si escribes el código en Initial, la petición sale con el <code>000000</code> del
+default y responde <code>INVALID_CODE</code> - y cada intento fallido gasta uno de los 5. La colección
+te detiene antes de mandarlo si detecta que la variable sigue en ceros.</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>No corras la colección completa de un jalón.</strong> Hay un freno de 3 minutos entre códigos al
+mismo número, así que el segundo envío respondería <code>429 TOO_SOON</code>. Es correcto, pero sale en
+rojo y parece un error.</p>
+</blockquote>
+<hr />
+<h2 id="autenticacion">Autenticación</h2>
+<p>Todas las llamadas llevan la cabecera <strong><code>X-API-Key</code></strong> con la llave que se te entregó. Es la
+misma llave del API de contactados.</p>
+<pre><code>X-API-Key: la-llave-que-te-dieron
+</code></pre>
+<p>Sin ella, o con una equivocada, la respuesta es <strong>401</strong>.</p>
+<hr />
+<h2 id="1-pedir-un-codigo">1. Pedir un código</h2>
+<pre><code>POST https://sender.prestamaz.site/api/otp/send
+Content-Type: application/json
+X-API-Key: la-llave-que-te-dieron
+</code></pre>
+<pre><code class="language-json">{
+  &quot;phone&quot;: &quot;9231311146&quot;,
+  &quot;reference&quot;: &quot;login-8832&quot;
+}
+</code></pre>
+<p>O mandando tu propio código:</p>
+<pre><code class="language-json">{
+  &quot;phone&quot;: &quot;9231311146&quot;,
+  &quot;code&quot;: &quot;483920&quot;,
+  &quot;reference&quot;: &quot;login-8832&quot;
+}
+</code></pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Obligatorio</th>
+<th>Qué es</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>phone</code></td>
+<td>Sí</td>
+<td>Celular del usuario. A 10 dígitos o con el <code>52</code> adelante, como prefieras. No mandes el <code>+</code>.</td>
+</tr>
+<tr>
+<td><code>code</code></td>
+<td>No</td>
+<td><strong>Tu propio código</strong>, 6 dígitos. Si lo mandas, ese es el que recibe el usuario. Si no lo mandas, lo generamos nosotros.</td>
+</tr>
+<tr>
+<td><code>reference</code></td>
+<td>No</td>
+<td>Un identificador tuyo (hasta 100 caracteres) para amarrarlo a tu propio registro. Te lo devolvemos tal cual y sale en el panel.</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>⚠️ <strong>Cualquier otro campo hace fallar la petición</strong>, con <code>UNKNOWN_PARAMS</code> y la lista de los
+que sí aceptamos. Es a propósito: si ignoráramos en silencio un <code>codigo</code> mal escrito, te
+responderíamos 201 y tú te quedarías creyendo que elegiste el código mientras al usuario le
+llega otro.</p>
+</blockquote>
+<p><strong>Respuesta correcta (201):</strong></p>
+<pre><code class="language-json">{
+  &quot;status&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;id&quot;: 1482,
+    &quot;reference&quot;: &quot;login-8832&quot;,
+    &quot;expires_in&quot;: 600
+  }
+}
+</code></pre>
+<p><code>expires_in</code> son <strong>segundos</strong>. Úsalo para el contador de tu pantalla en vez de escribir 600 a
+mano: si algún día cambia, tu app se entera sola.</p>
+<hr />
+<h2 id="2-verificar-el-codigo">2. Verificar el código</h2>
+<pre><code>POST https://sender.prestamaz.site/api/otp/verify
+Content-Type: application/json
+X-API-Key: la-llave-que-te-dieron
+</code></pre>
+<pre><code class="language-json">{
+  &quot;phone&quot;: &quot;9231311146&quot;,
+  &quot;code&quot;: &quot;483920&quot;
+}
+</code></pre>
+<p><strong>Respuesta correcta (200):</strong></p>
+<pre><code class="language-json">{
+  &quot;status&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;verified&quot;: true }
+}
+</code></pre>
+<p>Un código verificado <strong>no sirve dos veces</strong>. Si tu app necesita verificar otra vez, pide uno
+nuevo.</p>
+<hr />
+<h2 id="errores">Errores</h2>
+<p>Todos salen con la misma forma, en español, con un <code>code</code> fijo que puedes comparar en tu
+código. <strong>Compara contra <code>code</code>, no contra <code>message</code></strong>: el texto puede mejorarse con el tiempo,
+el <code>code</code> no cambia.</p>
+<pre><code class="language-json">{
+  &quot;status&quot;: &quot;error&quot;,
+  &quot;message&quot;: &quot;El codigo no coincide.&quot;,
+  &quot;code&quot;: &quot;INVALID_CODE&quot;
+}
+</code></pre>
+<h3 id="al-pedir-un-codigo">Al pedir un código</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>HTTP</th>
+<th><code>code</code></th>
+<th>Qué pasó</th>
+<th>Qué hacer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>401</td>
+<td>-</td>
+<td>Falta la llave o no es válida</td>
+<td>Revisar la cabecera <code>X-API-Key</code></td>
+</tr>
+<tr>
+<td>422</td>
+<td><code>INVALID_PARAMS</code></td>
+<td>Falta <code>phone</code>, o <code>code</code> no son 6 dígitos</td>
+<td>Revisar el cuerpo de la petición</td>
+</tr>
+<tr>
+<td>422</td>
+<td><code>UNKNOWN_PARAMS</code></td>
+<td>Mandaste un campo que no reconocemos</td>
+<td>El mensaje dice cuál sobra y cuáles aceptamos. Suele ser un nombre mal escrito</td>
+</tr>
+<tr>
+<td>422</td>
+<td><code>INVALID_PHONE</code></td>
+<td>El número no es un celular de México</td>
+<td>Pedirle al usuario que lo corrija</td>
+</tr>
+<tr>
+<td>429</td>
+<td><code>TOO_SOON</code></td>
+<td>Ya se mandó un código a ese número hace menos de 3 minutos</td>
+<td>Esperar. La respuesta trae <code>retry_after</code> en segundos: úsalo para el contador, no lo escribas a mano</td>
+</tr>
+<tr>
+<td>429</td>
+<td><code>TOO_MANY_REQUESTS</code></td>
+<td>Ese número pidió más de 10 códigos en 24 horas</td>
+<td>Es un freno antiabuso. Al día siguiente vuelve a funcionar</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="al-verificar">Al verificar</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>HTTP</th>
+<th><code>code</code></th>
+<th>Qué pasó</th>
+<th>Qué hacer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>422</td>
+<td><code>INVALID_PARAMS</code></td>
+<td>Falta <code>code</code> o no son 6 dígitos</td>
+<td>Revisar el cuerpo</td>
+</tr>
+<tr>
+<td>422</td>
+<td><code>NOT_FOUND</code></td>
+<td>No hay ningún código pendiente para ese número</td>
+<td>Pedir uno nuevo</td>
+</tr>
+<tr>
+<td>422</td>
+<td><code>EXPIRED</code></td>
+<td>Pasaron los 10 minutos</td>
+<td>Pedir uno nuevo</td>
+</tr>
+<tr>
+<td>422</td>
+<td><code>INVALID_CODE</code></td>
+<td>El código no coincide</td>
+<td>Dejar que lo intente otra vez</td>
+</tr>
+<tr>
+<td>422</td>
+<td><code>TOO_MANY_ATTEMPTS</code></td>
+<td>5 intentos fallidos con el mismo código</td>
+<td>Pedir uno nuevo. El viejo ya no sirve</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>Por qué hay tope de intentos.</strong> Seis dígitos son un millón de combinaciones: sin tope, un
+programa las prueba todas. Con 5 intentos, la probabilidad de atinar es de 5 entre un millón.</p>
+</blockquote>
+<hr />
+<h2 id="lo-que-no-te-podemos-garantizar">Lo que no te podemos garantizar</h2>
+<p><strong>Que el mensaje llegue.</strong> Eso depende de WhatsApp y del teléfono del usuario. Lo que sí
+sabemos es qué pasó con él: WhatsApp nos avisa si se <strong>entregó</strong>, si lo <strong>leyeron</strong> o si
+<strong>rebotó</strong>, y eso queda en el panel, pantalla <strong>Códigos OTP</strong>, junto al número, tu <code>reference</code> y el
+motivo del fallo. Ese aviso llega después de que ya te respondimos el 201: no viaja en la
+respuesta del API.</p>
+<p>Casos en los que el mensaje no sale, y no hay forma de saberlo antes de intentarlo:</p>
+<ul>
+<li>El número no tiene WhatsApp.</li>
+<li>La cuenta de WhatsApp de Prestamaz llegó a su límite diario de Meta ese día.</li>
+</ul>
+<p>En los dos casos la petición <code>/send</code> ya te contestó <strong>201</strong>: el envío ocurre enseguida, no
+dentro de la misma llamada. Si un usuario reporta que no le llegó, la pantalla <strong>Códigos OTP</strong> del
+panel dice qué pasó.</p>
+<hr />
+<h2 id="recomendaciones-para-tu-app">Recomendaciones para tu app</h2>
+<ul>
+<li><strong>Un botón de &quot;reenviar&quot; con cuenta regresiva.</strong> Nuestro freno es de <strong>3 minutos</strong> entre
+códigos al mismo número. Si tu botón se puede picar antes, el usuario va a ver un error en
+vez de un contador. Toma los segundos de <code>retry_after</code>, que viene en la respuesta del 429:
+así tu pantalla sigue en lo correcto aunque algún día cambiemos el número.</li>
+<li><strong>Si generas tú el código, genéralo bien.</strong> Un generador aleatorio criptográfico
+(<code>SecureRandom</code>, <code>crypto.randomInt</code>, <code>random_int</code>), nunca <code>Math.random()</code> ni la hora del
+sistema. Seis dígitos predecibles no protegen nada.</li>
+<li><strong>Si no lo generas tú, no lo guardes.</strong> No lo tienes, y no lo necesitas: nosotros lo
+verificamos.</li>
+<li><strong>Usa <code>reference</code>.</strong> Cuando alguien llame diciendo que no le llegó, es lo que vuelve
+inmediata la búsqueda en el panel.</li>
+<li><strong>El <code>52</code> lo ponemos nosotros.</strong> Manda los 10 dígitos tal como el usuario los escribe.</li>
+</ul>
+<hr />
+<h2 id="preguntas-frecuentes">Preguntas frecuentes</h2>
+<p><strong>¿Puedo pedirle un código a un número que se dio de baja de la publicidad?</strong>
+Sí. La baja es de publicidad; el código lo está pidiendo el usuario en ese momento para entrar
+a su cuenta. Son cosas distintas y se tratan distinto.</p>
+<p><strong>¿Funciona a cualquier hora?</strong>
+Sí. Las campañas de publicidad tienen horario; los códigos no. Un usuario que entra a su cuenta
+a las 3 de la mañana recibe su código a las 3 de la mañana.</p>
+<p><strong>¿Qué pasa si pido dos códigos seguidos al mismo número?</strong>
+El primero deja de servir en cuanto se genera el segundo. Siempre vale el último.</p>
+<p><strong>¿Puedo elegir yo el código?</strong>
+Sí. Mándalo en <code>code</code> al pedirlo. Si no lo mandas, lo generamos nosotros. El resto funciona
+igual: se guarda cifrado, no te lo devolvemos, y se verifica con la misma llamada.</p>
+<p><strong>¿El código llega con un botón?</strong>
+Sí, un botón de <strong>Copiar código</strong>. El usuario lo toca y lo pega en tu app.</p>
+
+      </article>
+    </div>
+  </div>
+
+<script>
+  // Sidebar movil
+  (function () {
+    var sb = document.getElementById('sidebar');
+    var bd = document.querySelector('.backdrop');
+    function sync() {
+      var open = document.body.classList.contains('nav-open');
+      sb.classList.toggle('open', open);
+      bd.classList.toggle('show', open);
+    }
+    new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    document.querySelectorAll('.toc a').forEach(function (a) {
+      a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+    });
+
+    // Scrollspy: resalta la seccion visible
+    var links = {}, targets = [];
+    document.querySelectorAll('.toc a').forEach(function (a) {
+      var id = a.getAttribute('href').slice(1);
+      links[id] = a; var el = document.getElementById(id); if (el) targets.push(el);
+    });
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          Object.values(links).forEach(function (l) { l.classList.remove('active'); });
+          var a = links[e.target.id]; if (a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '0px 0px -75% 0px', threshold: 0 });
+    targets.forEach(function (t) { obs.observe(t); });
+  })();
+</script>
+</body>
+</html>

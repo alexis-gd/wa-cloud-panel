@@ -19,10 +19,20 @@ automáticamente (el deploy solo hace `migrate --force`).
 
 ### `php artisan db:clean-demo`
 Borra solo datos transaccionales de prueba. Pide confirmación (usa `--force` para saltarla).
+
+Qué vacía: `message_log`, `otp_codes` (los códigos de verificación), `conversations`,
+`sms_inbound_messages`, `conversation_assignments`, `app_notifications`, `campaigns`, `jobs` y
+`failed_jobs`.
 - Con `--contacts` borra **también** los contactos (y el pivot `contact_tag`).
 - Con `--users` borra **también** los usuarios (y sus tokens). Deja el sistema sin login hasta
   que repongas los usuarios con el seed → correr **inmediatamente después** `db:seed --class=UserSeeder`.
 - Nunca toca: `phone_numbers`, plantillas (WA/SMS), settings/feature flags.
+- Tampoco toca `contact_sync_runs` (el historial del cron del API): es bitácora de operación,
+  no dato de prueba, y perderla borraría justo el rastro que sirve cuando algo falla.
+
+> **Si agregas una tabla transaccional nueva, agrégala aquí en el mismo commit.** Los códigos
+> de verificación se construyeron sin incluirlos, y este comando es la receta para dejar
+> producción limpia antes de entregar: teléfonos de prueba se habrían quedado adentro.
 
 ### `php artisan db:seed --class=UserSeeder`
 Crea (o actualiza, idempotente) los 5 usuarios base, dominio **prestamaz.mx**:

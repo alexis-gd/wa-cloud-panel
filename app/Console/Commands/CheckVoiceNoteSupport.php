@@ -156,15 +156,40 @@ class CheckVoiceNoteSupport extends Command
         $this->line('  Lo que debe decir: Audio: opus, 48000 Hz, mono');
     }
 
-    /** Lo que ffmpeg ve dentro del archivo. Se lee de su salida de error, que es donde lo escribe. */
+    /**
+     * Lo que ffmpeg ve dentro del archivo. Se lee de su salida de error, que es donde lo escribe.
+     *
+     * **Si no encuentra ninguna linea de stream, dice por que.** La primera version se quedaba
+     * callada, y un "no puedo leer este archivo" por permisos se veia igual que un archivo
+     * corrupto. Un diagnostico que calla cuando falla es peor que no tenerlo: manda a buscar al
+     * lugar equivocado.
+     */
     private function describir(string $binario, string $archivo, string $sangria): void
     {
         $p = $this->correr([$binario, '-hide_banner', '-i', $archivo]);
 
+        $encontro = false;
+
         foreach (explode("\n", $p->getErrorOutput()) as $linea) {
             if (str_contains($linea, 'Stream #') || str_contains($linea, 'Duration')) {
                 $this->line($sangria . trim($linea));
+                $encontro = true;
             }
+        }
+
+        if ($encontro) {
+            return;
+        }
+
+        $this->warn($sangria . 'ffmpeg no pudo leer el archivo:');
+
+        foreach (array_slice(array_filter(explode("\n", $p->getErrorOutput())), -3) as $linea) {
+            $this->line($sangria . '  ' . trim($linea));
+        }
+
+        if (! is_readable($archivo)) {
+            $this->line($sangria . '  (Quien corre este comando no tiene permiso de lectura.');
+            $this->line($sangria . '   Reintenta con: sudo -u www-data php artisan wa:probar-nota-de-voz)');
         }
     }
 

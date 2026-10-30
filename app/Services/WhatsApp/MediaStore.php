@@ -95,6 +95,14 @@ class MediaStore
             @unlink($rutaOrigen);
         }
 
+        // Los temporales de PHP y de `tempnam()` nacen en 0600, y `rename` conserva el modo:
+        // el archivo quedaba legible SOLO para www-data. El panel funcionaba igual (lo sirve
+        // PHP), pero nadie mas podia abrirlo - ni un respaldo, ni ffmpeg al diagnosticar.
+        // Costo una conclusion equivocada: un audio ilegible parecia un audio corrupto.
+        // 0644 y no 0664: en `storage/app`, fuera del alcance de la web, y quien entra al
+        // servidor por SSH ya es el administrador.
+        @chmod($destino, 0644);
+
         return $ruta;
     }
 

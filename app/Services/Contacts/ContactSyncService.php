@@ -3,6 +3,7 @@
 namespace App\Services\Contacts;
 
 use App\Models\Contact;
+use App\Services\Contacts\BulkInsert;
 use App\Services\Tags\TagResolver;
 use Illuminate\Support\Facades\DB;
 
@@ -195,9 +196,12 @@ class ContactSyncService
             return $resumen;
         }
 
+        // Por BulkInsert y no por Contact::insert directo: con `contacts.name` en varchar(100),
+        // un nombre largo del API del cliente rechazaba el lote entero. Ver BulkInsert.
         foreach (array_chunk($nuevos, self::CHUNK) as $lote) {
-            Contact::insert($lote);
-            $resumen['inserted'] += count($lote);
+            $r = BulkInsert::insertar($lote);
+            $resumen['inserted']  += $r['inserted'];
+            $resumen['rejected']   = array_merge($resumen['rejected'] ?? [], $r['rejected']);
         }
 
         $resumen['refreshed'] = $this->refrescarEstado($refrescar);

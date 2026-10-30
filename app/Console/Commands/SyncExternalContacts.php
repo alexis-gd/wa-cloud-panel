@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ContactSyncRun;
 use App\Models\Setting;
 use App\Services\Contacts\ContactSyncService;
 use Illuminate\Console\Command;
@@ -41,6 +42,10 @@ class SyncExternalContacts extends Command
                     'ok'    => false,
                     'error' => $r['error'],
                 ], JSON_UNESCAPED_UNICODE));
+
+                // Ademas del Setting, que se sobreescribe, queda una fila. Asi se puede ver
+                // desde cuando viene fallando en vez de saber solo que hoy fallo.
+                ContactSyncRun::create(['ok' => false, 'error' => mb_substr($r['error'], 0, 500)]);
             }
 
             Log::error('Sincronización de contactos fallida', ['error' => $r['error']]);
@@ -114,6 +119,16 @@ class SyncExternalContacts extends Command
                 'refreshed'  => $r['refreshed'],
                 'by_status'  => $r['by_status'],
             ], JSON_UNESCAPED_UNICODE));
+
+            ContactSyncRun::create([
+                'ok'         => true,
+                'received'   => $r['received'],
+                'inserted'   => $r['inserted'],
+                'refreshed'  => $r['refreshed'],
+                'invalid'    => $r['invalid'],
+                'duplicates' => $r['duplicates'],
+                'detail'     => $r,
+            ]);
 
             Log::info('Contactos sincronizados desde el API', [
                 'recibidos'  => $r['received'],

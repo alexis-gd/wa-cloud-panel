@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Contact;
+use App\Models\ContactSyncRun;
 use App\Models\Setting;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -16,7 +17,9 @@ use Illuminate\Support\Carbon;
  */
 class ShowLastContactSync extends Command
 {
-    protected $signature = 'contactos:ultima-corrida {--cartera : Desglose actual de contactos por estado de cartera}';
+    protected $signature = 'contactos:ultima-corrida
+                            {--cartera : Desglose actual de contactos por estado de cartera}
+                            {--historial : Las ultimas corridas, no solo la mas reciente}';
 
     protected $description = 'Muestra qué pasó en la última sincronización de contactos del API del cliente';
 
@@ -24,6 +27,10 @@ class ShowLastContactSync extends Command
     {
         if ($this->option('cartera')) {
             return $this->desgloseCartera();
+        }
+
+        if ($this->option('historial')) {
+            return $this->historial();
         }
 
         $crudo = Setting::get('contact_sync_last_run');
@@ -129,6 +136,43 @@ class ShowLastContactSync extends Command
         $this->newLine();
         $this->line('Los "(sin estado)" no vinieron del API: se subieron por Excel o se');
         $this->line('dieron de alta a mano, así que el cliente no los tiene en su cartera.');
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Las ultimas corridas, una por renglon.
+     *
+     * El Setting solo guarda la mas reciente y se sobreescribe. Con esto se contesta otra
+     * pregunta, que es la que importa cuando algo va mal: **desde cuando** viene fallando, y
+     * cuantos entraron cada dia. Este cron ya estuvo tres dias muerto sin que nadie lo notara.
+     */
+    private function historial(): int
+    {
+        $corridas = ContactSyncRun::recientes(20)->get();
+
+        if ($corridas->isEmpty()) {
+            $this->warn('Todavia no hay corridas en el historial.');
+            $this->line('');
+            $this->line('El historial empieza a llenarse a partir de la primera corrida');
+            $this->line('posterior a que se agregara. Las viejas solo viven en el Setting.');
+
+            return self::SUCCESS;
+        }
+
+        $this->newLine();
+        $this->table(
+            ['Cuando', 'Resultado', 'Recibidos', 'Nuevos', 'Actualizados', 'Detalle'],
+            $corridas->map(fn (ContactSyncRun $c) => [
+                $c->created_at->setTimezone('America/Mexico_City')->format('Y-m-d H:i'),
+                $c->ok ? 'OK' : 'FALLO',
+                $c->ok ? $c->received  : '-',
+                $c->ok ? $c->inserted  : '-',
+                $c->ok ? $c->refreshed : '-',
+                $c->ok ? '' : mb_substr((string) $c->error, 0, 60),
+            ])->all(),
+        );
+        $this->newLine();
 
         return self::SUCCESS;
     }

@@ -199,10 +199,11 @@ class ContactController extends Controller
         }
 
         $contact = Contact::create([
-            'phone'  => $normalized,
-            'name'   => $data['name'] ?: null,
-            'status' => 'active',
-            'source' => 'manual',
+            'phone'      => $normalized,
+            'name'       => $data['name'] ?: null,
+            'status'     => 'active',
+            'source'     => 'manual',
+            'created_by' => $request->user()?->id,
         ]);
 
         return response()->json([
@@ -353,7 +354,7 @@ class ContactController extends Controller
 
         // El parseo, el alta y el etiquetado viven en el servicio: el archivo puede traer
         // decenas de miles de filas y todo se resuelve por lotes, no fila por fila.
-        $summary = (new ContactImporter())->import($rows);
+        $summary = (new ContactImporter())->import($rows, $request->user()?->id);
 
         return response()->json([
             'success' => true,
@@ -414,9 +415,15 @@ class ContactController extends Controller
      * Distinto del opt-out: esto es limpieza operativa, no cumplimiento.
      * DELETE /api/contacts/{id}
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $contact = Contact::findOrFail($id);
+
+        // Se anota ANTES de borrar: despues el modelo ya esta fuera de las consultas normales
+        // y actualizarlo necesitaria withTrashed(). Sin esto, la pregunta "quien borro a este
+        // cliente" no tenia respuesta en ningun lado.
+        $contact->forceFill(['deleted_by' => $request->user()?->id])->saveQuietly();
+
         $contact->delete(); // SoftDeletes: marca deleted_at
 
         return response()->json(['status' => 'ok', 'data' => null]);

@@ -3,6 +3,7 @@
 namespace App\Services\Contacts;
 
 use App\Models\Contact;
+use App\Services\Contacts\BulkInsert;
 use App\Services\Tags\TagResolver;
 use Illuminate\Support\Facades\DB;
 
@@ -39,7 +40,7 @@ class ContactImporter
      * @param  array<int, array<int, mixed>>  $rows  Filas crudas de la hoja.
      * @return array<string, mixed>  Resumen para el panel.
      */
-    public function import(array $rows): array
+    public function import(array $rows, ?int $usuarioId = null): array
     {
         [$hasHeader, $phoneCol, $nameCol, $tagCol] = $this->detectColumns($rows);
 
@@ -129,14 +130,19 @@ class ContactImporter
                 'name'       => $data['name'],
                 'status'     => 'active',
                 'source'     => 'excel',
+                // Quien subio el Excel. Es el unico rastro: el archivo no se guarda.
+                'created_by' => $usuarioId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
 
+        // Por BulkInsert y no por Contact::insert directo: un nombre largo en una sola fila
+        // rechazaba el lote entero y no entraba nadie. Ver BulkInsert.
         foreach (array_chunk($newRows, self::CHUNK) as $chunk) {
-            Contact::insert($chunk);
-            $summary['inserted'] += count($chunk);
+            $r = BulkInsert::insertar($chunk);
+            $summary['inserted'] += $r['inserted'];
+            $summary['rejected']  = array_merge($summary['rejected'] ?? [], $r['rejected']);
         }
 
         // ── Paso 4: etiquetar (nuevos y existentes por igual) ──

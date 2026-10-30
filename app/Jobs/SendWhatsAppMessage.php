@@ -9,7 +9,7 @@ use App\Models\PhoneNumber;
 use App\Models\Setting;
 use App\Events\CampaignProgressUpdated;
 use App\Services\WhatsApp\MessagePersonalizer;
-use App\Services\WhatsApp\PortfolioLimit;
+use App\Services\Otp\OtpCapacity;
 use App\Services\WhatsApp\SendWindow;
 use App\Services\WhatsApp\TemplateBuilder;
 use App\Services\WhatsApp\WhatsAppClient;
@@ -197,12 +197,14 @@ class SendWhatsAppMessage implements ShouldQueue
 
         // ── Freno del portfolio: no enviar más del techo de la CUENTA (compartido por todos
         //    los números). Meta lo impone por portfolio; lo respetamos antes de intentar para
-        //    no provocar rechazos (131048/131049). Si Meta aún no reportó el límite, no frena. ──
-        $portfolioCeiling = PortfolioLimit::daily();
+        //    no provocar rechazos (131048/131049). Si Meta aún no reportó el límite, no frena.
+        //    El techo de las campanas NO es el techo real: se le resta la reserva del OTP.
+        //    Meta no distingue categorias, asi que sin esa resta una campana grande se come
+        //    el cupo del dia y deja a los usuarios de la app del cliente sin poder entrar. ──
+        $portfolioCeiling = OtpCapacity::techoCampanas();
         if ($portfolioCeiling !== null) {
-            $sentTodayAll = MessageLog::whereBetween('sent_at', [$startOfDay, $endOfDay])
-                ->whereIn('status', ['sent', 'delivered', 'read'])
-                ->count();
+            // Suma campanas + OTP: viven en tablas distintas, pero para Meta es el mismo cupo.
+            $sentTodayAll = OtpCapacity::usadoHoy();
 
             if ($sentTodayAll >= $portfolioCeiling) {
                 Log::info('SendWhatsAppMessage: límite del portfolio alcanzado, reintentando mañana', [

@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\ConversationMediaController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OtpController;
+use App\Http\Controllers\Api\OtpLogController;
 use App\Http\Controllers\Api\PhoneNumberController;
 use App\Http\Controllers\Api\PhoneNumberVerificationController;
 use App\Http\Controllers\Api\SettingsController;
@@ -47,6 +49,15 @@ Route::post('/sms/webhook', [SmsWebhookController::class, 'handle']);
 // La consume otro servidor, no el panel: un servidor no hace login, manda una llave.
 Route::middleware(['api_key', 'throttle:60,1'])->group(function () {
     Route::get('/contacted', [ContactedController::class, 'index']);
+});
+
+// -- API de codigos de verificacion (OTP) - la consume la app del cliente ----
+// Rate limit propio y mas alto que el resto: aqui el trafico lo generan los usuarios de la
+// app entrando, no un operador haciendo clic. El freno por numero vive en OtpService; este
+// protege al servidor de una app con un bucle.
+Route::middleware(['api_key', 'throttle:120,1'])->prefix('otp')->group(function () {
+    Route::post('/send',   [OtpController::class, 'send'])->name('otp.send');
+    Route::post('/verify', [OtpController::class, 'verify'])->name('otp.verify');
 });
 
 // ── Auth - público, con rate limit anti-brute-force ─────────────────────────
@@ -169,6 +180,12 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // Respuestas SMS entrantes - lista plana (admin y operator)
     Route::middleware('role:admin,operator')->group(function () {
         Route::get('/sms/inbound', [SmsInboundController::class, 'index']);
+    });
+
+    // Codigos de verificacion (OTP) - solo lectura, solo admin.
+    // Los pide la app del cliente; el panel los mira para contestar "le llego o no".
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/otp/log', [OtpLogController::class, 'index']);
     });
 
     // Plantillas - escritura solo admin

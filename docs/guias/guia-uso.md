@@ -35,8 +35,9 @@
 11. [Bajas: contactos que piden no recibir más](#11-bajas-contactos-que-piden-no-recibir-mas)
 12. [Control de envíos: las reglas que te protegen](#12-control-de-envios-las-reglas-que-te-protegen)
 13. [Reportes en Excel](#13-reportes-en-excel)
-14. [¿Qué hago si...? (cómo reaccionar)](#14-que-hago-si-como-reaccionar)
-15. [Preguntas frecuentes](#15-preguntas-frecuentes)
+14. [Códigos de verificación (solo admin)](#14-codigos-de-verificacion-solo-admin)
+15. [¿Qué hago si...? (cómo reaccionar)](#15-que-hago-si-como-reaccionar)
+16. [Preguntas frecuentes](#16-preguntas-frecuentes)
 
 ---
 
@@ -124,7 +125,7 @@ Al entrar ves un resumen de todo. De arriba a abajo:
 
 > ⚠️ Si el semáforo está en **ROJO** o dice **PAUSADO**, NO ejecutes campañas. El sistema se
 > pausó solo para proteger la cuenta. Avisa a soporte. (Ver
-> [¿Qué hago si...?](#14-que-hago-si-como-reaccionar))
+> [¿Qué hago si...?](#15-que-hago-si-como-reaccionar))
 
 ### Qué significa el estado de cada mensaje
 
@@ -893,7 +894,51 @@ panel. Los puedes abrir en Excel o en Google Sheets tal cual.
 
 ---
 
-## 14. ¿Qué hago si...? (cómo reaccionar)
+## 14. Códigos de verificación (solo admin)
+
+> ℹ️ Esta pantalla la ven **admin y superadmin**. Un operador o un agente no la tienen en
+> el menú.
+
+La app de Prestamaz le manda a cada usuario un **código de 6 dígitos** por WhatsApp para que
+entre a su cuenta. Esos códigos salen por este sistema, y la pantalla **Códigos** es donde se
+ve qué pasó con cada uno.
+
+**Es una pantalla de solo mirar.** Desde aquí no se manda ni se reenvía ningún código: los
+pide la app sola cuando alguien intenta entrar.
+
+### Para qué sirve
+
+Cuando una persona llame diciendo *"no me llegó mi código"*, busca su número en esta pantalla
+y la columna **Estado** contesta:
+
+| Estado | Qué significa |
+|---|---|
+| **Enviado** | Salió hacia WhatsApp. Si no lo ve, que revise su WhatsApp y que el teléfono tenga señal. |
+| **Verificado** | Ya lo usó y entró a su cuenta. |
+| **Caducado** | Pasaron los 10 minutos, o se equivocó 5 veces. Que pida uno nuevo desde la app. |
+| **No salió** | No se pudo mandar. La columna **Detalle** dice por qué. |
+| **En cola** | Está por salir. Si lleva ahí varios minutos, avisa a soporte. |
+
+### El código no se muestra, ni a ti
+
+Es a propósito. Si el panel enseñara el código, el código dejaría de probar que la persona
+tiene su teléfono en la mano: cualquiera con el panel abierto podría entrar como ella. Lo
+único que puedes hacer es decirle que pida uno nuevo.
+
+### "Cupo que queda hoy"
+
+Arriba hay cuatro números. El último es el importante: **WhatsApp le pone a Prestamaz un
+límite de mensajes por día, y ese límite lo comparten las campañas y los códigos.**
+
+El sistema le aparta una parte a los códigos para que una campaña grande no deje a los
+usuarios sin poder entrar a la app. Eso ya está resuelto solo, no hay nada que configurar.
+
+Pero si ves **Cupo que queda hoy** en cero y códigos marcados **No salió**, ya sabes qué pasó:
+se acabó el cupo del día. Al día siguiente vuelve a cero el contador.
+
+---
+
+## 15. ¿Qué hago si...? (cómo reaccionar)
 
 Guía rápida de reacción. Si algo se ve raro, busca aquí antes de asustarte.
 
@@ -932,7 +977,7 @@ resuelva desde el panel. La barra desaparece sola en cuanto se corrige.
 
 ---
 
-## 15. Preguntas frecuentes
+## 16. Preguntas frecuentes
 
 **¿Por qué no puedo enviar una campaña de WhatsApp ahorita?**
 WhatsApp solo permite enviar de lunes a viernes, de 9 de la mañana a 10 de la noche, hora del

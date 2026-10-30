@@ -27,6 +27,7 @@ class BuildGuidesCommand extends Command
         'docs/guias/guia-uso.md'   => 'guia/uso.html',
         'docs/guias/guia-meta.md'  => 'guia/meta.html',
         'docs/api-contactados.md'  => 'doc/api-contactados.html',
+        'docs/api-otp.md'          => 'doc/api-otp.html',
     ];
 
     public function handle(): int

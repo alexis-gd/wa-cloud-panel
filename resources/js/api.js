@@ -198,6 +198,12 @@ export const api = {
         return request(`/sms/inbound?${qs}`);
     },
 
+    // Solo lectura: los codigos los pide la app del cliente por su propio API, no el panel.
+    otpLog: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return request(`/otp/log?${qs}`);
+    },
+
     // ── Contacts ─────────────────────────────────────────────────────────────
     contacts: (params = {}) => {
         const qs = new URLSearchParams(params).toString();

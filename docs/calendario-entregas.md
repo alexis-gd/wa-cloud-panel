@@ -601,7 +601,7 @@ retencion de los archivos se define al final (no se implemento borrado por reten
 | M1 | Dejar de perder lo que ya entra (webhook + descarga a disco) | [x] | - |
 | M2 | Verlas en el panel: ruta autenticada, burbuja, visor | [x] | M1 |
 | M3 | Enviar imagenes desde el panel | [x] | M1 |
-| M4 | PDF, notas de voz y video de salida | [x] | M3 |
+| M4 | PDF, notas de voz y video de salida | [x] | **Validado en prod 2026-10-30** |
 | M5 | OTP: API, carril prioritario, tabla de envios | [x] | M0 aprobada |
 | M6 | Numero de WhatsApp dedicado para OTP | [ ] | SIM del cliente |
 
@@ -723,9 +723,23 @@ cosas para que una grabacion se vea como nota de voz: el campo **`voice: true`**
 siquiera es Ogg. Encima el Ogg que salia del copiado llegaba roto: WhatsApp lo mostraba y no lo
 podia descargar. Ahora toda grabacion se recodifica a Ogg/Opus mono 32k y viaja con `voice: true`.
 
-**La leccion:** el copiado de envase se eligio por elegante (milisegundos, sin perdida) sobre un
-requisito que no habiamos leido. Cuando el formato de salida lo dicta un tercero, la via rapida
-solo vale si cumple TODAS sus condiciones, no la que uno recuerda.
+**VALIDADO EN PRODUCCION el 2026-10-30:** la nota se graba, llega con onda y boton de
+reproducir, y suena.
+
+**La causa final fue el NOMBRE, no el audio.** Hicieron falta tres cosas y las tres pesaron:
+`voice: true`, Ogg/Opus mono, y que el archivo subido **se llame `.ogg`**. Esa ultima fue la que
+dejo la nota muda hasta el final: se subia con el nombre que inventa `tempnam()`, sin extension,
+y Meta pide que la extension concuerde con el tipo declarado. Las imagenes y los documentos
+viajan igual de anonimos desde el temporal de PHP y llegan bien; el audio es mas estricto.
+
+**Dos lecciones:**
+
+1. El copiado de envase (`-c:a copy`) se eligio por elegante - milisegundos, sin perdida - sobre
+   un requisito que no habiamos leido. Cuando el formato de salida lo dicta un tercero, la via
+   rapida solo vale si cumple TODAS sus condiciones, no la que uno recuerda.
+2. Se diagnostico tres veces en falso (conversion, codec, archivo corrupto) antes de dar con
+   algo tan tonto como un nombre. Lo que lo resolvio fue mirar los bytes y el `ffmpeg -i` del
+   archivo real, no razonar sobre el codigo.
 
 **2. La partida O1.5 (confirmacion de entrega) no estaba construida.** El webhook de Meta busca
 los avisos de entrega en `message_log` por `wa_message_id`, y los codigos **no viven ahi** a

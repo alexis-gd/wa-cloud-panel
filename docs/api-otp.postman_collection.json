@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Prestamaz - API de codigos de verificacion (OTP)",
-    "description": "Manda un codigo de un solo uso al WhatsApp del usuario y lo verifica.\n\nANTES DE EMPEZAR:\n1. Abre la pestana 'Variables' de esta coleccion.\n2. Pon tu llave en `api_key` (Prestamaz te la entrega por separado).\n3. En `telefono` pon un celular de 10 digitos que TENGA WhatsApp y al que puedas ver los mensajes.\n4. Guarda (Ctrl+S).\n\nCOMO CORRERLA:\n- Las peticiones de 'Errores' se pueden correr de golpe: fallan a proposito y sus pruebas verifican justo eso.\n- Las de '1. Pedir' y '2. Verificar' van A MANO y en ese orden: entre una y otra tienes que leer el codigo que te llego por WhatsApp y ponerlo en la variable `codigo`.\n\nOJO CON LAS VARIABLES: Postman guarda dos columnas, 'Initial value' y 'Current value'. La que se MANDA es Current. Si escribes el codigo en Initial, la peticion sale con los ceros del default y responde INVALID_CODE - y cada intento fallido gasta uno de los 5.\n\nOJO: hay un freno de 1 minuto entre codigos al mismo numero. Si corres la coleccion completa de un jalon, el segundo envio va a responder 429 TOO_SOON - y eso es correcto.\n\nDocumentacion completa: api-otp.md",
+    "description": "Manda un codigo de un solo uso al WhatsApp del usuario y lo verifica.\n\nANTES DE EMPEZAR:\n1. Abre la pestana 'Variables' de esta coleccion.\n2. Pon tu llave en `api_key` (Prestamaz te la entrega por separado).\n3. En `telefono` pon un celular de 10 digitos que TENGA WhatsApp y al que puedas ver los mensajes.\n4. Guarda (Ctrl+S).\n\nCOMO CORRERLA:\n- Las peticiones de 'Errores' se pueden correr de golpe: fallan a proposito y sus pruebas verifican justo eso.\n- Las de '1. Pedir' y '2. Verificar' van A MANO y en ese orden: entre una y otra tienes que leer el codigo que te llego por WhatsApp y ponerlo en la variable `codigo`.\n\nOJO CON LAS VARIABLES: Postman guarda dos columnas, 'Initial value' y 'Current value'. La que se MANDA es Current. Si escribes el codigo en Initial, la peticion sale con los ceros del default y responde INVALID_CODE - y cada intento fallido gasta uno de los 5.\n\nOJO: hay un freno de 1 minuto entre codigos al mismo numero. Si corres la coleccion completa de un jalon, el segundo envio va a responder 429 TOO_SOON - y eso es correcto.\n\nEl codigo lo puedes generar tu (mandalo en `code`) o dejar que lo generemos nosotros (no mandes `code`). La peticion '1b' muestra la primera forma.\n\nDocumentacion completa: api-otp.md",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -90,6 +90,48 @@
               "// Si viniera, bastaria con tener la llave del API para entrar como cualquiera.",
               "pm.test('El codigo no viaja en la respuesta', () => {",
               "    pm.expect(JSON.stringify(b)).to.not.match(/\\b\\d{6}\\b/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1b. Pedir un codigo ELIGIENDO yo el codigo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/otp/send",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "otp",
+            "send"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"{{telefono}}\",\n  \"code\": \"{{codigo}}\",\n  \"reference\": \"postman-codigo-propio\"\n}"
+        },
+        "description": "Si tu sistema ya genera el codigo, mandalo en `code` y ese es el que recibe el usuario. Pon el que quieras en la variable `codigo` ANTES de correr esta (6 digitos, columna CURRENT VALUE).\n\nOJO: hay un freno de 1 minuto entre codigos al mismo numero."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+              "pm.test('El codigo sigue sin viajar de vuelta', () => {",
+              "    pm.expect(pm.response.json().data.code).to.be.undefined;",
               "});"
             ]
           }
@@ -360,6 +402,48 @@
                 "exec": [
                   "pm.test('Responde 422', () => pm.response.to.have.status(422));",
                   "pm.test('Trae el code NOT_FOUND', () => pm.expect(pm.response.json().code).to.eql('NOT_FOUND'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Campo mal escrito -> UNKNOWN_PARAMS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/otp/send",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "otp",
+                "send"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{telefono}}\",\n  \"codigo\": \"123456\"\n}"
+            },
+            "description": "`codigo` en vez de `code`. El API falla en vez de ignorarlo en silencio: si lo ignorara, responderia 201 y tu creerias haber elegido el codigo mientras al usuario le llega otro."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 422', () => pm.response.to.have.status(422));",
+                  "const b = pm.response.json();",
+                  "pm.test('Trae el code UNKNOWN_PARAMS', () => pm.expect(b.code).to.eql('UNKNOWN_PARAMS'));",
+                  "pm.test('Dice cual campo sobra', () => pm.expect(b.message).to.include('codigo'));"
                 ]
               }
             }

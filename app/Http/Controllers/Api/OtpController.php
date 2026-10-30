@@ -23,11 +23,18 @@ class OtpController extends Controller
 
     /**
      * POST /api/otp/send
-     * Body: { "phone": "9231311146", "reference": "login-8832" }
+     * Body: { "phone": "9231311146", "reference": "login-8832", "code": "483920" }
+     *
+     * `code` es opcional: si la app lo manda, ese es el que recibe el usuario; si no, lo
+     * generamos nosotros. En los dos casos se guarda hasheado y no vuelve en la respuesta.
      */
     public function send(OtpRequest $request): JsonResponse
     {
-        $res = $this->otp->pedir($request->input('phone'), $request->input('reference'));
+        $res = $this->otp->pedir(
+            $request->input('phone'),
+            $request->input('reference'),
+            $request->input('code'),
+        );
 
         if (! $res['ok']) {
             return $this->error($res['message'], $res['code'], $res['retry_after'] ?? null);

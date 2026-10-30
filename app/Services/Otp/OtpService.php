@@ -30,7 +30,7 @@ class OtpService
      *
      * @return array{ok: bool, otp?: OtpCode, code?: string, message?: string, retry_after?: int}
      */
-    public function pedir(string $telefonoCrudo, ?string $referencia = null): array
+    public function pedir(string $telefonoCrudo, ?string $referencia = null, ?string $codigoDelCliente = null): array
     {
         $telefono = Contact::normalizePhone($telefonoCrudo);
 
@@ -53,15 +53,19 @@ class OtpService
         // no sabe cual escribir.
         $this->caducarVigentes($telefono);
 
-        $codigo = $this->generar();
+        // La app puede mandar su propio codigo (asi quedo cotizado el servicio: "recibe el
+        // numero y el codigo"). Si no lo manda, lo generamos nosotros. En los dos casos se
+        // guarda hasheado y nunca sale de vuelta.
+        $codigo = $codigoDelCliente ?? $this->generar();
 
         $otp = OtpCode::create([
-            'phone'      => $telefono,
-            'code_hash'  => Hash::make($codigo),
-            'reference'  => $referencia,
-            'status'     => 'pending',
+            'phone'       => $telefono,
+            'code_hash'   => Hash::make($codigo),
+            'code_source' => $codigoDelCliente ? 'cliente' : 'propio',
+            'reference'   => $referencia,
+            'status'      => 'pending',
             // Provisional: el reloj bueno arranca cuando el mensaje sale (`marcarEnviado`).
-            'expires_at' => now()->addMinutes(OtpCode::MINUTOS_DE_VIDA),
+            'expires_at'  => now()->addMinutes(OtpCode::MINUTOS_DE_VIDA),
         ]);
 
         SendOtpMessage::dispatch($otp->id, $codigo);

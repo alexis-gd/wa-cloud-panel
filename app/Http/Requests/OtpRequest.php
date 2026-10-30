@@ -22,22 +22,43 @@ class OtpRequest extends FormRequest
     }
 
     /**
-     * El `code` solo se exige al verificar. La ruta de envio no lo manda.
+     * El `code` es obligatorio al verificar y **opcional** al enviar.
+     *
+     * Al enviar, si viene, es el codigo que la app quiere que reciba el usuario; si no viene,
+     * lo generamos nosotros. Asi quedo cotizado el servicio ("recibe el numero y el codigo") y
+     * asi sirve para quien no quiera generarlo.
      *
      * @return array<string, string>
      */
     public function rules(): array
     {
-        $reglas = [
+        return [
             'phone'     => 'required|string|max:20',
             'reference' => 'nullable|string|max:100',
+            'code'      => ($this->routeIs('otp.verify') ? 'required' : 'nullable') . '|string|digits:6',
         ];
+    }
 
-        if ($this->routeIs('otp.verify')) {
-            $reglas['code'] = 'required|string|digits:6';
+    /**
+     * Rechaza cualquier campo que no sea de los de arriba.
+     *
+     * Laravel ignora en silencio lo que no valida, y en un API eso es una trampa: una peticion
+     * con `codigo` en vez de `code`, o con un campo que el programador cree que configura algo,
+     * responde 201 como si lo hubiera entendido. Quien la escribio se queda convencido de que
+     * mando una cosa mientras al usuario le llega otra. Mejor fallar y decir cual sobra.
+     */
+    protected function passedValidation(): void
+    {
+        $sobran = array_diff(array_keys($this->all()), array_keys($this->rules()));
+
+        if ($sobran) {
+            throw new HttpResponseException(response()->json([
+                'status'  => 'error',
+                'message' => 'No reconozco estos campos: ' . implode(', ', $sobran)
+                             . '. Los que acepto aqui son: ' . implode(', ', array_keys($this->rules())) . '.',
+                'code'    => 'UNKNOWN_PARAMS',
+            ], 422));
         }
-
-        return $reglas;
     }
 
     /**

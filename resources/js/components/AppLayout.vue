@@ -85,7 +85,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.49.0</span>
+                <span class="version">v0.50.0</span>
             </div>
         </aside>
 

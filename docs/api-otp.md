@@ -180,7 +180,7 @@ el `code` no cambia.
 
 **Que el mensaje llegue.** Eso depende de WhatsApp y del teléfono del usuario. Lo que sí
 sabemos es qué pasó con él: WhatsApp nos avisa si se **entregó**, si lo **leyeron** o si
-**rebotó**, y eso queda en el panel, pantalla **Códigos**, junto al número, tu `reference` y el
+**rebotó**, y eso queda en el panel, pantalla **Códigos OTP**, junto al número, tu `reference` y el
 motivo del fallo. Ese aviso llega después de que ya te respondimos el 201: no viaja en la
 respuesta del API.
 
@@ -190,7 +190,7 @@ Casos en los que el mensaje no sale, y no hay forma de saberlo antes de intentar
 - La cuenta de WhatsApp de Prestamaz llegó a su límite diario de Meta ese día.
 
 En los dos casos la petición `/send` ya te contestó **201**: el envío ocurre enseguida, no
-dentro de la misma llamada. Si un usuario reporta que no le llegó, la pantalla **Códigos** del
+dentro de la misma llamada. Si un usuario reporta que no le llegó, la pantalla **Códigos OTP** del
 panel dice qué pasó.
 
 ---

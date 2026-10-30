@@ -248,6 +248,19 @@ class SendVoiceNoteTest extends TestCase
         Http::assertNothingSent();
     }
 
+    /**
+     * El diagnostico tiene que poder correrse en cualquier maquina sin reventar: es justo la
+     * herramienta a la que se recurre cuando algo no funciona.
+     */
+    public function test_el_diagnostico_dice_claro_cuando_no_hay_ffmpeg(): void
+    {
+        config(['media.ffmpeg' => '']);
+
+        $this->artisan('wa:probar-nota-de-voz')
+             ->expectsOutputToContain('FFMPEG_PATH esta vacio')
+             ->assertFailed();
+    }
+
     // -- Lo que el panel necesita saber -----------------------------------------
 
     /**

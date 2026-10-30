@@ -538,7 +538,9 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
   `nullOnDelete`: si el usuario se borra, el contacto se queda y lo que se pierde es el
   nombre). Se llena en alta manual, importacion de Excel y borrado; nulo significa que lo
   puso el cron del API, no una persona. Columna "Dado de alta por" en el Excel de Contactos.
-  Lo que NO se hizo: tabla de actividad con cada cambio. ~~`contacts` no tiene `created_by` ni hay
+  Lo que NO se hizo: tabla de actividad con cada cambio.
+
+  *Lo que decia cuando estaba abierto:* `contacts` no tiene `created_by` ni hay
   tabla de actividad, y `POST /api/contacts/upload` no registra al usuario. Hoy es imposible
   saber quién subió los Excel del 7 y 8 de septiembre: solo se reconstruye por `created_at`,
   el log de nginx (IP) y `personal_access_tokens.last_used_at`. Propuesto: tabla `activity_log`
@@ -558,12 +560,15 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
 - [x] **RESUELTO 2026-10-29.** Tabla `contact_sync_runs`, una fila por corrida, y
   `contactos:ultima-corrida --historial` las muestra. El Setting se queda por compatibilidad.
   Contesta la pregunta que importa cuando algo va mal: **desde cuando** viene fallando.
-  ~~Guardaba solo la ultima.** El Setting `contact_sync_last_run` se
+
+  *Lo que decia cuando estaba abierto:* el Setting `contact_sync_last_run` se
   sobrescribe cada noche. Si se quiere historial consultable, va tabla propia.
 - [x] **RESUELTO 2026-10-29.** Las dos cargas en lote (Excel y cron del API) pasan por
   `App\Services\Contacts\BulkInsert`, que recorta el nombre a lo que cabe ANTES de intentar
   y, si el lote falla igual, reintenta fila por fila para que las buenas entren y las malas
-  se devuelvan con su telefono. ~~Sigue sin `try/catch`.** Con `contacts.name` en `varchar(100)`, un
+  se devuelvan con su telefono.
+
+  *Lo que decia cuando estaba abierto:* con `contacts.name` en `varchar(100)`, un
   solo nombre largo aborta el lote de 500 **y todos los siguientes**. Hoy se verificó contra el
   API real (`max=45`, ninguno pasa de 100) y por eso la corrida fue segura, pero el dato es del
   cliente y puede cambiar sin avisar. Envolver el lote y reportar la fila que falla.

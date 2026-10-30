@@ -132,9 +132,9 @@ class VoiceNote
      */
     private function convertir(string $origen): array
     {
-        $salida = tempnam(sys_get_temp_dir(), 'wa-voz-');
+        $salida = self::temporalOgg();
 
-        if ($salida === false) {
+        if ($salida === null) {
             return $this->falla('No se pudo preparar la nota de voz.');
         }
 
@@ -147,6 +147,37 @@ class VoiceNote
         @unlink($salida);
 
         return $this->falla('No se pudo convertir la nota de voz. Avisa a soporte.');
+    }
+
+    /**
+     * Un temporal que SI termina en `.ogg`.
+     *
+     * `tempnam()` entrega un archivo sin extension, y ese nombre es el que viaja a Meta al
+     * subirlo (`basename($ruta)`). La guia de Meta pide que la extension concuerde con el tipo
+     * declarado; sin ella, WhatsApp acepta la subida, dibuja la burbuja de nota de voz y
+     * despues no puede reproducirla: "algo fallo con el archivo de audio".
+     *
+     * Las imagenes y los documentos no lo necesitan - se mandan desde el temporal de PHP, que
+     * tampoco tiene extension, y llegan bien. El audio es mas estricto.
+     */
+    private static function temporalOgg(): ?string
+    {
+        $base = tempnam(sys_get_temp_dir(), 'wa-voz-');
+
+        if ($base === false) {
+            return null;
+        }
+
+        $conExtension = $base . '.ogg';
+
+        // `tempnam` ya creo el archivo vacio; se renombra para quedarse con uno solo.
+        if (! @rename($base, $conExtension)) {
+            @unlink($base);
+
+            return null;
+        }
+
+        return $conExtension;
     }
 
     private function ffmpeg(array $argumentos): bool

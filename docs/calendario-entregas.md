@@ -740,6 +740,30 @@ panel y contador en el resumen.
 **Como se encontro:** no por un test, sino mirando la cotizacion renglon por renglon contra lo
 que habia en produccion. Vale la pena repetirlo al cerrar cada bloque.
 
+### Los archivos guardados nacian ilegibles (2026-10-30)
+
+Todo lo que se guarda en `storage/app/media` venia de un temporal - el de la subida de PHP o el
+de `tempnam()` - y esos se crean en **0600**. `rename` conserva el modo, asi que el archivo
+quedaba legible **solo para www-data**.
+
+Nada fallaba a la vista: el panel los sirve con PHP, que es www-data. El costo aparecio al
+diagnosticar un audio que no se reproducia: `ffmpeg -i` corriendo como `adminsender` devolvia
+*Permission denied*, el comando de diagnostico se quedaba callado, y un archivo **ilegible** se
+veia exactamente igual que uno **corrupto**. La investigacion se fue media hora al lugar
+equivocado.
+
+Dos cambios:
+
+- `MediaStore::guardarArchivo()` hace `chmod 0644` despues de mover. Es `storage/app`, fuera del
+  alcance de la web, y quien entra por SSH ya es el administrador.
+- `wa:probar-nota-de-voz` **dice por que** cuando no puede leer, en vez de no imprimir nada, y
+  sugiere reintentar como www-data. Un diagnostico que calla cuando falla es peor que no
+  tenerlo: manda a buscar donde no es.
+
+Segunda vez que un permiso de archivo nos cuesta tiempo (la primera fue el candado del cron, en
+septiembre). El patron es el mismo: algo creado por un usuario, leido por otro, sin que nadie
+mire el modo.
+
 ### M2 - verlos en el panel (2026-10-27)
 
 - [x] `GET /api/conversations/media/{conversationId}`: exige sesion, respeta lo del agente, y

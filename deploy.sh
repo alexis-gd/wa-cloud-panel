@@ -21,40 +21,46 @@ umask 0002
 
 cd "$(dirname "$0")"
 
-echo "==> [1/10] Modo mantenimiento ON"
+echo "==> [1/11] Modo mantenimiento ON"
 php artisan down || true
 
-echo "==> [2/10] git pull"
+echo "==> [2/11] git pull"
 git pull
 
-echo "==> [3/10] Dependencias PHP (producción)"
+echo "==> [3/11] Dependencias PHP (producción)"
 composer install --no-dev --optimize-autoloader
 
-echo "==> [4/10] Build frontend (Vite)"
+echo "==> [4/11] Build frontend (Vite)"
 npm ci
 npm run build
 
-echo "==> [5/10] Migraciones (antes de reiniciar la cola)"
+echo "==> [5/11] Guias y documentacion en HTML"
+# Se regeneran en cada deploy desde su Markdown. Asi el HTML que se sirve no puede
+# contradecir a su fuente, y una guia nueva no depende de que alguien se acuerde de
+# commitear el HTML - que es justo lo que dejo /doc/api-otp.html fuera del servidor.
+php artisan guias:build
+
+echo "==> [6/11] Migraciones (antes de reiniciar la cola)"
 php artisan migrate --force
 
-echo "==> [6/10] Cache de config y rutas"
+echo "==> [7/11] Cache de config y rutas"
 php artisan config:cache
 php artisan route:cache
 
-echo "==> [7/10] Reiniciar queue worker (Supervisor)"
+echo "==> [8/11] Reiniciar queue worker (Supervisor)"
 sudo supervisorctl restart wa-queue:*
 
-echo "==> [8/10] Modo mantenimiento OFF"
+echo "==> [9/11] Modo mantenimiento OFF"
 php artisan up
 
-echo "==> [9/10] Health check"
+echo "==> [10/11] Health check"
 curl -fsS https://sender.prestamaz.site/api/health && echo
 
 # El cron NO lo instala este script (necesita root y es montaje del servidor, no del
 # despliegue), pero sí se revisa: una sola línea de crontab mueve todo lo automático del
 # sistema - alta de contactos, warm-up, marcado de inalcanzables y reconciliaciones de SMS.
 # Si se rompe, nada se ve mal y el sistema se desafina en silencio durante días.
-echo "==> [10/10] Latido del programador de tareas"
+echo "==> [11/11] Latido del programador de tareas"
 LATIDO=$(php artisan tinker --execute="echo json_encode(App\Services\System\SchedulerHeartbeat::estado());" 2>/dev/null | tail -1)
 
 if echo "$LATIDO" | grep -q '"never_ran":true'; then

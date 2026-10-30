@@ -57,7 +57,7 @@
                 </RouterLink>
                 <RouterLink v-if="isAdmin()" to="/otp" class="nav-item" :class="{ active: route.path === '/otp' }" @click="sidebarOpen = false">
                     <i class="pi pi-key" />
-                    <span>Códigos</span>
+                    <span>Códigos OTP</span>
                 </RouterLink>
                 <RouterLink v-if="isAdmin() && isEnabled('feature_users')" to="/users" class="nav-item" :class="{ active: route.path === '/users' }" @click="sidebarOpen = false">
                     <i class="pi pi-user-edit" />
@@ -321,7 +321,7 @@ const pageTitles = {
     '/reports/agents' : 'Reporte de agentes',
     '/campaigns'      : 'Campañas',
     '/sms-replies'    : 'Respuestas SMS',
-    '/otp'            : 'Códigos de verificación',
+    '/otp'            : 'Códigos OTP',
     '/conversations'  : 'Conversaciones',
     '/templates'      : 'Plantillas',
     '/users'          : 'Usuarios',
@@ -396,6 +396,18 @@ const helpContent = {
             { icon: 'pi-clock',         label: 'Horario',    text: 'WhatsApp solo Lunes a Viernes 9AM-10PM, hora del Centro (CDMX) - fuera de eso bloquea. SMS no tiene horario forzado: tú decides (aviso si es de madrugada).' },
         ],
         warning: 'No ejecutar la misma campaña dos veces. Si necesitas reenviar, crea una nueva.',
+    },
+    '/otp': {
+        title: 'Códigos OTP',
+        items: [
+            { icon: 'pi-key',          label: 'Qué es',       text: 'Los códigos de un solo uso que la app manda al WhatsApp del usuario para que entre a su cuenta. Los pide la app sola por el API; esta pantalla es de solo lectura y no manda ni reenvía ninguno.' },
+            { icon: 'pi-question-circle', label: 'Para qué sirve', text: 'Para contestar "no me llegó mi código". Busca el número de la persona y la columna Estado te dice qué pasó.' },
+            { icon: 'pi-circle-fill',  label: 'Estado',        text: 'Habla del CÓDIGO: Enviado (salió), Verificado (lo usó y entró), Caducado (pasaron los 10 minutos o falló 5 veces), No salió (no se pudo mandar, el motivo va en Detalle), En cola (está por salir).' },
+            { icon: 'pi-send',         label: 'Entrega',       text: 'Habla del MENSAJE, que es otra cosa: Entregado llegó al teléfono, Leído lo abrió, Rebotó no se pudo entregar. "Sin aviso" NO quiere decir que no llegó: quiere decir que WhatsApp todavía no dice nada. Un código Entregado y nunca Verificado es normal: le llegó y no lo usó.' },
+            { icon: 'pi-eye-slash',    label: 'El código no se ve', text: 'Ni para ti. Si el panel lo mostrara, el código dejaría de probar que la persona tiene su teléfono: cualquiera con el panel abierto podría entrar como ella. Lo único que puedes hacer es decirle que pida uno nuevo.' },
+            { icon: 'pi-gauge',        label: 'Cupo que queda hoy', text: 'WhatsApp pone un límite de mensajes por día a toda la cuenta, y lo comparten las campañas y los códigos. El sistema le aparta una parte a los códigos solo: no hay nada que configurar.' },
+        ],
+        tip: 'Si ves el cupo en cero y códigos marcados "No salió", ya sabes qué pasó: se acabó el cupo del día. Al día siguiente vuelve a empezar.',
     },
     '/sms-replies': {
         title: 'Respuestas SMS',

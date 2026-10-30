@@ -476,6 +476,29 @@ borrarlo).
 > (circuit breaker). Puedes **desactivarlo** aquí y dar de alta uno nuevo con estos mismos
 > pasos, siempre que Meta permita el alta.
 
+### Apartar un número solo para los códigos de verificación
+
+Los códigos que pide la app salen, de fábrica, por el **primer número activo** - el mismo que
+manda publicidad. Se puede apartar uno solo para ellos.
+
+**Qué se gana y qué no.** Se gana **reputación separada**: si una campaña quema el número de
+publicidad, el de los códigos sigue limpio y la gente puede seguir entrando a la app. **No se
+gana capacidad**: el límite diario de WhatsApp es **de la cuenta entera** y lo comparten todos
+los números. Agregar números no multiplica el volumen.
+
+1. Da de alta el número con los pasos de arriba (Meta primero, panel después).
+2. En el panel: **Configuración -> Número para los códigos de verificación** -> elígelo ->
+   **Guardar**. Dejarlo vacío vuelve al automático.
+3. Comprueba: pide un código de prueba y mira la pantalla **Códigos**. Si dice *Entregado*,
+   salió por donde debe.
+
+> ⚠️ La SIM tiene que ser **nueva, nunca registrada en WhatsApp**. Una que ya haya tenido la
+> app da problemas al darla de alta en la API, y ahí se pierden días.
+
+> ℹ️ **Si el número elegido se apaga o se queda sin token**, los códigos NO dejan de salir:
+> el sistema usa el primer número activo y lo anota en su registro. Un código que no llega es
+> peor que un código que llega por otro número.
+
 ### Qué es el warm-up
 
 Un número nuevo debe empezar con **poco volumen** e ir subiendo poco a poco - mandar miles de
@@ -630,34 +653,3 @@ comparten el tope diario. Sirven para redundancia y balanceo, no para multiplica
 **Salió una alerta rara en Business Manager y no sé qué es.**
 Anota el texto exacto y avisa a soporte antes de hacer nada. No improvises con la cuenta
 de Meta.
-
-## Numero dedicado para los codigos de verificacion (OTP)
-
-Los codigos que pide la app del cliente salen, de fabrica, por el **primer numero activo** - el
-mismo que manda publicidad. Se puede apartar uno solo para ellos.
-
-**Que se gana y que NO.** Se gana **reputacion separada**: si una campana quema el numero de
-publicidad, el de los codigos sigue limpio y la gente puede seguir entrando a la app. **No se
-gana capacidad**: el limite diario de WhatsApp es **por cuenta** (Business Portfolio) y lo
-comparten todos los numeros. Agregar numeros no multiplica el volumen.
-
-### Pasos
-
-1. **Conseguir la SIM.** Tiene que ser **nueva, nunca registrada en WhatsApp**. Una que ya haya
-   tenido la app da problemas al darla de alta en la API y ahi se pierden dias.
-2. **Darla de alta en Meta** (business.facebook.com), como cualquier otro numero. Ver la
-   seccion de alta de numeros de esta misma guia.
-3. **Darla de alta en el panel**: Configuracion -> "Numeros de WhatsApp" -> Phone ID y WABA ID.
-   El sistema lo verifica contra Meta antes de guardarlo.
-4. **Asignarlo a los codigos**: Configuracion -> "Numero para los codigos de verificacion" ->
-   elegirlo -> Guardar. Dejarlo vacio vuelve al automatico.
-
-### Comprobar que quedo
-
-Pedir un codigo de prueba y mirar la pantalla **Codigos**. Si sale "Entregado", salio por donde
-debe. El panel **no** muestra Phone IDs de Meta a proposito; los numeros se eligen por el nombre
-que se les puso al darlos de alta.
-
-**Si el numero elegido se apaga o se queda sin token**, el envio NO se detiene: cae al primer
-numero activo y lo deja anotado en el log. Un codigo que no sale es peor que un codigo que sale
-por otro numero.

@@ -35,7 +35,7 @@
 11. [Bajas: contactos que piden no recibir más](#11-bajas-contactos-que-piden-no-recibir-mas)
 12. [Control de envíos: las reglas que te protegen](#12-control-de-envios-las-reglas-que-te-protegen)
 13. [Reportes en Excel](#13-reportes-en-excel)
-14. [Códigos de verificación (solo admin)](#14-codigos-de-verificacion-solo-admin)
+14. [Códigos OTP (solo admin)](#14-codigos-otp-solo-admin)
 15. [¿Qué hago si...? (cómo reaccionar)](#15-que-hago-si-como-reaccionar)
 16. [Preguntas frecuentes](#16-preguntas-frecuentes)
 
@@ -894,13 +894,13 @@ panel. Los puedes abrir en Excel o en Google Sheets tal cual.
 
 ---
 
-## 14. Códigos de verificación (solo admin)
+## 14. Códigos OTP (solo admin)
 
 > ℹ️ Esta pantalla la ven **admin y superadmin**. Un operador o un agente no la tienen en
 > el menú.
 
 La app de Prestamaz le manda a cada usuario un **código de 6 dígitos** por WhatsApp para que
-entre a su cuenta. Esos códigos salen por este sistema, y la pantalla **Códigos** es donde se
+entre a su cuenta. Esos códigos salen por este sistema, y la pantalla **Códigos OTP** es donde se
 ve qué pasó con cada uno.
 
 **Es una pantalla de solo mirar.** Desde aquí no se manda ni se reenvía ningún código: los

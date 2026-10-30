@@ -50,9 +50,13 @@ class OtpLogController extends Controller
                 'phone'         => $o->phone,
                 'reference'     => $o->reference,
                 'status'        => $o->status,
+                // Lo que WhatsApp contesto del mensaje. Es otra pregunta que `status`: un
+                // codigo entregado y nunca usado es normal; uno que nunca llego, no.
+                'delivery'      => $o->delivery_status,
                 'attempts'      => $o->attempts,
                 'created_at'    => $this->cst($o->created_at),
                 'sent_at'       => $this->cst($o->sent_at),
+                'delivered_at'  => $this->cst($o->delivered_at),
                 'verified_at'   => $this->cst($o->verified_at),
                 'error_message' => $o->error_message,
             ])->all(),
@@ -83,6 +87,8 @@ class OtpLogController extends Controller
 
         return [
             'pedidos_hoy'    => (int) $hoy->sum(),
+            'entregados'     => OtpCode::whereBetween('created_at', [$inicio, $fin])
+                                    ->whereIn('delivery_status', ['delivered', 'read'])->count(),
             'verificados'    => (int) $hoy->get('verified', 0),
             'fallidos'       => (int) $hoy->get('failed', 0),
             'cupo_restante'  => OtpCapacity::quedanParaOtp(),

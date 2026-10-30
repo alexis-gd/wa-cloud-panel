@@ -534,7 +534,13 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
 - [x] **`umask 0002` en `deploy.sh`** (hecho). Con el comentario que explica el caso, para que
   nadie lo borre pensando que sobra. Falta lo del servidor: agregarlo también al `~/.bashrc` de
   `adminsender`, que cubre los comandos que Alexis corre a mano fuera del deploy.
-- [ ] **Sin auditoría de quién toca los contactos.** `contacts` no tiene `created_by` ni hay
+- [x] **RESUELTO 2026-10-29.** `contacts` ya tiene `created_by` y `deleted_by` (FK a `users`,
+  `nullOnDelete`: si el usuario se borra, el contacto se queda y lo que se pierde es el
+  nombre). Se llena en alta manual, importacion de Excel y borrado; nulo significa que lo
+  puso el cron del API, no una persona. Columna "Dado de alta por" en el Excel de Contactos.
+  Lo que NO se hizo: tabla de actividad con cada cambio.
+
+  *Lo que decia cuando estaba abierto:* `contacts` no tiene `created_by` ni hay
   tabla de actividad, y `POST /api/contacts/upload` no registra al usuario. Hoy es imposible
   saber quién subió los Excel del 7 y 8 de septiembre: solo se reconstruye por `created_at`,
   el log de nginx (IP) y `personal_access_tokens.last_used_at`. Propuesto: tabla `activity_log`
@@ -551,16 +557,26 @@ Transporte **Soketi** (WebSocket compatible Pusher, Docker en el VPS). Patrón: 
   devuelve. Lo indestructible es `contacts.source = 'api'`, pero **no está expuesto en la UI**.
   Propuesto: filtro "Origen" (API / Excel / Manual) en Contactos, y que la etiqueta quede como
   adorno. Encaja con el principio de que el cliente no pueda romper algo sin querer.
-- [ ] **El registro de corridas guarda solo la última.** El Setting `contact_sync_last_run` se
+- [x] **RESUELTO 2026-10-29.** Tabla `contact_sync_runs`, una fila por corrida, y
+  `contactos:ultima-corrida --historial` las muestra. El Setting se queda por compatibilidad.
+  Contesta la pregunta que importa cuando algo va mal: **desde cuando** viene fallando.
+
+  *Lo que decia cuando estaba abierto:* el Setting `contact_sync_last_run` se
   sobrescribe cada noche. Si se quiere historial consultable, va tabla propia.
-- [ ] **`Contact::insert()` sigue sin `try/catch`.** Con `contacts.name` en `varchar(100)`, un
+- [x] **RESUELTO 2026-10-29.** Las dos cargas en lote (Excel y cron del API) pasan por
+  `App\Services\Contacts\BulkInsert`, que recorta el nombre a lo que cabe ANTES de intentar
+  y, si el lote falla igual, reintenta fila por fila para que las buenas entren y las malas
+  se devuelvan con su telefono.
+
+  *Lo que decia cuando estaba abierto:* con `contacts.name` en `varchar(100)`, un
   solo nombre largo aborta el lote de 500 **y todos los siguientes**. Hoy se verificó contra el
   API real (`max=45`, ninguno pasa de 100) y por eso la corrida fue segura, pero el dato es del
   cliente y puede cambiar sin avisar. Envolver el lote y reportar la fila que falla.
 
 ### Bugs reportados por el cliente operando (2026-09-03)
 
-- [ ] **"Los mensajes nuevos no suben al inicio de la lista"** - ÚNICO ABIERTO (reporte del
+- [x] **"Los mensajes nuevos no suben al inicio de la lista"** - **RESUELTO** (confirmado por
+  Alexis el 2026-10-29). Era lo que se sospechaba, no hizo falta tocar el reordenamiento. (reporte del
   cliente, **sin confirmar**). El código sí está hecho para reordenar: el backend ordena por `last_message_at`
   y el frontend hace refetch completo al recibir un inbound. En los screenshots la lista se ve
   **bien ordenada**. Falta que el cliente sea más específico; Alexis lo cree tema visual. Antes de
@@ -692,6 +708,32 @@ prospectos. Tabla propia (`otp_codes`), cupo compartido.
 **Decisiones de Alexis (2026-10-29):** el OTP **ignora la baja de publicidad** (la baja es de
 marketing; el codigo lo pide el usuario en ese momento para entrar a su cuenta), y la reserva es
 un **porcentaje** del techo, no un numero fijo, para que se ajuste sola cuando Meta suba el tier.
+
+### Dos huecos que destapo probar en prod (2026-10-29)
+
+**1. Las notas de voz llegaban como archivo adjunto, y ni se podian descargar.** Meta pide tres
+cosas para que una grabacion se vea como nota de voz: el campo **`voice: true`** en el objeto
+`audio`, el archivo en **Ogg/Opus** y **mono**. No se mandaba el campo, y la conversion rapida
+(`-c:a copy`) conservaba lo que grabara el navegador - que puede ser estereo, y en Safari ni
+siquiera es Ogg. Encima el Ogg que salia del copiado llegaba roto: WhatsApp lo mostraba y no lo
+podia descargar. Ahora toda grabacion se recodifica a Ogg/Opus mono 32k y viaja con `voice: true`.
+
+**La leccion:** el copiado de envase se eligio por elegante (milisegundos, sin perdida) sobre un
+requisito que no habiamos leido. Cuando el formato de salida lo dicta un tercero, la via rapida
+solo vale si cumple TODAS sus condiciones, no la que uno recuerda.
+
+**2. La partida O1.5 (confirmacion de entrega) no estaba construida.** El webhook de Meta busca
+los avisos de entrega en `message_log` por `wa_message_id`, y los codigos **no viven ahi** a
+proposito. Resultado: los avisos de *entregado*, *leido* y *fallido* de un OTP se descartaban en
+silencio, y el panel decia "Enviado" para siempre aunque el telefono estuviera apagado.
+
+Se agrego `otp_codes.delivery_status` + `delivered_at`, **aparte de `status`**: son dos
+preguntas distintas y mezclarlas pierde una. Un codigo entregado y nunca usado es normal; uno
+que nunca llego, no. Si el mensaje rebota el codigo muere con el. Columna **Entrega** en el
+panel y contador en el resumen.
+
+**Como se encontro:** no por un test, sino mirando la cotizacion renglon por renglon contra lo
+que habia en produccion. Vale la pena repetirlo al cerrar cada bloque.
 
 ### M2 - verlos en el panel (2026-10-27)
 

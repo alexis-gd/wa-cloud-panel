@@ -61,13 +61,24 @@ class SendVoiceNoteTest extends TestCase
         ]);
     }
 
-    /** Hace de cuenta que el servidor tiene (o no tiene) ffmpeg, sin tocarlo. */
+    /**
+     * Hace de cuenta que el servidor tiene (o no tiene) ffmpeg, sin tocarlo.
+     *
+     * Cuando lo tiene, ademas se sustituye el conversor por uno que devuelve un archivo ya
+     * hecho. Desde que TODA grabacion se recodifica, no hacerlo levantaria un ffmpeg de verdad
+     * por cada test - y la suite dependeria de una herramienta del sistema que puede no estar
+     * en la maquina de quien la corre.
+     */
     private function conFfmpeg(bool $hay = true): void
     {
         Cache::put('media.ffmpeg', $hay, 3600);
+
+        if ($hay) {
+            $this->instance(VoiceNote::class, new VoiceNoteDePrueba());
+        }
     }
 
-    /** Una grabacion ya en Ogg: no pasa por ffmpeg, es el formato que WhatsApp espera. */
+    /** Una grabacion cualquiera. El formato de entrada da igual: todo acaba en Ogg/Opus mono. */
     private function grabacion(string $mime = 'audio/ogg'): UploadedFile
     {
         return UploadedFile::fake()->create('nota-de-voz.ogg', 120, $mime);
@@ -114,6 +125,23 @@ class SendVoiceNoteTest extends TestCase
             'direction'      => 'outbound',
             'media_filename' => VoiceNote::NOMBRE,
         ]);
+    }
+
+    /**
+     * `voice: true` es lo unico que separa una nota de voz de un archivo de audio.
+     *
+     * Sin ese campo Meta entrega la grabacion como adjunto descargable, con icono de
+     * audifonos, en vez de la burbuja con onda y boton de reproducir. Paso en produccion: la
+     * primera version no lo mandaba y las notas llegaban como archivos.
+     */
+    public function test_viaja_marcada_como_nota_de_voz(): void
+    {
+        $this->conFfmpeg();
+
+        $this->enviar($this->grabacion())->assertStatus(201);
+
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/messages')
+            && data_get($r->data(), 'audio.voice') === true);
     }
 
     /** Una nota de voz con texto no existe en WhatsApp: ese pie nunca le llegaria al contacto. */
@@ -239,5 +267,33 @@ class SendVoiceNoteTest extends TestCase
         $this->getJson("/api/conversations/{$this->contact->id}")
              ->assertStatus(200)
              ->assertJsonPath('data.voice_notes', false);
+    }
+}
+
+
+/**
+ * Conversor de mentiras: entrega un Ogg ya hecho sin levantar ffmpeg.
+ *
+ * Lo que se prueba en este archivo es la ruta HTTP - que acepte, que rechace, con que nombre
+ * guarda y como viaja a Meta. La conversion en si depende de una herramienta del sistema y se
+ * verifica a mano al desplegar, no aqui.
+ */
+class VoiceNoteDePrueba extends VoiceNote
+{
+    public function preparar(UploadedFile $archivo): array
+    {
+        $pesa = $archivo->getSize();
+
+        // El tope si se respeta: es una regla del negocio, no de la conversion.
+        if ($pesa !== false && $pesa > self::MAX_BYTES) {
+            return ['ok' => false, 'path' => null, 'mime' => null, 'tipo' => null,
+                    'temporal' => false, 'error' => 'La nota de voz pasa del maximo que acepta WhatsApp (16 MB).'];
+        }
+
+        $salida = tempnam(sys_get_temp_dir(), 'voz-de-prueba-');
+        file_put_contents($salida, 'ogg de mentiras');
+
+        return ['ok' => true, 'path' => $salida, 'mime' => 'audio/ogg', 'tipo' => 'audio',
+                'temporal' => true, 'error' => null];
     }
 }

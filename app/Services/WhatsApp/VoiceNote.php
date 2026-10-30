@@ -15,11 +15,13 @@ use Symfony\Component\Process\Process;
  * entrega MP4, que si acepta. O sea que sin conversion, la nota de voz funcionaria en un
  * navegador y en los otros tres fallaria al final, despues de que el operador ya grabo.
  *
- * **Por que se cambia el envase y no el contenido.** Un WebM de grabacion lleva Opus adentro,
- * que es exactamente lo que lleva un Ogg de WhatsApp. Cambiar el envase (`-c:a copy`) es mover
- * bytes de un contenedor a otro: tarda milisegundos y no pierde nada. Recodificar tardaria
- * segundos de CPU por nota y sonaria peor. Solo si el copiado falla se recodifica, que es el
- * cinturon para un navegador que grabe en algo que no sea Opus.
+ * **Por que TODA grabacion se recodifica.** La primera version cambiaba solo el envase
+ * (`-c:a copy`), apostando a que el Opus de dentro del WebM servia tal cual. En produccion eso
+ * entrego notas que WhatsApp ni siquiera pudo descargar. Y Meta pide tres cosas para que algo
+ * se vea como nota de voz y no como archivo adjunto: **Ogg**, **codec Opus** y **mono**.
+ * Copiar no garantiza ninguna de las tres - el navegador puede grabar en estereo, y Safari
+ * entrega MP4, que no es Ogg. Recodificar a 32 kbps mono (lo mismo que usa WhatsApp para sus
+ * propias notas) cuesta decimas de segundo y cumple las tres.
  *
  * **Por que el panel pregunta primero si hay ffmpeg.** Es una dependencia del sistema, no del
  * proyecto: en un servidor sin ella el envio fallaria DESPUES de grabar, que es el peor momento
@@ -49,15 +51,6 @@ class VoiceNote
         'audio/x-opus+ogg',
         'audio/mp4',
         'video/mp4',
-    ];
-
-    /** Lo que ya viene listo: se manda tal cual, sin pasar por ffmpeg. */
-    private const SIN_CONVERTIR = [
-        'audio/ogg'        => 'audio/ogg',
-        'application/ogg'  => 'audio/ogg',
-        'audio/opus'       => 'audio/ogg',
-        'audio/x-opus+ogg' => 'audio/ogg',
-        'audio/mp4'        => 'audio/mp4',
     ];
 
     /** Formatos que el panel acepta en una nota de voz, para la validacion de la peticion. */
@@ -119,19 +112,23 @@ class VoiceNote
             return $this->falla('La nota de voz pasa del máximo que acepta WhatsApp (16 MB).');
         }
 
-        if (isset(self::SIN_CONVERTIR[$mime])) {
-            return $this->listo($archivo->getRealPath(), self::SIN_CONVERTIR[$mime], false);
-        }
-
+        // Sin excepciones, ni siquiera para lo que ya llega en Ogg: un Ogg estereo se entrega
+        // como archivo adjunto, no como nota de voz, y el operador no tiene forma de saberlo.
         return $this->convertir($archivo->getRealPath());
     }
 
     /**
-     * WebM a Ogg.
+     * Lo que haya grabado el navegador -> Ogg/Opus mono.
      *
-     * Primero copiando el audio tal cual. Si el copiado no sale (el navegador grabo en algo que
-     * no es Opus), se recodifica: 32 kbps mono es lo que usa WhatsApp para sus propias notas de
-     * voz, suena igual y deja una nota de un minuto en unos 240 KB.
+     * Cada bandera esta por un requisito de Meta, no por gusto:
+     *
+     * - `-vn`        descarta cualquier pista de video (el WebM del grabador puede traer una vacia)
+     * - `-c:a libopus` el codec que Meta exige para una nota de voz
+     * - `-ac 1`      mono, tambien exigido: en estereo se entrega como archivo adjunto
+     * - `-ar 48000`  la frecuencia nativa de Opus; cualquier otra lo obliga a remuestrear
+     * - `-b:a 32k`   lo que usa WhatsApp para sus propias notas: un minuto pesa ~240 KB
+     * - `-f ogg`     obligatorio porque el temporal no tiene extension y ffmpeg no puede
+     *                deducir el formato del nombre
      */
     private function convertir(string $origen): array
     {
@@ -141,17 +138,9 @@ class VoiceNote
             return $this->falla('No se pudo preparar la nota de voz.');
         }
 
-        // `-f ogg` es obligatorio: el temporal no tiene extension, asi que ffmpeg no puede
-        // deducir el formato del nombre.
-        $copiar = ['-i', $origen, '-vn', '-c:a', 'copy', '-f', 'ogg', $salida];
+        $opus = ['-i', $origen, '-vn', '-c:a', 'libopus', '-b:a', '32k', '-ar', '48000', '-ac', '1', '-f', 'ogg', $salida];
 
-        if ($this->ffmpeg($copiar) && filesize($salida) > 0) {
-            return $this->listo($salida, 'audio/ogg', true);
-        }
-
-        $recodificar = ['-i', $origen, '-vn', '-c:a', 'libopus', '-b:a', '32k', '-ar', '48000', '-ac', '1', '-f', 'ogg', $salida];
-
-        if ($this->ffmpeg($recodificar) && filesize($salida) > 0) {
+        if ($this->ffmpeg($opus) && filesize($salida) > 0) {
             return $this->listo($salida, 'audio/ogg', true);
         }
 

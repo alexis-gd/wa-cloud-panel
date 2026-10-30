@@ -27,7 +27,7 @@ class ExportController extends Controller
         $sheet->setTitle('Contactos');
 
         $sheet->fromArray(
-            ['ID', 'Teléfono', 'Nombre', 'Estado', 'Fuente', 'Etiquetas', 'Pospuesto hasta', 'Creado'],
+            ['ID', 'Teléfono', 'Nombre', 'Estado', 'Fuente', 'Etiquetas', 'Pospuesto hasta', 'Creado', 'Dado de alta por'],
             null,
             'A1'
         );
@@ -38,7 +38,7 @@ class ExportController extends Controller
         // todos de una se come la memoria del proceso. Se recorre de 1,000 en 1,000.
         // La columna Etiquetas sale separada por coma, el mismo formato que lee el importador,
         // así que el archivo exportado se puede volver a subir para re-etiquetar.
-        Contact::with('tags:id,name')
+        Contact::with(['tags:id,name', 'creadoPor:id,name'])
             ->orderBy('id')
             ->chunk(1000, function ($contacts) use ($sheet, &$row) {
                 foreach ($contacts as $c) {
@@ -51,13 +51,16 @@ class ExportController extends Controller
                         $c->tags->pluck('name')->implode(', '),
                         self::enHoraDeMexico($c->snoozed_until),
                         self::enHoraDeMexico($c->created_at),
+                        // Vacio significa algo: lo dio de alta el cron del API del cliente,
+                        // no una persona. La columna Fuente dice de donde; esta, quien.
+                        $c->creadoPor?->name ?? '',
                     ], null, "A{$row}");
                     $row++;
                 }
             });
 
         // Autoajustar ancho de columnas
-        foreach (range('A', 'H') as $col) {
+        foreach (range('A', 'I') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

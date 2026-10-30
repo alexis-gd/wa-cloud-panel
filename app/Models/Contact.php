@@ -18,6 +18,10 @@ class Contact extends Model
         'name',
         'status',
         'source',
+        // Quien lo dio de alta y quien lo dio de baja. Nulo = lo puso el sistema (el cron del
+        // API del cliente), no una persona.
+        'created_by',
+        'deleted_by',
         // Estado en la cartera del cliente (LIQUIDADO, BURO, BAJA...). Lo escribe la
         // sincronizacion, no el operador. No confundir con `status`, que es nuestra baja.
         'portfolio_status',
@@ -82,6 +86,18 @@ class Contact extends Model
      * Normaliza un número de teléfono al formato mexicano: 52XXXXXXXXXX (12 dígitos).
      * Retorna null si el número no es válido.
      */
+    /** Quien lo dio de alta. Nulo si lo puso el cron del API del cliente. */
+    public function creadoPor()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** Quien lo dio de baja. Nulo si sigue activo o si lo borro el sistema. */
+    public function borradoPor()
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
+    }
+
     public static function normalizePhone(string $raw): ?string
     {
         // Quitar todo lo que no sea dígito

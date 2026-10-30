@@ -919,6 +919,18 @@ y la columna **Estado** contesta:
 | **No salió** | No se pudo mandar. La columna **Detalle** dice por qué. |
 | **En cola** | Está por salir. Si lleva ahí varios minutos, avisa a soporte. |
 
+La columna **Entrega** es otra cosa, y conviene no confundirlas: **Estado** habla del código
+(si lo usó o no), **Entrega** habla del mensaje (si llegó al teléfono). Lo contesta WhatsApp.
+
+| Entrega | Qué significa |
+|---|---|
+| **Entregado** | Llegó al teléfono. Si dice que no lo ve, que busque en su WhatsApp. |
+| **Leído** | Abrió el mensaje. |
+| **Rebotó** | No se pudo entregar. Ese código ya no sirve: que pida uno nuevo. |
+| **Sin aviso** | WhatsApp todavía no dice nada. **No quiere decir que no llegó** - suele tardar segundos, pero con el teléfono apagado puede tardar horas. |
+
+Un código **Entregado** que nunca pasó a **Verificado** es normal: le llegó y no lo usó.
+
 ### El código no se muestra, ni a ti
 
 Es a propósito. Si el panel enseñara el código, el código dejaría de probar que la persona

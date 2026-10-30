@@ -654,6 +654,11 @@ Implementado en `App\Services\Otp\OtpTemplate`, con dos tests que fijan la forma
 
 ### M5 - el API de OTP (2026-10-29)
 
+**VALIDADO EN PRODUCCION el 2026-10-29**, de punta a punta: `POST /api/otp/send` -> 201 sin el
+codigo en la respuesta -> el mensaje llega al WhatsApp con su boton de copiar -> `POST
+/api/otp/verify` -> `verified: true`. Worker con `--queue=otp,default` aplicado en Supervisor.
+
+
 - [x] `POST /api/otp/send` y `POST /api/otp/verify`, con `X-API-Key` (no Sanctum: lo llama el
   servidor de la app del cliente, y un servidor no hace login). Codigo de 6 digitos, 10 minutos
   de vida, 5 intentos, 1 minuto entre peticiones al mismo numero y tope de 10 por numero al dia.

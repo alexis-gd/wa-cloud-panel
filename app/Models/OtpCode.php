@@ -23,7 +23,7 @@ class OtpCode extends Model
     public const MAX_INTENTOS = 5;
 
     protected $fillable = [
-        'phone', 'code_hash', 'reference', 'status', 'delivery_status', 'attempts',
+        'phone', 'code_hash', 'code_source', 'reference', 'status', 'delivery_status', 'attempts',
         'expires_at', 'sent_at', 'delivered_at', 'verified_at',
         'message_id', 'error_code', 'error_message',
     ];

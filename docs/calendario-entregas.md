@@ -795,6 +795,26 @@ Lo unico que faltaba de la partida era **poder elegirlo**: el job ya leia el Set
 Business Portfolio y lo comparten todos los numeros (ver M5). Si el cliente espera mas volumen
 por tener otro numero, va a esperar mal.
 
+### O1.2 estaba construida al reves (2026-10-30)
+
+La cotizacion dice, textual: *"Servicio de envio: **recibe el numero y el codigo**, valida y
+entrega"*. Se construyo generando el codigo nosotros. Lo destapo Alexis probando en Postman: le
+mando `code` a `/send`, recibio **201** y el campo se ignoro en silencio - o sea que creia haber
+elegido el codigo mientras al usuario le llegaba otro.
+
+Dos arreglos:
+
+- **`code` es opcional al enviar.** Si viene, ese es el que recibe el usuario (`code_source =
+  'cliente'`); si no viene, lo generamos (`'propio'`). La columna sirve para soporte: ante un
+  "el codigo no coincide", la primera pregunta es quien lo invento.
+- **Los campos desconocidos ahora fallan** (`UNKNOWN_PARAMS`), con la lista de los que si se
+  aceptan. Laravel ignora en silencio lo que no valida, y en un API eso es una trampa: un
+  `codigo` mal escrito responde 201 como si se hubiera entendido.
+
+**La leccion es la misma de O1.5:** los dos huecos salieron de leer la cotizacion renglon por
+renglon contra lo que hay en produccion, no de los tests. Los tests prueban que el codigo hace
+lo que decidimos; no prueban que hayamos decidido lo que se cotizo.
+
 ### M2 - verlos en el panel (2026-10-27)
 
 - [x] `GET /api/conversations/media/{conversationId}`: exige sesion, respeta lo del agente, y

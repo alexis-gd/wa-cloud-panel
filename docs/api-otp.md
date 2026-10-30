@@ -10,8 +10,12 @@ Son dos llamadas: una pide el código, la otra lo comprueba.
 ## Antes de empezar: cómo funciona
 
 1. Tu servidor llama a **`/api/otp/send`** con el número del usuario.
-2. Nosotros generamos un código de **6 dígitos**, lo mandamos por WhatsApp y **no te lo
-   devolvemos**.
+2. El código de **6 dígitos** sale de uno de dos lados, tú eliges:
+   - **Lo generas tú** y lo mandas en `code`. Útil si tu sistema ya lo guarda o lo necesita
+     para otra cosa.
+   - **No mandas `code`** y lo generamos nosotros. Es lo más simple y lo recomendado.
+
+   En los dos casos lo mandamos por WhatsApp y **no te lo devolvemos** en la respuesta.
 3. El usuario lee el código en su WhatsApp y lo escribe en tu app.
 4. Tu servidor llama a **`/api/otp/verify`** con el número y lo que escribió el usuario.
 5. Te contestamos si coincide o no.
@@ -51,7 +55,7 @@ WhatsApp:
 > default y responde `INVALID_CODE` - y cada intento fallido gasta uno de los 5. La colección
 > te detiene antes de mandarlo si detecta que la variable sigue en ceros.
 
-> ⚠️ **No corras la colección completa de un jalón.** Hay un freno de 1 minuto entre códigos al
+> ⚠️ **No corras la colección completa de un jalón.** Hay un freno de 3 minutos entre códigos al
 > mismo número, así que el segundo envío respondería `429 TOO_SOON`. Es correcto, pero sale en
 > rojo y parece un error.
 
@@ -85,10 +89,26 @@ X-API-Key: la-llave-que-te-dieron
 }
 ```
 
+O mandando tu propio código:
+
+```json
+{
+  "phone": "9231311146",
+  "code": "483920",
+  "reference": "login-8832"
+}
+```
+
 | Campo | Obligatorio | Qué es |
 |---|---|---|
 | `phone` | Sí | Celular del usuario. A 10 dígitos o con el `52` adelante, como prefieras. No mandes el `+`. |
+| `code` | No | **Tu propio código**, 6 dígitos. Si lo mandas, ese es el que recibe el usuario. Si no lo mandas, lo generamos nosotros. |
 | `reference` | No | Un identificador tuyo (hasta 100 caracteres) para amarrarlo a tu propio registro. Te lo devolvemos tal cual y sale en el panel. |
+
+> ⚠️ **Cualquier otro campo hace fallar la petición**, con `UNKNOWN_PARAMS` y la lista de los
+> que sí aceptamos. Es a propósito: si ignoráramos en silencio un `codigo` mal escrito, te
+> responderíamos 201 y tú te quedarías creyendo que elegiste el código mientras al usuario le
+> llega otro.
 
 **Respuesta correcta (201):**
 
@@ -156,9 +176,10 @@ el `code` no cambia.
 | HTTP | `code` | Qué pasó | Qué hacer |
 |---|---|---|---|
 | 401 | - | Falta la llave o no es válida | Revisar la cabecera `X-API-Key` |
-| 422 | `INVALID_PARAMS` | Falta `phone` o viene mal formado | Revisar el cuerpo de la petición |
+| 422 | `INVALID_PARAMS` | Falta `phone`, o `code` no son 6 dígitos | Revisar el cuerpo de la petición |
+| 422 | `UNKNOWN_PARAMS` | Mandaste un campo que no reconocemos | El mensaje dice cuál sobra y cuáles aceptamos. Suele ser un nombre mal escrito |
 | 422 | `INVALID_PHONE` | El número no es un celular de México | Pedirle al usuario que lo corrija |
-| 429 | `TOO_SOON` | Ya se mandó un código a ese número hace menos de 1 minuto | Esperar. La respuesta trae `retry_after` en segundos |
+| 429 | `TOO_SOON` | Ya se mandó un código a ese número hace menos de 3 minutos | Esperar. La respuesta trae `retry_after` en segundos: úsalo para el contador, no lo escribas a mano |
 | 429 | `TOO_MANY_REQUESTS` | Ese número pidió más de 10 códigos en 24 horas | Es un freno antiabuso. Al día siguiente vuelve a funcionar |
 
 ### Al verificar
@@ -197,9 +218,14 @@ panel dice qué pasó.
 
 ## Recomendaciones para tu app
 
-- **Un botón de "reenviar" con cuenta regresiva.** Nuestro freno es de 1 minuto entre códigos;
-  si tu botón se puede picar antes, el usuario va a ver un error en vez de un contador.
-- **No guardes el código en tu lado.** No lo tienes, y no lo necesitas: nosotros lo
+- **Un botón de "reenviar" con cuenta regresiva.** Nuestro freno es de **3 minutos** entre
+  códigos al mismo número. Si tu botón se puede picar antes, el usuario va a ver un error en
+  vez de un contador. Toma los segundos de `retry_after`, que viene en la respuesta del 429:
+  así tu pantalla sigue en lo correcto aunque algún día cambiemos el número.
+- **Si generas tú el código, genéralo bien.** Un generador aleatorio criptográfico
+  (`SecureRandom`, `crypto.randomInt`, `random_int`), nunca `Math.random()` ni la hora del
+  sistema. Seis dígitos predecibles no protegen nada.
+- **Si no lo generas tú, no lo guardes.** No lo tienes, y no lo necesitas: nosotros lo
   verificamos.
 - **Usa `reference`.** Cuando alguien llame diciendo que no le llegó, es lo que vuelve
   inmediata la búsqueda en el panel.
@@ -219,6 +245,10 @@ a las 3 de la mañana recibe su código a las 3 de la mañana.
 
 **¿Qué pasa si pido dos códigos seguidos al mismo número?**
 El primero deja de servir en cuanto se genera el segundo. Siempre vale el último.
+
+**¿Puedo elegir yo el código?**
+Sí. Mándalo en `code` al pedirlo. Si no lo mandas, lo generamos nosotros. El resto funciona
+igual: se guarda cifrado, no te lo devolvemos, y se verifica con la misma llamada.
 
 **¿El código llega con un botón?**
 Sí, un botón de **Copiar código**. El usuario lo toca y lo pega en tu app.

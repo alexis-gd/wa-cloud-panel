@@ -19,8 +19,16 @@ class OtpService
     /** Digitos del codigo. Lo decidio el cliente al arrancar el proyecto. */
     public const DIGITOS = 6;
 
-    /** Segundos entre dos peticiones al mismo numero. Frena el boton de "reenviar" nervioso. */
-    public const ESPERA_ENTRE_ENVIOS = 60;
+    /**
+     * Segundos entre dos peticiones al mismo numero. Frena el boton de "reenviar" nervioso.
+     *
+     * Vive en `config/otp.php` y no como constante para poder moverlo sin tocar codigo: es el
+     * numero que mas se va a querer ajustar cuando el cliente vea como se comporta su gente.
+     */
+    public static function esperaEntreEnvios(): int
+    {
+        return max(0, (int) config('otp.resend_seconds'));
+    }
 
     /** Tope por numero en 24h. Contiene un abuso sin estorbarle a nadie normal. */
     public const MAX_POR_DIA = 10;
@@ -30,7 +38,7 @@ class OtpService
      *
      * @return array{ok: bool, otp?: OtpCode, code?: string, message?: string, retry_after?: int}
      */
-    public function pedir(string $telefonoCrudo, ?string $referencia = null): array
+    public function pedir(string $telefonoCrudo, ?string $referencia = null, ?string $codigoDelCliente = null): array
     {
         $telefono = Contact::normalizePhone($telefonoCrudo);
 
@@ -53,15 +61,19 @@ class OtpService
         // no sabe cual escribir.
         $this->caducarVigentes($telefono);
 
-        $codigo = $this->generar();
+        // La app puede mandar su propio codigo (asi quedo cotizado el servicio: "recibe el
+        // numero y el codigo"). Si no lo manda, lo generamos nosotros. En los dos casos se
+        // guarda hasheado y nunca sale de vuelta.
+        $codigo = $codigoDelCliente ?? $this->generar();
 
         $otp = OtpCode::create([
-            'phone'      => $telefono,
-            'code_hash'  => Hash::make($codigo),
-            'reference'  => $referencia,
-            'status'     => 'pending',
+            'phone'       => $telefono,
+            'code_hash'   => Hash::make($codigo),
+            'code_source' => $codigoDelCliente ? 'cliente' : 'propio',
+            'reference'   => $referencia,
+            'status'      => 'pending',
             // Provisional: el reloj bueno arranca cuando el mensaje sale (`marcarEnviado`).
-            'expires_at' => now()->addMinutes(OtpCode::MINUTOS_DE_VIDA),
+            'expires_at'  => now()->addMinutes(OtpCode::MINUTOS_DE_VIDA),
         ]);
 
         SendOtpMessage::dispatch($otp->id, $codigo);
@@ -135,7 +147,7 @@ class OtpService
             return null;
         }
 
-        $faltan = self::ESPERA_ENTRE_ENVIOS - $ultimo->created_at->diffInSeconds(now());
+        $faltan = self::esperaEntreEnvios() - $ultimo->created_at->diffInSeconds(now());
 
         return $faltan > 0 ? (int) ceil($faltan) : null;
     }

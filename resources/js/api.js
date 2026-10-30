@@ -387,10 +387,20 @@ export const api = {
      * La respuesta pasa por `parseUpload`, igual que las otras subidas: es quien sabe que un
      * 413 de nginx no viene en JSON y hay que traducirlo a un mensaje que el operador entienda.
      */
-    sendConversationMedia: (contactId, file, caption) => {
+    sendConversationMedia: (contactId, file, caption, voice = false) => {
         const formData = new FormData();
 
-        formData.append('file', file);
+        // Una grabacion es un Blob sin nombre, y un Blob sin nombre llega al servidor como un
+        // campo de texto, no como archivo. El tercer argumento se lo pone. No se le pasa a un
+        // File normal: ese ya trae el suyo, y mandar `undefined` ahi lo renombraria a
+        // "undefined" (la especificacion convierte el argumento a texto si viene).
+        if (voice) {
+            formData.append('file', file, 'nota-de-voz.webm');
+            formData.append('voice', '1');
+        } else {
+            formData.append('file', file);
+        }
+
         if (caption) formData.append('caption', caption);
 
         const token = getToken();

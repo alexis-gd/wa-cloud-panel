@@ -312,7 +312,7 @@ sudo supervisorctl status  # debe mostrar RUNNING
 > linea vieja hay que editar el `.conf` y correr otra vez `reread` + `update` + `restart`:
 > `deploy.sh` reinicia al worker, pero no reescribe su configuracion.
 >
-> Para comprobarlo en caliente: pedir un codigo de prueba y mirar la pantalla **Codigos** del
+> Para comprobarlo en caliente: pedir un codigo de prueba y mirar la pantalla **Codigos OTP** del
 > panel. Si se queda en *En cola*, es esto.
 
 > **Dos relojes distintos, no confundirlos.** Supervisor mantiene vivo al *worker*, que es

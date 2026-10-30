@@ -59,8 +59,8 @@
                     <DataTable :value="filas" :loading="loading" data-key="id">
                         <template #empty>Todavía no se ha pedido ningún código.</template>
 
-                        <Column header="Pedido" style="width: 150px">
-                            <template #body="{ data }">{{ data.created_at }}</template>
+                        <Column header="Pedido" style="width: 170px">
+                            <template #body="{ data }"><span class="fecha">{{ data.created_at }}</span></template>
                         </Column>
                         <Column header="Número" style="width: 160px">
                             <template #body="{ data }">{{ data.phone }}</template>
@@ -139,11 +139,11 @@ const pages   = ref(1);
 const perPage = ref(30);
 const loading = ref(false);
 const q       = ref('');
-const estado  = ref(null);
+const estado  = ref('');
 const resumen = ref({ pedidos_hoy: 0, entregados: 0, verificados: 0, fallidos: 0, cupo_restante: null });
 
 const opcionesEstado = [
-    { label: 'Todos',       value: null },
+    { label: 'Todos',       value: '' },
     { label: 'Enviado',     value: 'sent' },
     { label: 'Verificado',  value: 'verified' },
     { label: 'Caducado',    value: 'expired' },
@@ -191,7 +191,7 @@ async function load() {
 
     const res = await api.otpLog({
         q        : q.value,
-        status   : estado.value ?? '',
+        status   : estado.value,
         page     : page.value,
         per_page : perPage.value,
     });
@@ -279,6 +279,9 @@ onMounted(load);
 .tarjeta small { color: var(--p-text-muted-color); }
 
 .table-scroll { overflow-x: auto; }
+
+/* La fecha y la hora son una sola cosa: partida en dos renglones se lee como dos datos. */
+.fecha { white-space: nowrap; }
 
 .vacio  { color: var(--p-text-muted-color); }
 .motivo { color: var(--p-red-500); font-size: .85rem; }

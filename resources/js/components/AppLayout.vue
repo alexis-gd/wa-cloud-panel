@@ -55,6 +55,10 @@
                     <i class="pi pi-file-edit" />
                     <span>Plantillas</span>
                 </RouterLink>
+                <RouterLink v-if="isAdmin()" to="/otp" class="nav-item" :class="{ active: route.path === '/otp' }" @click="sidebarOpen = false">
+                    <i class="pi pi-key" />
+                    <span>Códigos</span>
+                </RouterLink>
                 <RouterLink v-if="isAdmin() && isEnabled('feature_users')" to="/users" class="nav-item" :class="{ active: route.path === '/users' }" @click="sidebarOpen = false">
                     <i class="pi pi-user-edit" />
                     <span>Usuarios</span>
@@ -81,7 +85,7 @@
                     class="logout-btn"
                     @click="logout"
                 />
-                <span class="version">v0.46.0</span>
+                <span class="version">v0.47.0</span>
             </div>
         </aside>
 
@@ -317,6 +321,7 @@ const pageTitles = {
     '/reports/agents' : 'Reporte de agentes',
     '/campaigns'      : 'Campañas',
     '/sms-replies'    : 'Respuestas SMS',
+    '/otp'            : 'Códigos de verificación',
     '/conversations'  : 'Conversaciones',
     '/templates'      : 'Plantillas',
     '/users'          : 'Usuarios',

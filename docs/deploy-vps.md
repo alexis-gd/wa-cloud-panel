@@ -284,7 +284,7 @@ sudo nano /etc/supervisor/conf.d/wa-queue.conf
 ```ini
 [program:wa-queue]
 process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/wa-cloud-panel/artisan queue:work database --sleep=3 --tries=3 --max-time=3600
+command=php /var/www/wa-cloud-panel/artisan queue:work database --queue=otp,default --sleep=3 --tries=3 --max-time=3600
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -301,6 +301,19 @@ sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start wa-queue:*
 sudo supervisorctl status  # debe mostrar RUNNING
+```
+
+> **`--queue=otp,default` no es opcional.** Las dos colas se atienden en ese orden: primero los
+> codigos de verificacion, luego las campanas. Un codigo vive 10 minutos y no puede esperar
+> detras de 10,000 mensajes de publicidad.
+>
+> **Si el worker arranca sin esa bandera, los codigos NO salen nunca** - se quedan en la cola
+> `otp` y nadie la atiende, sin error visible. Al actualizar un servidor que ya venia con la
+> linea vieja hay que editar el `.conf` y correr otra vez `reread` + `update` + `restart`:
+> `deploy.sh` reinicia al worker, pero no reescribe su configuracion.
+>
+> Para comprobarlo en caliente: pedir un codigo de prueba y mirar la pantalla **Codigos** del
+> panel. Si se queda en *En cola*, es esto.
 
 > **Dos relojes distintos, no confundirlos.** Supervisor mantiene vivo al *worker*, que es
 > quien manda los mensajes: si el cron muere, **las campañas siguen saliendo**. El cron
@@ -311,7 +324,6 @@ sudo supervisorctl status  # debe mostrar RUNNING
 > El panel vigila el cron solo: el scheduler deja un latido cada minuto y, si lleva más de
 > 15 sin latir, sale una barra roja para admin y operador. `deploy.sh` también lo revisa al
 > final. Ver `App\Services\System\SchedulerHeartbeat`.
-```
 
 ---
 

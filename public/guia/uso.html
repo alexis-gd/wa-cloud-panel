@@ -181,8 +181,9 @@
         <li><a href="#11-bajas-contactos-que-piden-no-recibir-mas">11. Bajas: contactos que piden no recibir más</a></li>
         <li><a href="#12-control-de-envios-las-reglas-que-te-protegen">12. Control de envíos: las reglas que te protegen</a></li>
         <li><a href="#13-reportes-en-excel">13. Reportes en Excel</a></li>
-        <li><a href="#14-que-hago-si-como-reaccionar">14. ¿Qué hago si...? (cómo reaccionar)</a></li>
-        <li><a href="#15-preguntas-frecuentes">15. Preguntas frecuentes</a></li>
+        <li><a href="#14-codigos-de-verificacion-solo-admin">14. Códigos de verificación (solo admin)</a></li>
+        <li><a href="#15-que-hago-si-como-reaccionar">15. ¿Qué hago si...? (cómo reaccionar)</a></li>
+        <li><a href="#16-preguntas-frecuentes">16. Preguntas frecuentes</a></li>
       </ul>
     </nav>
     <div class="main">
@@ -310,7 +311,7 @@ A quien pidió su baja el sistema no le envía ni siquiera una prueba.</p>
 <blockquote>
 <p>⚠️ Si el semáforo está en <strong>ROJO</strong> o dice <strong>PAUSADO</strong>, NO ejecutes campañas. El sistema se
 pausó solo para proteger la cuenta. Avisa a soporte. (Ver
-<a href="#14-que-hago-si-como-reaccionar">¿Qué hago si...?</a>)</p>
+<a href="#15-que-hago-si-como-reaccionar">¿Qué hago si...?</a>)</p>
 </blockquote>
 <h3 id="que-significa-el-estado-de-cada-mensaje">Qué significa el estado de cada mensaje</h3>
 <p>En &quot;Últimos mensajes&quot; (y en el detalle de una campaña) cada mensaje tiene un estado:</p>
@@ -1382,7 +1383,62 @@ reglas (enfriamiento, pospuesto, enviado hoy). No es un error: es el sistema cui
 <p>Los dos archivos vienen en español y con la hora del Centro (CDMX), la misma que ves en el
 panel. Los puedes abrir en Excel o en Google Sheets tal cual.</p>
 <hr />
-<h2 id="14-que-hago-si-como-reaccionar">14. ¿Qué hago si...? (cómo reaccionar)</h2>
+<h2 id="14-codigos-de-verificacion-solo-admin">14. Códigos de verificación (solo admin)</h2>
+<blockquote>
+<p>ℹ️ Esta pantalla la ven <strong>admin y superadmin</strong>. Un operador o un agente no la tienen en
+el menú.</p>
+</blockquote>
+<p>La app de Prestamaz le manda a cada usuario un <strong>código de 6 dígitos</strong> por WhatsApp para que
+entre a su cuenta. Esos códigos salen por este sistema, y la pantalla <strong>Códigos</strong> es donde se
+ve qué pasó con cada uno.</p>
+<p><strong>Es una pantalla de solo mirar.</strong> Desde aquí no se manda ni se reenvía ningún código: los
+pide la app sola cuando alguien intenta entrar.</p>
+<h3 id="para-que-sirve">Para qué sirve</h3>
+<p>Cuando una persona llame diciendo <em>&quot;no me llegó mi código&quot;</em>, busca su número en esta pantalla
+y la columna <strong>Estado</strong> contesta:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Estado</th>
+<th>Qué significa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Enviado</strong></td>
+<td>Salió hacia WhatsApp. Si no lo ve, que revise su WhatsApp y que el teléfono tenga señal.</td>
+</tr>
+<tr>
+<td><strong>Verificado</strong></td>
+<td>Ya lo usó y entró a su cuenta.</td>
+</tr>
+<tr>
+<td><strong>Caducado</strong></td>
+<td>Pasaron los 10 minutos, o se equivocó 5 veces. Que pida uno nuevo desde la app.</td>
+</tr>
+<tr>
+<td><strong>No salió</strong></td>
+<td>No se pudo mandar. La columna <strong>Detalle</strong> dice por qué.</td>
+</tr>
+<tr>
+<td><strong>En cola</strong></td>
+<td>Está por salir. Si lleva ahí varios minutos, avisa a soporte.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="el-codigo-no-se-muestra-ni-a-ti">El código no se muestra, ni a ti</h3>
+<p>Es a propósito. Si el panel enseñara el código, el código dejaría de probar que la persona
+tiene su teléfono en la mano: cualquiera con el panel abierto podría entrar como ella. Lo
+único que puedes hacer es decirle que pida uno nuevo.</p>
+<h3 id="quotcupo-que-queda-hoyquot">&quot;Cupo que queda hoy&quot;</h3>
+<p>Arriba hay cuatro números. El último es el importante: <strong>WhatsApp le pone a Prestamaz un
+límite de mensajes por día, y ese límite lo comparten las campañas y los códigos.</strong></p>
+<p>El sistema le aparta una parte a los códigos para que una campaña grande no deje a los
+usuarios sin poder entrar a la app. Eso ya está resuelto solo, no hay nada que configurar.</p>
+<p>Pero si ves <strong>Cupo que queda hoy</strong> en cero y códigos marcados <strong>No salió</strong>, ya sabes qué pasó:
+se acabó el cupo del día. Al día siguiente vuelve a cero el contador.</p>
+<hr />
+<h2 id="15-que-hago-si-como-reaccionar">15. ¿Qué hago si...? (cómo reaccionar)</h2>
 <p>Guía rápida de reacción. Si algo se ve raro, busca aquí antes de asustarte.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -1461,7 +1517,7 @@ resuelva desde el panel. La barra desaparece sola en cuanto se corrige.</p>
 la cuenta de Facebook/Meta. Tú no tienes que tocar nada de eso.</p>
 </blockquote>
 <hr />
-<h2 id="15-preguntas-frecuentes">15. Preguntas frecuentes</h2>
+<h2 id="16-preguntas-frecuentes">16. Preguntas frecuentes</h2>
 <p><strong>¿Por qué no puedo enviar una campaña de WhatsApp ahorita?</strong>
 WhatsApp solo permite enviar de lunes a viernes, de 9 de la mañana a 10 de la noche, hora del
 Centro de México (la de la CDMX). El sistema lo bloquea fuera de ese horario para cuidar la

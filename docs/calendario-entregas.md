@@ -584,9 +584,9 @@ retencion de los archivos se define al final (no se implemento borrado por reten
 | M0 | Plantilla de Autenticacion a revision de Meta + pedir la SIM dedicada | [~] | Meta y el cliente |
 | M1 | Dejar de perder lo que ya entra (webhook + descarga a disco) | [x] | - |
 | M2 | Verlas en el panel: ruta autenticada, burbuja, visor | [x] | M1 |
-| M3 | Enviar imagenes desde el panel | [ ] | M1 |
-| M4 | PDF, notas de voz y video de salida | [ ] | M3 |
-| M5 | OTP: API, carril prioritario, tabla de envios | [ ] | M0 aprobada |
+| M3 | Enviar imagenes desde el panel | [x] | M1 |
+| M4 | PDF, notas de voz y video de salida | [x] | M3 |
+| M5 | OTP: API, carril prioritario, tabla de envios | [x] | M0 aprobada |
 | M6 | Numero de WhatsApp dedicado para OTP | [ ] | SIM del cliente |
 
 ### M1 - recepcion y guardado (2026-10-27)
@@ -644,9 +644,52 @@ verificacion falla.
 minutos" no hace que caduque - eso lo tiene que cumplir nuestro API. Si no coinciden, el usuario
 lee una cosa y le pasa otra.
 
-**Dato para M5 al enviar el OTP:** segun las guias de proveedores, el codigo va **dos veces** en
-el payload de envio - como parametro del BODY y otra vez en un sub-componente de boton de tipo
-`coupon_code`. Verificarlo contra la doc de Meta al llegar ahi; es no obvio y va a morder.
+**Dato para M5 al enviar el OTP - CORREGIDO contra la doc de Meta (2026-10-29):** el codigo si
+va **dos veces** en el payload ("this value must appear twice in the payload", textual), pero el
+segundo lugar **no** es `coupon_code`: es un componente `button` con **`sub_type: "url"`** e
+`index: "0"`. Meta convierte el boton `OTP` a `URL` al aprobar la plantilla. Mandarlo como
+`coupon_code` - que es lo que uno copia de una plantilla de marketing con cupon - lo rechaza.
+Implementado en `App\Services\Otp\OtpTemplate`, con dos tests que fijan la forma.
+
+### M5 - el API de OTP (2026-10-29)
+
+- [x] `POST /api/otp/send` y `POST /api/otp/verify`, con `X-API-Key` (no Sanctum: lo llama el
+  servidor de la app del cliente, y un servidor no hace login). Codigo de 6 digitos, 10 minutos
+  de vida, 5 intentos, 1 minuto entre peticiones al mismo numero y tope de 10 por numero al dia.
+- [x] El codigo se guarda **hasheado** y **nunca sale** en la respuesta del API ni en el panel.
+  Devolverlo convertiria al OTP en un adorno: con la llave del API cualquiera entraria como
+  quien quisiera, sin tocar el telefono de nadie.
+- [x] Carril prioritario: el envio va en la cola `otp`, que el worker atiende **antes** que la de
+  campanas. Requiere `--queue=otp,default` en Supervisor; documentado en `deploy-vps.md`.
+- [x] Pantalla **Codigos** en el panel (solo admin), de lectura: estado por numero, la
+  `reference` que manda la app, el motivo del fallo y el cupo que queda hoy.
+- [x] `docs/api-otp.md` + `api-otp.postman_collection.json` para el programador del cliente.
+- [ ] **Pendiente de Alexis: someter la plantilla** (`wa:crear-plantilla-otp --enviar`) y
+  sincronizarla al aprobar. Sin eso el envio devuelve 132001.
+
+**Hallazgo que cambia el alcance de M6:** el limite diario de Meta es de
+*"unique WhatsApp user phone numbers your business can deliver messages to"* fuera de la ventana
+de servicio, **sin excluir categorias**, y es **por Business Portfolio**. Entonces:
+
+1. Un OTP gasta exactamente el mismo cupo que un mensaje de publicidad.
+2. **El numero dedicado de M6 NO le da capacidad propia al OTP** - comparte el mismo techo.
+   Sirve para separar reputacion (si una campana quema el numero de marketing, el de OTP sigue
+   limpio), no para capacidad.
+
+Por eso el carril prioritario no podia ser solo "ponerse al frente de la fila": hace falta
+**apartar cupo**. `App\Services\Otp\OtpCapacity` le resta un 10% (configurable con
+`OTP_RESERVE_PERCENT`) al techo que ven las campanas, y suma las dos tablas al contar lo gastado.
+Sin esa resta, un martes de campana grande deja a los usuarios de la app del cliente sin poder
+entrar.
+
+**Por que los OTP no viven en `message_log`:** el dedup y el cooldown de campanas miran esa
+tabla por numero, sin filtrar por campana. Un codigo ahi adentro dejaria al usuario fuera de
+toda la publicidad por 30 dias, en silencio - y los usuarios de la app son tambien los
+prospectos. Tabla propia (`otp_codes`), cupo compartido.
+
+**Decisiones de Alexis (2026-10-29):** el OTP **ignora la baja de publicidad** (la baja es de
+marketing; el codigo lo pide el usuario en ese momento para entrar a su cuenta), y la reserva es
+un **porcentaje** del techo, no un numero fijo, para que se ajuste sola cuando Meta suba el tier.
 
 ### M2 - verlos en el panel (2026-10-27)
 

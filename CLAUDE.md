@@ -35,6 +35,7 @@ El cliente usará el sistema sin supervisión técnica. Cada feature debe asumir
 | [docs/checklist-produccion-cliente.md](docs/checklist-produccion-cliente.md) | Corte staging→cliente: qué cambiar (WABA/número, `.env`, horario, seeds) antes de datos reales |
 | [docs/sincronizacion-contactos.md](docs/sincronizacion-contactos.md) | Cron diario que consume el API del cliente y da de alta contactos nuevos. Config por `.env`, comandos `contactos:probar-api` y `contactos:sincronizar` |
 | [docs/api-contactados.md](docs/api-contactados.md) | API pública `GET /api/contacted` (X-API-Key): a quién contactamos en una fecha o rango. **Es lo que se le entrega al cliente**, junto con `api-contactados.postman_collection.json`. Se publica en `/doc/api-contactados.html` vía `guias:build` |
+| [docs/api-otp.md](docs/api-otp.md) | API de codigos de verificacion (OTP) por WhatsApp (X-API-Key): `POST /api/otp/send` y `POST /api/otp/verify`. **Es lo que se le entrega al cliente**, junto con `api-otp.postman_collection.json`. Se publica en `/doc/api-otp.html` via `guias:build` |
 | [docs/testing.md](docs/testing.md) | Guía PHPUnit, tipos de tests, mocks, convenciones |
 | [docs/deploy-vps.md](docs/deploy-vps.md) | Receta paso a paso: VPS Ubuntu + Nginx + SSL + Supervisor |
 | [docs/limpieza-y-seeds.md](docs/limpieza-y-seeds.md) | Seeders (`migrate:fresh --seed`) + comando `db:clean-demo` + receta para dejar prod limpio para el cliente |

@@ -36,6 +36,7 @@ import ConversationsView   from './views/ConversationsView.vue';
 import AgentReportView    from './views/AgentReportView.vue';
 import TagsView           from './views/TagsView.vue';
 import TemplatesView       from './views/TemplatesView.vue';
+import OtpView             from './views/OtpView.vue';
 import UsersView           from './views/UsersView.vue';
 import SettingsView        from './views/SettingsView.vue';
 import { initAuth, useAuth } from './auth.js';
@@ -53,6 +54,7 @@ const router = createRouter({
         { path: '/tags',          component: TagsView          },
         { path: '/reports/agents', component: AgentReportView   },
         { path: '/templates',     component: TemplatesView, meta: { role: 'admin' } },
+        { path: '/otp',       component: OtpView,    meta: { role: 'admin' } },
         { path: '/users',     component: UsersView,  meta: { role: 'admin' } },
         { path: '/settings',  component: SettingsView, meta: { role: 'superadmin' } },
     ],

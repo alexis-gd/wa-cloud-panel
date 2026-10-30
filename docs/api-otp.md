@@ -25,6 +25,38 @@ Son dos llamadas: una pide el código, la otra lo comprueba.
 
 ---
 
+## Probarlo en Postman (5 minutos)
+
+Junto a este documento viene **`api-otp.postman_collection.json`**.
+
+1. Postman → **Import** → arrastra el archivo.
+2. Clic en la colección → pestaña **Variables**:
+   - `api_key` → la llave que te dieron
+   - `telefono` → un celular de 10 dígitos que **tenga WhatsApp** y al que puedas ver los mensajes
+3. **Save** (Ctrl+S).
+
+Las de la carpeta **Errores** se pueden correr de golpe: fallan a propósito y sus pruebas
+verifican justo eso. Verde = el API rechaza lo que debe rechazar.
+
+Las dos principales van **a mano y en orden**, porque entre una y otra tienes que leer tu
+WhatsApp:
+
+1. **"1. Pedir un codigo"** → debe dar 201. Una de sus pruebas comprueba que el código **no**
+   viene en la respuesta.
+2. Lee el código que llegó → ponlo en la variable `codigo` → **Save**.
+3. **"2. Verificar el codigo"** → debe dar 200 con `verified: true`.
+
+> ⚠️ **Postman guarda dos columnas por variable: *Initial value* y *Current value*. La que se
+> manda es Current.** Si escribes el código en Initial, la petición sale con el `000000` del
+> default y responde `INVALID_CODE` - y cada intento fallido gasta uno de los 5. La colección
+> te detiene antes de mandarlo si detecta que la variable sigue en ceros.
+
+> ⚠️ **No corras la colección completa de un jalón.** Hay un freno de 1 minuto entre códigos al
+> mismo número, así que el segundo envío respondería `429 TOO_SOON`. Es correcto, pero sale en
+> rojo y parece un error.
+
+---
+
 ## Autenticación
 
 Todas las llamadas llevan la cabecera **`X-API-Key`** con la llave que se te entregó. Es la

@@ -1,21 +1,49 @@
 {
   "info": {
     "name": "Prestamaz - API de codigos de verificacion (OTP)",
-    "description": "Manda un codigo de un solo uso al WhatsApp del usuario y lo verifica.\n\nANTES DE EMPEZAR:\n1. Abre la pestana 'Variables' de esta coleccion.\n2. Pon tu llave en `api_key` (Prestamaz te la entrega por separado).\n3. En `telefono` pon un celular de 10 digitos que TENGA WhatsApp y al que puedas ver los mensajes.\n4. Guarda (Ctrl+S).\n\nCOMO CORRERLA:\n- Las peticiones de 'Errores' se pueden correr de golpe: fallan a proposito y sus pruebas verifican justo eso.\n- Las de '1. Pedir' y '2. Verificar' van A MANO y en ese orden: entre una y otra tienes que leer el codigo que te llego por WhatsApp y ponerlo en la variable `codigo`.\n\nOJO: hay un freno de 1 minuto entre codigos al mismo numero. Si corres la coleccion completa de un jalon, el segundo envio va a responder 429 TOO_SOON - y eso es correcto.\n\nDocumentacion completa: api-otp.md",
+    "description": "Manda un codigo de un solo uso al WhatsApp del usuario y lo verifica.\n\nANTES DE EMPEZAR:\n1. Abre la pestana 'Variables' de esta coleccion.\n2. Pon tu llave en `api_key` (Prestamaz te la entrega por separado).\n3. En `telefono` pon un celular de 10 digitos que TENGA WhatsApp y al que puedas ver los mensajes.\n4. Guarda (Ctrl+S).\n\nCOMO CORRERLA:\n- Las peticiones de 'Errores' se pueden correr de golpe: fallan a proposito y sus pruebas verifican justo eso.\n- Las de '1. Pedir' y '2. Verificar' van A MANO y en ese orden: entre una y otra tienes que leer el codigo que te llego por WhatsApp y ponerlo en la variable `codigo`.\n\nOJO CON LAS VARIABLES: Postman guarda dos columnas, 'Initial value' y 'Current value'. La que se MANDA es Current. Si escribes el codigo en Initial, la peticion sale con los ceros del default y responde INVALID_CODE - y cada intento fallido gasta uno de los 5.\n\nOJO: hay un freno de 1 minuto entre codigos al mismo numero. Si corres la coleccion completa de un jalon, el segundo envio va a responder 429 TOO_SOON - y eso es correcto.\n\nDocumentacion completa: api-otp.md",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url", "value": "https://sender.prestamaz.site", "type": "string" },
-    { "key": "api_key", "value": "PEGA_AQUI_TU_LLAVE", "type": "string" },
-    { "key": "telefono", "value": "9231311146", "type": "string" },
-    { "key": "codigo", "value": "000000", "type": "string" }
+    {
+      "key": "base_url",
+      "value": "https://sender.prestamaz.site",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "PEGA_AQUI_TU_LLAVE",
+      "type": "string"
+    },
+    {
+      "key": "telefono",
+      "value": "9231311146",
+      "type": "string"
+    },
+    {
+      "key": "codigo",
+      "value": "000000",
+      "type": "string"
+    }
   ],
   "auth": {
     "type": "apikey",
     "apikey": [
-      { "key": "key", "value": "X-API-Key", "type": "string" },
-      { "key": "value", "value": "{{api_key}}", "type": "string" },
-      { "key": "in", "value": "header", "type": "string" }
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
     ]
   },
   "item": [
@@ -23,8 +51,23 @@
       "name": "1. Pedir un codigo",
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "url": { "raw": "{{base_url}}/api/otp/send", "host": ["{{base_url}}"], "path": ["api", "otp", "send"] },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/otp/send",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "otp",
+            "send"
+          ]
+        },
         "body": {
           "mode": "raw",
           "raw": "{\n  \"phone\": \"{{telefono}}\",\n  \"reference\": \"postman-prueba\"\n}"
@@ -57,8 +100,23 @@
       "name": "2. Verificar el codigo",
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "url": { "raw": "{{base_url}}/api/otp/verify", "host": ["{{base_url}}"], "path": ["api", "otp", "verify"] },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/otp/verify",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "otp",
+            "verify"
+          ]
+        },
         "body": {
           "mode": "raw",
           "raw": "{\n  \"phone\": \"{{telefono}}\",\n  \"code\": \"{{codigo}}\"\n}"
@@ -67,10 +125,34 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const codigo = pm.collectionVariables.get('codigo');",
+              "",
+              "// El default son ceros a proposito. Si sigue ahi, nadie puso el codigo que llego",
+              "// por WhatsApp - y mandarlo gastaria uno de los 5 intentos para nada.",
+              "if (!codigo || codigo === '000000') {",
+              "    throw new Error(",
+              "        'Falta el codigo. Lee el que te llego por WhatsApp y ponlo en la variable ' +",
+              "        '`codigo` de la coleccion, en la columna CURRENT VALUE (no Initial value), ' +",
+              "        'y guarda con Ctrl+S.'",
+              "    );",
+              "}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
+              "if (pm.response.code === 422 && pm.response.json().code === 'INVALID_CODE') {",
+              "    console.log('El codigo no coincidio. Revisa que la variable `codigo` tenga, en CURRENT ' +",
+              "                'VALUE, el que te llego por WhatsApp. Te quedan intentos, pero son 5 en total.');",
+              "}",
+              "",
               "pm.test('Responde 200', () => pm.response.to.have.status(200));",
               "pm.test('Quedo verificado', () => pm.expect(pm.response.json().data.verified).to.eql(true));"
             ]
@@ -85,18 +167,40 @@
         {
           "name": "Sin llave -> 401",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/api/otp/send", "host": ["{{base_url}}"], "path": ["api", "otp", "send"] },
-            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{telefono}}\"\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/otp/send",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "otp",
+                "send"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{telefono}}\"\n}"
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
-                "exec": ["pm.test('Responde 401', () => pm.response.to.have.status(401));"]
+                "exec": [
+                  "pm.test('Responde 401', () => pm.response.to.have.status(401));"
+                ]
               }
             }
           ]
@@ -105,9 +209,27 @@
           "name": "Numero invalido -> INVALID_PHONE",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/api/otp/send", "host": ["{{base_url}}"], "path": ["api", "otp", "send"] },
-            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"123\"\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/otp/send",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "otp",
+                "send"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"123\"\n}"
+            }
           },
           "event": [
             {
@@ -126,9 +248,27 @@
           "name": "Sin telefono -> INVALID_PARAMS",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/api/otp/send", "host": ["{{base_url}}"], "path": ["api", "otp", "send"] },
-            "body": { "mode": "raw", "raw": "{}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/otp/send",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "otp",
+                "send"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
           },
           "event": [
             {
@@ -151,9 +291,27 @@
           "name": "Codigo de 3 digitos -> INVALID_PARAMS",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/api/otp/verify", "host": ["{{base_url}}"], "path": ["api", "otp", "verify"] },
-            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{telefono}}\",\n  \"code\": \"123\"\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/otp/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "otp",
+                "verify"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{telefono}}\",\n  \"code\": \"123\"\n}"
+            }
           },
           "event": [
             {
@@ -172,9 +330,27 @@
           "name": "Verificar un numero sin codigo pendiente -> NOT_FOUND",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/api/otp/verify", "host": ["{{base_url}}"], "path": ["api", "otp", "verify"] },
-            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"5500000000\",\n  \"code\": \"123456\"\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/otp/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "otp",
+                "verify"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"5500000000\",\n  \"code\": \"123456\"\n}"
+            }
           },
           "event": [
             {

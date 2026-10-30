@@ -10,6 +10,8 @@ use App\Models\MessageLog;
 use App\Models\SmsInboundMessage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\OtpCode;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class DatabaseMaintenanceTest extends TestCase
@@ -69,6 +71,14 @@ class DatabaseMaintenanceTest extends TestCase
         ]);
         AppNotification::create(['type' => 'delivery_failed', 'title' => 'x', 'body' => 'y']);
 
+        // Los codigos de verificacion tambien son transaccionales, y llevan telefonos de
+        // personas. Quedaron fuera al construirse y este comando es la receta para dejar
+        // produccion limpia antes de entregar.
+        OtpCode::create([
+            'phone' => $contact->phone, 'code_hash' => Hash::make('123456'),
+            'status' => 'sent', 'expires_at' => now()->addMinutes(10),
+        ]);
+
         $this->artisan('db:clean-demo --force')->assertExitCode(0);
 
         // Transaccional: vacío
@@ -77,6 +87,7 @@ class DatabaseMaintenanceTest extends TestCase
         $this->assertDatabaseCount('sms_inbound_messages', 0);
         $this->assertDatabaseCount('app_notifications', 0);
         $this->assertDatabaseCount('campaigns', 0);
+        $this->assertDatabaseCount('otp_codes', 0);
 
         // Base: intacto
         $this->assertDatabaseHas('users', ['id' => $user->id]);

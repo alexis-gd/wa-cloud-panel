@@ -20,11 +20,16 @@ class CleanDemoData extends Command
         {--contacts : Borrar TAMBIÉN todos los contactos (y sus tags). Por default los conserva.}
         {--users : Borrar TAMBIÉN todos los usuarios. Úsalo junto con "db:seed --class=UserSeeder" para dejar solo los usuarios base.}';
 
-    protected $description = 'Borra datos de prueba (conversaciones, respuestas SMS, campañas, logs, notificaciones, cola) sin tocar usuarios, números, plantillas ni configuración. Con --contacts borra contactos; con --users borra usuarios (para reseedearlos limpios).';
+    protected $description = 'Borra datos de prueba (conversaciones, respuestas SMS, campañas, codigos de verificacion, logs, notificaciones, cola) sin tocar usuarios, números, plantillas ni configuración. Con --contacts borra contactos; con --users borra usuarios (para reseedearlos limpios).';
 
     // Orden importa: primero los hijos (FK), luego las campañas.
     private const TABLES = [
         'message_log',
+        // Los codigos de verificacion son datos transaccionales como los demas, y llevan
+        // telefonos de personas. Quedaron fuera al construirlos y este comando es la receta
+        // para dejar produccion limpia antes de entregar: sin esta linea, las pruebas del API
+        // se quedaban adentro.
+        'otp_codes',
         'conversations',
         'sms_inbound_messages',
         'conversation_assignments',

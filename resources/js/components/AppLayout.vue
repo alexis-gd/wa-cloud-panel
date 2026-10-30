@@ -56,7 +56,7 @@
                     <span>Plantillas</span>
                 </RouterLink>
                 <RouterLink v-if="isAdmin()" to="/otp" class="nav-item" :class="{ active: route.path === '/otp' }" @click="sidebarOpen = false">
-                    <i class="pi pi-lock" />
+                    <i class="pi pi-key" />
                     <span>Códigos OTP</span>
                 </RouterLink>
                 <RouterLink v-if="isAdmin() && isEnabled('feature_users')" to="/users" class="nav-item" :class="{ active: route.path === '/users' }" @click="sidebarOpen = false">
@@ -400,7 +400,7 @@ const helpContent = {
     '/otp': {
         title: 'Códigos OTP',
         items: [
-            { icon: 'pi-lock',         label: 'Qué es',       text: 'Los códigos de un solo uso que la app manda al WhatsApp del usuario para que entre a su cuenta. Los pide la app sola por el API; esta pantalla es de solo lectura y no manda ni reenvía ninguno.' },
+            { icon: 'pi-key',          label: 'Qué es',       text: 'Los códigos de un solo uso que la app manda al WhatsApp del usuario para que entre a su cuenta. Los pide la app sola por el API; esta pantalla es de solo lectura y no manda ni reenvía ninguno.' },
             { icon: 'pi-question-circle', label: 'Para qué sirve', text: 'Para contestar "no me llegó mi código". Busca el número de la persona y la columna Estado te dice qué pasó.' },
             { icon: 'pi-circle-fill',  label: 'Estado',        text: 'Habla del CÓDIGO: Enviado (salió), Verificado (lo usó y entró), Caducado (pasaron los 10 minutos o falló 5 veces), No salió (no se pudo mandar, el motivo va en Detalle), En cola (está por salir).' },
             { icon: 'pi-send',         label: 'Entrega',       text: 'Habla del MENSAJE, que es otra cosa: Entregado llegó al teléfono, Leído lo abrió, Rebotó no se pudo entregar. "Sin aviso" NO quiere decir que no llegó: quiere decir que WhatsApp todavía no dice nada. Un código Entregado y nunca Verificado es normal: le llegó y no lo usó.' },

@@ -324,6 +324,69 @@ class SettingsController extends Controller
     }
 
     /**
+     * GET /api/settings/otp-phone-number
+     *
+     * Por que numero salen los codigos de verificacion, y que opciones hay.
+     *
+     * Vacio = automatico: sale por el primer numero activo, que es como funciona desde el
+     * primer dia. Elegir uno dedicado separa la REPUTACION, no la capacidad: el limite diario
+     * de Meta es por cuenta y lo comparten todos los numeros. Lo que se gana es que si una
+     * campana quema el numero de publicidad, el de los codigos sigue limpio.
+     */
+    public function getOtpPhoneNumber(): JsonResponse
+    {
+        $elegido = Setting::get('otp_phone_number_id');
+
+        return response()->json([
+            'status' => 'ok',
+            'data'   => [
+                'otp_phone_number_id' => $elegido ? (int) $elegido : null,
+                'options' => PhoneNumber::where('is_active', true)
+                    ->whereNotNull('token')
+                    ->orderBy('id')
+                    ->get(['id', 'display_name'])
+                    ->map(fn (PhoneNumber $n) => [
+                        'id'    => $n->id,
+                        // El Phone ID de Meta NO se expone al frontend (regla de seguridad):
+                        // el operador elige por el nombre que le pusimos al numero.
+                        'label' => $n->display_name ?: "Numero {$n->id}",
+                    ]),
+            ],
+        ]);
+    }
+
+    /**
+     * PUT /api/settings/otp-phone-number
+     * Body: { "otp_phone_number_id": 3 }  ·  null vuelve a automatico.
+     */
+    public function updateOtpPhoneNumber(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'otp_phone_number_id' => 'nullable|integer|exists:phone_numbers,id',
+        ]);
+
+        $id = $data['otp_phone_number_id'] ?? null;
+
+        if ($id !== null) {
+            $numero = PhoneNumber::find($id);
+
+            // Un numero apagado o sin token acepta la eleccion y luego no manda nada: el job
+            // caeria al general y nadie entenderia por que. Mejor rechazarlo aqui.
+            if (! $numero->is_active || ! $numero->token) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Ese número no está activo o no tiene token. Verifícalo antes de asignarlo a los códigos.',
+                    'code'    => 'PHONE_NOT_USABLE',
+                ], 422);
+            }
+        }
+
+        Setting::set('otp_phone_number_id', $id === null ? '' : (string) $id);
+
+        return response()->json(['status' => 'ok', 'data' => ['otp_phone_number_id' => $id]]);
+    }
+
+    /**
      * GET /api/settings/sms-webhook-health
      * Muestra cuándo llegó el último evento del webhook SMS (delivered/received/etc).
      * Si no llega hace rato, el gateway dejó de entregar eventos (revisar teléfono/gateway).

@@ -19,8 +19,16 @@ class OtpService
     /** Digitos del codigo. Lo decidio el cliente al arrancar el proyecto. */
     public const DIGITOS = 6;
 
-    /** Segundos entre dos peticiones al mismo numero. Frena el boton de "reenviar" nervioso. */
-    public const ESPERA_ENTRE_ENVIOS = 60;
+    /**
+     * Segundos entre dos peticiones al mismo numero. Frena el boton de "reenviar" nervioso.
+     *
+     * Vive en `config/otp.php` y no como constante para poder moverlo sin tocar codigo: es el
+     * numero que mas se va a querer ajustar cuando el cliente vea como se comporta su gente.
+     */
+    public static function esperaEntreEnvios(): int
+    {
+        return max(0, (int) config('otp.resend_seconds'));
+    }
 
     /** Tope por numero en 24h. Contiene un abuso sin estorbarle a nadie normal. */
     public const MAX_POR_DIA = 10;
@@ -139,7 +147,7 @@ class OtpService
             return null;
         }
 
-        $faltan = self::ESPERA_ENTRE_ENVIOS - $ultimo->created_at->diffInSeconds(now());
+        $faltan = self::esperaEntreEnvios() - $ultimo->created_at->diffInSeconds(now());
 
         return $faltan > 0 ? (int) ceil($faltan) : null;
     }

@@ -138,6 +138,32 @@ class OtpApiTest extends TestCase
         $this->assertIsInt($res->json('retry_after'));
     }
 
+    /**
+     * La espera sale de la configuracion, no de una constante: es el numero que mas se va a
+     * querer mover cuando el cliente vea como se comporta su gente.
+     */
+    public function test_la_espera_entre_codigos_se_puede_configurar(): void
+    {
+        config(['otp.resend_seconds' => 180]);
+
+        $this->pedir()->assertStatus(201);
+
+        $res = $this->pedir()->assertStatus(429);
+
+        // Pide justo despues, asi que le faltan casi los 180 completos.
+        $this->assertGreaterThan(170, $res->json('retry_after'));
+        $this->assertLessThanOrEqual(180, $res->json('retry_after'));
+    }
+
+    /** En cero no frena nada: util para pruebas, nunca para produccion. */
+    public function test_en_cero_no_hay_espera(): void
+    {
+        config(['otp.resend_seconds' => 0]);
+
+        $this->pedir()->assertStatus(201);
+        $this->pedir()->assertStatus(201);
+    }
+
     public function test_corta_al_numero_que_pide_demasiados_en_un_dia(): void
     {
         for ($i = 0; $i < OtpService::MAX_POR_DIA; $i++) {

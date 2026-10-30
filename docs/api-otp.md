@@ -55,7 +55,7 @@ WhatsApp:
 > default y responde `INVALID_CODE` - y cada intento fallido gasta uno de los 5. La colección
 > te detiene antes de mandarlo si detecta que la variable sigue en ceros.
 
-> ⚠️ **No corras la colección completa de un jalón.** Hay un freno de 1 minuto entre códigos al
+> ⚠️ **No corras la colección completa de un jalón.** Hay un freno de 3 minutos entre códigos al
 > mismo número, así que el segundo envío respondería `429 TOO_SOON`. Es correcto, pero sale en
 > rojo y parece un error.
 
@@ -179,7 +179,7 @@ el `code` no cambia.
 | 422 | `INVALID_PARAMS` | Falta `phone`, o `code` no son 6 dígitos | Revisar el cuerpo de la petición |
 | 422 | `UNKNOWN_PARAMS` | Mandaste un campo que no reconocemos | El mensaje dice cuál sobra y cuáles aceptamos. Suele ser un nombre mal escrito |
 | 422 | `INVALID_PHONE` | El número no es un celular de México | Pedirle al usuario que lo corrija |
-| 429 | `TOO_SOON` | Ya se mandó un código a ese número hace menos de 1 minuto | Esperar. La respuesta trae `retry_after` en segundos |
+| 429 | `TOO_SOON` | Ya se mandó un código a ese número hace menos de 3 minutos | Esperar. La respuesta trae `retry_after` en segundos: úsalo para el contador, no lo escribas a mano |
 | 429 | `TOO_MANY_REQUESTS` | Ese número pidió más de 10 códigos en 24 horas | Es un freno antiabuso. Al día siguiente vuelve a funcionar |
 
 ### Al verificar
@@ -218,8 +218,10 @@ panel dice qué pasó.
 
 ## Recomendaciones para tu app
 
-- **Un botón de "reenviar" con cuenta regresiva.** Nuestro freno es de 1 minuto entre códigos;
-  si tu botón se puede picar antes, el usuario va a ver un error en vez de un contador.
+- **Un botón de "reenviar" con cuenta regresiva.** Nuestro freno es de **3 minutos** entre
+  códigos al mismo número. Si tu botón se puede picar antes, el usuario va a ver un error en
+  vez de un contador. Toma los segundos de `retry_after`, que viene en la respuesta del 429:
+  así tu pantalla sigue en lo correcto aunque algún día cambiemos el número.
 - **Si generas tú el código, genéralo bien.** Un generador aleatorio criptográfico
   (`SecureRandom`, `crypto.randomInt`, `random_int`), nunca `Math.random()` ni la hora del
   sistema. Seis dígitos predecibles no protegen nada.

@@ -7,6 +7,17 @@ return [
     'language' => env('OTP_LANGUAGE', 'es_MX'),
 
     /*
+     * Segundos que hay que esperar entre dos codigos al MISMO numero.
+     *
+     * Frena el boton de "reenviar" nervioso y encarece el abuso. El estandar de la industria
+     * ronda los 30-60 segundos (es lo que hay detras de los contadores de "reenviar en 0:45");
+     * aqui va mas conservador por decision del cliente. Subirlo protege mas, pero si un mensaje
+     * tarda, el usuario se queda esperando sin poder hacer nada: la app deberia enseñarle la
+     * cuenta regresiva en vez de dejarlo picar el boton.
+     */
+    'resend_seconds' => (int) env('OTP_RESEND_SECONDS', 180),
+
+    /*
      * Porcentaje del techo diario de Meta que se le aparta al OTP.
      *
      * El limite de Meta es por cuenta y no distingue categorias: una campana grande se puede

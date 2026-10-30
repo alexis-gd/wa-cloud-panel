@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Prestamaz - API de codigos de verificacion (OTP)",
-    "description": "Manda un codigo de un solo uso al WhatsApp del usuario y lo verifica.\n\nANTES DE EMPEZAR:\n1. Abre la pestana 'Variables' de esta coleccion.\n2. Pon tu llave en `api_key` (Prestamaz te la entrega por separado).\n3. En `telefono` pon un celular de 10 digitos que TENGA WhatsApp y al que puedas ver los mensajes.\n4. Guarda (Ctrl+S).\n\nCOMO CORRERLA:\n- Las peticiones de 'Errores' se pueden correr de golpe: fallan a proposito y sus pruebas verifican justo eso.\n- Las de '1. Pedir' y '2. Verificar' van A MANO y en ese orden: entre una y otra tienes que leer el codigo que te llego por WhatsApp y ponerlo en la variable `codigo`.\n\nOJO CON LAS VARIABLES: Postman guarda dos columnas, 'Initial value' y 'Current value'. La que se MANDA es Current. Si escribes el codigo en Initial, la peticion sale con los ceros del default y responde INVALID_CODE - y cada intento fallido gasta uno de los 5.\n\nOJO: hay un freno de 1 minuto entre codigos al mismo numero. Si corres la coleccion completa de un jalon, el segundo envio va a responder 429 TOO_SOON - y eso es correcto.\n\nEl codigo lo puedes generar tu (mandalo en `code`) o dejar que lo generemos nosotros (no mandes `code`). La peticion '1b' muestra la primera forma.\n\nDocumentacion completa: api-otp.md",
+    "description": "Manda un codigo de un solo uso al WhatsApp del usuario y lo verifica.\n\nANTES DE EMPEZAR:\n1. Abre la pestana 'Variables' de esta coleccion.\n2. Pon tu llave en `api_key` (Prestamaz te la entrega por separado).\n3. En `telefono` pon un celular de 10 digitos que TENGA WhatsApp y al que puedas ver los mensajes.\n4. Guarda (Ctrl+S).\n\nCOMO CORRERLA:\n- Las peticiones de 'Errores' se pueden correr de golpe: fallan a proposito y sus pruebas verifican justo eso.\n- Las de '1. Pedir' y '2. Verificar' van A MANO y en ese orden: entre una y otra tienes que leer el codigo que te llego por WhatsApp y ponerlo en la variable `codigo`.\n\nOJO CON LAS VARIABLES: Postman guarda dos columnas, 'Initial value' y 'Current value'. La que se MANDA es Current. Si escribes el codigo en Initial, la peticion sale con los ceros del default y responde INVALID_CODE - y cada intento fallido gasta uno de los 5.\n\nOJO: hay un freno de 3 minutos entre codigos al mismo numero. Si corres la coleccion completa de un jalon, el segundo envio va a responder 429 TOO_SOON - y eso es correcto.\n\nEl codigo lo puedes generar tu (mandalo en `code`) o dejar que lo generemos nosotros (no mandes `code`). La peticion '1b' muestra la primera forma.\n\nDocumentacion completa: api-otp.md",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -121,7 +121,7 @@
           "mode": "raw",
           "raw": "{\n  \"phone\": \"{{telefono}}\",\n  \"code\": \"{{codigo}}\",\n  \"reference\": \"postman-codigo-propio\"\n}"
         },
-        "description": "Si tu sistema ya genera el codigo, mandalo en `code` y ese es el que recibe el usuario. Pon el que quieras en la variable `codigo` ANTES de correr esta (6 digitos, columna CURRENT VALUE).\n\nOJO: hay un freno de 1 minuto entre codigos al mismo numero."
+        "description": "Si tu sistema ya genera el codigo, mandalo en `code` y ese es el que recibe el usuario. Pon el que quieras en la variable `codigo` ANTES de correr esta (6 digitos, columna CURRENT VALUE).\n\nOJO: hay un freno de 3 minutos entre codigos al mismo numero."
       },
       "event": [
         {

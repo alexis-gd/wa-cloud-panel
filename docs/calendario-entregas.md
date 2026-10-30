@@ -581,7 +581,7 @@ retencion de los archivos se define al final (no se implemento borrado por reten
 
 | # | Entrega | Estado | Depende de |
 |---|---|---|---|
-| M0 | Plantilla de Autenticacion a revision de Meta + pedir la SIM dedicada | [~] | Meta y el cliente |
+| M0 | Plantilla de Autenticacion a revision de Meta + pedir la SIM dedicada | [~] | Plantilla APROBADA; falta la SIM del cliente |
 | M1 | Dejar de perder lo que ya entra (webhook + descarga a disco) | [x] | - |
 | M2 | Verlas en el panel: ruta autenticada, burbuja, visor | [x] | M1 |
 | M3 | Enviar imagenes desde el panel | [x] | M1 |
@@ -621,7 +621,8 @@ Meta revisa mientras se construye M3/M4; dejada para M5, el OTP se para en seco.
   `/{phone_number_id}/messages` y los endpoints de administracion cuelgan de la WABA. La regla
   de seguridad es que todo el HTTP a Meta pase por el cliente, no que haya un solo metodo.
 - [x] Documentado en `guia-meta.md` seccion 3.
-- [ ] **Pendiente de Alexis: correrlo con `--enviar`.** Luego `wa:sync-templates` cuando aprueben.
+- [x] **Sometida y APROBADA por Meta** (verificado 2026-10-29 con `wa:sync-templates` contra la
+  WABA del cliente: `prestamaz_otp_v1: approved`). Ya se puede enviar.
 - [ ] **Pendiente del cliente: la SIM dedicada** para el numero de OTP (M6).
 
 **Hallazgo que simplifica todo:** el texto de una plantilla de **Autenticacion** es **fijo**, lo
@@ -664,8 +665,9 @@ Implementado en `App\Services\Otp\OtpTemplate`, con dos tests que fijan la forma
 - [x] Pantalla **Codigos** en el panel (solo admin), de lectura: estado por numero, la
   `reference` que manda la app, el motivo del fallo y el cupo que queda hoy.
 - [x] `docs/api-otp.md` + `api-otp.postman_collection.json` para el programador del cliente.
-- [ ] **Pendiente de Alexis: someter la plantilla** (`wa:crear-plantilla-otp --enviar`) y
-  sincronizarla al aprobar. Sin eso el envio devuelve 132001.
+- [x] Plantilla `prestamaz_otp_v1` **aprobada** en la WABA del cliente (verificado 2026-10-29).
+  El nombre vive en `config/otp.php` (`OTP_TEMPLATE`); si alguna vez se crea otra, hay que
+  empatar las dos o el envio devuelve 132001.
 
 **Hallazgo que cambia el alcance de M6:** el limite diario de Meta es de
 *"unique WhatsApp user phone numbers your business can deliver messages to"* fuera de la ventana
